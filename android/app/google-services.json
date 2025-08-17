@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1091603304793",
+    "project_id": "com-naya",
+    "storage_bucket": "com-naya.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1091603304793:android:564279ed8c437427dfbc48",
+        "android_client_info": {
+          "package_name": "com.naya.bundle"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1091603304793-iu6dncrat784rbjtctumlu3ju5uh0rvi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.naya.bundle",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "1091603304793-6tbfa41b82jc1tt2kqqeo8f018mtr3ra.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDeg5rjpssjOBHl68U8Eoog4B69yw5Csh0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1091603304793-6tbfa41b82jc1tt2kqqeo8f018mtr3ra.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1091603304793-i8bqq3ruv5j85j7u04ffsh3bb9r7kisr.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.naya.bundle"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

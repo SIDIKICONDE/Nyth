@@ -7,6 +7,8 @@
 
 import { NewAppScreen } from '@react-native/new-app-screen';
 import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import { useEffect } from 'react';
+import messaging from '@react-native-firebase/messaging';
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -14,6 +16,18 @@ import {
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await messaging().requestPermission();
+        const token = await messaging().getToken();
+        console.log('FCM token (iOS):', token);
+      } catch (e) {
+        console.warn('Firebase Messaging init error:', e);
+      }
+    })();
+  }, []);
 
   return (
     <SafeAreaProvider>

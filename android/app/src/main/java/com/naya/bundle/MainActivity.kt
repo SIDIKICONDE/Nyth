@@ -1,4 +1,4 @@
-package com.nyth
+package com.naya.bundle
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
