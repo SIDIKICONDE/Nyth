@@ -1,0 +1,20 @@
+{
+  "subscription": {
+    "chooseYourPlan": "Choisissez Votre Plan",
+    "current": "Plan Actuel",
+    "disclaimer": "Les prix peuvent varier selon la région. Les abonnements se renouvellent automatiquement sauf annulation.",
+    "free": "Gratuit",
+    "generationsPerDay": "{{count}} générations par jour",
+    "generationsPerMonth": "{{count}} générations par mois",
+    "managePlan": "Gérer l'Abonnement",
+    "ownKeysMode": "Mode Clés Personnelles",
+    "period": {
+      "month": "/mois"
+    },
+    "popular": "Le Plus Populaire",
+    "selectPlan": "Sélectionner le Plan",
+    "subtitle": "Sélectionnez le plan qui correspond le mieux à vos besoins",
+    "title": "Plans d'Abonnement",
+    "unlimited": "Illimité"
+  }
+}

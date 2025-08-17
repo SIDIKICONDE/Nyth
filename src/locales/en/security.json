@@ -1,0 +1,166 @@
+{
+  "biometric": {
+    "accessDenied": {
+      "message": "Authentication required to access AI settings",
+      "title": "🔒 Access Denied"
+    },
+    "apiKeys": "Authenticate to access API keys",
+    "authError": "Authentication error",
+    "authValidity": "Authentication valid for 5 minutes",
+    "authenticating": "Authenticating...",
+    "defaultPrompt": "Authenticate to continue",
+    "enablePrompt": "Authenticate to enable biometric protection",
+    "fallback": "Use code",
+    "noApiKeys": {
+      "configure": "Configure",
+      "message": "You must first configure at least one API key before enabling biometric protection.",
+      "title": "🔑 No API Keys",
+      "warning": "⚠️ No API key configured",
+      "warningMessage": "Configure at least one API key before enabling biometric protection."
+    },
+    "notEnrolled": {
+      "message": "Please set up Face ID/Touch ID in your device settings.",
+      "title": "Biometric Not Configured"
+    },
+    "notSupported": "Biometric authentication not supported on this device",
+    "notSupportedDesc": "Your device doesn't support biometric authentication (Face ID/Touch ID/Fingerprint)",
+    "protection": "Biometric Protection",
+    "protectionDesc": "Protect API keys with Face ID/Touch ID",
+    "requireForAccess": "When using",
+    "requireForAccessDesc": "Require authentication to use a key",
+    "requireForApiKeys": "API Keys",
+    "requireForApiKeysDesc": "Protect access to API keys",
+    "requireForSave": "When saving",
+    "requireForSaveDesc": "Require authentication to save a key",
+    "requireForSettings": "AI Settings",
+    "requireForSettingsDesc": "Secure access to settings",
+    "securityInfo": "Your biometric data remains on your device and is never shared.",
+    "settings": "Authenticate to modify settings",
+    "settingsAccess": "Authenticate to access AI settings",
+    "setupRequired": "Configuration required",
+    "setupRequiredDesc": "To use this feature, configure Face ID or Touch ID in Settings > Face ID & Passcode"
+  },
+  "permissions": {
+    "android": {
+      "askLater": "Ask Later",
+      "camera": {
+        "message": "This app needs camera access to record videos",
+        "title": "Camera Permission"
+      },
+      "cancel": "Cancel",
+      "microphone": {
+        "message": "This app needs microphone access to record audio",
+        "title": "Microphone Permission"
+      },
+      "ok": "OK"
+    },
+    "authorizeAll": "Authorize all permissions",
+    "card": {
+      "authorize": "Authorize",
+      "retry": "Retry"
+    },
+    "continue": "Continue",
+    "continueWithout": "Continue without permissions",
+    "description": "We will request access to your camera, microphone, and storage for an optimal experience.",
+    "error": {
+      "continueLater": "You can continue and grant permissions later in the app settings.",
+      "message": "A problem occurred while checking permissions.",
+      "note": "You can still use the app with limited features.",
+      "refreshMessage": "Unable to check permissions. You can continue and grant them later.",
+      "title": "Permission Error"
+    },
+    "fallback": {
+      "continue": "Continue",
+      "grantLater": "You can continue and grant them later in the settings.",
+      "needPermissions": "The app needs permissions to function properly."
+    },
+    "header": {
+      "recheck": "Recheck permissions",
+      "subtitle": "To use all features of CamPrompt AI",
+      "title": "Required Permissions"
+    },
+    "info": {
+      "dataStaysLocal": "✅ All data stays on your device",
+      "needAccess": "📱 CamPrompt AI needs access to certain features of your device to function properly.",
+      "requiredNote": "* Required permissions for basic features",
+      "troubleTip": "💡 If you encounter issues, you can always grant permissions later in your phone's Settings"
+    },
+    "logs": {
+      "cameraPermissionUpdate": "📹 Camera permission update:",
+      "cameraStateBeforeRefresh": "📹 Camera state before refresh:",
+      "cameraUpdateError": "❌ Error updating camera permission:",
+      "checkingPermissionsError": "❌ Error checking permissions:",
+      "fallbackContinue": "🚨 Fallback interface - Continue",
+      "forceRefreshPermissions": "🔄 Forcing refresh of permissions...",
+      "initializationError": "❌ Initialization error:",
+      "initializingPermissions": "🔄 Initializing permissions...",
+      "refreshError": "❌ Error during refresh:",
+      "requestingAllError": "❌ Error requesting all permissions:",
+      "savingPermissionsError": "❌ Error saving permissions state:",
+      "userClickedContinue": "✅ User clicked Continue"
+    },
+    "requesting": "Requesting...",
+    "required": {
+      "message": "Access to {{permission}} is required to use the app.",
+      "title": "Required Permission"
+    },
+    "retry": "Retry",
+    "success": {
+      "continue": "You can now continue.",
+      "message": "✅ All permissions granted!"
+    },
+    "types": {
+      "camera": {
+        "description": "To record videos with the prompter",
+        "title": "Camera"
+      },
+      "microphone": {
+        "description": "To record audio for your videos",
+        "title": "Microphone"
+      },
+      "storage": {
+        "description": "To save your videos to the gallery",
+        "title": "Storage"
+      }
+    }
+  },
+  "security": {
+    "biometric": {
+      "disabled": "Biometric authentication not available",
+      "enabled": "Biometric authentication enabled"
+    },
+    "created": "Created on",
+    "delete": {
+      "confirm": "Delete",
+      "error": "Error during deletion",
+      "message": "Are you sure you want to delete the {{provider}} key? This action is irreversible.",
+      "success": "{{provider}} key deleted successfully",
+      "title": "🗑️ Delete Key"
+    },
+    "deleteButton": "Delete",
+    "encryption": "Encryption",
+    "info": "Keys are encrypted with AES-256 and stored in the secure Keychain.",
+    "infoExpiry": "Automatic expiration after 90 days",
+    "keys": {
+      "count": "secured keys",
+      "expired": "Expired",
+      "expiresIn": "Expires in {{days}} days",
+      "none": "No secured keys",
+      "noneDesc": "Add API keys to get started",
+      "secured": "Secured keys:"
+    },
+    "loading": "Checking security...",
+    "migrate": {
+      "button": "Migrate existing keys",
+      "confirm": "Migrate",
+      "error": "Error during migration",
+      "message": "Do you want to migrate your API keys to secure storage with biometric authentication?",
+      "noKeys": "No keys to migrate",
+      "partial": "Partial Migration",
+      "partialMessage": "{{success}} key(s) migrated successfully.\n{{failed}} key(s) failed.\n\nErrors:\n{{errors}}",
+      "success": "Keys migrated successfully!",
+      "title": "🔐 Secure Migration"
+    },
+    "title": "API Key Security"
+  }
+}

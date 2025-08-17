@@ -1,0 +1,335 @@
+{
+  "preview": {
+    "actions": {
+      "export": "💾 Export",
+      "exporting": "🎬 Exporting...",
+      "share": "Share",
+      "socialMedia": "Social Media"
+    },
+    "audioEffects": {
+      "effects": {
+        "autoGain": "📊 Auto Gain",
+        "bassBoost": "🔊 Bass Boost",
+        "noiseReduction": "🔇 Noise Reduction ({{level}})",
+        "trebleBoost": "✨ Treble Boost",
+        "voiceEnhancement": "🗣️ Voice Enhancement"
+      },
+      "equalizer": {
+        "actions": {
+          "reset": "Reset",
+          "toggle": "Toggle"
+        },
+        "bands": {
+          "bass": "Bass",
+          "highMid": "High Mid",
+          "lowMid": "Low Mid",
+          "mid": "Mid",
+          "treble": "Treble"
+        },
+        "disabled": "Disabled",
+        "enabled": "Enabled",
+        "frequencies": {
+          "bass": "60-250Hz",
+          "highMid": "2-4kHz",
+          "lowMid": "250-500Hz",
+          "mid": "500-2kHz",
+          "treble": "4-16kHz"
+        },
+        "presets": {
+          "classical": "Classical",
+          "custom": "Custom",
+          "flat": "Flat",
+          "jazz": "Jazz",
+          "pop": "Pop",
+          "rock": "Rock",
+          "title": "Presets",
+          "vocal": "Vocal"
+        },
+        "title": "🎛️ Equalizer"
+      },
+      "native": "Native audio effects",
+      "nativeUnavailable": "Native module not available",
+      "profiles": {
+        "music": "🎵 Music",
+        "outdoor": "🌳 Outdoor",
+        "podcast": "🎧 Podcast",
+        "voice-clear": "🎙️ Clear Voice"
+      },
+      "simulated": "Audio effects (simulated)"
+    },
+    "audioProcessing": {
+      "inProgress": "Processing audio...",
+      "title": "Audio Optimization"
+    },
+    "delete": {
+      "error": {
+        "message": "Unable to delete this recording.",
+        "title": "❌ Deletion Error"
+      },
+      "fileError": "❌ Error deleting file:",
+      "generalError": "❌ Error during deletion:",
+      "message": "Are you sure you want to delete this recording? This action is irreversible.",
+      "success": "✅ Video file deleted: {{uri}}",
+      "title": "🗑️ Delete Video"
+    },
+    "export": {
+      "error": {
+        "message": "Unable to export the video",
+        "ok": "OK",
+        "title": "❌ Error"
+      },
+      "steps": {
+        "applyingFilter": "Applying color filter...",
+        "audioProcessing": "Processing audio...",
+        "completed": "Export completed!",
+        "encoding": "Encoding in progress...",
+        "finalizing": "Finalizing...",
+        "preparation": "Preparing export...",
+        "videoPreparation": "Preparing video..."
+      },
+      "success": {
+        "message": "Video saved to your gallery ({{size}})",
+        "ok": "OK",
+        "title": "✅ Export Successful"
+      }
+    },
+    "fileAccessError": {
+      "message": "Unable to access this video. The file may be corrupted or deleted.",
+      "title": "❌ File Access Error"
+    },
+    "fileCheck": {
+      "notFound": "❌ Video file not found:",
+      "sizeError": "❌ Error calculating size:",
+      "verifying": "📁 Verifying file existence:"
+    },
+    "fileError": {
+      "message": "This video is no longer accessible. The file may have been deleted or moved.\n\nPlease delete this recording from the list.",
+      "title": "❌ File Not Found"
+    },
+    "fileStatus": {
+      "error": "Calculation error",
+      "notFound": "File not found",
+      "unknownSize": "Unknown size"
+    },
+    "generating": "Generating preview...",
+    "loading": {
+      "message": "Preparing your video",
+      "title": "Loading..."
+    },
+    "notFound": {
+      "goHome": "Go to Home",
+      "subtitle": "The video you are looking for does not exist or has been deleted.",
+      "title": "Video Not Found"
+    },
+    "preparingVideo": "Preparing video",
+    "share": {
+      "details": {
+        "message": "Check out my video created with CamPrompt AI!",
+        "title": "My CamPrompt AI Video"
+      },
+      "error": {
+        "message": "Unable to share this video.",
+        "title": "❌ Sharing Error"
+      },
+      "success": "✅ Content shared successfully"
+    },
+    "title": "Video Preview",
+    "videoSettings": {
+      "format": "Format",
+      "quality": "Quality",
+      "title": "Export Options"
+    }
+  },
+  "teleprompter": {
+    "basic": {
+      "animation": {
+        "duration": "Speed: {{speed}}%, Duration: {{duration}}s",
+        "pausedAt": "Paused at position: {{position}}px",
+        "resetTo": "Reset to position: {{position}}px",
+        "speedLoaded": "Scroll speed loaded: {{speed}}%",
+        "speedSaved": "Scroll speed saved: {{speed}}%"
+      },
+      "controls": {
+        "mirror": "Mirror Mode",
+        "pause": "Pause",
+        "play": "Play",
+        "reset": "Reset Position",
+        "settings": "Settings",
+        "speedDown": "Decrease Speed",
+        "speedUp": "Increase Speed"
+      },
+      "dimensions": {
+        "containerHeight": "Container height: {{height}}px",
+        "textHeightMeasured": "Text height measured: {{height}}px"
+      },
+      "empty": {
+        "backToEditor": "Back to Editor",
+        "message": "Please select a script from the editor to use the prompter.",
+        "title": "No Script Selected"
+      },
+      "error": {
+        "goBack": "Go Back",
+        "retry": "Retry",
+        "title": "Loading Error"
+      },
+      "loading": "Loading script...",
+      "mirror": {
+        "disabled": "Mirror mode disabled",
+        "enabled": "Mirror mode enabled"
+      },
+      "position": {
+        "reset": "Position reset: {{position}}px",
+        "restored": "Saved position restored: {{position}}px",
+        "saved": "Position saved: {{position}}px"
+      },
+      "script": {
+        "availableIds": "Available IDs:",
+        "errorContent": "Error: Script not found (ID: {{scriptId}})\n\nThe script you are trying to open no longer exists or has been deleted.\n\nYou can:\n• Tap \"Retry\" to reload\n• Go back to the home screen to select another script\n• Create a new script in the editor",
+        "foundInAsyncStorage": "Script found in AsyncStorage: {{title}}",
+        "loadedSuccess": "Script loaded successfully: {{title}}",
+        "loading": "Loading script with ID: {{scriptId}} (attempt {{attempt}})",
+        "noIdProvided": "No script ID provided",
+        "notFoundAfterRetries": "Script not found for ID {{scriptId}} after {{attempts}} attempts",
+        "notFoundInAsyncStorage": "Script with ID {{scriptId}} not found in AsyncStorage",
+        "notFoundInContext": "Script not found in context, trying with AsyncStorage...",
+        "retryIn": "Retrying in 1 second..."
+      },
+      "speed": {
+        "label": "{{speed}}%",
+        "loaded": "Scroll speed loaded: {{speed}}%",
+        "saved": "Scroll speed saved: {{speed}}%"
+      },
+      "title": "Basic Prompter"
+    },
+    "fontSize": "Font Size",
+    "pause": "Pause",
+    "play": "Play",
+    "preview": {
+      "autoSave": "Auto",
+      "exampleContent": "Here is an example text that could scroll in your prompter.\n\nUse the controls below to customize the appearance of the text and background according to your preferences.\n\nYou can then apply these settings during your recordings.",
+      "exampleTitle": "Prompter Example",
+      "fullscreenPreview": "Fullscreen Preview",
+      "loading": "Loading settings...",
+      "logs": {
+        "loadError": "Error loading settings:",
+        "positionOffsetLoaded": "LOADING POSITION OFFSET: {{offset}}px",
+        "positionOffsetUndefined": "POSITION OFFSET NOT DEFINED IN SAVED SETTINGS",
+        "positionOffsetUpdated": "UPDATING POSITION OFFSET: {{offset}}px",
+        "refreshPreview": "Refreshing preview - settings updated",
+        "resetError": "Error resetting settings:",
+        "settingUpdated": "Setting \"{{key}}\" updated and auto-saved: {{value}}",
+        "settingsReset": "All settings have been reset and saved",
+        "sliderPositionChanged": "Slider position for offset changed: {{value}}",
+        "updateError": "Error updating setting \"{{key}}\":"
+      },
+      "preview": "Preview",
+      "scrollsUp": "Scrolls up",
+      "settings": {
+        "additionalOptions": "Additional Options",
+        "alignment": {
+          "center": "Center",
+          "left": "Left",
+          "right": "Right"
+        },
+        "backgroundColor": "Background Color",
+        "horizontalMargins": "Horizontal Margins: {{margin}}%",
+        "margins": {
+          "large": "Large Margins",
+          "medium": "Medium Margins",
+          "none": "No Margins",
+          "reduced": "Reduced Margins"
+        },
+        "options": {
+          "mirrorDescription": "Flips the text horizontally",
+          "mirrorMode": "Mirror Mode",
+          "textShadow": "Text Shadow",
+          "textShadowDescription": "Adds a shadow to improve readability"
+        },
+        "position": {
+          "bottom": "Bottom",
+          "center": "Center",
+          "fineAdjustment": "Fine adjustment: {{offset}} px",
+          "startPositionText": "Text Start Position",
+          "top": "Top"
+        },
+        "resetSettings": "Reset Settings",
+        "sizes": {
+          "large": "Large Size",
+          "medium": "Medium Size",
+          "small": "Small Size"
+        },
+        "startPosition": "Start Position",
+        "textAlignment": "Text Alignment",
+        "textColor": "Text Color",
+        "textSize": "Text Size: {{size}}px"
+      },
+      "startTeleprompter": "Start",
+      "subtitle": "Script: {{title}}",
+      "subtitleDefault": "Customize the appearance of the text",
+      "title": "Prompter Settings"
+    },
+    "reset": "Reset",
+    "scroll": {
+      "animationFinished": "Animation finished",
+      "blockedNotRecording": "🚫 Attempt to start scrolling without active recording - BLOCKED",
+      "blockedResetting": "⏳ Attempt to start scrolling during reset - ignored",
+      "blockedStillPaused": "🚫 Attempt to start scrolling while still paused - BLOCKED",
+      "blockedTextNotMeasured": "🚫 Attempt to start scrolling with incorrectly measured text - BLOCKED",
+      "resetComplete": "✅ Reset complete, animations unlocked",
+      "resetting": "🔄 FORCING scroll reset",
+      "started": "▶️ Scroll started from {{from}} to {{to}} with duration {{duration}}ms",
+      "stopped": "⏹️ Scroll stopped at position {{position}}"
+    },
+    "speed": "Speed",
+    "title": "Prompter",
+    "videoLibrary": {
+      "actionModal": {
+        "playVideo": "Play Video",
+        "playVideoDescription": "Play directly in this modal",
+        "sendToPreview": "Send to Preview",
+        "sendToPreviewDescription": "Open in preview screen",
+        "title": "Video Actions",
+        "untitledVideo": "Untitled Video",
+        "videoPlayerNote": "Integrated playback controls",
+        "videoPlayerPlaceholder": "Video Preview\n(Player under development)"
+      }
+    }
+  },
+  "topicInput": {
+    "categoryHelp": "Choose a category to see topic suggestions",
+    "characters": "characters",
+    "placeholder": "Enter your script topic here...",
+    "scriptTopic": "Script Topic",
+    "suggestions": "Topic Suggestions"
+  },
+  "topics": {
+    "business": {
+      "leadership": "Essential leadership skills",
+      "negotiation": "Basic negotiation techniques",
+      "officeOrganization": "Tips for organizing your office space",
+      "productivity": "How to increase productivity at work",
+      "saveMoney": "How to save money in business"
+    },
+    "creative": {
+      "creativeWriting": "Creative writing techniques",
+      "digitalArt": "Digital art for beginners",
+      "graphicDesign": "Graphic design principles",
+      "perfectPhoto": "How to take the perfect photo",
+      "videoEditing": "Basics of video editing"
+    },
+    "lifestyle": {
+      "dailyWellness": "Daily wellness habits",
+      "healthyRecipe": "Quick and healthy recipe ideas",
+      "homeExercises": "Exercises at home without equipment",
+      "morningRoutine": "Perfect morning routine",
+      "personalDevelopment": "Personal development tips"
+    },
+    "tech": {
+      "aiDaily": "AI in daily life",
+      "digitalProductivity": "Digital productivity tools",
+      "digitalSecurity": "Digital security tips",
+      "essentialApps": "Essential mobile apps",
+      "trends": "Latest tech trends"
+    }
+  }
+}

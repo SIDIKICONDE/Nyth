@@ -1,0 +1,937 @@
+{
+  "ai": {
+    "actions": {
+      "analyze": "Analyser",
+      "chat": "Assistant IA",
+      "correct": "Corriger",
+      "customQuestion": "Question personnalisée",
+      "improve": "Améliorer"
+    },
+    "analysis": {
+      "title": "Analyse du texte"
+    },
+    "analytics": {
+      "actions": "actions",
+      "avgTime": "Temps moyen",
+      "comingSoon": "Analytics à venir",
+      "currentStreak": "Série actuelle",
+      "days": "jours",
+      "daysSinceStart": "Jours actif",
+      "description": "Suivez vos performances et tendances de planification",
+      "emptyState": {
+        "createFirstEvent": "Créer un premier événement",
+        "createFirstEventSubtext": "Commencez avec un événement de test",
+        "subtitle": "Créez des événements et définissez des objectifs pour suivre vos performances et visualiser vos progrès",
+        "suggestions": {
+          "goals": {
+            "description": "Définissez vos buts",
+            "title": "Objectifs"
+          },
+          "plan": {
+            "description": "Organisez vos événements",
+            "title": "Planifier"
+          }
+        },
+        "title": "Commencez votre analyse"
+      },
+      "hourlyDistribution": "Distribution par heure",
+      "insights": "Aperçus",
+      "lifetimeNote": "Ces statistiques ne diminuent jamais, même si vous supprimez des scripts ou enregistrements.",
+      "lifetimeStats": "Statistiques à vie",
+      "loading": "Chargement des analytiques...",
+      "metrics": {
+        "completion_rate": "Taux de réalisation",
+        "efficiency": "Efficacité",
+        "productivity": "Productivité"
+      },
+      "mostActive": "Plus actif entre {{hour}}h et {{hour1}}h",
+      "mostActiveDay": "Jour le plus actif",
+      "noData": "Aucune donnée disponible",
+      "peakHour": "Heure de pointe",
+      "productivity": "Productivité",
+      "recordingsPerScript": "enreg./script",
+      "showAnalytics": "Analytiques détaillées",
+      "title": "Analytics de Planification",
+      "totalActivity": "Activité totale",
+      "totalRecordingTime": "Temps total",
+      "totalRecordingsCreated": "Enregistrements",
+      "totalScriptsCreated": "Scripts créés",
+      "weekActivity": "Activité cette semaine",
+      "weeklyTime": "Temps total cette semaine"
+    },
+    "assistant": {
+      "tabs": {
+        "correct": "Corriger",
+        "generate": "Générer",
+        "personalize": "Personnaliser",
+        "tone": "Ton"
+      },
+      "title": "Assistant IA"
+    },
+    "chatError": "Une erreur est survenue lors de la conversation.",
+    "correction": {
+      "success": "Texte corrigé",
+      "successMessage": "Le texte a été corrigé avec succès"
+    },
+    "emotionalTone": {
+      "calming": "Apaisant",
+      "confident": "Confiant",
+      "curious": "Curieux",
+      "empathetic": "Empathique",
+      "exciting": "Excitant",
+      "inspiring": "Inspirant",
+      "mysterious": "Mystérieux",
+      "negative": "Négatif",
+      "neutral": "Neutre",
+      "positive": "Positif",
+      "rebellious": "Rebelle",
+      "urgent": "Urgent"
+    },
+    "error": {
+      "analysisError": "Erreur lors de l'analyse",
+      "correctionError": "Erreur lors de la correction",
+      "generationError": "Erreur lors de la génération du script",
+      "noActiveProvider": "Aucun fournisseur AI actif. Veuillez activer au moins un fournisseur dans les paramètres.",
+      "noApiKey": "Aucune clé API configurée. Veuillez configurer au moins une clé API dans les paramètres.",
+      "noTextToCorrect": "Aucun texte à corriger",
+      "noTopic": "Veuillez entrer un sujet",
+      "saveError": "Erreur lors de l'enregistrement du script"
+    },
+    "generate": "Générer",
+    "generation": {
+      "openScript": "Ouvrir le Script",
+      "success": "Script généré avec succès !"
+    },
+    "generationError": "Une erreur est survenue lors de la génération.",
+    "huggingface": {
+      "customModel": "Modèle Personnalisé",
+      "helpText": "Laissez vide pour utiliser le modèle par défaut (Mistral-7B). Autres exemples : microsoft/phi-3-mini-4k-instruct, meta-llama/Llama-2-7b-chat-hf",
+      "models": {
+        "creative": "Pour la génération créative",
+        "goodPerformance": "Bonne performance globale",
+        "recommended": "Recommandé (par défaut)",
+        "smallFast": "Petit modèle, rapide"
+      },
+      "recommendedModels": "Modèles recommandés :",
+      "setup": {
+        "activate": "Activer",
+        "activated": "Hugging Face Activé",
+        "activatedMessage": "L'API Hugging Face a été activée avec succès.",
+        "keyDetected": "Clé Hugging Face Détectée",
+        "keyDetectedMessage": "Vous avez configuré une clé API Hugging Face. Souhaitez-vous l'activer ?",
+        "later": "Plus tard"
+      }
+    },
+    "improve": {
+      "apply": "Améliorer",
+      "focus": {
+        "all": "Tout",
+        "clarity": "Clarté",
+        "flow": "Fluidité",
+        "impact": "Impact"
+      },
+      "options": {
+        "addExamples": "Ajouter des exemples",
+        "additionalOptions": "Options supplémentaires",
+        "focus": "Focus principal",
+        "preserveLength": "Conserver la longueur",
+        "style": "Style d'amélioration",
+        "title": "Options d'amélioration"
+      },
+      "styles": {
+        "casual": "Décontracté",
+        "casualDesc": "Amical et accessible",
+        "concise": "Concis",
+        "conciseDesc": "Direct et sans superflu",
+        "detailed": "Détaillé",
+        "detailedDesc": "Ajoute des précisions utiles",
+        "engaging": "Engageant",
+        "engagingDesc": "Captivant et vivant",
+        "formal": "Formel",
+        "formalDesc": "Professionnel et sérieux"
+      }
+    },
+    "improvement": {
+      "success": "Texte amélioré",
+      "successMessage": "Le texte a été amélioré avec succès"
+    },
+    "narrativeStructure": {
+      "beforeAfter": "Avant-Après",
+      "behindScenes": "Dans les coulisses",
+      "caseStudy": "Étude de cas",
+      "comparison": "Comparaison",
+      "debate": "Débat",
+      "hookProblemSolution": "Accroche-Problème-Solution",
+      "interview": "Interview",
+      "listicle": "Liste d'éléments",
+      "mythBusting": "Démystification",
+      "news": "Actualités",
+      "qa": "Questions-Réponses",
+      "review": "Revue",
+      "storyBased": "Basé sur une Histoire",
+      "testimonial": "Témoignage",
+      "trendAnalysis": "Analyse de tendance",
+      "tutorial": "Tutoriel"
+    },
+    "online": {
+      "title": "Mode En Ligne"
+    },
+    "parameters": {
+      "advanced": "Paramètres Avancés",
+      "characterCount": "Nombre de caractères",
+      "characterCountError": "Entre {{min}} et {{max}} caractères",
+      "characterCountHelper": "Optimisé pour chaque plateforme",
+      "characterCountPlaceholder": "Ex: 1000",
+      "contentLength": {
+        "characters": "Caractères",
+        "noLimits": "Aucune limite définie",
+        "paragraphs": "Paragraphes",
+        "summary": "Limites définies",
+        "title": "Longueur du contenu",
+        "words": "Mots"
+      },
+      "creative": "Créatif",
+      "creativity": "Créativité",
+      "duration": "Durée du Script",
+      "emotionalTone": "Ton Émotionnel",
+      "factual": "Factuel",
+      "language": "Langue",
+      "narrativeStructure": "Structure Narrative",
+      "paragraphCount": "Nombre de paragraphes",
+      "paragraphCountError": "Entre {{min}} et {{max}} paragraphes",
+      "paragraphCountHelper": "Structure votre contenu",
+      "paragraphCountPlaceholder": "Ex: 5",
+      "platform": "Plateforme",
+      "title": "Paramètres de Génération",
+      "tone": "Ton",
+      "wordCount": "Nombre de mots",
+      "wordCountError": "Entre {{min}} et {{max}} mots",
+      "wordCountHelper": "Laissez vide pour aucune limite",
+      "wordCountPlaceholder": "Ex: 300"
+    },
+    "priorityOrder": {
+      "description": "Faites glisser pour réorganiser l'ordre de priorité des API. La première API configurée sera utilisée en priorité.",
+      "hint": "Ordre de priorité pour l'affichage des suggestions",
+      "title": "Ordre de Priorité des API",
+      "validate": "Valider"
+    },
+    "quickActions": {
+      "title": "Que voulez-vous faire avec ce script ?"
+    },
+    "script": {
+      "titlePrefix": "Script IA - "
+    },
+    "templates": {
+      "categories": {
+        "business": "Entreprise",
+        "creative": "Créatif",
+        "educational": "Éducatif",
+        "general": "Général",
+        "social": "Réseaux Sociaux"
+      },
+      "chooseTemplate": "Choisir un modèle",
+      "generationError": "Erreur lors de la génération à partir du modèle",
+      "noTemplateSelected": "Veuillez sélectionner un modèle"
+    },
+    "tone": {
+      "authoritative": "Autoritaire",
+      "casual": "Décontracté",
+      "conversational": "Conversationnel",
+      "dramatic": "Dramatique",
+      "educational": "Éducatif",
+      "emotional": "Émotionnel",
+      "energetic": "Énergique",
+      "friendly": "Amical",
+      "humorous": "Humoristique",
+      "inspirational": "Inspirant",
+      "motivational": "Motivationnel",
+      "nostalgic": "Nostalgique",
+      "optimistic": "Optimiste",
+      "persuasive": "Persuasif",
+      "poetic": "Poétique",
+      "professional": "Professionnel",
+      "scientific": "Scientifique",
+      "storytelling": "Narratif",
+      "suspenseful": "Suspense",
+      "technical": "Technique",
+      "title": "Analyse du ton"
+    }
+  },
+  "aiAssistant": {
+    "aiStatusManager": {
+      "huggingFace": {
+        "activateMessage": "Pour activer Hugging Face, basculez l'interrupteur dans la section Hugging Face des paramètres.",
+        "activateTitle": "Activer Hugging Face",
+        "understood": "Compris"
+      }
+    },
+    "correct": {
+      "correctGrammar": "Corriger la Grammaire",
+      "correctGrammarDesc": "Détecter et corriger les erreurs grammaticales",
+      "currentText": "Texte actuel :",
+      "improveStyle": "Améliorer le Style",
+      "inDevelopment": "🚧 Fonctionnalité en développement",
+      "shortenText": "Raccourcir le Texte",
+      "title": "📝 Correction et Amélioration",
+      "writeFirstText": "💡 Écrivez d'abord du texte dans l'éditeur pour utiliser les fonctions de correction"
+    },
+    "generate": {
+      "audiencePlaceholder": "Ex : Professionnels, étudiants, grand public...",
+      "chooseTone": "Choisir le ton :",
+      "describeScript": "Décrivez votre script :",
+      "scriptDuration": "Durée du script :",
+      "scriptPlaceholder": "Ex : Une présentation sur les avantages du télétravail...",
+      "targetAudience": "Public cible (optionnel) :",
+      "targetPlatform": "Plateforme cible :",
+      "title": "✨ Génération de Script IA"
+    },
+    "options": {
+      "emphasis": {
+        "bold": "💪 GRASSOYÉ",
+        "exclamation": "❗ Exclamations",
+        "repetition": "🔁 Répétition",
+        "subtle": "💫 Subtile"
+      },
+      "length": {
+        "long": "📚 Long (5-10 min)",
+        "medium": "📝 Moyen (3-5 min)",
+        "short": "⚡ Court (1-2 min)"
+      },
+      "sentenceLength": {
+        "long": "📚 Long (20-25 mots)",
+        "medium": "📝 Moyen (15-20 mots)",
+        "mixed": "🎭 Varié",
+        "short": "⚡ Très court (8-12 mots)"
+      },
+      "structure": {
+        "comparison": "⚖️ Comparaison",
+        "introduction-development-conclusion": "📝 Classique (Intro-Dév-Concl)",
+        "list-format": "📋 Format Liste",
+        "problem-solution": "🔧 Problème-Solution",
+        "question-answer": "❓ Q&R",
+        "story-telling": "📖 Récit"
+      },
+      "tabs": {
+        "correct": "📝 Corriger",
+        "generate": "✨ Générer",
+        "personalize": "🎨 Personnaliser",
+        "tone": "🎭 Ton"
+      },
+      "tone": {
+        "authoritative": "👨‍💼 Autoritaire",
+        "casual": "😊 Décontracté",
+        "dramatic": "🎭 Dramatique",
+        "educational": "🎓 Éducatif",
+        "emotional": "💝 Émotionnel",
+        "energetic": "⚡ Énergique",
+        "friendly": "🤝 Amical",
+        "humorous": "😄 Humoristique",
+        "poetic": "🌸 Poétique",
+        "professional": "💼 Professionnel"
+      },
+      "vocabulary": {
+        "advanced": "🔴 Avancé",
+        "advancedDesc": "Termes techniques",
+        "simple": "🟢 Simple",
+        "simpleDesc": "Accessible à tous",
+        "standard": "🟡 Standard",
+        "standardDesc": "Clair et professionnel"
+      }
+    },
+    "personalize": {
+      "characterCount": "Nombre de caractères (optionnel) :",
+      "characterPlaceholder": "Ex : 500",
+      "emphasisStyle": "Style d'emphase :",
+      "includeInScript": "Inclure dans le script :",
+      "paragraphCount": "Nombre de paragraphes (optionnel) :",
+      "paragraphPlaceholder": "Ex : 3",
+      "personalAnecdotes": "📖 Anecdotes personnelles",
+      "rhetoricalQuestions": "❓ Questions rhétoriques",
+      "scriptStructure": "Structure du script :",
+      "sentenceLength": "Longueur des phrases :",
+      "statistics": "📊 Statistiques",
+      "title": "🎨 Personnalisation Avancée",
+      "vocabularyLevel": "Niveau de vocabulaire :"
+    },
+    "scriptGeneration": {
+      "error": {
+        "enterDescription": "Veuillez entrer une description de script",
+        "title": "Erreur",
+        "unknown": "Erreur inconnue"
+      },
+      "info": {
+        "inDevelopment": "Fonctionnalité en développement",
+        "title": "Info"
+      },
+      "length": {
+        "chars": "{{count}} caractères",
+        "long": "Long",
+        "medium": "Moyen",
+        "short": "Court"
+      },
+      "success": {
+        "cancel": "Annuler",
+        "details": "Titre : {{title}}\nLongueur : {{length}}\nTon : {{tone}}",
+        "title": "✨ Script Généré !",
+        "useScript": "Utiliser ce script"
+      }
+    },
+    "tone": {
+      "adaptToAudience": "Adapter au Public",
+      "analyzeTone": "Analyser le Ton",
+      "analyzeToneDesc": "Suggestions pour améliorer le ton de votre script",
+      "featuresInDevelopment": "🚧 Ces fonctionnalités sont en développement et seront disponibles bientôt",
+      "optimizeEngagement": "Optimiser l'Engagement",
+      "title": "🎭 Suggestions de Ton"
+    }
+  },
+  "aiConfig": {
+    "configuration": {
+      "apiDetailsLog": "Détails de la configuration de l'API :",
+      "detectingFormat": "Détection du format pour :",
+      "errorDetectingFormat": "Erreur lors de la détection du format vidéo :"
+    },
+    "network": {
+      "enabledProvidersError": "Erreur lors de la récupération des fournisseurs IA activés :",
+      "forceOnline": "force en ligne =",
+      "forceOnlineMode": "Mode force en ligne activé",
+      "forceOnlineOnError": "Erreur mais mode force en ligne activé",
+      "priorityOrderError": "Erreur lors de la récupération de l'ordre de priorité :",
+      "priorityOrderSaveError": "Erreur lors de l'enregistrement de l'ordre de priorité :"
+    },
+    "providers": {
+      "cohere": {
+        "description": "5 millions de tokens/mois gratuits"
+      },
+      "gemini": {
+        "description": "5 millions de tokens/mois gratuits"
+      },
+      "huggingface": {
+        "description": "Hugging Face offre une variété de modèles IA avancés",
+        "name": "Hugging Face"
+      },
+      "mistral": {
+        "description": "IA française, gratuit"
+      },
+      "openai": {
+        "description": "Payant, qualité"
+      }
+    }
+  },
+  "aiConnection": {
+    "logs": {
+      "connectionCheckError": "Erreur lors de la vérification de l'API :",
+      "forceStatusMode": "Mode de statut forcé : considérant l'API comme connectée puisque au moins une clé est disponible",
+      "huggingFaceCheckError": "Erreur lors de la vérification de Hugging Face :",
+      "mainApiDetected": "API principale détectée, définition du statut sur connecté",
+      "mainProvidersDetected": "Fournisseurs principaux détectés :",
+      "mistralConnectionAttempt": "Tentative de connexion Mistral avec la clé :",
+      "mistralModelsAvailable": "Modèles Mistral disponibles :",
+      "mistralNotConfigured": "Mistral non configuré ou désactivé :",
+      "mistralTestDirect": "Test de connexion direct Mistral...",
+      "mistralTestError": "Erreur lors du test Mistral :",
+      "mistralTestException": "Exception lors du test Mistral :",
+      "mistralTestResponse": "Réponse du test Mistral :",
+      "noMainApiDetected": "Aucune API principale détectée, définition du statut sur inconnu",
+      "providersAvailable": "Fournisseurs IA disponibles :"
+    },
+    "status": {
+      "connectionError": "⚠️ Impossible de vérifier les API IA. Veuillez vérifier votre connexion Internet et vos paramètres API.",
+      "conversationLoaded": "Conversation chargée avec succès.",
+      "huggingFaceAvailable": "💡 Une clé API Hugging Face a été détectée mais n'est pas activée. Vous pouvez l'activer pour utiliser le chat IA.",
+      "noApiConfigured": "⚠️ Aucune API IA configurée. Cette fonctionnalité nécessite une clé API valide pour fonctionner. Veuillez configurer une clé API dans les paramètres."
+    },
+    "welcome": {
+      "greetings": [
+        "Bonjour",
+        "Salut",
+        "Bienvenue",
+        "Bonne journée",
+        "Salutations"
+      ],
+      "introductions": [
+        "Je suis votre assistant IA personnel",
+        "Je suis Jospin IA à votre service",
+        "Assistant IA Jospin prêt à vous aider",
+        "Je suis Jospin, votre IA conversationnelle"
+      ],
+      "offerings": [
+        "Comment puis-je vous aider aujourd'hui ?",
+        "Que souhaitez-vous explorer ensemble ?",
+        "Je suis prêt à discuter de n'importe quel sujet",
+        "J'écoute vos questions"
+      ]
+    }
+  },
+  "aiGenerator": {
+    "actions": {
+      "checkingSettings": "Vérification des paramètres IA...",
+      "configure": "Configurer les Paramètres IA",
+      "enterTopic": "Entrez un sujet pour générer votre script",
+      "generate": "Générer un Script",
+      "generating": "Génération...",
+      "selectPlatform": "Sélectionnez une plateforme pour votre contenu"
+    },
+    "error": {
+      "generationError": "Erreur lors de la génération du script",
+      "noTopic": "Veuillez entrer un sujet",
+      "saveError": "Erreur lors de l'enregistrement du script"
+    },
+    "navigation": {
+      "toHome": "Navigation vers Accueil depuis AIGenerator",
+      "toSettings": "Navigation depuis AIGenerator vers AISettings"
+    },
+    "platform": {
+      "help": "Choisissez la plateforme pour optimiser votre contenu",
+      "instagram": {
+        "name": "Instagram"
+      },
+      "linkedin": {
+        "abbrev": "in",
+        "name": "LinkedIn"
+      },
+      "tiktok": {
+        "abbrev": "TT",
+        "name": "TikTok"
+      },
+      "title": "Plateforme",
+      "youtube": {
+        "icon": "▶",
+        "name": "YouTube"
+      }
+    },
+    "preferences": {
+      "loadError": "Erreur lors du chargement des préférences :",
+      "saveError": "Erreur lors de l'enregistrement des préférences :"
+    },
+    "providers": {
+      "available": "Fournisseurs IA disponibles :",
+      "refreshError": "Erreur lors du rafraîchissement des API :"
+    },
+    "screen": {
+      "mounted": "Écran AIGenerator monté",
+      "unmounted": "Écran AIGenerator démonté"
+    },
+    "status": {
+      "apis": "Disponible : {{apis}}",
+      "noApi": "Aucun service IA configuré",
+      "ready": "{{count}} service(s) IA prêt(s)"
+    },
+    "title": "Générateur IA"
+  },
+  "aiMemory": {
+    "actions": {
+      "cancel": "Annuler",
+      "delete": "Supprimer",
+      "deleteAll": "Effacer toute la mémoire",
+      "refresh": "Actualiser"
+    },
+    "add": {
+      "error": {
+        "emptyContent": "Veuillez entrer une information à mémoriser",
+        "title": "Erreur"
+      },
+      "importance": "Importance",
+      "placeholder": "Exemple : Je préfère les scripts courts et percutants...",
+      "save": "Enregistrer",
+      "title": "Ajouter une information",
+      "type": "Type d'information"
+    },
+    "confirmations": {
+      "delete": {
+        "message": "Êtes-vous sûr de vouloir supprimer : \"{{content}}...\" ?",
+        "title": "Supprimer cette information"
+      },
+      "deleteAll": {
+        "message": "Cette action supprimera toutes les informations que l'IA a mémorisées. Êtes-vous sûr ?",
+        "title": "Effacer toute la mémoire"
+      }
+    },
+    "description": "Voir et gérer les informations mémorisées",
+    "disable": {
+      "message": "L'IA ne mémorisera plus aucune nouvelle information. Les données existantes seront conservées. Voulez-vous continuer ?",
+      "title": "Désactiver la mémoire IA"
+    },
+    "empty": {
+      "description": "Dites à l'IA \"Souviens-toi que...\" pour commencer à mémoriser vos préférences.",
+      "title": "Aucune information mémorisée"
+    },
+    "enable": {
+      "message": "L'IA pourra mémoriser vos préférences et informations importantes pour personnaliser ses réponses. Voulez-vous continuer ?",
+      "title": "Activer la mémoire IA"
+    },
+    "importance": {
+      "high": "Très important",
+      "low": "À retenir",
+      "medium": "Important"
+    },
+    "loading": "Chargement...",
+    "manage": "Gérer la mémoire",
+    "settings": {
+      "sectionDescription": "Gérer les préférences mémorisées",
+      "sectionTitle": "Mémoire IA"
+    },
+    "stats": {
+      "byImportance": "Répartition par importance",
+      "totalEntries": "{{count}} information mémorisée",
+      "totalEntries_plural": "{{count}} informations mémorisées"
+    },
+    "title": "Mémoire IA",
+    "toggle": {
+      "disabledDescription": "L'IA ne mémorise aucune information de vos conversations",
+      "enabledDescription": "L'IA mémorise vos préférences et informations importantes",
+      "error": "Impossible de modifier le paramètre de mémoire",
+      "info": "Lorsque activée, l'IA analyse automatiquement vos messages pour mémoriser vos préférences, objectifs et informations importantes.",
+      "title": "Mémoire IA"
+    },
+    "types": {
+      "context": "Contexte",
+      "fact": "Fait",
+      "goal": "Objectif",
+      "instruction": "Instruction",
+      "preference": "Préférence",
+      "problem": "Problème",
+      "skill": "Compétence"
+    }
+  },
+  "aiSettings": {
+    "actions": {
+      "apply": "Appliquer",
+      "applyingRecommendations": "Application des recommandations...",
+      "clearCache": "Vider le Cache",
+      "optimizePerformance": "Optimiser les Performances",
+      "optimizeQuality": "Optimiser la Qualité",
+      "refreshDefaultKey": "Récupérer la clé par défaut",
+      "resetToDefaults": "Réinitialiser par défaut",
+      "save": "Enregistrer",
+      "saved": "Enregistré",
+      "saving": "Enregistrement..."
+    },
+    "alerts": {
+      "disableAll": {
+        "subtitle": "Désactive toutes les pop-ups de confirmation",
+        "title": "Masquer toutes les alertes"
+      },
+      "disableError": {
+        "subtitle": "Affiche les erreurs dans la console uniquement",
+        "title": "Masquer alertes d'erreur"
+      },
+      "disableReset": {
+        "subtitle": "Réinitialise sans demander confirmation",
+        "title": "Masquer confirmations de réinitialisation"
+      },
+      "disableSave": {
+        "subtitle": "Plus de \"Paramètres enregistrés\"",
+        "title": "Masquer alertes de sauvegarde"
+      },
+      "title": "Notifications"
+    },
+    "api": {
+      "defaultKey": {
+        "description": "Récupérer automatiquement la clé OpenAI fournie par l'application",
+        "title": "Clé API par défaut"
+      },
+      "refresh": {
+        "error": {
+          "message": "Une erreur s'est produite lors de la récupération de la clé API.",
+          "notAvailable": "Aucune clé API par défaut n'est disponible. Contactez l'administrateur."
+        },
+        "success": {
+          "message": "La clé OpenAI par défaut a été configurée avec succès.",
+          "title": "Clé API configurée"
+        }
+      },
+      "requiresAuth": {
+        "message": "Vous devez être connecté pour récupérer la clé API par défaut.",
+        "title": "Connexion requise"
+      }
+    },
+    "audio": {
+      "title": "Paramètres Audio"
+    },
+    "cache": {
+      "clearCache": "Vider le cache",
+      "clearError": "Impossible d'effacer le cache. Veuillez réessayer.",
+      "clearSuccess": "✅ Cache Effacé",
+      "clearSuccessMessage": "Le cache a été effacé avec succès",
+      "clearing": "Nettoyage en cours...",
+      "description": "Le cache stocke les réponses de l'IA pour améliorer les performances et réduire les appels API",
+      "entries": "Entrées",
+      "entriesCount": "entrées",
+      "explanation": "Les réponses en cache aident à accélérer l'application et à réduire les coûts en réutilisant les générations précédentes de l'IA.",
+      "info": "Le cache améliore les performances en stockant temporairement les réponses AI.",
+      "infoTip": "Videz le cache si vous rencontrez des problèmes",
+      "newest": "Plus récent",
+      "newestEntry": "Plus récente",
+      "noCache": "Cache vide",
+      "oldest": "Plus ancien",
+      "oldestEntry": "Plus ancienne",
+      "refresh": "Rafraîchir",
+      "size": "Taille",
+      "subtitle": "Optimisez les performances",
+      "title": "Gestion du Cache"
+    },
+    "clearCache": {
+      "info": "Vider le cache de l'application pour libérer de l'espace et améliorer les performances",
+      "title": "Vider le Cache"
+    },
+    "display": {
+      "mirrorMode": {
+        "title": "Mode miroir"
+      },
+      "scriptStyle": {
+        "library": "Bibliothèque",
+        "list": "Liste",
+        "stack": "Cartes",
+        "title": "Affichage des scripts"
+      },
+      "teleprompter": {
+        "title": "Téléprompter"
+      },
+      "textShadow": {
+        "subtitle": "Ajoute une ombre pour améliorer la lisibilité",
+        "title": "Ombre du texte"
+      },
+      "themes": {
+        "title": "Thèmes"
+      },
+      "title": "Affichage"
+    },
+    "error": {
+      "missingCohereKey": "Veuillez entrer votre clé API Cohere",
+      "missingGeminiKey": "Veuillez entrer votre clé API Gemini",
+      "missingHuggingFaceKey": "Veuillez entrer votre clé API HuggingFace",
+      "missingKey": "Veuillez entrer votre clé API OpenAI",
+      "missingMistralKey": "Veuillez entrer votre clé API Mistral",
+      "title": "Erreur de Configuration"
+    },
+    "freeApis": {
+      "cohere": {
+        "description": "5 millions de tokens/mois gratuits",
+        "placeholder": "co-...",
+        "title": "Cohere"
+      },
+      "gemini": {
+        "description": "Gemini 2.0 Flash - 5 millions de tokens/mois gratuits",
+        "placeholder": "AIza...",
+        "title": "Google Gemini"
+      },
+      "huggingface": {
+        "description": "De nombreux modèles disponibles, y compris Mistral et Llama",
+        "placeholder": "hf_...",
+        "title": "Hugging Face"
+      },
+      "mistral": {
+        "description": "IA française, crédits gratuits",
+        "placeholder": "Entrez votre clé API Mistral",
+        "title": "Mistral AI"
+      },
+      "title": "API Gratuites"
+    },
+    "language": {
+      "current": "Langue actuelle",
+      "selectLanguage": "Sélectionner une langue",
+      "subtitle": "Choisissez votre langue préférée",
+      "title": "Langue"
+    },
+    "loadError": "Erreur lors du chargement des paramètres",
+    "navigation": {
+      "backPressed": "Bouton retour pressé dans AISettings"
+    },
+    "premium": {
+      "claude": {
+        "description": "IA conversationnelle",
+        "placeholder": "sk-ant-... (Clé API Anthropic)"
+      },
+      "description": "Service payant, haute qualité",
+      "fireworks": {
+        "description": "Optimisé production",
+        "placeholder": "fw_... (Clé API Fireworks)"
+      },
+      "groq": {
+        "description": "Ultra-rapide",
+        "placeholder": "gsk_... (Clé API Groq)"
+      },
+      "openai": {
+        "description": "GPT-4, premium",
+        "placeholder": "sk-proj-... (Clé API OpenAI)"
+      },
+      "perplexity": {
+        "description": "Recherche temps réel",
+        "placeholder": "pplx-... (Clé API Perplexity)"
+      },
+      "placeholder": "sk-...",
+      "title": "API Premium",
+      "together": {
+        "description": "Open-source",
+        "placeholder": "... (Clé API Together)"
+      }
+    },
+    "priority": {
+      "description": "Gérer la priorité des API",
+      "disabled": "Désactivé",
+      "enabled": "Activé",
+      "modify": "Modifier",
+      "title": "Ordre de Priorité"
+    },
+    "priorityOrder": {
+      "description": "Réorganisez l'ordre des providers d'IA selon vos préférences",
+      "hint": "💡 Glissez ou utilisez ↑↓",
+      "title": "Ordre de priorité des APIs",
+      "validate": "Valider"
+    },
+    "reset": {
+      "confirmation": {
+        "message": "Êtes-vous sûr de vouloir réinitialiser tous les paramètres aux valeurs par défaut ? Cette action ne peut pas être annulée.",
+        "reset": "Réinitialiser",
+        "title": "Réinitialiser les paramètres"
+      },
+      "description": "Restaurer tous les paramètres aux valeurs par défaut",
+      "error": {
+        "message": "Une erreur s'est produite lors de la réinitialisation des paramètres.",
+        "title": "Erreur"
+      },
+      "success": {
+        "message": "Tous les paramètres ont été réinitialisés aux valeurs par défaut.",
+        "title": "Paramètres réinitialisés"
+      },
+      "title": "Réinitialiser les paramètres"
+    },
+    "saveError": "Impossible d'enregistrer les paramètres IA. Veuillez réessayer.",
+    "saveSuccess": "✅ Paramètres Enregistrés",
+    "saveSuccessMessage": "Les paramètres IA ont été enregistrés avec succès",
+    "security": {
+      "bypassProtection": {
+        "description": "Permet une communication directe sans proxy (non recommandé)",
+        "label": "Contourner la Protection API",
+        "warning": {
+          "confirm": "Oui, je comprends les risques",
+          "message": "La désactivation de la protection API expose vos clés API et peut compromettre la sécurité de vos données. Êtes-vous sûr de vouloir continuer ?",
+          "title": "⚠️ Avertissement de Sécurité"
+        },
+        "warningText": "La protection API est désactivée. Vos communications ne sont pas sécurisées."
+      },
+      "enhancedMode": {
+        "description": "Bloque les communications API sur les réseaux non sécurisés",
+        "enabled": {
+          "message": "Les communications API seront bloquées sur les réseaux non sécurisés. Cela peut empêcher l'application de fonctionner sur certains réseaux Wi-Fi publics.",
+          "title": "Sécurité Renforcée Activée"
+        },
+        "label": "Mode de Sécurité Renforcée"
+      },
+      "error": {
+        "save": "Impossible d'enregistrer les paramètres de sécurité"
+      },
+      "privacyPolicy": "Politique de Confidentialité",
+      "privacyPolicyDesc": "Consulter notre politique de confidentialité et de protection des données",
+      "title": "Sécurité"
+    },
+    "status": {
+      "huggingFace": "Hugging Face"
+    },
+    "testing": {
+      "error": {
+        "message": "Une erreur inattendue est survenue lors du test",
+        "title": "Erreur",
+        "unsupportedApi": "API non supportée : {{apiName}}"
+      },
+      "failure": {
+        "fallbackMessage": "L'API {{apiName}} ne répond pas correctement",
+        "message": "L'API {{apiName}} ne répond pas correctement",
+        "title": "❌ Test Échoué"
+      },
+      "success": {
+        "message": "L'API {{apiName}} fonctionne correctement",
+        "title": "✅ Test Réussi"
+      }
+    },
+    "title": "Paramètres IA",
+    "tooltip": {
+      "title": "Information"
+    },
+    "validation": {
+      "cohere": "Veuillez entrer une clé API Cohere valide",
+      "default": "Veuillez entrer une clé API valide",
+      "gemini": "Veuillez entrer une clé API Gemini valide",
+      "huggingface": "La clé Hugging Face doit commencer par \"hf_\" et faire plus de 20 caractères",
+      "mistral": "Veuillez entrer une clé API Mistral valide",
+      "openai": "La clé OpenAI doit commencer par \"sk-\" et faire plus de 20 caractères"
+    }
+  },
+  "chat": {
+    "input": {
+      "editPlaceholder": "✏️ Modifiez votre message...",
+      "interruptedPlaceholder": "Génération interrompue - Tapez votre nouveau message...",
+      "neonPlaceholder": "⚡ {{name}}, tapez dans le futur...",
+      "placeholder": "✨ Tapez votre message...",
+      "placeholderNamed": "✨ {{name}}, discute librement..."
+    },
+    "message": {
+      "copied": "Copié",
+      "copiedToClipboard": "Texte copié dans le presse-papiers",
+      "edit": "Modifier",
+      "editPrompt": "Souhaitez-vous modifier ce message ?",
+      "editTitle": "Modifier le Message",
+      "sendToEditor": "Envoyer à l'Éditeur"
+    },
+    "settings": {
+      "autoLoad": "Reprendre la dernière conversation",
+      "autoLoadDesc": "Charger automatiquement la dernière conversation au démarrage",
+      "autoScroll": "Défilement automatique",
+      "autoScrollDesc": "Faire défiler automatiquement vers le bas lors de nouveaux messages",
+      "behavior": "Comportement du Chat",
+      "bubbleStyle": "Style des bulles",
+      "title": "Chat"
+    }
+  },
+  "conversation": {
+    "manager": {
+      "activeConversationLoaded": "Dernier ID de conversation active chargé : {{id}}",
+      "activeConversationSaved": "ID de conversation active enregistré : {{id}}",
+      "errors": {
+        "checkingConnection": "Erreur lors de la vérification de la connexion",
+        "loadingActiveId": "Erreur lors du chargement du dernier ID de conversation",
+        "loadingConversation": "Erreur lors du chargement de la conversation",
+        "resettingWelcome": "Erreur lors de la réinitialisation du message de bienvenue",
+        "savingActiveId": "Erreur lors de l'enregistrement de l'ID de conversation active"
+      },
+      "mounted": "Écran de chat IA monté",
+      "unmounted": "Écran de chat IA démonté",
+      "welcomeMessageReset": "Message de bienvenue réinitialisé"
+    },
+    "messageHandler": {
+      "errors": {
+        "auth": {
+          "cancel": "Annuler",
+          "configure": "Configurer",
+          "message": "Votre clé API semble invalide ou mal formatée. Voulez-vous vérifier vos paramètres ?",
+          "title": "Problème d'authentification"
+        },
+        "generic": {
+          "message": "Une erreur est survenue lors de la communication avec l'IA. Veuillez vérifier votre connexion et votre configuration API.",
+          "title": "Erreur"
+        },
+        "model": {
+          "message": "Le modèle IA sélectionné n'est pas disponible. Veuillez réessayer plus tard ou contacter le support.",
+          "title": "Modèle non disponible"
+        },
+        "noResponse": {
+          "message": "Aucune réponse reçue de l'IA. Veuillez vérifier votre configuration API ou réessayer.",
+          "title": "Erreur"
+        }
+      },
+      "interruptedAfterResponse": "Requête interrompue après réception de la réponse",
+      "interruptedBeforeSend": "Requête interrompue avant l'envoi à l'IA",
+      "interrupting": "Interruption de la génération IA en cours...",
+      "noResponse": "Aucune réponse",
+      "response": "Réponse de l'IA : {{response}}",
+      "sending": "Envoi du message à l'IA : {{message}}"
+    },
+    "service": {
+      "defaultTitle": "Nouvelle Conversation",
+      "logs": {
+        "saveSuccess": "Conversation enregistrée avec succès"
+      }
+    }
+  }
+}

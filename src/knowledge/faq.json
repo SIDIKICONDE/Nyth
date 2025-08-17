@@ -1,0 +1,142 @@
+[
+  {
+    "id": "faq_001",
+    "lang": "fr",
+    "tags": ["compte", "connexion"],
+    "question": "Comment me connecter à mon compte ?",
+    "answer": "Ouvrez l'application, allez dans Profil > Se connecter. Vous pouvez utiliser l'email et le mot de passe ou l'authentification Apple/Google si elle est activée."
+  },
+  {
+    "id": "faq_002",
+    "lang": "fr",
+    "tags": ["planning", "événement"],
+    "question": "Comment créer un événement de planning ?",
+    "answer": "Depuis l'onglet Planning, appuyez sur le bouton + puis renseignez le titre, les dates et les rappels. Vous pouvez aussi demander à l'IA de créer l'événement pour vous."
+  },
+  {
+    "id": "faq_003",
+    "lang": "fr",
+    "tags": ["téléprompteur", "script"],
+    "question": "Comment utiliser le téléprompteur ?",
+    "answer": "Créez ou importez un script, ouvrez le téléprompteur, ajustez la vitesse et la taille du texte, puis lancez le défilement. Vous pouvez synchroniser avec l'enregistrement vidéo."
+  },
+  {
+    "id": "faq_004",
+    "lang": "fr",
+    "tags": ["ia", "activation"],
+    "question": "Comment activer le chat avec l'IA ?",
+    "answer": "Allez dans Paramètres > Configuration IA. Activez au moins un service (ex: Gemini, OpenAI) et suivez les instructions. Certaines fonctionnalités peuvent utiliser des clés managées selon votre plan."
+  },
+  {
+    "id": "faq_005",
+    "lang": "fr",
+    "tags": ["ia", "clé api"],
+    "question": "Comment ajouter ma clé API ?",
+    "answer": "Dans Paramètres > Configuration IA, sélectionnez le fournisseur puis collez votre clé. Activez le service. Assurez-vous que la clé est valide et que votre réseau est disponible."
+  },
+  {
+    "id": "faq_006",
+    "lang": "fr",
+    "tags": ["performances", "latence"],
+    "question": "Pourquoi la première réponse de l'IA peut être lente ?",
+    "answer": "Le premier appel peut déclencher un 'réveil' des services (Cloud Functions, embeddings, Firestore). L'application pré-chauffe automatiquement au démarrage pour réduire cette latence. Les échanges suivants sont plus rapides."
+  },
+  {
+    "id": "faq_007",
+    "lang": "fr",
+    "tags": ["adresse", "tutoiement", "vouvoiement"],
+    "question": "Comment changer la forme d’adresse (tu/vous) ?",
+    "answer": "Dites simplement 'tu peux me tutoyer' ou 'vous pouvez me vouvoyer'. L’application détecte et mémorise automatiquement votre préférence par utilisateur."
+  },
+  {
+    "id": "faq_008",
+    "lang": "fr",
+    "tags": ["nom", "personnalisation"],
+    "question": "Comment éviter que l’IA répète mon nom à chaque message ?",
+    "answer": "C'est géré automatiquement. L’IA n’utilise votre prénom que lorsque cela apporte de la clarté ou de la chaleur. Vous pouvez aussi dire 'n’utilise pas mon nom' si besoin."
+  },
+  {
+    "id": "faq_009",
+    "lang": "fr",
+    "tags": ["script", "idées"],
+    "question": "Comment créer un script rapidement ?",
+    "answer": "Demandez à l’IA 'propose 3 idées pour…' puis 'génère un mini‑plan'. Vous pouvez ensuite affiner et envoyer au téléprompteur."
+  },
+  {
+    "id": "faq_010",
+    "lang": "fr",
+    "tags": ["export", "partage"],
+    "question": "Comment exporter ou partager un script ?",
+    "answer": "Ouvrez le script puis utilisez l’option de partage pour copier le texte ou l’exporter. Selon la plateforme, les formats disponibles peuvent varier."
+  },
+  {
+    "id": "faq_011",
+    "lang": "fr",
+    "tags": ["planning", "suppression"],
+    "question": "Comment supprimer un événement ?",
+    "answer": "Dans Planning, ouvrez l’événement puis choisissez Supprimer. Vous pouvez aussi demander à l’IA de le faire; une confirmation vous sera demandée."
+  },
+  {
+    "id": "faq_012",
+    "lang": "fr",
+    "tags": ["hors ligne", "connectivité"],
+    "question": "Puis‑je utiliser l’application hors ligne ?",
+    "answer": "Certaines sections restent accessibles hors ligne (lecture locale). Les fonctionnalités IA et synchronisation nécessitent une connexion internet."
+  },
+  {
+    "id": "faq_013",
+    "lang": "fr",
+    "tags": ["confidentialité", "données"],
+    "question": "Mes données sont‑elles privées ?",
+    "answer": "Vos contenus sont stockés de façon sécurisée. Les clés et appels IA sont protégés. Vous pouvez effacer la mémoire IA et vos contenus depuis les paramètres."
+  },
+  {
+    "id": "faq_014",
+    "lang": "fr",
+    "tags": ["langue", "i18n"],
+    "question": "Comment changer la langue de l’interface ?",
+    "answer": "La langue est détectée automatiquement. Vous pouvez la forcer dans Paramètres > Langue (si disponible) ou selon la langue du système."
+  },
+  {
+    "id": "faq_015",
+    "lang": "fr",
+    "tags": ["support", "aide"],
+    "question": "Comment contacter le support ?",
+    "answer": "Depuis Profil > Aide/Support, ou via la section Aide de l’application. Décrivez votre problème et joignez des captures si possible."
+  },
+  {
+    "id": "faq_016",
+    "lang": "fr",
+    "tags": ["rappels", "notifications"],
+    "question": "Comment recevoir des rappels ?",
+    "answer": "Activez les notifications du système, puis ajoutez des rappels lors de la création ou la modification d’un événement dans le planning."
+  },
+  {
+    "id": "faq_017",
+    "lang": "fr",
+    "tags": ["mémoire", "ia"],
+    "question": "Comment nettoyer la mémoire de l’IA ?",
+    "answer": "Allez dans Paramètres > Mémoire IA pour effacer la mémoire ou la réinitialiser. Certains éléments importants peuvent être conservés selon vos préférences."
+  },
+  {
+    "id": "faq_018",
+    "lang": "fr",
+    "tags": ["thème", "apparence"],
+    "question": "Comment activer le mode sombre ?",
+    "answer": "Dans Paramètres > Apparence/Thème, choisissez le mode Sombre ou Synchronisé avec le système."
+  },
+  {
+    "id": "faq_019",
+    "lang": "fr",
+    "tags": ["ia", "dépannage"],
+    "question": "L’IA ne répond pas correctement, que faire ?",
+    "answer": "Réécrivez la question plus précisément, ou laissez l’IA vous poser une clarification. Vérifiez votre connexion et la configuration IA dans les paramètres."
+  },
+  {
+    "id": "faq_020",
+    "lang": "fr",
+    "tags": ["abonnement", "limites"],
+    "question": "Pourquoi certaines fonctionnalités IA sont limitées ?",
+    "answer": "Selon votre plan, l’accès à certains fournisseurs ou le volume d’appels peut être limité. Consultez votre abonnement et les limites d’usage dans les paramètres."
+  }
+]

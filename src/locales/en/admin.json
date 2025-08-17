@@ -1,0 +1,56 @@
+{
+  "admin": {
+    "accessDenied": {
+      "message": "You do not have the necessary permissions",
+      "title": "Access Denied"
+    },
+    "error": {
+      "loadMessage": "Unable to load data",
+      "loadTitle": "Error"
+    },
+    "permission": {
+      "superAdminOnly": "Only super admins can modify roles",
+      "title": "Permission Denied"
+    },
+    "resetPassword": {
+      "error": "Unable to send the email",
+      "message": "Send a reset email to {{name}}?",
+      "success": "Reset email sent",
+      "title": "Reset Password"
+    },
+    "role": {
+      "admin": "Admin",
+      "cantModifySuperAdmin": "Cannot modify the role of a super admin",
+      "confirmMessage": "Are you sure you want to change this user's role?",
+      "confirmTitle": "Confirm Change",
+      "errorTitle": "Action Impossible",
+      "superAdmin": "Super Admin",
+      "updateSuccess": "Role updated successfully",
+      "user": "User"
+    },
+    "stats": {
+      "activeToday": "Active today",
+      "admins": "Admins",
+      "recordings": "Recordings",
+      "scripts": "Scripts created",
+      "users": "Users"
+    },
+    "sync": {
+      "error": "Error during synchronization",
+      "message": "Do you want to synchronize all local recordings with Firestore?",
+      "success": "Synchronization completed",
+      "title": "Synchronize Recordings"
+    },
+    "tabs": {
+      "stats": "Statistics",
+      "users": "Users"
+    },
+    "title": "Administration",
+    "user": {
+      "anonymous": "Anonymous user",
+      "lastLogin": "Last login",
+      "noEmail": "No email",
+      "registeredOn": "Registered on"
+    }
+  }
+}

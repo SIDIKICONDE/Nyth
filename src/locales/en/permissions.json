@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "camera": {
+      "deny": "Deny",
+      "grant": "Grant Access",
+      "message": "This app needs camera access to record videos",
+      "title": "Camera Permission"
+    },
+    "location": {
+      "deny": "Deny",
+      "grant": "Grant Access",
+      "message": "This app needs location access for certain features",
+      "title": "Location Permission"
+    },
+    "microphone": {
+      "deny": "Deny",
+      "grant": "Grant Access",
+      "message": "This app needs microphone access to record audio",
+      "title": "Microphone Permission"
+    },
+    "storage": {
+      "deny": "Deny",
+      "grant": "Grant Access",
+      "message": "This app needs storage access to save files",
+      "title": "Storage Permission"
+    }
+  }
+}

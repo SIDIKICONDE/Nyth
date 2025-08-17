@@ -1,0 +1,104 @@
+{
+  "context": {
+    "created": "Créé",
+    "email": "Email",
+    "favorite": "Favori",
+    "finalInstructions": "Tu es un assistant spécialisé dans la création de scripts vidéo et téléprompter. Tu t'adresses à {{userName}}{{appName}}.\n\nIMPORTANT pour la MÉMOIRE:\n- Les informations en mémoire sont classées par date, la plus récente est la plus valide\n- Si tu vois des préférences contradictoires, utilise TOUJOURS la plus récente\n- Les informations consolidées reflètent les dernières préférences de l'utilisateur\n- Ne mentionne PAS les contradictions passées, parle seulement des préférences actuelles\n\nIMPORTANT pour les SALUTATIONS:\n- Ne dis \"Bonjour\", \"Salut\" ou autres salutations QUE si c'est le PREMIER message de la conversation\n- Dans une conversation en cours, réponds DIRECTEMENT sans salutation\n- Si l'utilisateur dit bonjour en cours de conversation, tu peux répondre brièvement mais ne commence pas tes autres réponses par des salutations\n\nSois professionnel, créatif et adapte tes réponses à ses besoins spécifiques.",
+    "memoryHeader": "🧠 MÉMOIRE PERSONNALISÉE PRIORITAIRE SUR {{userName}}:\nCes informations DOIVENT être utilisées pour adapter tes réponses. Elles proviennent de nos conversations précédentes et définissent les préférences, instructions et contexte personnel de l'utilisateur.",
+    "memoryImportance": {
+      "high": "TRÈS IMPORTANT",
+      "low": "À RETENIR",
+      "medium": "IMPORTANT"
+    },
+    "memoryInstructions": "🧠 INSTRUCTIONS CRITIQUES POUR LA MÉMOIRE:\n• UTILISE ACTIVEMENT ces informations dans tes réponses\n• ADAPTE ton style selon les préférences notées\n• RESPECTE les instructions explicites mentionnées\n• ÉVITE les sujets que l'utilisateur ne veut plus aborder\n• FAIS RÉFÉRENCE aux faits personnels quand c'est pertinent\n• Ces informations sont PRIORITAIRES sur les réponses génériques\n• Si l'utilisateur demande comment tu te souviens, explique que tu gardes en mémoire les informations importantes de nos conversations précédentes.",
+    "moreScripts": "... et {{count}} autres scripts.",
+    "no": "Non",
+    "noMemory": "Aucune information mémorisée précédemment sur {{userName}}.",
+    "noScripts": "{{userName}} n'a encore créé aucun script.",
+    "preview": "Aperçu",
+    "scriptsHeader": "SCRIPTS DE {{userName}}:",
+    "title": "Titre",
+    "totalScripts": "Nombre total de scripts",
+    "transparencyNote": "\nNOTE IMPORTANTE: Si l'utilisateur demande comment tu connais son nom ou ses informations, explique-lui que tu as accès à son profil utilisateur{{appName}}, qui contient ces informations qu'il a lui-même renseignées lors de son inscription ou dans ses paramètres de profil.\n\n",
+    "userInfoHeader": "INFORMATIONS SUR L'UTILISATEUR (provenant de son profil dans l'application):",
+    "userQuestion": "QUESTION DE L'UTILISATEUR",
+    "username": "Nom d'utilisateur",
+    "words": "Mots",
+    "yes": "Oui"
+  },
+  "forgotPassword": {
+    "backToLogin": "Retour à la Connexion",
+    "email": "Email",
+    "emailPlaceholder": "Votre adresse email",
+    "errorMessage": "Une erreur est survenue.",
+    "errorTitle": "Erreur",
+    "errors": {
+      "emailInvalid": "Format d'email invalide",
+      "emailRequired": "L'email est requis"
+    },
+    "info": "Information",
+    "localMode": "La réinitialisation du mot de passe n'est pas disponible en mode local.",
+    "logs": {
+      "resetError": "Erreur de réinitialisation du mot de passe",
+      "resetRequest": "Demande de réinitialisation du mot de passe"
+    },
+    "resetButton": "Réinitialiser le Mot de Passe",
+    "subtitle": "Entrez votre email pour réinitialiser votre mot de passe",
+    "title": "Mot de Passe Oublié"
+  },
+  "privacy": {
+    "accept": "J'accepte",
+    "decline": "Je refuse",
+    "importantNote": "Note Importante",
+    "importantNoteContent": "En utilisant CamPrompt AI, vous acceptez les termes de cette politique de confidentialité. Nous nous engageons à vous informer de tout changement significatif avec un préavis d'au moins 30 jours via une notification dans l'application.",
+    "introduction": "Chez CamPrompt AI, nous prenons très au sérieux la protection de vos données personnelles. Cette politique de confidentialité décrit de manière transparente comment nous gérons vos informations lors de l'utilisation de notre application de téléprompteur intelligent.",
+    "lastUpdated": "Dernière mise à jour : {{date}}",
+    "readCompletelyToContinue": "Lisez la politique complètement pour continuer",
+    "scrollToContinue": "Faites défiler pour continuer",
+    "sections": {
+      "aiUsage": {
+        "content": "CamPrompt AI vous permet d'utiliser vos propres clés API pour accéder aux services d'IA (OpenAI, Google Gemini, Mistral, etc.). Vos clés API sont stockées de manière sécurisée sur votre appareil et ne sont JAMAIS transmises à nos serveurs. Vous êtes responsable de l'utilisation de vos clés API conformément aux conditions de service de chaque fournisseur. Les scripts générés par l'IA restent votre propriété exclusive.",
+        "title": "Utilisation de l'IA et Clés API"
+      },
+      "contact": {
+        "content": "Pour toute question concernant cette politique de confidentialité ou vos données personnelles, contactez-nous :\n• Email : support@camprompt-ai.com\n• Dans l'app : Paramètres > Support\n\nNous nous engageons à répondre dans les 48 heures.",
+        "title": "Contact et Support"
+      },
+      "dataCollection": {
+        "content": "CamPrompt AI collecte uniquement :\n• Préférences de l'application (thème, langue)\n• Paramètres techniques (qualité vidéo, vitesse de défilement)\n• Statistiques d'utilisation locales (nombre de scripts, durée d'enregistrement)\n\nCes données restent sur votre appareil et servent uniquement à améliorer votre expérience.",
+        "title": "Données Collectées"
+      },
+      "dataProtection": {
+        "content": "Toutes vos données (scripts, vidéos, paramètres) sont stockées exclusivement sur votre appareil. CamPrompt AI fonctionne en mode hors ligne et ne nécessite aucune connexion à nos serveurs pour les fonctionnalités de base. Nous n'avons accès à aucune de vos créations personnelles.",
+        "title": "Protection de vos Données"
+      },
+      "dataSharing": {
+        "content": "CamPrompt AI ne partage JAMAIS vos données personnelles avec des tiers. Les seules exceptions sont :\n• Si vous choisissez d'exporter vos vidéos vers des réseaux sociaux\n• Si vous utilisez vos propres clés API (communication directe avec le service choisi)\n• Si la loi l'exige (nous vous en informerions sauf interdiction légale)",
+        "title": "Partage des Données"
+      },
+      "dataUsage": {
+        "content": "Les données collectées sont utilisées exclusivement pour :\n• Personnaliser votre expérience\n• Sauvegarder vos préférences\n• Optimiser les performances de l'application\n• Fournir des statistiques d'utilisation personnelles\n\nAucune donnée n'est utilisée à des fins marketing ou publicitaires.",
+        "title": "Utilisation des Données"
+      },
+      "localStorage": {
+        "content": "Vos scripts, vidéos et paramètres restent sur votre appareil. Aucune synchronisation cloud automatique n'est effectuée. Si vous choisissez d'utiliser la synchronisation Firebase (optionnelle), vos données sont chiffrées et vous gardez le contrôle total sur ce qui est synchronisé.",
+        "title": "Stockage 100% Local"
+      },
+      "noTracking": {
+        "content": "CamPrompt AI ne contient aucun tracker publicitaire, aucune analytique invasive, et aucune publicité. Nous ne monétisons pas vos données. L'application est financée uniquement par des achats optionnels et votre soutien.",
+        "title": "Zéro Tracking - Zéro Publicité"
+      },
+      "permissions": {
+        "content": "CamPrompt AI demande uniquement les permissions essentielles :\n• Caméra : pour enregistrer vos vidéos\n• Microphone : pour capturer l'audio\n• Stockage : pour sauvegarder vos créations\n• Face ID/Touch ID (optionnel) : pour sécuriser vos clés API\n\nChaque permission peut être révoquée à tout moment dans les paramètres de votre appareil.",
+        "title": "Permissions Transparentes"
+      },
+      "updates": {
+        "content": "Les mises à jour de CamPrompt AI incluent régulièrement des améliorations de sécurité et de confidentialité. Nous vous recommandons de maintenir l'application à jour. Les notes de version détaillent toujours les changements liés à la confidentialité.",
+        "title": "Mises à Jour et Sécurité"
+      }
+    },
+    "subtitle": "Votre vie privée est notre priorité",
+    "title": "Politique de Confidentialité",
+    "welcome": "Bienvenue sur CamPrompt AI"
+  }
+}

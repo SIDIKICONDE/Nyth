@@ -1,0 +1,113 @@
+{
+  "emergency": {
+    "save_failed": {
+      "message": "Unable to save recording. Data might be lost.",
+      "title": "Save Error"
+    },
+    "saved": {
+      "message": "Your {duration} recording was automatically saved before emergency stop. You can recover it from the recovery screen.",
+      "recover_now": "Recover Now",
+      "title": "Recording Saved",
+      "view_later": "View Later"
+    },
+    "view_saved": "View Recordings"
+  },
+  "error": {
+    "cameraInit": "Unable to initialize camera",
+    "dataNotFound": "Script or settings not found",
+    "loadError": "Loading error",
+    "permissionsRequired": "Camera and microphone permissions required",
+    "scriptNotFound": "Script not found",
+    "title": "Recording Error"
+  },
+  "exitWarning": {
+    "message": "Do you really want to stop recording and exit?",
+    "stop": "Stop and exit",
+    "title": "Recording in progress"
+  },
+  "loading": {
+    "camera": "Initializing camera...",
+    "data": "Loading script and settings...",
+    "permissions": "Checking permissions...",
+    "script": "Loading script...",
+    "title": "Preparing recording"
+  },
+  "memory": {
+    "critical": {
+      "continue": "Continue with Risk",
+      "message": "Available memory is very low. Recording might be interrupted to avoid a crash.",
+      "optimize": "Optimize and Continue",
+      "stop": "Stop Recording",
+      "title": "Insufficient Memory"
+    },
+    "forced_stop": {
+      "message": "Recording was automatically stopped to avoid a crash due to insufficient memory.",
+      "message_with_save": "Recording was automatically saved and stopped to avoid a crash. You can recover your video from the recovery screen.",
+      "save_failed": "Recording was stopped to avoid a crash, but automatic save failed. Data might be lost.",
+      "title": "Recording Saved"
+    },
+    "optimize": "Optimize",
+    "optimizeNow": "Optimize Now",
+    "recommendations": {
+      "closeApps": "Close other applications",
+      "freeSpace": "Free up storage space",
+      "rebootDevice": "Restart your device",
+      "reduceQuality": "Reduce recording quality",
+      "restartApp": "Restart the application"
+    },
+    "status": {
+      "critical": "Critical memory",
+      "good": "Memory OK",
+      "unknown": "Unknown status",
+      "warning": "Low memory"
+    },
+    "title": "Memory"
+  },
+  "status": {
+    "initializing": "Initializing...",
+    "paused": "Paused",
+    "processing": "Processing video...",
+    "ready": "Ready to record",
+    "recording": "Recording in progress",
+    "stopping": "Stopping..."
+  },
+  "teleprompter": {
+    "containerMounted": "Teleprompter container mounted",
+    "containerUnmounted": "Teleprompter container unmounted",
+    "currentStateBeforeReset": "Current state before reset",
+    "doubleTapReceived": "Double tap received",
+    "enteringPause": "Entering pause",
+    "exitingPause": "Exiting pause",
+    "forcingAnimationStop": "Forcing animation stop",
+    "forcingResetMultipleMethods": "Forcing reset multiple methods",
+    "initialStopOnMount": "Initial stop on mount",
+    "pauseConditionsMet": "Pause conditions met",
+    "pauseConditionsNotMet": "Pause conditions not met",
+    "pauseScrollRequested": "Pause scroll requested",
+    "pauseStateChanged": "Pause state changed",
+    "positionForcedToZero": "Position forced to zero",
+    "positionReset": "Position reset",
+    "recordingStateChanged": "Recording state changed",
+    "resetError": "Reset error",
+    "resizingEndedRecalculate": "Resizing ended, recalculating",
+    "restartingAfterRecalculation": "Restarting after recalculation",
+    "restartingScrollAfterReset": "Restarting scroll after reset",
+    "resumeCancelledDueToReset": "Resume cancelled due to reset",
+    "resumeConditionsMet": "Resume conditions met",
+    "resumeConditionsNotMet": "Resume conditions not met",
+    "resumeScrollRequested": "Resume scroll requested",
+    "resumingAfterPause": "Resuming after pause",
+    "schedulingResumeIn50ms": "Scheduling resume in 50ms",
+    "screenNotFocused": "Screen not focused",
+    "scriptChanged": "Script changed",
+    "scrollConditionsMet": "Scroll conditions met",
+    "scrollEvaluation": "Scroll evaluation",
+    "startingRecording": "Starting recording",
+    "startingScrollViaHandler": "Starting scroll via handler",
+    "stopConditionsDetected": "Stop conditions detected",
+    "stoppingForRecalculation": "Stopping for recalculation",
+    "stoppingRecording": "Stopping recording",
+    "stoppingScrollViaHandler": "Stopping scroll via handler"
+  },
+  "title": "Recording"
+}

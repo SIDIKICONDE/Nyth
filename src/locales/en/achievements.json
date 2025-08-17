@@ -1,0 +1,149 @@
+{
+  "achievements": {
+    "challenges": {
+      "daily_user_30": {
+        "description": "Use the app 30 consecutive days",
+        "name": "Loyal User"
+      },
+      "daily_user_7": {
+        "description": "Use the app 7 consecutive days",
+        "name": "Regular User"
+      },
+      "first_recording": {
+        "description": "Make your first recording",
+        "name": "Action!"
+      },
+      "first_script": {
+        "description": "Create your first script",
+        "name": "First Step"
+      },
+      "holiday_creator": {
+        "description": "Create content during the holidays",
+        "name": "Holiday Creator"
+      },
+      "new_year_2024": {
+        "description": "Make a recording on New Year's Day",
+        "name": "New Year"
+      },
+      "profile_complete": {
+        "description": "Complete all profile sections",
+        "name": "Complete Profile"
+      },
+      "recording_pro_25": {
+        "description": "Make 25 recordings",
+        "name": "Video Pro"
+      },
+      "recording_streak_5": {
+        "description": "Make 5 recordings",
+        "name": "On a Roll"
+      },
+      "script_creator_10": {
+        "description": "Create 10 scripts",
+        "name": "Active Creator"
+      },
+      "script_master_50": {
+        "description": "Create 50 scripts",
+        "name": "Script Master"
+      },
+      "time_100hours": {
+        "description": "Record 100 hours in total",
+        "name": "Legend"
+      },
+      "time_10hours": {
+        "description": "Record 10 hours in total",
+        "name": "Marathon"
+      },
+      "time_1hour": {
+        "description": "Record 1 hour in total",
+        "name": "One Hour"
+      },
+      "winter_2024": {
+        "description": "Create 5 scripts during winter 2024",
+        "name": "Winter Spirit"
+      }
+    },
+    "levels": {
+      "apprentice": "Apprentice",
+      "beginner": "Beginner",
+      "confirmed": "Confirmed",
+      "expert": "Expert",
+      "grandmaster": "Grand Master",
+      "legend": "Legend",
+      "master": "Master"
+    },
+    "share": {
+      "button": "Share",
+      "error": {
+        "message": "Unable to share at the moment",
+        "title": "Error"
+      },
+      "profile": "🏆 My Naya Profile\n\n📊 Level {{level}} - {{title}}\n✨ {{unlocked}}/{{total}} badges unlocked\n📈 Progress: {{percentage}}%\n\nBadges by category:\n📝 Scripts: {{scripts}}\n🎬 Recordings: {{recordings}}\n💪 Engagement: {{engagement}}\n\n#Naya #Achievements #Gaming",
+      "specific": "🎉 I unlocked the \"{{name}}\" badge in Naya!\n\n📝 {{description}}\n\n🏆 Level {{level}} - {{title}}\n✨ {{unlocked}}/{{total}} badges unlocked ({{percentage}}%)\n\n#Naya #Achievement #Badge",
+      "title": "My Naya Achievements"
+    },
+    "unlocked": "NEW BADGE UNLOCKED!"
+  },
+  "socialShare": {
+    "alerts": {
+      "appNotInstalled": {
+        "install": "Install {{platformName}}",
+        "message": "The {{platformName}} app is not installed on your device.\n\nYour video has been saved to your gallery.",
+        "title": "{{platformName}} not installed",
+        "tryAnyway": "Try anyway"
+      },
+      "cannotOpen": "Unable to open {{platformName}}"
+    },
+    "change": "Change",
+    "choosePlatform": "Choose a Platform",
+    "form": {
+      "customize": "Customize",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe your video...",
+      "hashtags": "Hashtags",
+      "hashtagsPlaceholder": "#hashtag1 #hashtag2",
+      "preview": "Preview",
+      "title": "Title",
+      "titlePlaceholder": "Your video title..."
+    },
+    "hashtags": {
+      "generating": "Generating hashtags for"
+    },
+    "install": "Install",
+    "installPrompt": "Do you want to install {{platform}}?",
+    "notInstalled": "{{platform}} is not installed",
+    "platforms": {
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "telegram": "Telegram",
+      "tiktok": "TikTok",
+      "twitter": "Twitter",
+      "whatsapp": "WhatsApp",
+      "youtube": "YouTube"
+    },
+    "selectedPlatform": "Selected Platform",
+    "share": "Share",
+    "shareError": "Unable to share on {{platform}}",
+    "sharing": {
+      "error": "Sharing error:",
+      "starting": "Starting sharing to",
+      "success": "Successfully shared to"
+    },
+    "status": {
+      "installed": "INSTALLED",
+      "notInstalled": "NOT INSTALLED"
+    },
+    "tips": {
+      "appOpens": "The app opens automatically",
+      "followInstructions": "Follow the instructions",
+      "title": "Tips",
+      "videoSaved": "Video saved to gallery"
+    },
+    "title": "Share Video",
+    "validation": {
+      "descriptionTooLong": "Description is too long (max 500 characters)",
+      "titleRequired": "Title is required",
+      "titleTooLong": "Title is too long (max 100 characters)",
+      "tooManyHashtags": "Too many hashtags (max 10)"
+    }
+  }
+}

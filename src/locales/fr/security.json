@@ -1,0 +1,166 @@
+{
+  "biometric": {
+    "accessDenied": {
+      "message": "Authentification requise pour accéder aux paramètres AI",
+      "title": "🔒 Accès Refusé"
+    },
+    "apiKeys": "Authentifiez-vous pour accéder aux clés API",
+    "authError": "Erreur lors de l'authentification",
+    "authValidity": "Authentification valide pendant 5 minutes",
+    "authenticating": "Authentification en cours...",
+    "defaultPrompt": "Authentifiez-vous pour continuer",
+    "enablePrompt": "Authentifiez-vous pour activer la protection biométrique",
+    "fallback": "Utiliser le code",
+    "noApiKeys": {
+      "configure": "Configurer",
+      "message": "Vous devez d'abord configurer au moins une clé API avant d'activer la protection biométrique.",
+      "title": "🔑 Aucune clé API",
+      "warning": "⚠️ Aucune clé API configurée",
+      "warningMessage": "Configurez au moins une clé API avant d'activer la protection biométrique."
+    },
+    "notEnrolled": {
+      "message": "Veuillez configurer Face ID/Touch ID dans les paramètres de votre appareil.",
+      "title": "Biométrie non configurée"
+    },
+    "notSupported": "Authentification biométrique non supportée sur cet appareil",
+    "notSupportedDesc": "Votre appareil ne supporte pas l'authentification biométrique (Face ID/Touch ID/Empreinte digitale)",
+    "protection": "Protection biométrique",
+    "protectionDesc": "Protéger les clés API avec Face ID/Touch ID",
+    "requireForAccess": "Lors de l'utilisation",
+    "requireForAccessDesc": "Demander l'authentification pour utiliser une clé",
+    "requireForApiKeys": "Clés API",
+    "requireForApiKeysDesc": "Protéger l'accès aux clés API",
+    "requireForSave": "Lors de la sauvegarde",
+    "requireForSaveDesc": "Demander l'authentification pour sauvegarder une clé",
+    "requireForSettings": "Paramètres AI",
+    "requireForSettingsDesc": "Sécuriser l'accès aux paramètres",
+    "securityInfo": "Vos données biométriques restent sur votre appareil et ne sont jamais partagées.",
+    "settings": "Authentifiez-vous pour modifier les paramètres",
+    "settingsAccess": "Authentifiez-vous pour accéder aux paramètres AI",
+    "setupRequired": "Configuration requise",
+    "setupRequiredDesc": "Pour utiliser cette fonctionnalité, configurez Face ID ou Touch ID dans Réglages > Face ID et code"
+  },
+  "permissions": {
+    "android": {
+      "askLater": "Demander plus tard",
+      "camera": {
+        "message": "CamPrompt AI a besoin d'accéder à votre caméra pour enregistrer des vidéos",
+        "title": "Permission Caméra"
+      },
+      "cancel": "Annuler",
+      "microphone": {
+        "message": "CamPrompt AI a besoin d'accéder à votre microphone pour enregistrer l'audio",
+        "title": "Permission Microphone"
+      },
+      "ok": "OK"
+    },
+    "authorizeAll": "Autoriser tout",
+    "card": {
+      "authorize": "Autoriser",
+      "retry": "Réessayer"
+    },
+    "continue": "Continuer",
+    "continueWithout": "Continuer sans permissions",
+    "description": "Nous demanderons l'accès à votre caméra, microphone et stockage pour une expérience optimale.",
+    "error": {
+      "continueLater": "Vous pouvez continuer et accorder les permissions plus tard dans les paramètres de l'application.",
+      "message": "Erreur lors de la vérification des permissions",
+      "note": "Vous pouvez toujours utiliser l'application avec des fonctionnalités limitées.",
+      "refreshMessage": "Erreur lors de la mise à jour des permissions",
+      "title": "Erreur de Permission"
+    },
+    "fallback": {
+      "continue": "Continuer",
+      "grantLater": "Vous pouvez continuer et les accorder plus tard dans les paramètres.",
+      "needPermissions": "L'application a besoin de permissions pour fonctionner correctement."
+    },
+    "header": {
+      "recheck": "Vérifier à nouveau les permissions",
+      "subtitle": "Pour utiliser toutes les fonctionnalités de CamPrompt AI",
+      "title": "Permissions Requises"
+    },
+    "info": {
+      "dataStaysLocal": "✅ Toutes les données restent sur votre appareil",
+      "needAccess": "📱 CamPrompt AI a besoin d'accéder à certaines fonctionnalités de votre appareil pour fonctionner correctement.",
+      "requiredNote": "* Permissions requises pour les fonctionnalités de base",
+      "troubleTip": "💡 Si vous rencontrez des problèmes, vous pouvez toujours accorder les permissions plus tard dans les Paramètres de votre téléphone"
+    },
+    "logs": {
+      "cameraPermissionUpdate": "📹 Mise à jour des permissions de caméra:",
+      "cameraStateBeforeRefresh": "📹 État de la caméra avant mise à jour:",
+      "cameraUpdateError": "❌ Erreur lors de la mise à jour des permissions de caméra:",
+      "checkingPermissionsError": "❌ Erreur lors de la vérification des permissions:",
+      "fallbackContinue": "🚨 Interface de secours - Continuer",
+      "forceRefreshPermissions": "🔄 Forçage de la mise à jour des permissions...",
+      "initializationError": "❌ Erreur d'initialisation:",
+      "initializingPermissions": "🔄 Initialisation des permissions...",
+      "refreshError": "❌ Erreur lors de la mise à jour:",
+      "requestingAllError": "❌ Erreur lors de la demande de toutes les permissions:",
+      "savingPermissionsError": "❌ Erreur lors de la sauvegarde de l'état des permissions:",
+      "userClickedContinue": "✅ L'utilisateur a cliqué sur Continuer"
+    },
+    "requesting": "Demande en cours...",
+    "required": {
+      "message": "L'accès à {{permission}} est nécessaire pour utiliser l'application.",
+      "title": "Permission Requise"
+    },
+    "retry": "Réessayer",
+    "success": {
+      "continue": "Vous pouvez maintenant continuer.",
+      "message": "✅ Toutes les permissions ont été accordées!"
+    },
+    "types": {
+      "camera": {
+        "description": "Pour enregistrer des vidéos avec le téléprompeur",
+        "title": "Caméra"
+      },
+      "microphone": {
+        "description": "Pour enregistrer l'audio de vos vidéos",
+        "title": "Microphone"
+      },
+      "storage": {
+        "description": "Pour sauvegarder vos vidéos dans la galerie",
+        "title": "Stockage"
+      }
+    }
+  },
+  "security": {
+    "biometric": {
+      "disabled": "Authentification biométrique non disponible",
+      "enabled": "Authentification biométrique activée"
+    },
+    "created": "Créée le",
+    "delete": {
+      "confirm": "Supprimer",
+      "error": "Erreur lors de la suppression",
+      "message": "Êtes-vous sûr de vouloir supprimer la clé {{provider}} ? Cette action est irréversible.",
+      "success": "Clé {{provider}} supprimée avec succès",
+      "title": "🗑️ Supprimer la clé"
+    },
+    "deleteButton": "Supprimer",
+    "encryption": "Chiffrement",
+    "info": "Les clés sont chiffrées avec AES-256 et stockées dans le Keychain sécurisé.",
+    "infoExpiry": "Expiration automatique après 90 jours",
+    "keys": {
+      "count": "clés protégées",
+      "expired": "Expirée",
+      "expiresIn": "Expire dans {{days}} jours",
+      "none": "Aucune clé sécurisée",
+      "noneDesc": "Ajoutez des clés API pour commencer",
+      "secured": "Clés sécurisées :"
+    },
+    "loading": "Vérification de la sécurité...",
+    "migrate": {
+      "button": "Migrer les clés existantes",
+      "confirm": "Migrer",
+      "error": "Erreur lors de la migration",
+      "message": "Voulez-vous migrer vos clés API vers le stockage sécurisé avec authentification biométrique ?",
+      "noKeys": "Aucune clé à migrer",
+      "partial": "Migration Partielle",
+      "partialMessage": "{{success}} clé(s) migrée(s) avec succès.\n{{failed}} clé(s) ont échoué.\n\nErreurs:\n{{errors}}",
+      "success": "Clés migrées avec succès !",
+      "title": "🔐 Migration Sécurisée"
+    },
+    "title": "Sécurité des Clés API"
+  }
+}

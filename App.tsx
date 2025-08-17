@@ -1,52 +1,101 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import "react-native-get-random-values";
+import 'react-native-reanimated';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import { useEffect } from 'react';
-import messaging from '@react-native-firebase/messaging';
+import { useEffect } from "react";
+import { StatusBar, StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+import ErrorBoundary from "./src/components/common/ErrorBoundary";
+import { SplashScreenManager } from "./src/components/common/SplashScreenManager";
+import { CombinedProviders } from "./src/contexts/CombinedProviders";
+
+import AppNavigator from "./src/navigation/AppNavigator";
+
 import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+  createOptimizedLogger,
+  disableConsoleLogs,
+} from "./src/utils/optimizedLogger";
+import { performanceMonitor } from "./src/services/performance/PerformanceMonitor";
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+import { isI18nReady, waitForI18n } from "./src/locales/i18n";
+import { useSimpleSessionTracker } from "./src/hooks/useSimpleSessionTracker";
+import { OptimizedWarmupService } from "./src/services/performance/OptimizedWarmupService";
+import { LazyLoadService } from "./src/services/performance/LazyLoadService";
 
-  useEffect(() => {
-    (async () => {
-      try {
-        await messaging().requestPermission();
-        const token = await messaging().getToken();
-        console.log('FCM token (iOS):', token);
-      } catch (e) {
-        console.warn('Firebase Messaging init error:', e);
-      }
-    })();
-  }, []);
+const logger = createOptimizedLogger("App");
+
+// Désactiver les logs console en production
+disableConsoleLogs();
+
+function AppContent() {
+  useSimpleSessionTracker();
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
+    <SplashScreenManager>
+      <StatusBar barStyle="default" />
+      <AppNavigator />
+    </SplashScreenManager>
   );
 }
 
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
+export default function App() {
+  logger.info("Application démarrée");
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // Initialisation i18n si nécessaire
+        if (!isI18nReady()) {
+          logger.debug("Initialisation i18next...");
+          await waitForI18n();
+          logger.debug("i18next initialisé avec succès");
+        }
+
+        // Démarrer le service de warmup optimisé
+        OptimizedWarmupService.init();
+
+        // Précharger les modules critiques de manière lazy
+        LazyLoadService.preloadModules([
+          {
+            name: "react-native-localize",
+            loader: () => import("react-native-localize"),
+          },
+        ]).catch(() => {
+          // Ignorer les erreurs de préchargement
+        });
+
+        // Activer le monitoring des performances en développement
+        if (__DEV__) {
+          performanceMonitor.startMonitoring();
+          performanceMonitor.setThresholds({
+            minFPS: 50,
+            maxMemoryMB: 200,
+            maxRenderTimeMS: 16,
+            maxInteractionTimeMS: 50,
+          });
+        }
+      } catch (error) {
+        logger.error("Erreur lors de l'initialisation:", error);
+      }
+    };
+
+    initializeApp();
+
+    // Cleanup au démontage
+    return () => {
+      OptimizedWarmupService.cleanup();
+      LazyLoadService.clearCache();
+    };
+  }, []);
 
   return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={styles.container}>
+        <CombinedProviders>
+          <AppContent />
+        </CombinedProviders>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 
@@ -55,5 +104,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
-export default App;

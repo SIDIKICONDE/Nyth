@@ -1,0 +1,335 @@
+{
+  "preview": {
+    "actions": {
+      "export": "💾 Exporter",
+      "exporting": "🎬 Exportation...",
+      "share": "Partager",
+      "socialMedia": "Réseaux Sociaux"
+    },
+    "audioEffects": {
+      "effects": {
+        "autoGain": "📊 Gain automatique",
+        "bassBoost": "🔊 Boost des basses",
+        "noiseReduction": "🔇 Réduction du bruit ({{level}})",
+        "trebleBoost": "✨ Boost des aigus",
+        "voiceEnhancement": "🗣️ Amélioration de la voix"
+      },
+      "equalizer": {
+        "actions": {
+          "reset": "Réinitialiser",
+          "toggle": "Activer/Désactiver"
+        },
+        "bands": {
+          "bass": "Basses",
+          "highMid": "Médiums hauts",
+          "lowMid": "Médiums bas",
+          "mid": "Médiums",
+          "treble": "Aigus"
+        },
+        "disabled": "Désactivé",
+        "enabled": "Activé",
+        "frequencies": {
+          "bass": "60-250Hz",
+          "highMid": "2-4kHz",
+          "lowMid": "250-500Hz",
+          "mid": "500-2kHz",
+          "treble": "4-16kHz"
+        },
+        "presets": {
+          "classical": "Classique",
+          "custom": "Personnalisé",
+          "flat": "Plat",
+          "jazz": "Jazz",
+          "pop": "Pop",
+          "rock": "Rock",
+          "title": "Préréglages",
+          "vocal": "Vocal"
+        },
+        "title": "🎛️ Égaliseur"
+      },
+      "native": "Effets audio natifs",
+      "nativeUnavailable": "Module natif non disponible",
+      "profiles": {
+        "music": "🎵 Musique",
+        "outdoor": "🌳 Extérieur",
+        "podcast": "🎧 Podcast",
+        "voice-clear": "🎙️ Voix claire"
+      },
+      "simulated": "Effets audio (simulés)"
+    },
+    "audioProcessing": {
+      "inProgress": "Traitement audio...",
+      "title": "Optimisation Audio"
+    },
+    "delete": {
+      "error": {
+        "message": "Impossible de supprimer cet enregistrement.",
+        "title": "❌ Erreur de Suppression"
+      },
+      "fileError": "❌ Erreur lors de la suppression du fichier :",
+      "generalError": "❌ Erreur lors de la suppression :",
+      "message": "Êtes-vous sûr de vouloir supprimer cet enregistrement ? Cette action est irréversible.",
+      "success": "✅ Fichier vidéo supprimé : {{uri}}",
+      "title": "🗑️ Supprimer la Vidéo"
+    },
+    "export": {
+      "error": {
+        "message": "Impossible d'exporter la vidéo",
+        "ok": "OK",
+        "title": "❌ Erreur"
+      },
+      "steps": {
+        "applyingFilter": "Application du filtre de couleur...",
+        "audioProcessing": "Traitement audio...",
+        "completed": "Exportation terminée !",
+        "encoding": "Encodage en cours...",
+        "finalizing": "Finalisation...",
+        "preparation": "Préparation de l'exportation...",
+        "videoPreparation": "Préparation vidéo..."
+      },
+      "success": {
+        "message": "Vidéo enregistrée dans votre galerie ({{size}})",
+        "ok": "OK",
+        "title": "✅ Exportation Réussie"
+      }
+    },
+    "fileAccessError": {
+      "message": "Impossible d'accéder à cette vidéo. Le fichier est peut-être corrompu ou supprimé.",
+      "title": "❌ Erreur d'Accès au Fichier"
+    },
+    "fileCheck": {
+      "notFound": "❌ Fichier vidéo non trouvé :",
+      "sizeError": "❌ Erreur lors du calcul de la taille :",
+      "verifying": "📁 Vérification de l'existence du fichier :"
+    },
+    "fileError": {
+      "message": "Cette vidéo n'est plus accessible. Le fichier a peut-être été supprimé ou déplacé.\n\nVeuillez supprimer cet enregistrement de la liste.",
+      "title": "❌ Fichier Non Trouvé"
+    },
+    "fileStatus": {
+      "error": "Erreur de calcul",
+      "notFound": "Fichier non trouvé",
+      "unknownSize": "Taille inconnue"
+    },
+    "generating": "Génération de l'aperçu...",
+    "loading": {
+      "message": "Préparation de votre vidéo",
+      "title": "Chargement..."
+    },
+    "notFound": {
+      "goHome": "Aller à l'Accueil",
+      "subtitle": "La vidéo que vous cherchez n'existe pas ou a été supprimée.",
+      "title": "Vidéo Non Trouvée"
+    },
+    "preparingVideo": "Préparation de la vidéo",
+    "share": {
+      "details": {
+        "message": "Regardez ma vidéo créée avec CamPrompt AI !",
+        "title": "Ma vidéo CamPrompt AI"
+      },
+      "error": {
+        "message": "Impossible de partager cette vidéo.",
+        "title": "❌ Erreur de Partage"
+      },
+      "success": "✅ Contenu partagé avec succès"
+    },
+    "title": "Aperçu Vidéo",
+    "videoSettings": {
+      "format": "Format",
+      "quality": "Qualité",
+      "title": "Options d'Exportation"
+    }
+  },
+  "teleprompter": {
+    "basic": {
+      "animation": {
+        "duration": "Vitesse : {{speed}}%, Durée : {{duration}}s",
+        "pausedAt": "En pause à la position : {{position}}px",
+        "resetTo": "Réinitialisé à la position : {{position}}px",
+        "speedLoaded": "Vitesse de défilement chargée : {{speed}}%",
+        "speedSaved": "Vitesse de défilement enregistrée : {{speed}}%"
+      },
+      "controls": {
+        "mirror": "Mode Miroir",
+        "pause": "Pause",
+        "play": "Lecture",
+        "reset": "Réinitialiser la Position",
+        "settings": "Paramètres",
+        "speedDown": "Diminuer la Vitesse",
+        "speedUp": "Augmenter la Vitesse"
+      },
+      "dimensions": {
+        "containerHeight": "Hauteur du conteneur : {{height}}px",
+        "textHeightMeasured": "Hauteur du texte mesurée : {{height}}px"
+      },
+      "empty": {
+        "backToEditor": "Retour à l'Éditeur",
+        "message": "Veuillez sélectionner un script depuis l'éditeur pour utiliser le prompteur.",
+        "title": "Aucun Script Sélectionné"
+      },
+      "error": {
+        "goBack": "Retour",
+        "retry": "Réessayer",
+        "title": "Erreur de Chargement"
+      },
+      "loading": "Chargement du script...",
+      "mirror": {
+        "disabled": "Mode miroir désactivé",
+        "enabled": "Mode miroir activé"
+      },
+      "position": {
+        "reset": "Position réinitialisée : {{position}}px",
+        "restored": "Position enregistrée restaurée : {{position}}px",
+        "saved": "Position enregistrée : {{position}}px"
+      },
+      "script": {
+        "availableIds": "IDs disponibles :",
+        "errorContent": "Erreur : Script non trouvé (ID : {{scriptId}})\n\nLe script que vous essayez d'ouvrir n'existe plus ou a été supprimé.\n\nVous pouvez :\n• Appuyer sur \"Réessayer\" pour recharger\n• Retourner à l'accueil pour sélectionner un autre script\n• Créer un nouveau script dans l'éditeur",
+        "foundInAsyncStorage": "Script trouvé dans AsyncStorage : {{title}}",
+        "loadedSuccess": "Script chargé avec succès : {{title}}",
+        "loading": "Chargement du script avec l'ID : {{scriptId}} (tentative {{attempt}})",
+        "noIdProvided": "Aucun ID de script fourni",
+        "notFoundAfterRetries": "Script non trouvé pour l'ID {{scriptId}} après {{attempts}} tentatives",
+        "notFoundInAsyncStorage": "Script avec l'ID {{scriptId}} non trouvé dans AsyncStorage",
+        "notFoundInContext": "Script non trouvé dans le contexte, tentative avec AsyncStorage...",
+        "retryIn": "Nouvelle tentative dans 1 seconde..."
+      },
+      "speed": {
+        "label": "{{speed}}%",
+        "loaded": "Vitesse de défilement chargée : {{speed}}%",
+        "saved": "Vitesse de défilement enregistrée : {{speed}}%"
+      },
+      "title": "Prompteur Basique"
+    },
+    "fontSize": "Taille de la Police",
+    "pause": "Pause",
+    "play": "Lecture",
+    "preview": {
+      "autoSave": "Auto",
+      "exampleContent": "Voici un exemple de texte qui pourrait défiler dans votre prompteur.\n\nUtilisez les contrôles ci-dessous pour personnaliser l'apparence du texte et de l'arrière-plan selon vos préférences.\n\nVous pouvez ensuite appliquer ces paramètres lors de vos enregistrements.",
+      "exampleTitle": "Exemple de Prompteur",
+      "fullscreenPreview": "Aperçu Plein Écran",
+      "loading": "Chargement des paramètres...",
+      "logs": {
+        "loadError": "Erreur lors du chargement des paramètres :",
+        "positionOffsetLoaded": "CHARGEMENT DU DÉCALAGE DE POSITION : {{offset}}px",
+        "positionOffsetUndefined": "DÉCALAGE DE POSITION NON DÉFINI DANS LES PARAMÈTRES ENREGISTRÉS",
+        "positionOffsetUpdated": "MISE À JOUR DU DÉCALAGE DE POSITION : {{offset}}px",
+        "refreshPreview": "Actualisation de l'aperçu - paramètres mis à jour",
+        "resetError": "Erreur lors de la réinitialisation des paramètres :",
+        "settingUpdated": "Paramètre \"{{key}}\" mis à jour et auto-enregistré : {{value}}",
+        "settingsReset": "Tous les paramètres ont été réinitialisés et enregistrés",
+        "sliderPositionChanged": "Position du curseur de décalage modifiée : {{value}}",
+        "updateError": "Erreur lors de la mise à jour du paramètre \"{{key}}\" :"
+      },
+      "preview": "Aperçu",
+      "scrollsUp": "Défile vers le haut",
+      "settings": {
+        "additionalOptions": "Options supplémentaires",
+        "alignment": {
+          "center": "Centre",
+          "left": "Gauche",
+          "right": "Droite"
+        },
+        "backgroundColor": "Couleur de l'arrière-plan",
+        "horizontalMargins": "Marges horizontales : {{margin}}%",
+        "margins": {
+          "large": "Grandes marges",
+          "medium": "Marges moyennes",
+          "none": "Aucune marge",
+          "reduced": "Marges réduites"
+        },
+        "options": {
+          "mirrorDescription": "Retourne horizontalement le texte",
+          "mirrorMode": "Mode miroir",
+          "textShadow": "Ombre du texte",
+          "textShadowDescription": "Ajoute une ombre pour améliorer la lisibilité"
+        },
+        "position": {
+          "bottom": "Bas",
+          "center": "Centre",
+          "fineAdjustment": "Ajustement fin : {{offset}} px",
+          "startPositionText": "Position de départ du texte",
+          "top": "Haut"
+        },
+        "resetSettings": "Réinitialiser les paramètres",
+        "sizes": {
+          "large": "Grande taille",
+          "medium": "Taille moyenne",
+          "small": "Petite taille"
+        },
+        "startPosition": "Position de départ",
+        "textAlignment": "Alignement du texte",
+        "textColor": "Couleur du texte",
+        "textSize": "Taille du texte : {{size}}px"
+      },
+      "startTeleprompter": "Démarrer",
+      "subtitle": "Script : {{title}}",
+      "subtitleDefault": "Personnalisez l'apparence du texte",
+      "title": "Paramètres du Prompteur"
+    },
+    "reset": "Réinitialiser",
+    "scroll": {
+      "animationFinished": "Animation terminée",
+      "blockedNotRecording": "🚫 Tentative de démarrage du défilement sans enregistrement actif - BLOQUÉ",
+      "blockedResetting": "⏳ Tentative de démarrage du défilement pendant la réinitialisation - ignorée",
+      "blockedStillPaused": "⏸️ Défilement toujours en pause - redémarrage requis",
+      "blockedTextNotMeasured": "Impossible de démarrer : texte non mesuré correctement",
+      "resetComplete": "✅ Réinitialisation terminée, animations déverrouillées",
+      "resetting": "🔄 RÉINITIALISATION FORCÉE du défilement",
+      "started": "Défilement démarré de {{from}} à {{to}} avec une durée de {{duration}}ms",
+      "stopped": "Défilement arrêté à la position {{position}}"
+    },
+    "speed": "Vitesse",
+    "title": "Prompteur",
+    "videoLibrary": {
+      "actionModal": {
+        "playVideo": "Lire la vidéo",
+        "playVideoDescription": "Lire directement dans ce modal",
+        "sendToPreview": "Envoyer vers prévisualisation",
+        "sendToPreviewDescription": "Ouvrir dans l'écran de prévisualisation",
+        "title": "Actions Vidéo",
+        "untitledVideo": "Vidéo sans titre",
+        "videoPlayerNote": "Contrôles de lecture intégrés",
+        "videoPlayerPlaceholder": "Aperçu de la vidéo\n(Lecteur en cours de développement)"
+      }
+    }
+  },
+  "topicInput": {
+    "categoryHelp": "Choisissez une catégorie pour voir les suggestions de sujets",
+    "characters": "caractères",
+    "placeholder": "Entrez le sujet de votre script ici...",
+    "scriptTopic": "Sujet du Script",
+    "suggestions": "Suggestions de Sujets"
+  },
+  "topics": {
+    "business": {
+      "leadership": "Compétences essentielles en leadership",
+      "negotiation": "Techniques de négociation de base",
+      "officeOrganization": "Conseils pour organiser votre espace de bureau",
+      "productivity": "Comment augmenter la productivité au travail",
+      "saveMoney": "Comment économiser de l'argent en entreprise"
+    },
+    "creative": {
+      "creativeWriting": "Techniques d'écriture créative",
+      "digitalArt": "Art numérique pour débutants",
+      "graphicDesign": "Principes de design graphique",
+      "perfectPhoto": "Comment prendre la photo parfaite",
+      "videoEditing": "Bases du montage vidéo"
+    },
+    "lifestyle": {
+      "dailyWellness": "Habitudes de bien-être quotidien",
+      "healthyRecipe": "Idées de recettes rapides et saines",
+      "homeExercises": "Exercices à domicile sans équipement",
+      "morningRoutine": "Routine matinale parfaite",
+      "personalDevelopment": "Conseils de développement personnel"
+    },
+    "tech": {
+      "aiDaily": "L'IA dans la vie quotidienne",
+      "digitalProductivity": "Outils de productivité numérique",
+      "digitalSecurity": "Conseils de sécurité numérique",
+      "essentialApps": "Applications mobiles essentielles",
+      "trends": "Dernières tendances technologiques"
+    }
+  }
+}

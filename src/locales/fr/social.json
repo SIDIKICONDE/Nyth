@@ -1,0 +1,35 @@
+{
+  "welcomeBubble": {
+    "assistantTitle": "Assistant IA",
+    "chatWithMe": "💬 Discuter avec moi",
+    "disabled": {
+      "description": "Aucun message ne s'affichera"
+    },
+    "enabled": {
+      "description": "Messages contextuels intelligents activés",
+      "title": "Activer les messages"
+    },
+    "features": {
+      "contextual": "Contexte intelligent",
+      "contextualDesc": "Messages adaptés à votre activité",
+      "multilingual": "Support multilingue",
+      "multilingualDesc": "Messages dans votre langue système"
+    },
+    "frequency": {
+      "title": "Fréquence"
+    },
+    "generatingMessage": "Je prépare un message personnalisé...",
+    "reset": {
+      "button": "Réinitialiser les paramètres",
+      "message": "Voulez-vous réinitialiser les paramètres des messages de bienvenue ?",
+      "title": "Réinitialiser"
+    },
+    "stats": {
+      "lastShown": "Dernier message : {{date}}",
+      "showCount": "Messages affichés : {{count}}",
+      "title": "Statistiques"
+    },
+    "subtitle": "Messages contextuels générés par l'IA",
+    "title": "Messages de bienvenue intelligents"
+  }
+}

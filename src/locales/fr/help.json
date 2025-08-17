@@ -1,0 +1,128 @@
+{
+  "help": {
+    "categories": {
+      "advanced": {
+        "description": "Cache, réinitialisation et paramètres techniques",
+        "title": "⚙️ Avancé"
+      },
+      "display": {
+        "description": "Thèmes, modes d'affichage et personnalisation visuelle",
+        "title": "🎨 Affichage"
+      },
+      "recording": {
+        "description": "Qualité vidéo, stabilisation et paramètres de capture",
+        "title": "🎥 Enregistrement"
+      },
+      "security": {
+        "description": "Paramètres de protection des données et de confidentialité",
+        "title": "🔐 Sécurité"
+      }
+    },
+    "createAccount": "Créer un compte gratuit",
+    "createAccountDesc": "Sauvegardez vos scripts et débloquez toutes les fonctionnalités",
+    "details": {
+      "stepsTitle": "📋 Étapes à suivre",
+      "tipsTitle": "💡 Conseil",
+      "warningTitle": "⚠️ Avertissement"
+    },
+    "features": {
+      "aiPower": {
+        "desc": "Génération intelligente de scripts avec plusieurs modèles",
+        "title": "IA Puissante"
+      },
+      "proRecording": {
+        "desc": "Qualité 4K, stabilisation et optimisation audio",
+        "title": "Enregistrement Pro"
+      },
+      "smartTeleprompter": {
+        "desc": "5 modes de défilement adaptatifs",
+        "title": "Télésouffleur Intelligent"
+      },
+      "socialShare": {
+        "desc": "Export optimisé pour toutes les plateformes",
+        "title": "Partage Social"
+      },
+      "title": "✨ Fonctionnalités"
+    },
+    "sections": {
+      "features": "Fonctionnalités",
+      "tips": "Conseils",
+      "tutorials": "Tutoriels"
+    },
+    "settings": {
+      "themes": {
+        "description": "Personnalisez l'apparence avec 6 thèmes disponibles",
+        "step1": "Ouvrez les Paramètres depuis l'écran d'accueil",
+        "step2": "Appuyez sur la section 'Thèmes'",
+        "step3": "Choisissez parmi : Clair, Sombre, Minuit, Nature, Océan, Coucher de soleil",
+        "step4": "Le thème s'applique instantanément",
+        "step5": "Personnalisez les couleurs et la transparence si vous le souhaitez",
+        "tips": "Le thème Sombre économise la batterie sur les écrans OLED",
+        "title": "Changer de Thème"
+      }
+    },
+    "settingsGuide": {
+      "cacheDescription": "Cache, réinitialisation et paramètres techniques",
+      "cacheSectionStep": "Allez dans Paramètres → Section Cache IA",
+      "codecStep": "Paramètres → Section Enregistrement (iOS uniquement)",
+      "codecTitle": "Paramètres du Codec (iOS Non supporté",
+      "displaySectionStep": "Allez dans Paramètres → Section Affichage",
+      "languageSectionStep": "Paramètres → Section Langue",
+      "notificationsStep": "Paramètres → Section Alertes",
+      "notificationsTitle": "Paramètres de Notification",
+      "openSettingsStep": "Ouvrez les Paramètres depuis l'écran d'accueil",
+      "privacyDescription": "Paramètres de protection des données et de confidentialité",
+      "recordingSectionStep": "Allez dans Paramètres → Section Enregistrement",
+      "resetSettingsAction": "Appuyez sur 'Réinitialiser les paramètres'",
+      "resetSettingsEffect": "Tous les paramètres reviendront à leurs valeurs par défaut",
+      "resetSettingsStep": "Paramètres → Section Réinitialisation",
+      "resetSettingsTitle": "Réinitialiser les Paramètres",
+      "resetSettingsWarning": "Cette action est irréversible. Notez vos paramètres importants avant de continuer.",
+      "securitySectionStep": "Allez dans Paramètres → Section Sécurité",
+      "subtitle": "Instructions détaillées pour configurer chaque paramètre",
+      "title": "⚙️ Guide des Paramètres",
+      "videoQualityDescription": "Qualité vidéo, stabilisation et paramètres de capture"
+    },
+    "subtitle": "Découvrez tout ce que vous pouvez faire avec CamPrompt AI",
+    "tips": {
+      "backup": "Vos scripts sont automatiquement sauvegardés",
+      "doubleTap": "Double-tap sur le téléprompteur pour mettre en pause",
+      "swipeScript": "Balayez sur un script pour voir les options rapides",
+      "title": "💡 Conseils et Astuces",
+      "voiceCommands": "Utilisez Ctrl+Espace pour les commandes vocales"
+    },
+    "title": {
+      "guest": "Bienvenue ! 👋",
+      "user": "Bonjour {{name}} ! 👋"
+    },
+    "tutorials": {
+      "ai": {
+        "desc": "Apprenez à générer des scripts avec l'intelligence artificielle",
+        "title": "🤖 Utilisation de l'IA"
+      },
+      "firstScript": {
+        "desc": "Apprenez à créer et à modifier un script pour votre téléprompteur",
+        "title": "📝 Créez votre premier script"
+      },
+      "planning": {
+        "desc": "Créez des événements, gérez vos objectifs et suivez votre progression",
+        "title": "📅 Organiser avec la planification"
+      },
+      "recording": {
+        "desc": "Maîtrisez les paramètres d'enregistrement et le téléprompteur",
+        "title": "🎥 Enregistrer une vidéo"
+      },
+      "teleprompter": {
+        "desc": "Personnalisez la vitesse, la taille et l'apparence du texte",
+        "title": "📜 Configurer le téléprompteur"
+      },
+      "title": "🎓 Tutoriels Interactifs"
+    }
+  },
+  "support": {
+    "contact": "Contacter le Support",
+    "faq": "FAQ",
+    "feedback": "Donner un Avis",
+    "title": "Support et Aide"
+  }
+}

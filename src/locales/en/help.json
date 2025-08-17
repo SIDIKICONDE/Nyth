@@ -1,0 +1,128 @@
+{
+  "help": {
+    "categories": {
+      "advanced": {
+        "description": "Cache, reset, and technical settings",
+        "title": "⚙️ Advanced"
+      },
+      "display": {
+        "description": "Themes, display modes, and visual customization",
+        "title": "🎨 Display"
+      },
+      "recording": {
+        "description": "Video quality, stabilization, and capture settings",
+        "title": "🎥 Recording"
+      },
+      "security": {
+        "description": "Data protection and privacy settings",
+        "title": "🔐 Security"
+      }
+    },
+    "createAccount": "Create a free account",
+    "createAccountDesc": "Save your scripts and unlock all features",
+    "details": {
+      "stepsTitle": "📋 Steps to follow",
+      "tipsTitle": "💡 Tip",
+      "warningTitle": "⚠️ Warning"
+    },
+    "features": {
+      "aiPower": {
+        "desc": "Smart script generation with multiple models",
+        "title": "Powerful AI"
+      },
+      "proRecording": {
+        "desc": "4K quality, stabilization, and audio optimization",
+        "title": "Pro Recording"
+      },
+      "smartTeleprompter": {
+        "desc": "5 adaptive scrolling modes",
+        "title": "Smart Teleprompter"
+      },
+      "socialShare": {
+        "desc": "Optimized export for all platforms",
+        "title": "Social Sharing"
+      },
+      "title": "✨ Features"
+    },
+    "sections": {
+      "features": "Features",
+      "tips": "Tips",
+      "tutorials": "Tutorials"
+    },
+    "settings": {
+      "themes": {
+        "description": "Customize the appearance with 6 available themes",
+        "step1": "Open Settings from the home screen",
+        "step2": "Tap on the 'Themes' section",
+        "step3": "Choose from: Light, Dark, Midnight, Nature, Ocean, Sunset",
+        "step4": "The theme applies instantly",
+        "step5": "Customize colors and transparency if desired",
+        "tips": "The Dark theme saves battery on OLED screens",
+        "title": "Change Theme"
+      }
+    },
+    "settingsGuide": {
+      "cacheDescription": "Cache, reset, and technical settings",
+      "cacheSectionStep": "Go to Settings → AI Cache Section",
+      "codecStep": "Settings → Recording Section (iOS only)",
+      "codecTitle": "Codec Settings (iOS Non supporté",
+      "displaySectionStep": "Go to Settings → Display Section",
+      "languageSectionStep": "Settings → Language Section",
+      "notificationsStep": "Settings → Alerts Section",
+      "notificationsTitle": "Notification Settings",
+      "openSettingsStep": "Open Settings from the home screen",
+      "privacyDescription": "Data protection and privacy settings",
+      "recordingSectionStep": "Go to Settings → Recording Section",
+      "resetSettingsAction": "Press 'Reset settings'",
+      "resetSettingsEffect": "All settings will revert to their default values",
+      "resetSettingsStep": "Settings → Reset Section",
+      "resetSettingsTitle": "Reset Settings",
+      "resetSettingsWarning": "This action is irreversible. Note your important settings before proceeding.",
+      "securitySectionStep": "Go to Settings → Security Section",
+      "subtitle": "Detailed instructions for configuring each setting",
+      "title": "⚙️ Settings Guide",
+      "videoQualityDescription": "Video quality, stabilization, and capture settings"
+    },
+    "subtitle": "Discover everything you can do with CamPrompt AI",
+    "tips": {
+      "backup": "Your scripts are automatically backed up",
+      "doubleTap": "Double-tap on the teleprompter to pause",
+      "swipeScript": "Swipe on a script to see quick options",
+      "title": "💡 Tips & Tricks",
+      "voiceCommands": "Use Ctrl+Space for voice commands"
+    },
+    "title": {
+      "guest": "Welcome! 👋",
+      "user": "Hello {{name}}! 👋"
+    },
+    "tutorials": {
+      "ai": {
+        "desc": "Learn how to generate scripts with artificial intelligence",
+        "title": "🤖 Using AI"
+      },
+      "firstScript": {
+        "desc": "Learn to create and edit a script for your teleprompter",
+        "title": "📝 Create your first script"
+      },
+      "planning": {
+        "desc": "Create events, manage your goals and track your progress",
+        "title": "📅 Organize with planning"
+      },
+      "recording": {
+        "desc": "Master recording settings and the teleprompter",
+        "title": "🎥 Record a video"
+      },
+      "teleprompter": {
+        "desc": "Customize the speed, size, and appearance of the text",
+        "title": "📜 Set up the teleprompter"
+      },
+      "title": "🎓 Interactive Tutorials"
+    }
+  },
+  "support": {
+    "contact": "Contact Support",
+    "faq": "FAQ",
+    "feedback": "Give Feedback",
+    "title": "Support & Help"
+  }
+}

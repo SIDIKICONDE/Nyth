@@ -1,0 +1,124 @@
+{
+  "home": {
+    "aiChat": "Assistant IA",
+    "emptyState": {
+      "scripts": {
+        "subtitle": "Créez votre premier script pour commencer à utiliser le prompteur",
+        "title": "Aucun script pour l'instant"
+      },
+      "videos": {
+        "subtitle": "Créez un script et enregistrez votre première vidéo",
+        "title": "Aucune vidéo enregistrée"
+      }
+    },
+    "greeting": {
+      "afternoon": "Bon après-midi",
+      "evening": "Bonsoir",
+      "morning": "Bonjour",
+      "night": "Bonne nuit"
+    },
+    "item": "{{count}} élément",
+    "items": "{{count}} éléments",
+    "library": {
+      "subtitle": "{{count}} {{scripts}}",
+      "title": "Ma Bibliothèque"
+    },
+    "newScript": "Nouveau script",
+    "noScript": {
+      "createScript": "Créer un Script",
+      "generateWithAI": "Générer avec l'IA",
+      "message": "Vous devez créer un script avant d'enregistrer une vidéo. Voulez-vous en créer un maintenant ?",
+      "title": "Aucun Script Disponible"
+    },
+    "record": "Enregistrer",
+    "recording": {
+      "at": "à",
+      "delete": {
+        "error": "Impossible de supprimer la vidéo",
+        "message": "Êtes-vous sûr de vouloir supprimer cette vidéo ?",
+        "title": "Supprimer la Vidéo"
+      },
+      "deleteSelected": "Supprimer {{count}} {{videos}}",
+      "deletedScript": "Script Supprimé",
+      "fileNotFound": "❌ Fichier Non Trouvé",
+      "fileNotFoundMessage": "Cette vidéo n'est plus accessible. Le fichier a été supprimé ou déplacé.",
+      "release": "Relâcher",
+      "removeFromList": "Retirer de la liste",
+      "swipe": "Glisser",
+      "untitled": "Sans titre",
+      "video": "vidéo",
+      "videos": "vidéos"
+    },
+    "script": {
+      "actions": "Téléprompteur",
+      "at": "à",
+      "basicMode": "Mode basique",
+      "camera": "Caméra",
+      "chooseAction": "Que souhaitez-vous faire ?",
+      "delete": {
+        "message": "Êtes-vous sûr de vouloir supprimer ce script ?",
+        "title": "Supprimer le Script"
+      },
+      "deleteSelected": "Supprimer {{count}} {{scripts}}",
+      "duplicate": "Dupliquer",
+      "export": "Exporter le script",
+      "favorite": "Favori",
+      "modalTitle": "Modal de choix",
+      "moreOptions": "Plus d'options",
+      "release": "Relâcher",
+      "script": "script",
+      "scripts": "scripts",
+      "share": "Partager",
+      "swipe": "Glisser"
+    },
+    "scriptCard": {
+      "deleteScript": "Supprimer ce script",
+      "editScript": "Modifier ce script",
+      "moreOptions": "Plus d'options pour ce script"
+    },
+    "selection": {
+      "delete": {
+        "message": "Êtes-vous sûr de vouloir supprimer {{count}} élément(s) ?",
+        "title": "Supprimer les éléments sélectionnés"
+      }
+    },
+    "tabs": {
+      "scripts": "Scripts",
+      "videos": "Vidéos"
+    },
+    "title": "CamPrompt AI",
+    "videoLibrary": {
+      "subtitle": "{{count}} {{videos}}",
+      "title": "Collection Vidéo"
+    }
+  },
+  "library": {
+    "generateAI": "Générer IA",
+    "newScript": "Nouveau Script",
+    "scripts": "Scripts",
+    "title": "Ma Bibliothèque",
+    "videos": "Vidéos"
+  },
+  "scripts": {
+    "actions": {
+      "delete": "Supprimer",
+      "duplicate": "Dupliquer",
+      "edit": "Modifier",
+      "record": "Enregistrer",
+      "share": "Partager"
+    },
+    "empty": {
+      "subtitle": "Créez votre premier script pour commencer",
+      "title": "Aucun script trouvé"
+    },
+    "modal": {
+      "chooseAction": "Que souhaitez-vous faire avec ce script ?"
+    },
+    "swipe": {
+      "choose": "Choisir",
+      "delete": "Supprimer",
+      "edit": "Modifier"
+    },
+    "title": "Mes Scripts"
+  }
+}

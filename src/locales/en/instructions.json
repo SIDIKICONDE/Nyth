@@ -1,0 +1,25 @@
+{
+  "instructions": {
+    "achievement": "Celebrate the specific success directly, highlight progress, encourage to continue.",
+    "celebration": "Express enthusiasm directly, value the specific accomplishment without preamble.",
+    "educational": "Teach something useful directly related to writing or the app, give practical advice.",
+    "feature_discovery": "Present a relevant feature directly, show its concrete value.",
+    "feedback_request": "Ask for feedback directly in an engaging and natural way.",
+    "milestone": "Acknowledge progress toward the goal directly, motivate for the next step.",
+    "motivation": "Inspire and encourage the user directly, acknowledge their efforts, suggest the next step.",
+    "re_engagement": "Welcome back directly, show what's new, facilitate resumption.",
+    "reminder": "Gently remind of an important action, suggest resuming where they left off.",
+    "seasonal": "Connect directly with the event/season, stay relevant to the app.",
+    "tip": "Share a practical and actionable tip directly, explain the concrete benefit.",
+    "welcome": "Warmly welcome the user without mentioning their name, present the app's value, invite to action."
+  },
+  "timeContexts": {
+    "afternoon": "Afternoon",
+    "day": "Day",
+    "early_morning": "Very early morning",
+    "evening": "Evening",
+    "late_night": "Late night",
+    "morning": "Morning",
+    "night": "Night"
+  }
+}

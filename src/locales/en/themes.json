@@ -1,0 +1,162 @@
+{
+  "categories": {
+    "business": "Business",
+    "creative": "Creative",
+    "lifestyle": "Lifestyle",
+    "tech": "Tech"
+  },
+  "categoryShort": {
+    "business": "Business",
+    "creative": "Creative",
+    "lifestyle": "Lifestyle",
+    "tech": "Tech"
+  },
+  "theme": {
+    "alerts": {
+      "deleteTheme": {
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "message": "Are you sure you want to delete this custom theme? This action is irreversible.",
+        "title": "🗑️ Delete Theme"
+      },
+      "error": {
+        "button": "OK",
+        "message": "An error occurred while creating the theme.",
+        "title": "❌ Error"
+      },
+      "themeCreated": {
+        "button": "Great!",
+        "message": "Your new theme has been successfully created!",
+        "title": "✅ Theme Created"
+      }
+    },
+    "card": {
+      "customTheme": "Custom Theme",
+      "presetTheme": "Preset Theme"
+    },
+    "creation": {
+      "accentColor": "Accent Color",
+      "accentDescription": "Highlight and special elements",
+      "background": "Background",
+      "backgroundDescription": "Main background color",
+      "cancel": "Cancel",
+      "colorPresets": "Preset Palettes",
+      "colors": "Colors",
+      "compactModeDescription": "Switch to \"Cards\" mode to edit colors",
+      "compactModeInfo": "Compact Mode",
+      "create": "Create",
+      "customColors": "Custom Colors",
+      "customizeDescription": "Customize each color to create your unique theme",
+      "dark": "Dark",
+      "light": "Light",
+      "mainText": "Main Text",
+      "mode": "Mode",
+      "previewAccent": "Accent",
+      "previewExample": "Example Text",
+      "previewPrimary": "Primary",
+      "previewSecondary": "Secondary text with your new theme",
+      "previewSecondaryBtn": "Secondary",
+      "primaryColor": "Primary Color",
+      "primaryDescription": "Main interface color",
+      "secondaryColor": "Secondary Color",
+      "secondaryDescription": "Accent and interaction color",
+      "subtitle": "Create your custom theme",
+      "surface": "Surface",
+      "surfaceDescription": "Cards and elevated containers",
+      "textDescription": "Main text color",
+      "themeName": "Theme Name",
+      "themeNamePlaceholder": "My custom theme",
+      "themePreview": "Theme Preview",
+      "title": "New Theme"
+    },
+    "management": {
+      "error": {
+        "nameRequired": "Please enter a name for your theme",
+        "title": "Error"
+      }
+    },
+    "presets": {
+      "amberGold": "🌞 Amber Gold",
+      "appleCosmic": "🍎 Apple Cosmic",
+      "appleStudioLight": "🍎 Apple Studio Light",
+      "appleVisionPro": "🍎 Apple Vision Pro",
+      "arcticFrost": "🌨 Arctic Frost",
+      "auroraDark": "💼 Executive Dark",
+      "auroraLight": "🏢 Corporate Light",
+      "cherryBlossom": "🌸 Cherry Blossom",
+      "coffeeDark": "☕ Coffee Intense",
+      "coralReef": "🐠 Coral Reef",
+      "cosmicAurora": "🌌 Cosmic Aurora",
+      "cosmicPurple": "🌌 Cosmic Purple",
+      "cyberpunk": "🌆 Cyberpunk",
+      "cyberpunkNeon": "🌈 Cyberpunk Neon",
+      "darkAmber": "🌙 Dark Amber",
+      "darkDefault": "🌙 Classic Dark",
+      "darkForest": "🌲 Dark Forest",
+      "darkRuby": "🔮 Dark Ruby",
+      "deepOcean": "🌊 Deep Ocean",
+      "deepTeal": "🌊 Deep Teal",
+      "dracula": "🧛 Dracula",
+      "emerald": "Emerald",
+      "emeraldDark": "🌙 Emerald Dark",
+      "emeraldNature": "🌿 Emerald Nature",
+      "energy": "⚡ Energy",
+      "forestGreen": "🌲 Forest Green",
+      "githubLight": "🐙 GitHub Light",
+      "goldenHour": "🌞 Golden Hour",
+      "holographic": "🌌 Holographic",
+      "indigoNight": "🌃 Indigo Night",
+      "ivoryExecutive": "🤍 Ivory Executive",
+      "lavenderDark": "💜 Dark Lavender",
+      "lavenderLight": "💜 Soft Lavender",
+      "lgbtqiaPride": "🏳️‍🌈 LGBTQIA+ Pride",
+      "lgbtqiaPrideDark": "🏳️‍🌈 LGBTQIA+ Pride Dark",
+      "lightDefault": "☀️ Classic Light",
+      "lightTheme": "☀️ Light Theme",
+      "liquidGlassDark": "💎 Liquid Glass Dark",
+      "liquidGlassFrost": "❄️ Liquid Glass Frost",
+      "liquidGlassLight": "💎 Liquid Glass Light",
+      "liquidGlassNeon": "✨ Liquid Glass Neon",
+      "matrixGreen": "🌱 Matrix Green",
+      "midnightBlue": "🌃 Midnight Blue",
+      "midnightOrange": "🌅 Midnight Orange",
+      "mintGreen": "🍃 Mint Fresh",
+      "monochromePureDark": "⚫ Monochrome Pure Dark",
+      "monochromePureLight": "⚪ Monochrome Pure Light",
+      "neonDreams": "🌈 Neon Dreams",
+      "neonNights": "🌌 Neon Nights",
+      "neonPink": "💖 Neon Pink",
+      "ocean": "Ocean",
+      "oceanBlue": "🌊 Ocean Blue",
+      "orange": "Orange",
+      "pastelDream": "🌸 Pastel Dream",
+      "peachLight": "🍑 Pastel Peach",
+      "platinumPro": "💎 Platinum Pro",
+      "purpleGalaxy": "🌌 Purple Galaxy",
+      "rgbPlus": "🌈 RGB+",
+      "rgbPlusDark": "🌈 RGB+ Dark",
+      "rose": "Rose",
+      "rubyRed": "💎 Ruby Red",
+      "spaceExplorer": "🚀 Space Explorer",
+      "steelProfessional": "⚡ Steel Professional",
+      "sunsetGradient": "🌅 Sunset Gradient",
+      "sunsetOrange": "🌅 Sunset",
+      "systemAuto": "🔄 Automatic (System)",
+      "tealBreeze": "🏝️ Teal Breeze",
+      "title": "Color Presets",
+      "turquoise": "Turquoise",
+      "violet": "Violet",
+      "volcanicAsh": "🌋 Volcanic Ash"
+    },
+    "screen": {
+      "createNewTheme": "Create a new theme",
+      "subtitle": "Choose or create your style",
+      "title": "🎨 Themes"
+    },
+    "systemTheme": {
+      "activeDescription": "Follows system (currently {{mode}})",
+      "inactiveDescription": "Follow system settings",
+      "title": "Automatic theme"
+    }
+  }
+}

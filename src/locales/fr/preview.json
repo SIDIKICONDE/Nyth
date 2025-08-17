@@ -1,0 +1,101 @@
+{
+  "audioEqualizer": {
+    "bands": "Bandes de fréquence",
+    "collapse": "Réduire",
+    "currentPreset": "Preset actuel",
+    "disable": "Désactiver",
+    "enable": "Activer",
+    "expand": "Développer",
+    "info": "Égaliseur 10 bandes professionnel avec analyse spectrale temps réel",
+    "off": "OFF",
+    "on": "ON",
+    "presets": "Presets",
+    "reset": "Réinitialiser",
+    "subtitle": "Optimisez le son de votre vidéo",
+    "title": "Égaliseur Audio"
+  },
+  "delete": {
+    "error": {
+      "message": "Impossible de supprimer l'enregistrement. Veuillez réessayer.",
+      "title": "Erreur de suppression"
+    },
+    "fileError": "Erreur lors de la suppression du fichier vidéo",
+    "generalError": "Erreur lors de la suppression de l'enregistrement",
+    "message": "Cette action est irréversible.",
+    "success": "Enregistrement supprimé: {{uri}}",
+    "title": "Supprimer l'enregistrement ?"
+  },
+  "export": {
+    "error": {
+      "message": "Impossible d'exporter la vidéo. Veuillez réessayer.",
+      "ok": "OK",
+      "title": "Erreur d'export"
+    },
+    "steps": {
+      "applyingFilter": "Application du filtre...",
+      "completed": "Export terminé",
+      "encoding": "Encodage en cours",
+      "finalizing": "Finalisation",
+      "preparation": "Préparation de la vidéo...",
+      "videoPreparation": "Préparation de la vidéo"
+    },
+    "subtitle": "Enregistrer dans la galerie",
+    "success": {
+      "message": "Vidéo exportée dans votre galerie ({{size}})",
+      "ok": "OK",
+      "title": "Export réussi"
+    },
+    "title": "Exporter"
+  },
+  "exporting": "Export en cours...",
+  "fileAccessError": {
+    "message": "Impossible d'accéder au fichier vidéo.",
+    "title": "Erreur d'accès"
+  },
+  "fileCheck": {
+    "notFound": "Fichier vidéo non trouvé:",
+    "sizeError": "Erreur lors de la vérification de la taille du fichier:",
+    "verifying": "Vérification du fichier vidéo:"
+  },
+  "fileError": {
+    "message": "Le fichier vidéo semble avoir été supprimé ou déplacé.",
+    "title": "Fichier introuvable"
+  },
+  "fileStatus": {
+    "error": "Erreur",
+    "notFound": "Fichier non trouvé",
+    "unknownSize": "Taille inconnue"
+  },
+  "loading": "Chargement de la prévisualisation...",
+  "notFound": {
+    "button": "Retour",
+    "message": "Impossible de charger cet enregistrement.",
+    "title": "Enregistrement introuvable"
+  },
+  "quality": {
+    "1080p": "1080p - Full HD",
+    "480p": "480p - Qualité standard",
+    "4K": "4K - Ultra HD",
+    "720p": "720p - Haute définition"
+  },
+  "share": {
+    "details": {
+      "message": "Créé avec CamPrompt AI - L'assistant de création vidéo IA",
+      "title": "Ma vidéo CamPrompt AI"
+    },
+    "error": {
+      "message": "Impossible de partager la vidéo. Veuillez réessayer.",
+      "title": "Erreur de partage"
+    },
+    "success": "Vidéo partagée avec succès",
+    "title": "Partager"
+  },
+  "stats": {
+    "date": "Date",
+    "duration": "Durée",
+    "noScript": "Aucun script",
+    "script": "Script",
+    "size": "Taille"
+  },
+  "title": "Aperçu Vidéo"
+}

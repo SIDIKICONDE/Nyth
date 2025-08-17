@@ -10,7 +10,7 @@ prepare_react_native_project!
 
 $RNFirebaseAnalyticsWithoutAdIdSupport = true
 
-# Forcer l'utilisation de frameworks statiques pour une meilleure compatibilité avec les pods Swift Firebase
+# Forcer l'utilisation de frameworks statiques pour les pods Swift (Firebase 12)
 use_frameworks! :linkage => :static
 
 # Ancienne logique par variable d'env supprimée
@@ -50,5 +50,38 @@ target 'Nyth' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # Corriger la résolution des en-têtes pour RNWorklets et RNReanimated
+    installer.pods_project.targets.each do |t|
+      next unless ['RNWorklets', 'RNReanimated'].include?(t.name)
+
+      t.build_configurations.each do |config|
+        existing = config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
+        # Crée un shim d'en-têtes ReactCommon -> React_runtimeexecutor
+        shim_root = File.join(Pod::Config.instance.installation_root, 'PodsHeadersShim')
+        shim_rc_dir = File.join(shim_root, 'ReactCommon')
+        FileUtils.mkdir_p(shim_rc_dir)
+        shim_header = File.join(shim_rc_dir, 'RuntimeExecutor.h')
+        File.write(shim_header, %(#include <React_runtimeexecutor/ReactCommon/RuntimeExecutor.h>)) unless File.exist?(shim_header)
+
+        extra_paths = [
+          '"' + shim_root + '"',
+          '"$(CONFIGURATION_BUILD_DIR)/React-runtimeexecutor/React_runtimeexecutor.framework/Headers"',
+          '"$(PODS_CONFIGURATION_BUILD_DIR)/React-runtimeexecutor/React_runtimeexecutor.framework/Headers"',
+          '"$(PODS_ROOT)/../../node_modules/react-native/ReactCommon"'
+        ]
+        config.build_settings['HEADER_SEARCH_PATHS'] = ([existing].flatten + extra_paths).join(' ')
+
+        existing_fw = config.build_settings['FRAMEWORK_SEARCH_PATHS'] || '$(inherited)'
+        extra_fw_paths = [
+          '"$(CONFIGURATION_BUILD_DIR)/React-runtimeexecutor"',
+          '"$(PODS_CONFIGURATION_BUILD_DIR)/React-runtimeexecutor"'
+        ]
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] = ([existing_fw].flatten + extra_fw_paths).join(' ')
+
+        # Réactiver les modules Clang pour permettre la résolution via les modulemaps
+        config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+      end
+    end
   end
 end

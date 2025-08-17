@@ -1,0 +1,928 @@
+{
+  "planning": {
+    "analytics": {
+      "comingSoon": "Analytics à venir",
+      "description": "Suivez vos performances et tendances de planification",
+      "events": {
+        "alertOverdue": "événement en retard",
+        "alertOverdueMultiple": "événements en retard",
+        "alertTitle": "Attention requise",
+        "analysisMonthly": "Analyse mensuelle",
+        "analysisQuarterly": "Analyse trimestrielle",
+        "analysisWeekly": "Analyse hebdomadaire",
+        "analysisYearly": "Analyse annuelle",
+        "completed": "Terminés",
+        "inProgress": "En cours",
+        "overviewComplete": "Vue d'ensemble complète",
+        "planned": "Planifiés",
+        "statusDistribution": "Distribution des statuts",
+        "title": "Événements",
+        "total": "Total"
+      },
+      "goals": {
+        "active": "Actifs",
+        "alreadyCompleted": "Déjà terminé",
+        "averageProgress": "Progression moyenne",
+        "completed": "Terminés",
+        "globalPerformance": "Performance globale",
+        "title": "Objectifs",
+        "total": "Total"
+      },
+      "header": {
+        "completed": "Complété",
+        "events": "Événements",
+        "subtitle": "Vue d'ensemble de vos performances",
+        "title": "📊 Analytics"
+      },
+      "loading": {
+        "calculating": "Calcul des analytics...",
+        "calculatingSubtitle": "Analyse de vos performances en cours",
+        "dataLoading": "Chargement des données...",
+        "dataSubtitle": "Récupération de vos événements et objectifs"
+      },
+      "metrics": {
+        "completion_rate": "Taux de réalisation",
+        "efficiency": "Efficacité",
+        "productivity": "Productivité"
+      },
+      "periods": {
+        "active": "Actif",
+        "all": "Tous",
+        "description": "Sélectionnez la période à analyser",
+        "month": "Mois",
+        "quarter": "Trimestre",
+        "title": "Période d'analyse",
+        "week": "Semaine",
+        "year": "Année"
+      },
+      "success": {
+        "goalDeleted": "Objectif supprimé avec succès",
+        "goalReactivated": "Objectif réactivé avec succès",
+        "scriptExported": "Script exporté avec succès !",
+        "scriptShared": "Script partagé avec succès !",
+        "statusUpdated": "Statut mis à jour avec succès !"
+      },
+      "tasks": {
+        "alertOverdue": "tâche en retard",
+        "alertOverdueMultiple": "tâches en retard",
+        "alertTitle": "Attention requise",
+        "blocked": "Bloquées",
+        "completed": "Terminées",
+        "inProgress": "En cours",
+        "overdue": "En retard",
+        "taskManagement": "Gestion des tâches",
+        "title": "Tâches",
+        "todo": "À faire",
+        "total": "Total"
+      },
+      "title": "Analytics de Planification"
+    },
+    "calendar": {
+      "createFirst": "Créez votre premier événement",
+      "noEvents": "Aucun événement prévu",
+      "title": "Calendrier de Planification",
+      "today": "Aujourd'hui"
+    },
+    "contextMenu": {
+      "createEvent": "Créer un événement",
+      "createGoal": "Créer un objectif",
+      "createTask": "Créer une tâche"
+    },
+    "createEvent": "Créer un événement",
+    "events": {
+      "createTitle": "Créer un événement",
+      "customTypes": {
+        "addType": "Ajouter",
+        "cancel": "Annuler",
+        "chooseIcon": "Choisir une icône",
+        "create": "Créer",
+        "createCustomType": "Créer un type personnalisé",
+        "error": "Erreur",
+        "eventType": "Type d'événement",
+        "nameRequired": "Veuillez saisir un nom pour le type",
+        "typeName": "Nom du type",
+        "typeNamePlaceholder": "Ex: Sport, Cuisine, Projet..."
+      },
+      "dateTimeLabel": "Date et Heure",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Description de l'événement",
+      "durationLabel": "Durée",
+      "editTitle": "Modifier l'événement",
+      "errors": {
+        "createFailed": "Impossible de créer l'événement",
+        "deleteFailed": "Impossible de supprimer l'objectif",
+        "markCompletedFailed": "Impossible de marquer l'objectif comme accompli",
+        "reactivateFailed": "Impossible de réactiver l'objectif",
+        "saveFailed": "Impossible de sauvegarder les modifications",
+        "titleRequired": "Le titre est requis",
+        "updateProgressFailed": "Impossible de mettre à jour la progression de l'objectif"
+      },
+      "infoTitle": "Informations de l'événement",
+      "locationLabel": "Lieu",
+      "locationPlaceholder": "Lieu de l'événement",
+      "modal": {
+        "header": {
+          "create": "Créer",
+          "editEvent": "✏️ Modifier",
+          "editEventSubtitle": "Modifiez les détails de votre événement",
+          "newEvent": "✨ Nouvel événement",
+          "newEventSubtitle": "Créez un événement parfaitement organisé",
+          "progress": "Progression",
+          "save": "Sauver"
+        },
+        "sections": {
+          "configuration": "Configuration",
+          "generalInfo": "Informations générales",
+          "planning": "Planification"
+        }
+      },
+      "overdue": "En retard",
+      "priorities": {
+        "high": "Haute",
+        "low": "Faible",
+        "medium": "Moyenne",
+        "urgent": "Urgente"
+      },
+      "priorityLabel": "Priorité",
+      "reminderTypes": {
+        "email": "Email",
+        "notification": "Notification",
+        "sms": "SMS"
+      },
+      "remindersLabel": "Rappels",
+      "status": {
+        "cancelled": "Annulé",
+        "completed": "Terminé",
+        "in_progress": "En cours",
+        "planned": "Planifié",
+        "postponed": "Reporté"
+      },
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "Séparer par des virgules",
+      "title": "Événements",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "Titre de l'événement",
+      "today": "Aujourd'hui",
+      "typeLabel": "Type",
+      "types": {
+        "deadline": "Échéance",
+        "editing": "Montage",
+        "meeting": "Réunion",
+        "recording": "Enregistrement",
+        "review": "Révision",
+        "script_creation": "Création de script"
+      },
+      "unit": "Unité",
+      "unitPlaceholder": "scripts"
+    },
+    "goals": {
+      "actions": {
+        "complete": "Marquer accompli",
+        "delete": "Supprimer",
+        "edit": "Modifier",
+        "reactivate": "Réactiver"
+      },
+      "addNew": "Ajouter un nouvel objectif",
+      "alreadyCompleted": "Déjà accompli",
+      "categoryLabel": "Catégorie",
+      "categoryPlaceholder": "ex: Travail, Personnel, Créatif...",
+      "completed": "Accompli",
+      "create": "Créer un objectif",
+      "createSuccess": "Objectif créé avec succès !",
+      "customTypes": {
+        "addType": "Ajouter",
+        "cancel": "Annuler",
+        "chooseIcon": "Choisir une icône",
+        "create": "Créer",
+        "createCustomType": "Créer un type personnalisé",
+        "error": "Erreur",
+        "nameRequired": "Veuillez saisir un nom pour le type",
+        "typeName": "Nom du type",
+        "typeNamePlaceholder": "Ex: Fitness, Lecture, Carrière..."
+      },
+      "dateFormat": "Format: JJ/MM/AAAA (ex: 15/12/2024)",
+      "delete": {
+        "message": "Êtes-vous sûr de vouloir supprimer \"{{title}}\" ? Cette action est irréversible.",
+        "title": "Supprimer l'objectif"
+      },
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Décrivez votre objectif...",
+      "empty": {
+        "subtitle": "Créez votre premier objectif pour commencer",
+        "title": "Aucun objectif"
+      },
+      "endDate": "Date de fin",
+      "endDateLabel": "Date de fin",
+      "errors": {
+        "createFailed": "Impossible de créer l'objectif",
+        "endDatePast": "La date de fin ne peut pas être dans le passé",
+        "endDateRequired": "La date de fin est requise",
+        "invalidDateFormat": "Format de date invalide. Utilisez JJ/MM/AAAA",
+        "saveFailed": "Impossible de sauvegarder les modifications",
+        "targetNumeric": "La cible doit être un nombre valide",
+        "titleRequired": "Le titre est requis"
+      },
+      "goalType": "Type d'objectif",
+      "modal": {
+        "header": {
+          "editGoal": "🎯 Modifier l'objectif",
+          "editGoalSubtitle": "Ajustez vos objectifs pour rester motivé",
+          "newGoal": "✨ Nouvel objectif",
+          "newGoalSubtitle": "Définissez un objectif clair et atteignable",
+          "progress": "Progression"
+        }
+      },
+      "period": "Période",
+      "periods": {
+        "daily": "Quotidien",
+        "monthly": "Mensuel",
+        "quarterly": "Trimestriel",
+        "weekly": "Hebdomadaire",
+        "yearly": "Annuel"
+      },
+      "priorities": {
+        "high": "Élevée",
+        "low": "Faible",
+        "medium": "Moyenne",
+        "urgent": "Urgente"
+      },
+      "priority": "Priorité",
+      "quickUpdate": "Mise à jour rapide",
+      "startDateLabel": "Date de début",
+      "status": {
+        "active": "Actif",
+        "cancelled": "Annulé",
+        "completed": "Terminé",
+        "overdue": "En retard",
+        "paused": "En pause"
+      },
+      "target": "Cible",
+      "targetAndUnit": "Cible et Unité",
+      "title": "Objectifs",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "ex: Créer 5 nouveaux scripts cette semaine",
+      "types": {
+        "collaboration": "Collaboration",
+        "consistency": "Régularité",
+        "duration": "Durée",
+        "quality": "Qualité",
+        "recordings": "Enregistrements",
+        "scripts": "Scripts"
+      },
+      "unit": "Unité",
+      "unitPlaceholder": "scripts"
+    },
+    "header": {
+      "actions": {
+        "event": "Événement",
+        "goal": "Objectif",
+        "new": "Nouveau"
+      },
+      "aiAssistantMessage": "Aide-moi avec ma planification",
+      "completed": "terminés",
+      "overdue": "En retard",
+      "suggestions": "Suggestions"
+    },
+    "objectives": {
+      "featured": "Objectifs Interactifs"
+    },
+    "projects": {
+      "create": "Créer un projet",
+      "status": {
+        "active": "Actif",
+        "cancelled": "Annulé",
+        "completed": "Terminé",
+        "on_hold": "En pause",
+        "planning": "Planification",
+        "review": "Révision"
+      },
+      "title": "Projets"
+    },
+    "settings": {
+      "autoSync": "Synchronisation automatique",
+      "autoSyncDesc": "Synchroniser automatiquement avec le cloud",
+      "description": "Gérez votre planning et vos objectifs",
+      "display": "Affichage",
+      "defaultTab": "Onglet par défaut",
+      "defaultTabDesc": "Choisissez l'onglet ouvert par défaut dans la page Planning",
+      "enableNotifications": "Activer les notifications",
+      "enableNotificationsDesc": "Recevoir des notifications pour les événements",
+      "goalReminders": "Rappels d'objectifs",
+      "goalRemindersDesc": "Notifications pour les objectifs en retard",
+      "layout": {
+        "cardBorderRadius": "Arrondi des cartes",
+        "cardSpacing": "Espacement entre cartes",
+        "columnSpacing": "Espacement entre colonnes",
+        "columnWidth": "Largeur des colonnes",
+        "columnsTitle": "📋 Colonnes et cartes",
+        "display": {
+          "animations": "Animations",
+          "animationsDesc": "Activer les transitions animées",
+          "denseLayout": "Layout dense",
+          "denseLayoutDesc": "Réduire l'espacement pour plus de contenu",
+          "showShadows": "Ombres des cartes",
+          "showShadowsDesc": "Afficher les ombres pour plus de profondeur"
+        },
+        "displayTitle": "👁️ Affichage",
+        "horizontalMargin": "Marge horizontale",
+        "marginsDescription": "Ajustez les marges pour éviter que les cartes soient collées aux bords",
+        "marginsTitle": "📏 Marges et espacement",
+        "presets": {
+          "comfortable": {
+            "description": "Équilibre parfait entre espace et contenu",
+            "name": "Confortable",
+            "values": "Marges: 16px • Colonnes: 280px • Espacement: 16px"
+          },
+          "compact": {
+            "description": "Maximum de cartes visibles, marges réduites",
+            "name": "Compact",
+            "values": "Marges: 4px • Colonnes: 220px • Espacement: 4px"
+          },
+          "description": "Configurations prédéfinies pour différents besoins d'espacement",
+          "spacious": {
+            "description": "Plus d'espace pour une lecture facile",
+            "name": "Spacieux",
+            "values": "Marges: 24px • Colonnes: 320px • Espacement: 24px"
+          },
+          "title": "🎯 Présets rapides"
+        },
+        "reset": "Réinitialiser",
+        "sections": {
+          "columns": "Colonnes",
+          "display": "Affichage",
+          "margins": "Marges",
+          "presets": "Présets"
+        },
+        "subtitle": "Personnalisez l'espacement et l'apparence de vos cartes de tâches",
+        "title": "🎛️ Paramètres de Layout",
+        "verticalMargin": "Marge verticale"
+      },
+      "managePlanning": "Gérer événements et objectifs",
+      "notifications": "Notifications",
+      "openPlanning": "Ouvrir le Planning",
+      "reset": "Réinitialiser",
+      "resetDescription": "Êtes-vous sûr de vouloir réinitialiser tous les paramètres ?",
+      "resetToDefaults": "Réinitialiser aux valeurs par défaut",
+      "saved": "Paramètres sauvegardés",
+      "savedDescription": "Vos préférences ont été mises à jour avec succès.",
+      "showWeekends": "Afficher les week-ends",
+      "showWeekendsDesc": "Inclure samedi et dimanche dans le calendrier",
+      "sync": "Synchronisation",
+      "title": "Paramètres de planification",
+      "weeklyReminders": "Rappels hebdomadaires",
+      "weeklyRemindersDesc": "Résumé hebdomadaire de vos objectifs"
+    },
+    "tabs": {
+      "analytics": "Analyses",
+      "calendar": "Calendrier",
+      "objectives": "Objectifs",
+      "tasks": "Tâches",
+      "timeline": "Timeline",
+      "teams": "Équipes"
+    },
+    "tasks": {
+      "attachments": {
+        "addFile": "Ajouter un fichier",
+        "addImage": "Ajouter une image",
+        "camera": "Appareil photo",
+        "files": "Fichiers",
+        "gallery": "Galerie",
+        "images": "Images",
+        "limitReached": "Limite atteinte",
+        "maxAttachmentsReached": "Maximum {{max}} fichiers autorisés",
+        "maxImagesReached": "Maximum {{max}} images autorisées",
+        "pickError": "Erreur lors de la sélection du fichier",
+        "replaceError": "Erreur lors du remplacement de l'image",
+        "replaceImage": "Remplacer l'image",
+        "replaceImageSource": "Choisir la nouvelle image",
+        "selectImage": "Sélectionner une image",
+        "selectImageSource": "Choisir la source",
+        "title": "Images et pièces jointes",
+        "uploadError": "Erreur lors de l'upload de l'image",
+        "uploading": "Upload en cours..."
+      },
+      "category": "Catégorie",
+      "deleteConfirm": "Supprimer",
+      "deleteMessage": "Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action est irréversible.",
+      "deleteTitle": "Supprimer la Tâche",
+      "description": "Description",
+      "details": "Détails",
+      "dueDate": "Date d'échéance",
+      "estimatedHours": "Heures estimées",
+      "files": "Fichiers",
+      "images": "Images",
+      "kanban": {
+        "column": {
+          "advanced": {
+            "maxTasksHint": "Laissez vide pour aucune limite",
+            "maxTasksLabel": "Limite de tâches (optionnelle)",
+            "maxTasksPlaceholder": "Nombre maximum de tâches",
+            "title": "⚙️ Options avancées"
+          },
+          "background": {
+            "gradientColors": "Couleurs du dégradé",
+            "gradientDirection": "Direction",
+            "imageOpacity": "Opacité de l'image",
+            "imageUrl": "URL de l'image",
+            "opacity": "Opacité générale",
+            "preview": "Aperçu",
+            "solidColor": "Couleur",
+            "type": "Type de fond"
+          },
+          "colorPicker": {
+            "colorLabel": "Choisir une couleur",
+            "newColumn": "Nouvelle colonne",
+            "previewLabel": "Aperçu de la colonne",
+            "selectedColor": "Couleur sélectionnée"
+          },
+          "create": "Nouvelle colonne",
+          "edit": "Modifier la colonne",
+          "fields": {
+            "description": "Description",
+            "descriptionPlaceholder": "Description optionnelle de la colonne",
+            "maxTasks": "Limite de tâches",
+            "maxTasksHelper": "Nombre maximum de tâches dans cette colonne (0 = illimité)",
+            "title": "Titre de la colonne",
+            "titlePlaceholder": "Ex: À faire, En cours, Terminé..."
+          },
+          "save": "Sauver",
+          "sections": {
+            "advanced": "Options avancées",
+            "appearance": "Apparence",
+            "basicInfo": "Informations de base",
+            "tips": "Conseils d'utilisation"
+          },
+          "tips": {
+            "items": [
+              "Utilisez des noms clairs et courts pour vos colonnes",
+              "Organisez vos colonnes selon votre flux de travail",
+              "Limitez le nombre de tâches par colonne pour éviter la surcharge",
+              "Utilisez des couleurs distinctes pour différencier vos colonnes"
+            ],
+            "subtitle": "💡 Conseils",
+            "text": "• Utilisez des noms courts et clairs pour vos colonnes\n• Choisissez des couleurs contrastées pour faciliter la lecture\n• La limite de tâches aide à éviter la surcharge\n• Vous pouvez réorganiser les colonnes plus tard",
+            "title": "💡 Conseils pour une meilleure organisation"
+          },
+          "untitled": "Sans titre"
+        },
+        "columnMenu": {
+          "cancel": "Annuler",
+          "delete": "Supprimer",
+          "deleteConfirmation": "Êtes-vous sûr de vouloir supprimer cette colonne ? Les tâches seront déplacées vers la première colonne.",
+          "deleteTitle": "Supprimer la colonne",
+          "edit": "Modifier"
+        },
+        "dateField": {
+          "cancel": "Annuler",
+          "chooseDate": "Choisir une date",
+          "done": "Terminé",
+          "overdue": "En retard"
+        },
+        "defaultColumns": {
+          "blocked": "Bloqué",
+          "completed": "Terminé",
+          "inProgress": "En cours",
+          "review": "En révision",
+          "todo": "À faire"
+        },
+        "demo": {
+          "card1Content": "Contenu de la première carte",
+          "card1Title": "Carte de démonstration 1",
+          "card2Content": "Contenu de la deuxième carte",
+          "card2Title": "Carte de démonstration 2",
+          "card3Content": "Contenu de la troisième carte",
+          "card3Title": "Carte de démonstration 3",
+          "createNew": "Créer une nouvelle tâche :",
+          "edit": "Modifier",
+          "existingTasks": "Tâches existantes",
+          "featuresDescription": "• Tags enrichis par catégories (Design, Dev, Marketing...)\n• Suggestions contextuelles intelligentes\n• Interface à onglets (Détails + Personnalisation)\n• Prévisualisation en temps réel\n• Plus de 200 tags prédéfinis organisés",
+          "newFeatures": "✨ Nouvelles fonctionnalités",
+          "subtitle": "Testez les nouvelles fonctionnalités : tags enrichis, personnalisation des cartes, et interface améliorée.",
+          "title": "📝 Démonstration TaskModal Enrichi"
+        },
+        "dynamicKanban": {
+          "console": {
+            "createTask": "Créer une tâche dans la colonne:",
+            "deleteTask": "Supprimer la tâche:",
+            "editTask": "Éditer la tâche:",
+            "moveTask": "Déplacer la tâche",
+            "taskSelected": "Tâche sélectionnée:",
+            "toColumn": "vers la colonne"
+          },
+          "features": {
+            "autoSave": "Sauvegarde automatique",
+            "autoSaveDesc": "Vos préférences sont conservées",
+            "fullCustomization": "Personnalisation complète",
+            "fullCustomizationDesc": "Couleurs, descriptions, limites",
+            "smartManagement": "Gestion intelligente",
+            "smartManagementDesc": "Protection des colonnes par défaut",
+            "title": "✨ Fonctionnalités disponibles",
+            "unlimitedColumns": "Colonnes illimitées",
+            "unlimitedColumnsDesc": "Créez autant de colonnes que nécessaire"
+          },
+          "howItWorks": {
+            "step1": {
+              "button": "+ Nouvelle colonne",
+              "location": "à droite",
+              "text": "Utilisez le bouton"
+            },
+            "step2": "Définissez le nom, la couleur et les options de votre colonne",
+            "step3": {
+              "button": "+ Ajouter une carte",
+              "text": "Ajoutez des tâches avec le bouton"
+            },
+            "step4": {
+              "location": "dans l'en-tête",
+              "menu": "⋮",
+              "text": "Gérez vos colonnes avec le menu"
+            },
+            "title": "🚀 Comment ça marche"
+          },
+          "subtitle": "Créez et organisez vos colonnes comme vous le souhaitez",
+          "suggestions": {
+            "contentWorkflow": {
+              "flow": "Idées → Rédaction → Révision → Publication",
+              "title": "Workflow de contenu"
+            },
+            "creativeProcess": {
+              "flow": "Brainstorming → Concept → Design → Final",
+              "title": "Processus créatif"
+            },
+            "projectManagement": {
+              "flow": "Backlog → Sprint → Testing → Livré",
+              "title": "Gestion de projets"
+            },
+            "title": "💡 Suggestions d'utilisation"
+          },
+          "title": "🎯 Kanban avec Colonnes Dynamiques"
+        },
+        "enhancedTags": {
+          "aboutCategory": "💡 À propos de cette catégorie",
+          "availableTags": "Tags disponibles",
+          "categories": {
+            "design": "Design & UX/UI",
+            "development": "Développement",
+            "learning": "Formation",
+            "marketing": "Marketing",
+            "personal": "Personnel",
+            "priority": "Priorité",
+            "project": "Projet",
+            "tools": "Outils"
+          },
+          "categorySelection": "Catégories de tags :",
+          "clear": "Effacer",
+          "descriptions": {
+            "design": "Tags spécialisés pour les tâches de design, UX/UI, prototypage et création visuelle. Incluent les outils populaires comme Figma, Sketch, et les concepts de design.",
+            "development": "Tags techniques pour le développement web, mobile et logiciel. Couvrent les langages, frameworks, APIs et outils de développement.",
+            "learning": "Tags pour la formation, l'apprentissage et le développement des compétences professionnelles.",
+            "marketing": "Tags pour les activités marketing, communication et promotion. Incluent SEO, réseaux sociaux, publicité et analytics.",
+            "personal": "Tags pour les tâches personnelles, bien-être, santé et développement personnel.",
+            "priority": "Tags pour indiquer l'urgence, l'importance et le statut des tâches dans votre workflow.",
+            "project": "Tags liés à la gestion de projet, méthodologies agiles, planning et collaboration en équipe.",
+            "tools": "Tags pour les outils et logiciels utilisés dans votre travail quotidien. Applications, plateformes et services."
+          },
+          "selectedTags": "Tags sélectionnés",
+          "subtitle": "Découvrez les nouvelles catégories de tags disponibles pour organiser vos tâches.",
+          "tips": {
+            "design": "• Utilisez 'Figma' pour les tâches de design\n• 'UI/UX' pour l'expérience utilisateur\n• 'Prototype' pour les maquettes interactives\n• 'Design System' pour la cohérence visuelle",
+            "development": "• 'Frontend' et 'Backend' pour séparer les tâches\n• Nommez vos technologies ('React', 'Node.js')\n• 'API' pour les intégrations\n• 'Bug Fix' pour les corrections",
+            "learning": "• 'Formation' pour l'apprentissage\n• 'Research' pour la veille\n• 'Certification' pour les qualifications\n• 'Best Practices' pour les bonnes pratiques",
+            "marketing": "• 'SEO' pour l'optimisation de recherche\n• 'Social Media' pour les réseaux sociaux\n• 'Analytics' pour le suivi des performances\n• 'Content' pour la création de contenu",
+            "personal": "• 'Santé' pour le bien-être\n• 'Carrière' pour le développement professionnel\n• 'Networking' pour les relations\n• 'Side Project' pour les projets personnels",
+            "priority": "• 'Urgent' pour les tâches critiques\n• 'MVP' pour les fonctionnalités essentielles\n• 'Nice to have' pour les améliorations\n• 'Bloquant' pour les dépendances",
+            "project": "• 'Sprint' pour les cycles agiles\n• 'Review' pour les revues de code\n• 'Meeting' pour les réunions\n• 'Documentation' pour la rédaction",
+            "tools": "• Tagguez selon les outils utilisés\n• Facilite le filtrage par plateforme\n• Aide à identifier les dépendances\n• Utile pour la formation d'équipe"
+          },
+          "title": "🏷️ Tags Enrichis pour Tâches",
+          "usageSuggestions": "💭 Suggestions d'utilisation :"
+        },
+        "layoutDemo": {
+          "columnSpacing": "Espacement colonnes",
+          "columnWidth": "Largeur colonnes",
+          "currentSettings": "📊 Paramètres actuels",
+          "horizontalMargin": "Marge horizontale",
+          "subtitle": "Testez les différents paramètres d'espacement et de layout",
+          "tips": {
+            "autosave": "• Les préférences sont sauvegardées automatiquement",
+            "compact": "• Utilisez le preset \"Compact\" pour voir plus de cartes",
+            "margins": "• Ajustez les marges pour éviter les cartes collées aux bords",
+            "spacious": "• Le preset \"Spacieux\" améliore la lisibilité",
+            "title": "💡 Conseils d'utilisation"
+          },
+          "title": "🎛️ Démonstration des Préférences de Layout",
+          "verticalMargin": "Marge verticale"
+        },
+        "statusModal": {
+          "cancel": "Annuler",
+          "chooseNewStatus": "Choisir un nouveau statut",
+          "current": "Actuel",
+          "currentStatus": "Statut actuel",
+          "title": "Modifier le statut"
+        },
+        "statusOptions": {
+          "blocked": {
+            "description": "Tâche bloquée",
+            "label": "Bloquée"
+          },
+          "done": {
+            "description": "Tâche complétée",
+            "label": "Terminé"
+          },
+          "inProgress": {
+            "description": "Travail en cours",
+            "label": "En cours"
+          },
+          "review": {
+            "description": "En attente de validation",
+            "label": "En révision"
+          },
+          "todo": {
+            "description": "Tâche non commencée",
+            "label": "À faire"
+          }
+        },
+        "taskContextMenu": {
+          "changeStatus": "Modifier le statut",
+          "delete": "Supprimer",
+          "edit": "Éditer"
+        }
+      },
+      "priority": "Priorité",
+      "saveErrorMessage": "Impossible de sauvegarder la tâche",
+      "saveErrorTitle": "Erreur",
+      "startDate": "Date de début",
+      "status": "Statut",
+      "tags": "Étiquettes",
+      "taskDetails": "Détails de la tâche",
+      "taskModal": {
+        "attachments": {
+          "addFile": "Ajouter un fichier",
+          "addImage": "Ajouter une image",
+          "camera": "Appareil photo",
+          "files": "Fichiers",
+          "gallery": "Galerie",
+          "images": "Images",
+          "limitReached": "Limite atteinte",
+          "maxAttachmentsReached": "Maximum {{max}} fichiers autorisés",
+          "maxImagesReached": "Maximum {{max}} images autorisées",
+          "pickError": "Erreur lors de la sélection du fichier",
+          "replaceError": "Erreur lors du remplacement de l'image",
+          "replaceImage": "Remplacer l'image",
+          "replaceImageSource": "Choisir la nouvelle image",
+          "selectImage": "Sélectionner une image",
+          "selectImageSource": "Choisir la source",
+          "title": "Images et pièces jointes",
+          "uploadError": "Erreur lors de l'upload de l'image",
+          "uploading": "Upload en cours..."
+        },
+        "cancel": "Annuler",
+        "categories": {
+          "bug": {
+            "description": "Correction de bugs et problèmes",
+            "name": "Bug"
+          },
+          "content": {
+            "description": "Rédaction et création de contenu",
+            "name": "Contenu"
+          },
+          "deployment": {
+            "description": "Mise en production et déploiement",
+            "name": "Déploiement"
+          },
+          "design": {
+            "description": "Tâches de design et interface utilisateur",
+            "name": "Design"
+          },
+          "development": {
+            "description": "Tâches de programmation et développement",
+            "name": "Développement"
+          },
+          "maintenance": {
+            "description": "Maintenance et optimisation",
+            "name": "Maintenance"
+          },
+          "marketing": {
+            "description": "Promotion et marketing digital",
+            "name": "Marketing"
+          },
+          "meeting": {
+            "description": "Réunions et communications",
+            "name": "Réunion"
+          },
+          "research": {
+            "description": "Recherche et analyse de données",
+            "name": "Recherche"
+          },
+          "testing": {
+            "description": "Tests et assurance qualité",
+            "name": "Tests"
+          }
+        },
+        "categoryLabel": "Catégorie",
+        "categoryPicker": {
+          "addButton": "Ajouter une catégorie",
+          "badge": "Perso",
+          "placeholder": "Choisir une catégorie",
+          "separator": "Catégories personnalisées"
+        },
+        "closeAnyway": "Fermer quand même",
+        "createTask": "Nouvelle tâche",
+        "customization": {
+          "colors": {
+            "blue": "Bleu",
+            "gray": "Gris",
+            "green": "Vert",
+            "indigo": "Indigo",
+            "orange": "Orange",
+            "pink": "Rose",
+            "purple": "Violet",
+            "red": "Rouge",
+            "teal": "Sarcelle"
+          },
+          "features": {
+            "showAttachments": {
+              "description": "Afficher les fichiers attachés",
+              "label": "Pièces jointes"
+            },
+            "showEstimatedTime": {
+              "description": "Afficher la durée prévue",
+              "label": "Temps estimé"
+            },
+            "showProgress": {
+              "description": "Afficher l'avancement",
+              "label": "Barre de progression"
+            },
+            "showSubtasks": {
+              "description": "Afficher les tâches enfants",
+              "label": "Sous-tâches"
+            }
+          },
+          "preview": {
+            "colorLabel": "Couleur:",
+            "features": {
+              "attachments": "Pièces jointes",
+              "estimatedTime": "Temps estimé",
+              "progress": "Progression",
+              "subtasks": "Sous-tâches"
+            },
+            "featuresTitle": "Fonctionnalités activées:",
+            "iconLabel": "Icône:",
+            "sampleDescription": "Ceci est un aperçu de votre carte de tâche avec la personnalisation appliquée.",
+            "sampleTitle": "Exemple de tâche personnalisée",
+            "styleLabel": "Style:",
+            "styles": {
+              "creative": "Créatif",
+              "default": "Standard",
+              "detailed": "Détaillé",
+              "minimal": "Minimaliste"
+            },
+            "title": "📱 Aperçu de la carte"
+          },
+          "sections": {
+            "colors": "Couleurs",
+            "features": "Options",
+            "icons": "Icônes",
+            "preview": "Aperçu",
+            "styles": "Styles"
+          },
+          "styles": {
+            "compact": {
+              "description": "Format condensé pour plus de tâches visibles",
+              "name": "Compact"
+            },
+            "creative": {
+              "description": "Design artistique avec animations",
+              "name": "Créatif"
+            },
+            "default": {
+              "description": "Style classique avec toutes les informations",
+              "name": "Standard"
+            },
+            "detailed": {
+              "description": "Maximum d'informations et de fonctionnalités",
+              "name": "Détaillé"
+            },
+            "glass": {
+              "description": "Effet glassmorphism moderne et élégant",
+              "name": "Verre"
+            },
+            "kanban": {
+              "description": "Optimisé pour les tableaux kanban avancés",
+              "name": "Kanban Pro"
+            },
+            "minimal": {
+              "description": "Design épuré avec les infos essentielles",
+              "name": "Minimaliste"
+            },
+            "modern": {
+              "description": "Design contemporain avec ombres et gradients",
+              "name": "Moderne"
+            },
+            "priority": {
+              "description": "Met l'accent sur l'urgence et l'importance",
+              "name": "Priorité"
+            },
+            "progress": {
+              "description": "Focus sur l'avancement et les étapes",
+              "name": "Progression"
+            },
+            "team": {
+              "description": "Adapté au travail collaboratif",
+              "name": "Équipe"
+            },
+            "timeline": {
+              "description": "Vue chronologique avec dates proéminentes",
+              "name": "Timeline"
+            }
+          },
+          "titles": {
+            "cardColor": "🎨 Couleur de la carte",
+            "cardIcon": "😀 Icône de la carte",
+            "cardStyle": "🎨 Style de la carte"
+          }
+        },
+        "customizationTab": "Personnalisation",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "Décrivez la tâche (optionnel)",
+        "detailsTab": "Détails",
+        "dueDateLabel": "Date d'échéance",
+        "dueDatePlaceholder": "Sélectionner la date d'échéance",
+        "editTask": "Modifier la tâche",
+        "estimatedHoursLabel": "Heures estimées",
+        "estimatedHoursPlaceholder": "Ex: 2.5",
+        "preview": {
+          "colorLabel": "Couleur",
+          "features": {
+            "attachments": "Pièces jointes",
+            "estimatedTime": "Temps estimé",
+            "progress": "Progression",
+            "subtasks": "Sous-tâches"
+          },
+          "featuresTitle": "Fonctionnalités",
+          "iconLabel": "Icône",
+          "sampleDescription": "Description d'exemple",
+          "sampleTitle": "Titre d'exemple",
+          "styleLabel": "Style",
+          "styles": {
+            "creative": "Créatif",
+            "default": "Par défaut",
+            "detailed": "Détaillé",
+            "minimal": "Minimal"
+          },
+          "title": "Aperçu"
+        },
+        "priorities": {
+          "high": "Élevée",
+          "low": "Faible",
+          "medium": "Moyenne",
+          "urgent": "Urgente"
+        },
+        "priorityLabel": "Priorité",
+        "save": "Sauvegarder",
+        "saving": "...",
+        "startDateLabel": "Date de début",
+        "startDatePlaceholder": "Sélectionner la date de début",
+        "subtasks": {
+          "add": "Ajouter une sous-tâche",
+          "addPlaceholder": "Ajouter une sous-tâche",
+          "title": "Sous-tâches"
+        },
+        "tagsPlaceholder": "Ajouter des étiquettes",
+        "titleLabel": "Titre",
+        "titlePlaceholder": "Entrez le titre de la tâche",
+        "unsavedChangesMessage": "Vous avez des modifications non sauvegardées. Voulez-vous vraiment fermer ?",
+        "unsavedChangesTitle": "Changements non sauvegardés"
+      },
+      "taskNotFound": "Tâche introuvable"
+    },
+    "teams": {
+      "create": "Créer une équipe",
+      "invite": "Inviter des membres",
+      "roles": {
+        "admin": "Administrateur",
+        "editor": "Éditeur",
+        "owner": "Propriétaire",
+        "viewer": "Observateur"
+      },
+      "title": "Équipes"
+    },
+    "timeline": {
+      "changeStatus": "Changer le Statut",
+      "details": "Détails",
+      "empty": {
+        "message": "Créez votre premier événement pour commencer la planification",
+        "title": "Aucun Événement"
+      },
+      "eventDetails": "Détails de l'Événement",
+      "search": "Rechercher des événements...",
+      "stats": {
+        "completed": "Terminés",
+        "inProgress": "En cours",
+        "overdue": "En retard",
+        "total": "Total"
+      }
+    },
+    "title": "Planning",
+    "today": "Aujourd'hui"
+  }
+}

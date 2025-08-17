@@ -1,0 +1,25 @@
+{
+  "instructions": {
+    "achievement": "Célèbre le succès spécifique directement, souligne le progrès, encourage à continuer.",
+    "celebration": "Exprime l'enthousiasme directement, valorise l'accomplissement spécifique sans préambule.",
+    "educational": "Enseigne quelque chose d'utile directement lié à l'écriture ou à l'application, donne un conseil pratique.",
+    "feature_discovery": "Présente une fonctionnalité pertinente directement, montre sa valeur concrète.",
+    "feedback_request": "Demande du feedback directement de manière engageante et naturelle.",
+    "milestone": "Reconnais le progrès vers l'objectif directement, motive pour la prochaine étape.",
+    "motivation": "Inspire et encourage directement l'utilisateur, reconnais ses efforts, suggère la prochaine étape.",
+    "re_engagement": "Souhaite un bon retour directement, montre les nouveautés, facilite la reprise.",
+    "reminder": "Rappelle doucement une action importante, suggère de reprendre là où il s'est arrêté.",
+    "seasonal": "Connecte-toi directement à l'événement/saison, reste pertinent pour l'application.",
+    "tip": "Partage une astuce pratique et actionnable directement, explique le bénéfice concret.",
+    "welcome": "Accueille chaleureusement l'utilisateur sans mentionner son nom, présente la valeur de l'application, invite à l'action."
+  },
+  "timeContexts": {
+    "afternoon": "Après-midi",
+    "day": "Journée",
+    "early_morning": "Très tôt le matin",
+    "evening": "Soirée",
+    "late_night": "Tard dans la nuit",
+    "morning": "Matin",
+    "night": "Nuit"
+  }
+}

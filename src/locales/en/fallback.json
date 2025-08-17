@@ -1,0 +1,55 @@
+{
+  "fallback": {
+    "achievement": {
+      "message": "Congratulations on your achievement! Your creativity knows no bounds.",
+      "title": "Well done!"
+    },
+    "celebration": {
+      "message": "It's time to celebrate your successes! You've accomplished something special.",
+      "title": "Celebration!"
+    },
+    "educational": {
+      "message": "The teleprompter can improve your presentation by 40%. Give it a try!",
+      "title": "Did you know?"
+    },
+    "feature_discovery": {
+      "message": "Have you tried our new feature? It could transform your workflow.",
+      "title": "Discovery"
+    },
+    "feedback_request": {
+      "message": "What do you think of Naya? Your feedback helps us improve.",
+      "title": "Your opinion matters"
+    },
+    "milestone": {
+      "message": "You are approaching an important goal. Just a little more effort!",
+      "title": "Milestone reached!"
+    },
+    "motivation": {
+      "message": "Every script is a step towards your goal. You are making remarkable progress!",
+      "title": "Keep going!"
+    },
+    "re_engagement": {
+      "message": "Glad to see you again! Let's pick up where you left off.",
+      "title": "Welcome back!"
+    },
+    "reminder": {
+      "message": "Don't forget to save your important scripts to your favorites.",
+      "title": "Reminder"
+    },
+    "seasonal": {
+      "message": "Take advantage of this time to create memorable content!",
+      "title": "Special moment"
+    },
+    "tip": {
+      "message": "Use AI to turn your ideas into structured scripts in seconds.",
+      "title": "Tip"
+    },
+    "welcome": {
+      "buttons": {
+        "confirm": "Let's start!"
+      },
+      "message": "Delighted to welcome you to Naya! Let's create captivating scripts together.",
+      "title": "Welcome!"
+    }
+  }
+}
