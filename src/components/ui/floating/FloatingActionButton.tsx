@@ -130,7 +130,6 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
         {
           alignItems: "center",
           justifyContent: "center",
-          overflow: "hidden",
           opacity: disabled ? 0.5 : 1,
         },
         style,

@@ -286,7 +286,7 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
   const ButtonContent = () => (
     <View
       style={[
-        tw`overflow-hidden rounded-lg`,
+        tw`rounded-lg`,
         {
           width: fullWidth ? "100%" : "auto",
           borderRadius: rounded ? 50 : 8,

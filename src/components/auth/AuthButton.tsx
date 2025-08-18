@@ -117,12 +117,15 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
     return (
       <TouchableOpacity
         disabled={isDisabled}
-        style={[getButtonStyle(), style]}
+        style={style}
         {...touchableOpacityProps}
       >
         <LinearGradient
           colors={[currentTheme.colors.primary, currentTheme.colors.secondary]}
-          style={tw`w-full rounded-xl py-4 px-6 flex-row items-center justify-center`}
+          style={[
+            tw`rounded-xl py-4 px-6 flex-row items-center justify-center`,
+            { opacity: isDisabled ? 0.6 : 1 }
+          ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
         >
