@@ -67,14 +67,8 @@ export default function App() {
         // Démarrer le service de warmup optimisé
         OptimizedWarmupService.init();
 
-        // Initialiser le service de notification étendu
-        try {
-          const { enhancedNotificationService } = await import("./src/services/notifications/EnhancedNotificationService");
-          await enhancedNotificationService.initialize();
-          logger.info("✅ Service de notification initialisé");
-        } catch (error) {
-          logger.warn("⚠️ Service de notification non initialisé:", error);
-        }
+        // Initialisation des notifications différée: ne pas demander la permission au démarrage
+        // Le service sera initialisé lors de l'utilisation des fonctionnalités de planning/notifications
 
         // Précharger les modules critiques de manière lazy
         LazyLoadService.preloadModules([

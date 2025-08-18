@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   Text,
-  Alert,
   ActivityIndicator,
   Dimensions,
 } from "react-native";
@@ -55,32 +54,7 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
     cameraProps,
   } = useAdvancedCamera(position);
 
-  // Vérifier les permissions au montage
-  useEffect(() => {
-    const checkPermissions = async () => {
-      if (!hasCameraPermission || !hasMicrophonePermission) {
-        const granted = await requestPermissions();
-        if (!granted) {
-          Alert.alert(
-            "Permissions requises",
-            "L'application a besoin d'accéder à la caméra et au microphone pour fonctionner.",
-            [
-              {
-                text: "OK",
-                onPress: () => onError?.(new Error("Permissions refusées")),
-              },
-            ]
-          );
-        }
-      }
-    };
-    checkPermissions();
-  }, [
-    hasCameraPermission,
-    hasMicrophonePermission,
-    requestPermissions,
-    onError,
-  ]);
+  // Les permissions sont désormais gérées en amont par RecordingScreen
 
   // Gérer la fin de l'enregistrement
   useEffect(() => {
