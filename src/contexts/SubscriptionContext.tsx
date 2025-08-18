@@ -284,14 +284,13 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
         return false;
       }
 
-      // Mapper le planId vers l'identifiant du package RevenueCat
-      const packageMapping: { [key: string]: string } = {
-        starter: "starter_monthly",
-        pro: "pro_monthly", 
-        enterprise: "enterprise_monthly"
-      };
+      // Importer la configuration RevenueCat
+      const { PLAN_TO_PRODUCT_MAP } = await import('../config/revenuecat');
+      
+      // Construire la clé du produit basée sur le plan et la période
+      const productKey = `${planId}_${isYearlyPlan ? 'yearly' : 'monthly'}`;
+      const packageIdentifier = PLAN_TO_PRODUCT_MAP[productKey];
 
-      const packageIdentifier = packageMapping[planId];
       if (!packageIdentifier) {
         logger.error("Plan non reconnu:", planId);
         return false;

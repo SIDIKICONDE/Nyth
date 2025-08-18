@@ -56,22 +56,36 @@ export class PaymentService {
     try {
       if (this.isInitialized) return;
 
+      const { REVENUECAT_API_KEYS, REVENUECAT_CONFIG } = await import('../../config/revenuecat');
+      
       const apiKey = Platform.select({
-        ios: process.env.REVENUECAT_IOS_API_KEY,
-        android: process.env.REVENUECAT_ANDROID_API_KEY,
+        ios: REVENUECAT_API_KEYS.ios,
+        android: REVENUECAT_API_KEYS.android,
       });
 
-      if (!apiKey) {
-        throw new Error("RevenueCat API key not found");
+      if (!apiKey || apiKey.includes('YOUR_')) {
+        logger.warn("RevenueCat API key not configured. Payments will not work.");
+        // Ne pas lancer d'erreur pour permettre à l'app de fonctionner sans paiements
+        return;
       }
 
-      await Purchases.configure({ apiKey: apiKey as string });
+      await Purchases.configure({ 
+        apiKey: apiKey as string,
+        appUserID: REVENUECAT_CONFIG.appUserID || undefined,
+        observerMode: false,
+        useAmazon: false,
+      });
+
+      // Activer le mode debug en développement
+      if (REVENUECAT_CONFIG.useDebugMode) {
+        Purchases.setDebugLogsEnabled(true);
+      }
 
       this.isInitialized = true;
-      logger.info("PaymentService initialized successfully");
+      logger.info("✅ PaymentService (RevenueCat) initialized successfully");
     } catch (error) {
       logger.error("Failed to initialize PaymentService:", error);
-      throw error;
+      // Ne pas lancer d'erreur pour permettre à l'app de fonctionner
     }
   }
 
