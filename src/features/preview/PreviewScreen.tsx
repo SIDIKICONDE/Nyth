@@ -2,7 +2,7 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import LinearGradient from "react-native-linear-gradient";
 import * as React from "react";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "@/hooks/useTranslation";
 import {
   Dimensions,
   NativeScrollEvent,
@@ -31,7 +31,7 @@ import {
   NotFoundState,
   VideoPlayerSection,
 } from "./components";
-import { usePreviewState, useExportSettings, usePreviewActions } from "./hooks";
+import { usePreviewData } from "./hooks/usePreviewData";
 
 import { UIText } from "../../components/ui/Typography";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -51,7 +51,7 @@ export default function PreviewScreen() {
   const aspectRatio = { width: 16, height: 9 };
   const { t } = useTranslation();
 
-  // État de base
+  // Utiliser usePreviewData qui gère le chargement des données
   const {
     recording,
     loading,
@@ -62,30 +62,12 @@ export default function PreviewScreen() {
     previewVideoUri,
     isGeneratingPreview,
     showSocialShare,
-    setRecording,
-    setLoading,
-    setIsExporting,
-    setExportProgress,
-    setCurrentStep,
-    setVideoSize,
-    setPreviewVideoUri,
-    setIsGeneratingPreview,
     setShowSocialShare,
-  } = usePreviewState();
-
-  // Actions
-  const { handleExport, handleShare, handleBasicShare, handleDelete } =
-    usePreviewActions({
-      recording,
-      isExporting,
-      setIsExporting,
-      setExportProgress,
-      setCurrentStep,
-      setShowSocialShare,
-    });
-
-  // Animation values
-  const [hasScrolled, setHasScrolled] = React.useState(false);
+    handleExport,
+    handleShare,
+    handleBasicShare,
+    handleDelete,
+  } = usePreviewData();
 
   // Style animé pour l'en-tête
   const headerAnimatedStyle = useAnimatedStyle(() => {
