@@ -24,6 +24,7 @@ interface CameraModuleProps {
   onRecordingStart?: () => void;
   onRecordingStop?: () => void;
   onTeleprompterToggle?: (enabled: boolean) => void;
+  onRecordingPauseChange?: (isPaused: boolean) => void;
 }
 
 export const CameraModule: React.FC<CameraModuleProps> = ({
@@ -34,6 +35,7 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
   onRecordingStart,
   onRecordingStop,
   onTeleprompterToggle,
+  onRecordingPauseChange,
 }) => {
   const {
     cameraRef,
@@ -74,6 +76,11 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
   useEffect(() => {
     onTeleprompterToggle?.(Boolean(advancedConfig.teleprompterEnabled));
   }, [advancedConfig.teleprompterEnabled, onTeleprompterToggle]);
+
+  // Relayer l'état de pause aux parents (pour synchroniser le téléprompteur)
+  useEffect(() => {
+    onRecordingPauseChange?.(recordingState.isPaused);
+  }, [recordingState.isPaused, onRecordingPauseChange]);
 
   // Les contrôles sont utilisés directement
   const enhancedControls = controls;
