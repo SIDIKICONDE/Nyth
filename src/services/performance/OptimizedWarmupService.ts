@@ -19,11 +19,15 @@ interface RequestIdleCallbackHandle {
 type RequestIdleCallback = (
   callback: (deadline: RequestIdleCallbackHandle) => void,
   options?: RequestIdleCallbackOptions
-) => NodeJS.Timeout;
+) => number;
 
 // Extension du type global pour requestIdleCallback
 declare global {
-  var requestIdleCallback: RequestIdleCallback | undefined;
+  namespace NodeJS {
+    interface Global {
+      requestIdleCallback?: RequestIdleCallback;
+    }
+  }
 }
 
 export class OptimizedWarmupService {
@@ -80,7 +84,7 @@ export class OptimizedWarmupService {
         const auth = getAuth(getApp());
         if (auth.currentUser) {
           try {
-            await auth.currentUser.getIdToken(false); // false = pas de force refresh
+            await auth.currentUser.getIdToken(false);
           } catch {
             // Ignorer les erreurs de token
           }
@@ -164,17 +168,18 @@ export class OptimizedWarmupService {
 }
 
 // Polyfill pour requestIdleCallback si non disponible
-if (typeof global.requestIdleCallback === "undefined") {
+if (!global.requestIdleCallback) {
   global.requestIdleCallback = (
     callback: (deadline: RequestIdleCallbackHandle) => void,
     options?: RequestIdleCallbackOptions
-  ): NodeJS.Timeout => {
+  ): number => {
     const timeout = options?.timeout || 1000;
-    return setTimeout(() => {
+    const id = setTimeout(() => {
       callback({
         didTimeout: false,
         timeRemaining: () => Math.max(0, timeout - Date.now())
       });
     }, timeout);
+    return id as any; // Cast vers number pour compatibilité
   };
 }

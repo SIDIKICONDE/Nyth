@@ -3,23 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>1091603304793-i8bqq3ruv5j85j7u04ffsh3bb9r7kisr.apps.googleusercontent.com</string>
+	<string>717804580146-mkee7kbuipfcfddhbieeo9hfi0h1814l.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.1091603304793-i8bqq3ruv5j85j7u04ffsh3bb9r7kisr</string>
-	<key>ANDROID_CLIENT_ID</key>
-	<string>1091603304793-189op4pdvdrmtg7q36klbg2jajltpbfp.apps.googleusercontent.com</string>
+	<string>com.googleusercontent.apps.717804580146-mkee7kbuipfcfddhbieeo9hfi0h1814l</string>
 	<key>API_KEY</key>
-	<string>AIzaSyAjKd4BGkgeC0w0uSRzZQqs_iWgj7xzAo0</string>
+	<string>AIzaSyCD5apSkvhRCbj78J3_dwNL0o4IGB5K2Ig</string>
 	<key>GCM_SENDER_ID</key>
-	<string>1091603304793</string>
+	<string>717804580146</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.naya.bundle</string>
+	<string>com.nyth.bundle</string>
 	<key>PROJECT_ID</key>
-	<string>com-naya</string>
+	<string>nyth-2025</string>
 	<key>STORAGE_BUCKET</key>
-	<string>com-naya.firebasestorage.app</string>
+	<string>nyth-2025.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -31,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1091603304793:ios:c0985d173c7ec804dfbc48</string>
+	<string>1:717804580146:ios:49f915009908b160bd3b2b</string>
 </dict>
 </plist>
