@@ -7,6 +7,7 @@ import { ProfileContent } from "./ProfileContent";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { useTranslation } from "../../../../hooks/useTranslation";
 import { useProfileImageManager } from "./useProfileImageManager";
+import { responsiveSpacing } from "../../../../utils/responsive";
 
 // Composant classique (seul design disponible)
 const ClassicProfileHeader: React.FC<ProfileHeaderProps> = ({

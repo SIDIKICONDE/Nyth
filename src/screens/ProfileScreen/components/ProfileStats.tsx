@@ -12,6 +12,7 @@ import { useTranslation } from "../../../hooks/useTranslation";
 import { useContrastOptimization } from "../../../hooks/useContrastOptimization";
 import { useUserStats } from "../../../hooks/useUserStats";
 import { UserStats } from "../../../types/user";
+import { responsiveSpacing, responsiveFontSize, isTablet } from "../../../utils/responsive";
 
 import { createOptimizedLogger } from '../../../utils/optimizedLogger';
 const logger = createOptimizedLogger('ProfileStats');
@@ -125,29 +126,41 @@ export default function ProfileStats({ stats }: ProfileStatsProps) {
     },
   ];
 
+  const isTabletDevice = isTablet();
+  const containerPadding = responsiveSpacing(16);
+  const sectionPadding = responsiveSpacing(24);
+  const marginBottom = responsiveSpacing(24);
+  const itemSpacing = responsiveSpacing(8);
+  
   return (
-    <View style={tw`px-4 py-6`}>
-      <View style={tw`flex-row items-center mb-6`}>
-        <H3 style={{ color: currentTheme.colors.text }}>
+    <View style={{ paddingHorizontal: containerPadding, paddingVertical: sectionPadding }}>
+      <View style={[tw`flex-row items-center`, { marginBottom }]}>
+        <H3 style={{ color: currentTheme.colors.text, fontSize: responsiveFontSize(20) }}>
           📊 {t("profile.stats.title")}
         </H3>
         <View
           style={[
-            tw`flex-1 h-0.5 ml-4`,
-            { backgroundColor: currentTheme.colors.border },
+            tw`flex-1 h-0.5`,
+            { 
+              backgroundColor: currentTheme.colors.border,
+              marginLeft: responsiveSpacing(16),
+            },
           ]}
         />
       </View>
 
-      <View style={tw`flex-row flex-wrap justify-between`}>
+      <View style={[
+        tw`flex-row flex-wrap`,
+        isTabletDevice ? tw`justify-around` : tw`justify-between`
+      ]}>
         {statItems.map((item, index) => {
           return item.onPress && typeof item.onPress === "function" ? (
             <TouchableOpacity
               key={index}
               style={[
-                tw`mb-2`,
                 {
-                  width: "49%",
+                  width: isTabletDevice ? "30%" : "49%",
+                  marginBottom: itemSpacing,
                 },
               ]}
               onPress={item.onPress}
@@ -158,8 +171,9 @@ export default function ProfileStats({ stats }: ProfileStatsProps) {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[
-                  tw`p-2 rounded-lg`,
+                  tw`rounded-lg`,
                   {
+                    padding: responsiveSpacing(8),
                     shadowColor: item.shadowColor,
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.2,

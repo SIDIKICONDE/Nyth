@@ -9,6 +9,7 @@ import {
   ProfileProfessionalInfo,
   ProfileHint,
 } from './components';
+import { responsiveSpacing } from '../../../../../utils/responsive';
 
 export const ProfileContent: React.FC<ProfileInfoProps> = ({ 
   profile, 
@@ -16,10 +17,16 @@ export const ProfileContent: React.FC<ProfileInfoProps> = ({
   currentTheme, 
   t 
 }) => {
+  const paddingTop = responsiveSpacing(12);
+  const paddingBottom = responsiveSpacing(8);
+  
   return (
     <View style={[
-      tw`pt-3 pb-2`,
-      { backgroundColor: currentTheme.colors.background }
+      { 
+        paddingTop,
+        paddingBottom,
+        backgroundColor: currentTheme.colors.background 
+      }
     ]}>
       <ProfileBasicInfo 
         displayName={displayName} 

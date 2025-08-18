@@ -15,6 +15,7 @@ import { useUserProfile } from "../../contexts/UserProfileContext";
 import { useProfilePreferencesSync } from "../../hooks/useProfilePreferencesSync";
 import { useTranslation } from "../../hooks/useTranslation";
 import { RootStackParamList } from "../../types";
+import { responsiveSpacing, isTablet, responsiveBreakpoints, getMaxContainerWidth } from "../../utils/responsive";
 import AdminButton from "./components/AdminButton";
 import ProfileAchievements from "./components/ProfileAchievements";
 import ProfileActions from "./components/ProfileActions";
@@ -40,6 +41,12 @@ export default function ProfileScreen() {
     isLoading: isLoadingPrefs,
   } = useProfilePreferencesSync();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Responsive values
+  const isTabletDevice = isTablet();
+  const maxContentWidth = getMaxContainerWidth();
+  const contentPadding = responsiveSpacing(16);
+  const bottomPadding = responsiveSpacing(96);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -81,7 +88,12 @@ export default function ProfileScreen() {
       <ScrollView
         style={tw`flex-1`}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={tw`pb-24`}
+        contentContainerStyle={[
+          {
+            paddingBottom: bottomPadding,
+            alignItems: 'center',
+          }
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -91,46 +103,54 @@ export default function ProfileScreen() {
           />
         }
       >
-        {profile && (
-          <>
-            {/* En-tête du profil */}
-            <ProfileHeader profile={profile} onEditPress={handleEditProfile} />
+        <View style={[
+          tw`w-full`,
+          { 
+            maxWidth: maxContentWidth,
+            paddingHorizontal: contentPadding,
+          }
+        ]}>
+          {profile && (
+            <>
+              {/* En-tête du profil */}
+              <ProfileHeader profile={profile} onEditPress={handleEditProfile} />
 
-            {/* Bouton d'administration (si admin) */}
-            <AdminButton />
+              {/* Bouton d'administration (si admin) */}
+              <AdminButton />
 
-            {/* Statistiques */}
-            <ProfileStats stats={profile.stats} />
+              {/* Statistiques */}
+              <ProfileStats stats={profile.stats} />
 
-            {/* Analytics avec bouton collapse */}
-            <CollapsibleSection
-              title={t("profile.analytics.showAnalytics")}
-              icon="chart-bar"
-              iconColor={currentTheme.colors.primary}
-              isOpen={preferences.showAnalytics}
-              onToggle={handleToggleAnalytics}
-            >
-              <ProfileAnalytics />
-            </CollapsibleSection>
+              {/* Analytics avec bouton collapse */}
+              <CollapsibleSection
+                title={t("profile.analytics.showAnalytics")}
+                icon="chart-bar"
+                iconColor={currentTheme.colors.primary}
+                isOpen={preferences.showAnalytics}
+                onToggle={handleToggleAnalytics}
+              >
+                <ProfileAnalytics />
+              </CollapsibleSection>
 
-            {/* Badges et Réalisations avec bouton collapse */}
-            <CollapsibleSection
-              title={t("profile.achievements.showAchievements")}
-              icon="trophy-award"
-              iconColor={currentTheme.colors.secondary}
-              isOpen={preferences.showAchievements}
-              onToggle={handleToggleAchievements}
-            >
-              <ProfileAchievements />
-            </CollapsibleSection>
+              {/* Badges et Réalisations avec bouton collapse */}
+              <CollapsibleSection
+                title={t("profile.achievements.showAchievements")}
+                icon="trophy-award"
+                iconColor={currentTheme.colors.secondary}
+                isOpen={preferences.showAchievements}
+                onToggle={handleToggleAchievements}
+              >
+                <ProfileAchievements />
+              </CollapsibleSection>
 
-            {/* Sections du profil */}
-            <ProfileSections profile={profile} />
+              {/* Sections du profil */}
+              <ProfileSections profile={profile} />
 
-            {/* Actions */}
-            <ProfileActions />
-          </>
-        )}
+              {/* Actions */}
+              <ProfileActions />
+            </>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
