@@ -45,15 +45,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     return true
   }
 
-  // Google Sign-In URL handler
+  // URL handler for Google Sign-In and other deep links
   func application(
     _ app: UIApplication,
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey : Any] = [:]
   ) -> Bool {
+    // Handle Google Sign-In
     if GIDSignIn.sharedInstance.handle(url) {
       return true
     }
+    
+    // Handle other URL schemes (including Apple Sign-In callbacks)
+    // This will allow React Native to handle the URL
+    if let delegate = reactNativeDelegate {
+      return delegate.application?(app, open: url, options: options) ?? false
+    }
+    
     return false
   }
 }
