@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import Slider from "@react-native-community/slider";
+import Slider from "react-native-slider-x";
 import { useTheme } from "../../../../contexts/ThemeContext";
 
 interface SliderControlProps {

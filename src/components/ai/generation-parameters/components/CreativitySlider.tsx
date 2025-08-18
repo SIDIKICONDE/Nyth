@@ -1,4 +1,4 @@
-import Slider from "@react-native-community/slider";
+import Slider from "react-native-slider-x";
 import React from "react";
 import { View } from "react-native";
 import tw from "twrnc";

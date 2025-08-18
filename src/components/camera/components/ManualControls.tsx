@@ -9,7 +9,7 @@ import {
   useColorScheme,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import Slider from "@react-native-community/slider";
+import Slider from "react-native-slider-x";
 import { useSystemTheme } from "../../../hooks/useSystemTheme";
 
 interface ManualControlsProps {

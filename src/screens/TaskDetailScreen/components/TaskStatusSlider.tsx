@@ -1,7 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import Slider from "@react-native-community/slider";
+import Slider from "react-native-slider-x";
 import { UIText } from "../../../components/ui/Typography";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { Task } from "../../../types/planning";

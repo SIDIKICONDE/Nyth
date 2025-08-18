@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   BackHandler,
-  Dimensions,
   StatusBar,
   View,
 } from "react-native";
@@ -23,11 +22,10 @@ import { createOptimizedLogger } from '../../utils/optimizedLogger';
 const logger = createOptimizedLogger('ChatContainer');
 
 // Imports des nouveaux modules
-import { useAuth } from "../../contexts/AuthContext";
+// import { useAuth } from "../../contexts/AuthContext"; // Peut être utilisé pour l'authentification
 import { useInputStyle } from "../../contexts/InputStyleContext";
 import { ChatMessages, ScrollToBottomButton } from "./components";
 import { useChatKeyboard, useChatMessageEdit } from "./hooks";
-import { testAutoSave } from "./message-handler/aiMemory";
 import { ChatContainerProps } from "./types/ChatContainer.types";
 import { enableAndroidLayoutAnimations } from "./utils/animations";
 
@@ -59,19 +57,18 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   const chatContainerRef = useRef<View>(null);
   const { preferences } = useChatPreferences();
   const { selectedInputStyle } = useInputStyle();
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Utilisé pour l'authentification si nécessaire
 
   // États pour le scroll
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const [contentHeight, setContentHeight] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(0);
-  const { height: screenHeight } = Dimensions.get("window");
+  const [_scrollPosition, setScrollPosition] = useState(0);
+  const [_contentHeight, setContentHeight] = useState(0);
+  const [_containerHeight, setContainerHeight] = useState(0);
+  // const { height: screenHeight } = Dimensions.get("window"); // Peut être utilisé pour les calculs de layout
 
   // Hooks personnalisés
-  const { keyboardHeight, viewAdjustment, inputPosition } = useChatKeyboard();
+  const { keyboardHeight, inputPosition } = useChatKeyboard();
 
   const {
-    editingMessageId,
     handleEditMessage,
     handleUpdateMessage,
     cancelEdit,
@@ -85,7 +82,6 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     handleContentSizeChange: onContentSizeChange,
     handleScroll: onScroll,
     showScrollToBottomButton,
-    userIsScrolling,
   } = useChatScroll({
     messages,
     isTyping, // ✅ Permettre le scroll pendant que l'IA tape
@@ -118,13 +114,13 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   );
 
   // Function to handle the back button
-  const handleBackPress = () => {
+  const handleBackPress = useCallback(() => {
     if (navigation.canGoBack()) {
       navigation.goBack();
       return true;
     }
     return false;
-  };
+  }, [navigation]);
 
   React.useEffect(() => {
     const backHandler = BackHandler.addEventListener(
@@ -135,7 +131,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     return () => {
       backHandler.remove();
     };
-  }, []);
+  }, [handleBackPress]);
 
   // Marquer automatiquement les anciens messages comme déjà animés lors du chargement initial
   const hasInitializedMessages = useRef(false);
@@ -173,7 +169,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
     // Retourner une fonction de nettoyage vide si les conditions ne sont pas remplies
     return () => {};
-  }, []); // Pas de dépendances pour éviter les re-exécutions
+  }, [messages, newMessageIds, markMessageAsAnimated]); // Dépendances nécessaires pour la logique
 
 
 
@@ -181,7 +177,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     <View
       ref={chatContainerRef}
       style={[
-        tw`flex-1 rounded-t-lg`,
+        tw`flex-1 rounded-t-lg overflow-hidden`,
         {
           backgroundColor: currentTheme.colors.background,
           shadowColor: currentTheme.isDark ? "#000" : "#555",
