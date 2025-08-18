@@ -56,7 +56,8 @@ class GoalsControlService {
       },
 
       popInitialNotification: true,
-      requestPermissions: Platform.OS === "ios",
+      // Ne pas demander la permission automatiquement ici
+      requestPermissions: false,
     });
 
     // Créer les catégories d'actions pour iOS

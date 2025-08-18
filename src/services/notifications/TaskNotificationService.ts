@@ -3,13 +3,7 @@ import PushNotification from "react-native-push-notification";
 import { Task } from "../../types/planning";
 import { enhancedNotificationService } from "./EnhancedNotificationService";
 
-// Configuration des notifications (iOS uniquement)
-if (Platform.OS === "ios") {
-  PushNotification.configure({
-    onNotification: function (notification) {},
-    requestPermissions: true,
-  });
-}
+// Ne pas demander de permissions au chargement du module
 
 function getNotifee(): any | null {
   try {
@@ -94,6 +88,20 @@ export class TaskNotificationService {
   }
 
   /**
+   * Vérifier l'état des permissions sans déclencher de prompt
+   */
+  private async hasPermission(): Promise<boolean> {
+    if (Platform.OS === "ios") {
+      return new Promise((resolve) => {
+        PushNotification.checkPermissions((permissions) => {
+          resolve(Boolean(permissions?.alert || permissions?.badge || permissions?.sound));
+        });
+      });
+    }
+    return true;
+  }
+
+  /**
    * Programmer une notification pour une tâche
    */
   async scheduleTaskReminder(
@@ -102,8 +110,8 @@ export class TaskNotificationService {
     type: "due" | "start" | "custom" = "due"
   ): Promise<string | null> {
     if (!this.permissionGranted) {
-      const granted = await this.requestPermissions();
-      if (!granted) return null;
+      this.permissionGranted = await this.hasPermission();
+      if (!this.permissionGranted) return null;
     }
 
     try {

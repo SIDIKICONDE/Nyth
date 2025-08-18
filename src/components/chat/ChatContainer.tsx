@@ -181,7 +181,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     <View
       ref={chatContainerRef}
       style={[
-        tw`flex-1 rounded-t-lg overflow-hidden`,
+        tw`flex-1 rounded-t-lg`,
         {
           backgroundColor: currentTheme.colors.background,
           shadowColor: currentTheme.isDark ? "#000" : "#555",

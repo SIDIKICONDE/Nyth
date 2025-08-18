@@ -7,15 +7,6 @@ import { createLogger } from "../../utils/optimizedLogger";
 
 const logger = createLogger("EnhancedNotificationService");
 
-interface NotificationData {
-  id: string;
-  title: string;
-  message: string;
-  type: "event" | "goal" | "task" | "achievement";
-  priority: "low" | "medium" | "high" | "urgent";
-  data?: any;
-}
-
 interface ScheduledNotification {
   id: string;
   fireDate: Date;
@@ -74,7 +65,8 @@ export class EnhancedNotificationService {
             logger.info("Notification reçue:", notification);
             this.handleNotificationReceived(notification);
           },
-          requestPermissions: true,
+          // Ne pas demander la permission automatiquement ici
+          requestPermissions: false,
         });
       }
 
@@ -83,8 +75,7 @@ export class EnhancedNotificationService {
         await this.createNotificationChannels();
       }
 
-      // Demander les permissions
-      await this.requestPermissions();
+      // Ne pas demander les permissions automatiquement; sera fait depuis la PlanningScreen
 
       // Charger les paramètres
       await this.loadSettings();
@@ -134,10 +125,9 @@ export class EnhancedNotificationService {
 
     if (Platform.OS === "android") {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const nf = require("@notifee/react-native");
+        const nf = await import("@notifee/react-native");
         for (const channel of channels) {
-          await nf.createChannel({
+          await nf.default.createChannel({
             id: channel.channelId,
             name: channel.channelName,
             sound: channel.soundName,
@@ -158,13 +148,18 @@ export class EnhancedNotificationService {
     }
   }
 
+  // Méthode publique pour demander la permission côté UI (PlanningScreen)
+  async requestUserPermission(): Promise<boolean> {
+    await this.ensureInitialized();
+    return this.requestPermissions();
+  }
+
   private async requestPermissions(): Promise<boolean> {
     try {
       if (Platform.OS === "android") {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const nf = require("@notifee/react-native");
-          await nf.requestPermission();
+          const nf = await import("@notifee/react-native");
+          await nf.default.requestPermission();
           this.permissionGranted = true;
         } catch {
           this.permissionGranted = true;
@@ -355,7 +350,7 @@ export class EnhancedNotificationService {
     }
   }
 
-  private getVibrationPattern(type: string): number {
+  private getVibrationPattern(_category: string): number {
     if (!this.settings?.soundSettings.vibration) return 0;
 
     switch (this.settings.soundSettings.vibrationPattern) {
@@ -419,9 +414,8 @@ export class EnhancedNotificationService {
 
       if (Platform.OS === "android") {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const nf = require("@notifee/react-native");
-          await nf.createTriggerNotification(
+          const nf = await import("@notifee/react-native");
+          await nf.default.createTriggerNotification(
             {
               id: notificationId,
               title: "📅 Événement à venir",
@@ -518,9 +512,8 @@ export class EnhancedNotificationService {
 
       if (Platform.OS === "android") {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const nf = require("@notifee/react-native");
-          await nf.displayNotification({
+          const nf = await import("@notifee/react-native");
+          await nf.default.displayNotification({
             id: notificationId,
             title,
             body: message,
@@ -588,9 +581,8 @@ export class EnhancedNotificationService {
       const notificationId = `goal_${goal.id}_progress_daily`;
       if (Platform.OS === "android") {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const nf = require("@notifee/react-native");
-          await nf.createTriggerNotification(
+          const nf = await import("@notifee/react-native");
+          await nf.default.createTriggerNotification(
             {
               id: notificationId,
               title: "🎯 Progrès quotidien",
@@ -656,9 +648,8 @@ export class EnhancedNotificationService {
       const notificationId = `goal_${goal.id}_review_weekly`;
       if (Platform.OS === "android") {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const nf = require("@notifee/react-native");
-          await nf.createTriggerNotification(
+          const nf = await import("@notifee/react-native");
+          await nf.default.createTriggerNotification(
             {
               id: notificationId,
               title: "📅 Revue hebdomadaire",
@@ -716,9 +707,8 @@ export class EnhancedNotificationService {
       const notificationId = `goal_${goal.id}_overdue_once`;
       if (Platform.OS === "android") {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const nf = require("@notifee/react-native");
-          await nf.createTriggerNotification(
+          const nf = await import("@notifee/react-native");
+        await nf.default.createTriggerNotification(
             {
               id: notificationId,
               title: "⚠️ Objectif en retard",
@@ -860,9 +850,8 @@ export class EnhancedNotificationService {
     try {
       if (Platform.OS === "android") {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const nf = require("@notifee/react-native");
-          await nf.cancelNotification(notificationId);
+          const nf = await import("@notifee/react-native");
+          await nf.default.cancelNotification(notificationId);
         } catch {}
       } else {
         PushNotification.cancelLocalNotification(notificationId);
@@ -878,9 +867,8 @@ export class EnhancedNotificationService {
     try {
       if (Platform.OS === "android") {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const nf = require("@notifee/react-native");
-          await nf.cancelAllNotifications();
+          const nf = await import("@notifee/react-native");
+          await nf.default.cancelAllNotifications();
         } catch {}
       } else {
         PushNotification.cancelAllLocalNotifications();
@@ -899,9 +887,8 @@ export class EnhancedNotificationService {
     await this.ensureInitialized(); // Assure que le service est initialisé
     if (Platform.OS === "android") {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const nf = require("@notifee/react-native");
-        const scheduled = await nf.getTriggerNotifications();
+        const nf = await import("@notifee/react-native");
+        const scheduled = await nf.default.getTriggerNotifications();
         return scheduled.map((n: any) => ({
           id: n.notification.id,
           fireDate: new Date(n.trigger?.timestamp ?? Date.now()),

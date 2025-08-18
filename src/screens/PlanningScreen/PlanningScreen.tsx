@@ -1,5 +1,5 @@
-import React, { useCallback, useReducer } from "react";
-import { Alert, SafeAreaView, View, StatusBar } from "react-native";
+import React, { useCallback, useEffect, useReducer } from "react";
+import { Alert, SafeAreaView, View, StatusBar, Platform } from "react-native";
 import { CreateEventModal } from "../../components/planning/CreateEventModal";
 import { LayoutSettingsButton } from "../../components/planning/LayoutSettingsButton";
 import { PlanningCalendar } from "../../components/planning/PlanningCalendar";
@@ -239,6 +239,22 @@ export const PlanningScreen: React.FC = () => {
     } catch (error) {
       Alert.alert(t("common.error", "Error"), t("common.retry", "Réessayer"));
     }
+  }, []);
+
+  // Demander la permission de notification uniquement sur cet écran
+  useEffect(() => {
+    const initNotifications = async () => {
+      try {
+        const { enhancedNotificationService } = await import(
+          "../../services/notifications/EnhancedNotificationService"
+        );
+        await enhancedNotificationService.initialize();
+        await enhancedNotificationService.requestUserPermission();
+      } catch (error) {
+        // Ignorer les erreurs; l'utilisateur pourra activer plus tard
+      }
+    };
+    initNotifications();
   }, []);
 
   // Rendre toutes les vues montées et masquer/afficher par style pour éviter les délais de re-montage
