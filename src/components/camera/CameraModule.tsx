@@ -10,7 +10,6 @@ import { Camera, CameraPosition, VideoFile } from "react-native-vision-camera";
 import { useCamera } from "./hooks/useCamera";
 import { useAdvancedCamera } from "./hooks/useAdvancedCamera";
 import { CameraControls } from "./components/CameraControls";
-import { usePermissionCheck } from "./hooks/usePermissionCheck";
 
 interface CameraModuleProps {
   onRecordingComplete?: (video: VideoFile) => void;

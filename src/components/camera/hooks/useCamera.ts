@@ -19,6 +19,7 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
     isPaused: false,
     duration: 0,
   });
+  const [permissionsChecked, setPermissionsChecked] = useState(false);
 
   const cameraRef = useRef<Camera>(null);
   const device = useCameraDevice(position);
@@ -46,6 +47,7 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
   const requestPermissions = useCallback(async () => {
     const cameraGranted = await requestCameraPermission();
     const microphoneGranted = await requestMicrophonePermission();
+    setPermissionsChecked(true);
     return cameraGranted && microphoneGranted;
   }, [requestCameraPermission, requestMicrophonePermission]);
 
@@ -198,8 +200,10 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
     position,
     isFlashOn,
     recordingState,
-    hasCameraPermission,
-    hasMicrophonePermission,
+    // Retourner true temporairement pour éviter l'affichage du message de permissions
+    // Les vraies permissions seront vérifiées lors du clic sur le bouton d'enregistrement
+    hasCameraPermission: permissionsChecked ? hasCameraPermission : true,
+    hasMicrophonePermission: permissionsChecked ? hasMicrophonePermission : true,
     requestPermissions,
     controls,
   };
