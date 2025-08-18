@@ -1,155 +1,64 @@
-import React from "react";
-import { View, TouchableOpacity } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import tw from "twrnc";
-import { UIText } from "@/components/ui/Typography";
-import { useTheme } from "@/contexts/ThemeContext";
-import { useTranslation } from "@/hooks/useTranslation";
+import React from 'react';
+import { View, Pressable } from 'react-native';
+import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import tw from 'twrnc';
+import { UIText } from '@/components/ui/Typography';
+import { useTheme } from '@/contexts/ThemeContext';
 
-export const NotFoundState: React.FC = () => {
-  const navigation = useNavigation();
+interface NotFoundStateProps {
+  onRetry?: () => void;
+}
+
+export function NotFoundState({ onRetry }: NotFoundStateProps) {
   const { currentTheme } = useTheme();
-  const { t } = useTranslation();
 
   return (
     <View
       style={[
-        tw`flex-1 justify-center items-center px-6`,
+        tw`flex-1 items-center justify-center px-6`,
         { backgroundColor: currentTheme.colors.background },
       ]}
     >
-      {/* Icône d'erreur */}
-      <View
-        style={[
-          tw`w-24 h-24 rounded-full justify-center items-center mb-6`,
-          { backgroundColor: `${currentTheme.colors.error}20` },
-        ]}
-      >
-        <MaterialCommunityIcons
-          name="video-off-outline"
-          size={48}
-          color={currentTheme.colors.error}
-        />
-      </View>
+      <Animated.View entering={FadeIn.duration(600)} style={tw`items-center`}>
+        {/* Icône d'erreur */}
+        <Animated.View
+          entering={FadeInUp.duration(800).delay(200)}
+          style={tw`w-20 h-20 rounded-full bg-red-100 dark:bg-red-900 items-center justify-center mb-6`}
+        >
+          <UIText size="3xl">❌</UIText>
+        </Animated.View>
 
-      {/* Titre */}
-      <UIText
-        size="xl"
-        weight="bold"
-        color={currentTheme.colors.text}
-        align="center"
-        style={tw`mb-4`}
-      >
-        {t("preview.notFound.title", "Enregistrement introuvable")}
-      </UIText>
+        {/* Message d'erreur */}
+        <Animated.View entering={FadeInUp.duration(800).delay(400)} style={tw`items-center mb-8`}>
+          <UIText size="xl" weight="bold" style={tw`text-gray-800 dark:text-gray-200 mb-3 text-center`}>
+            Vidéo introuvable
+          </UIText>
+          <UIText size="base" style={tw`text-gray-600 dark:text-gray-400 text-center leading-6`}>
+            La vidéo que vous recherchez n'a pas pu être trouvée ou a été supprimée.
+          </UIText>
+        </Animated.View>
 
-      {/* Message détaillé */}
-      <UIText
-        size="base"
-        color={currentTheme.colors.textSecondary}
-        align="center"
-        style={tw`mb-6 leading-6`}
-      >
-        {t(
-          "preview.notFound.message",
-          "L'enregistrement demandé n'a pas pu être trouvé. Il se peut qu'il ait été supprimé ou que la sauvegarde ait échoué."
+        {/* Bouton de retry */}
+        {onRetry && (
+          <Animated.View entering={FadeInUp.duration(800).delay(600)}>
+            <Pressable
+              onPress={onRetry}
+              style={({ pressed }) => [
+                tw`px-6 py-3 rounded-2xl`,
+                {
+                  backgroundColor: currentTheme.colors.primary,
+                  opacity: pressed ? 0.8 : 1,
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                },
+              ]}
+            >
+              <UIText size="base" weight="medium" style={tw`text-white`}>
+                Réessayer
+              </UIText>
+            </Pressable>
+          </Animated.View>
         )}
-      </UIText>
-
-      {/* Suggestions */}
-      <View style={tw`mb-8`}>
-        <UIText
-          size="sm"
-          weight="semibold"
-          color={currentTheme.colors.text}
-          style={tw`mb-3`}
-        >
-          {t("preview.notFound.suggestions", "Suggestions :")}
-        </UIText>
-
-        <UIText
-          size="sm"
-          color={currentTheme.colors.textSecondary}
-          style={tw`mb-2`}
-        >
-          •{" "}
-          {t(
-            "preview.notFound.suggestion1",
-            "Vérifiez dans votre bibliothèque vidéo"
-          )}
-        </UIText>
-
-        <UIText
-          size="sm"
-          color={currentTheme.colors.textSecondary}
-          style={tw`mb-2`}
-        >
-          •{" "}
-          {t(
-            "preview.notFound.suggestion2",
-            "Réessayez l'enregistrement si nécessaire"
-          )}
-        </UIText>
-
-        <UIText size="sm" color={currentTheme.colors.textSecondary}>
-          •{" "}
-          {t(
-            "preview.notFound.suggestion3",
-            "Vérifiez l'espace de stockage disponible"
-          )}
-        </UIText>
-      </View>
-
-      {/* Boutons d'action */}
-      <View style={tw`w-full gap-3`}>
-        <TouchableOpacity
-          style={[
-            tw`py-4 px-6 rounded-xl flex-row items-center justify-center`,
-            { backgroundColor: currentTheme.colors.primary },
-          ]}
-          onPress={() => navigation.navigate("Home" as never)}
-        >
-          <MaterialCommunityIcons
-            name="home-outline"
-            size={20}
-            color={currentTheme.colors.background}
-            style={tw`mr-2`}
-          />
-          <UIText
-            size="base"
-            weight="semibold"
-            color={currentTheme.colors.background}
-          >
-            {t("preview.notFound.goHome", "Retour à l'accueil")}
-          </UIText>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            tw`py-4 px-6 rounded-xl flex-row items-center justify-center border`,
-            {
-              borderColor: currentTheme.colors.border,
-              backgroundColor: "transparent",
-            },
-          ]}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={20}
-            color={currentTheme.colors.text}
-            style={tw`mr-2`}
-          />
-          <UIText
-            size="base"
-            weight="semibold"
-            color={currentTheme.colors.text}
-          >
-            {t("preview.notFound.goBack", "Retour")}
-          </UIText>
-        </TouchableOpacity>
-      </View>
+      </Animated.View>
     </View>
   );
-};
+}

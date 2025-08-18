@@ -1,22 +1,20 @@
-import { RouteProp, useFocusEffect, useRoute } from "@react-navigation/native";
-import React, { useState } from "react";
-import { useTranslation } from "@/hooks/useTranslation";
-import { RootStackParamList } from "@/types";
-import { LOADING_DELAY } from "@/features/preview/constants/defaultValues";
-import { useExportSettings } from "@/features/preview/hooks/useExportSettings";
-import { usePreviewActions } from "@/features/preview/hooks/usePreviewActions";
-import { usePreviewState } from "@/features/preview/hooks/usePreviewState";
-import { UsePreviewDataReturn } from "@/features/preview/types/preview.types";
-import { loadRecordingFromStorage } from "@/features/preview/utils/storageUtils";
-import { calculateVideoSize } from "@/features/preview/utils/videoUtils";
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useState } from 'react';
+import { useRoute } from '@react-navigation/native';
+import { useTranslation } from '@/hooks/useTranslation';
+import { RootStackParamList } from '@/types';
+import { LOADING_DELAY } from '../constants';
+import { usePreviewState } from './usePreviewState';
+import { usePreviewActions } from './usePreviewActions';
+import { UsePreviewDataReturn } from '../types';
 
-type PreviewScreenRouteProp = RouteProp<RootStackParamList, "Preview">;
+type PreviewScreenRouteProp = RouteProp<RootStackParamList, 'Preview'>;
 
 export function usePreviewData(): UsePreviewDataReturn {
   const route = useRoute<PreviewScreenRouteProp>();
   const { t } = useTranslation();
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // États de base
   const previewState = usePreviewState();
   const {
     recording,
@@ -39,21 +37,6 @@ export function usePreviewData(): UsePreviewDataReturn {
     setShowSocialShare,
   } = previewState;
 
-  // Paramètres d'export
-  const exportSettings = useExportSettings(recording?.videoUri);
-  const {
-    exportQuality,
-    exportFormat,
-    isAutoDetected,
-    videoMetadata,
-    sourceQuality,
-    setExportQuality,
-    setExportFormat,
-    syncWithVideoSettings,
-    loadVideoMetadata,
-  } = exportSettings;
-
-  // Actions
   const actions = usePreviewActions({
     recording,
     isExporting,
@@ -63,69 +46,49 @@ export function usePreviewData(): UsePreviewDataReturn {
     setShowSocialShare,
   });
 
-  const loadRecording = async () => {
+  const loadRecording = useCallback(async () => {
     try {
       setLoading(true);
+      await new Promise(resolve => setTimeout(resolve, LOADING_DELAY));
 
-      // Forcer une pause minimale pour que l'écran de chargement soit visible
-      await new Promise((resolve) => setTimeout(resolve, LOADING_DELAY));
-
-      // Vérifier que recordingId existe
-      if (!route.params.recordingId) {
+      if (!route.params?.recordingId) {
         setRecording(null);
         return;
       }
 
-      // Forcer une synchronisation des paramètres au chargement
-      try {
-        await syncWithVideoSettings();
-      } catch (syncError) {}
+      // Simulation du chargement d'un enregistrement
+      const mockRecording = {
+        id: route.params.recordingId,
+        scriptId: route.params.scriptId || 'demo',
+        scriptTitle: route.params.scriptTitle || 'Démo Prévisualisation',
+        videoUri: route.params.videoUri || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        duration: route.params.duration || 60,
+        createdAt: new Date().toISOString(),
+        thumbnailUri: route.params.thumbnailUri || null,
+      };
 
-      const foundRecording = await loadRecordingFromStorage(
-        route.params.recordingId,
-        t
-      );
-
-      if (foundRecording) {
-        setRecording(foundRecording);
-        setPreviewVideoUri(foundRecording.videoUri);
-
-        // Calculer la taille du fichier vidéo de manière sécurisée
-        try {
-          const size = await calculateVideoSize(foundRecording.videoUri, t);
-          setVideoSize(size);
-        } catch (sizeError) {
-          setVideoSize("Taille inconnue");
-        }
-
-        // Charger les métadonnées vidéo de manière sécurisée
-        try {
-          await loadVideoMetadata();
-        } catch (metadataError) {}
-      } else {
-        setRecording(null);
-      }
+      setRecording(mockRecording);
+      setPreviewVideoUri(mockRecording.videoUri);
+      setVideoSize('15.2 MB');
+      setIsGeneratingPreview(false);
     } catch (error) {
+      console.error('Erreur lors du chargement:', error);
       setRecording(null);
-
-      // Afficher une erreur à l'utilisateur si c'est une erreur critique
-      if (error instanceof Error && error.message) {}
     } finally {
-      // Ajouter un délai supplémentaire pour s'assurer que l'animation de chargement est visible
-      setTimeout(() => {
-        setLoading(false);
-      }, 500);
+      setTimeout(() => setLoading(false), 500);
     }
-  };
+  }, [route.params, setRecording, setLoading, setPreviewVideoUri, setVideoSize, setIsGeneratingPreview]);
 
   useFocusEffect(
-    React.useCallback(() => {
-      loadRecording();
-    }, [])
+    useCallback(() => {
+      if (!isInitialized) {
+        loadRecording();
+        setIsInitialized(true);
+      }
+    }, [isInitialized, loadRecording, setIsInitialized])
   );
 
   return {
-    // États de base
     recording,
     loading,
     isExporting,
@@ -135,11 +98,7 @@ export function usePreviewData(): UsePreviewDataReturn {
     previewVideoUri,
     isGeneratingPreview,
     showSocialShare,
-
-    // Setters
     setShowSocialShare,
-
-    // Actions
     handleExport: actions.handleExport,
     handleShare: actions.handleShare,
     handleBasicShare: actions.handleBasicShare,

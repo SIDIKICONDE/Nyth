@@ -1,61 +1,44 @@
-import React from "react";
-import { View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
-import tw from "twrnc";
-import { useTheme } from "@/contexts/ThemeContext";
-import { useCentralizedFont } from "@/hooks/useCentralizedFont";
-import { useTranslation } from "@/hooks/useTranslation";
-import { UIText } from "@/components/ui/Typography";
+import React from 'react';
+import { View } from 'react-native';
+import Animated, { FadeIn, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import tw from 'twrnc';
+import { UIText } from '@/components/ui/Typography';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ExportProgressBarProps } from '../types';
 
-interface ExportProgressBarProps {
-  progress: number;
-  currentStep: string;
-}
-
-export function ExportProgressBar({
-  progress,
-  currentStep,
-}: ExportProgressBarProps) {
+export function ExportProgressBar({ progress, currentStep }: ExportProgressBarProps) {
   const { currentTheme } = useTheme();
-  const { t } = useTranslation();
-  const { ui } = useCentralizedFont();
+
+  const progressAnimatedStyle = useAnimatedStyle(() => ({
+    width: `${progress}%`,
+  }));
+
+  React.useEffect(() => {
+    // Animer la barre de progression
+    progressAnimatedStyle.width = withTiming(`${progress}%`, { duration: 300 });
+  }, [progress, progressAnimatedStyle]);
 
   return (
-    <Animated.View entering={FadeIn.duration(400)} style={tw`mt-1`}>
-      <View style={tw`mb-2`}>
-        <View
+    <Animated.View entering={FadeIn.duration(400)} style={tw`space-y-3`}>
+      {/* Étape actuelle */}
+      <View style={tw`flex-row items-center justify-between`}>
+        <UIText size="sm" weight="medium" style={tw`text-gray-700 dark:text-gray-300`}>
+          {currentStep}
+        </UIText>
+        <UIText size="sm" weight="medium" style={tw`text-gray-500 dark:text-gray-400`}>
+          {progress}%
+        </UIText>
+      </View>
+
+      {/* Barre de progression */}
+      <View style={tw`h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden`}>
+        <Animated.View
           style={[
-            tw`h-3 rounded-full mb-1 overflow-hidden`,
-            { backgroundColor: `${currentTheme.colors.border}60` },
+            tw`h-full rounded-full`,
+            progressAnimatedStyle,
+            { backgroundColor: currentTheme.colors.primary },
           ]}
-        >
-          <Animated.View
-            entering={FadeIn.duration(500)}
-            style={[
-              tw`h-full rounded-full`,
-              {
-                backgroundColor: currentTheme.colors.primary,
-                width: `${Math.max(2, progress)}%`,
-              },
-            ]}
-          />
-        </View>
-        <View style={tw`flex-row items-center justify-between`}>
-          <UIText
-            size="xs"
-            weight="medium"
-            style={[ui, { color: currentTheme.colors.textSecondary }]}
-          >
-            {currentStep}
-          </UIText>
-          <UIText
-            size="sm"
-            weight="bold"
-            style={[ui, { color: currentTheme.colors.primary }]}
-          >
-            {Math.round(progress)}%
-          </UIText>
-        </View>
+        />
       </View>
     </Animated.View>
   );

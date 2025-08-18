@@ -495,11 +495,8 @@ export function TeleprompterContainer({
         <TeleprompterFooter
           isResizing={containerState.isResizing}
           resizeHandlers={resizePanResponder.panHandlers}
-          currentTheme={currentTheme}
           onSettings={onSettings}
           onEditText={onEditText}
-          settingsIconColor={settings?.settingsIconColor}
-          editIconColor={settings?.editIconColor}
           hideControls={settings?.hideControls}
         />
       )}

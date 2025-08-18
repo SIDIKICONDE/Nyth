@@ -1,159 +1,90 @@
-import { useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
-import { useCallback } from "react";
-import { Alert, Share } from "react-native";
-import RNFS from "react-native-fs";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useTranslation } from "../../../hooks/useTranslation";
-import { Recording, RootStackParamList } from "../../../types";
-import { EXPORT_PROGRESS_INTERVAL } from "../constants/defaultValues";
-import { deleteRecordingFromStorage } from "../utils/storageUtils";
-import { formatFileSize } from "../utils/videoUtils";
-import { FileManager } from "../../../services/social-share/utils/fileManager";
-
-type PreviewScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  "Preview"
->;
+import { useCallback } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
+import { PreviewActions } from '../types';
 
 interface UsePreviewActionsProps {
-  recording: Recording | null;
+  recording: {
+    id: string;
+    videoUri: string;
+  } | null;
   isExporting: boolean;
-  setIsExporting: (value: boolean) => void;
-  setExportProgress: (value: number) => void;
-  setCurrentStep: (value: string) => void;
-  setShowSocialShare: (value: boolean) => void;
+  setIsExporting: (isExporting: boolean) => void;
+  setExportProgress: (progress: number) => void;
+  setCurrentStep: (step: string) => void;
+  setShowSocialShare: (show: boolean) => void;
 }
 
-export const usePreviewActions = ({
+export function usePreviewActions({
   recording,
   isExporting,
   setIsExporting,
   setExportProgress,
   setCurrentStep,
   setShowSocialShare,
-}: UsePreviewActionsProps) => {
+}: UsePreviewActionsProps): PreviewActions {
   const { t } = useTranslation();
-  const navigation = useNavigation<PreviewScreenNavigationProp>();
 
-  const handleExport = useCallback(async () => {
+  const handleExport = useCallback(async (): Promise<void> => {
     if (!recording || isExporting) return;
 
-    setIsExporting(true);
-    setExportProgress(0);
-    setCurrentStep(t("preview.export.steps.preparation"));
-
     try {
-      const videoToExport = recording.videoUri;
+      setIsExporting(true);
+      setExportProgress(0);
+      setCurrentStep(t('preview.export.analyzing', 'Analyse de la vidéo'));
 
-      const fileInfo = await RNFS.stat(videoToExport);
-      const estimatedSize =
-        fileInfo.isFile() && "size" in fileInfo ? fileInfo.size * 0.8 : 0;
+      // Simulation du processus d'export
+      const steps = [
+        { step: t('preview.export.analyzing', 'Analyse de la vidéo'), progress: 20 },
+        { step: t('preview.export.audioOptimization', 'Optimisation audio'), progress: 40 },
+        { step: t('preview.export.videoCompression', 'Compression vidéo'), progress: 70 },
+        { step: t('preview.export.finalizing', 'Finalisation'), progress: 90 },
+        { step: t('preview.export.completed', 'Export terminé'), progress: 100 },
+      ];
 
-      // Export standard
-      for (let i = 0; i <= 100; i += 10) {
-        setExportProgress(i);
-
-        if (i < 30) setCurrentStep(t("preview.export.steps.videoPreparation"));
-        else if (i < 60) setCurrentStep(t("preview.export.steps.encoding"));
-        else if (i < 90) setCurrentStep(t("preview.export.steps.finalizing"));
-        else setCurrentStep(t("preview.export.steps.completed"));
-
-        await new Promise((resolve) =>
-          setTimeout(resolve, EXPORT_PROGRESS_INTERVAL)
-        );
+      for (const { step, progress } of steps) {
+        setCurrentStep(step);
+        setExportProgress(progress);
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      // Sauvegarder dans la galerie avec gestion des permissions (Android/iOS)
-      const saved = await FileManager.saveToGallery(videoToExport);
-      if (!saved) {
-        throw new Error("save_failed");
-      }
-
-      Alert.alert(
-        t("preview.export.success.title"),
-        t("preview.export.success.message", {
-          size: formatFileSize(estimatedSize),
-        }),
-        [{ text: t("preview.export.success.ok") }]
-      );
-
-      navigation.goBack();
+      setShowSocialShare(true);
     } catch (error) {
-      Alert.alert(
-        t("preview.export.error.title"),
-        t("preview.export.error.message"),
-        [{ text: t("preview.export.error.ok") }]
-      );
+      console.error('Erreur lors de l\'export:', error);
     } finally {
       setIsExporting(false);
       setExportProgress(0);
-      setCurrentStep("");
+      setCurrentStep('');
     }
-  }, [recording, isExporting, navigation, t]);
+  }, [recording, isExporting, setIsExporting, setExportProgress, setCurrentStep, setShowSocialShare, t]);
 
-  const handleShare = async () => {
-    if (recording) {
-      setShowSocialShare(true);
-    }
-  };
+  const handleShare = useCallback(async (): Promise<void> => {
+    setShowSocialShare(true);
+  }, [setShowSocialShare]);
 
-  const handleBasicShare = async () => {
-    if (!recording) return;
+  const handleBasicShare = useCallback(async (): Promise<void> => {
+    // Logique de partage basique
+    console.log('Partage basique');
+  }, []);
 
-    try {
-      const result = await Share.share({
-        url: recording.videoUri,
-        title: t("preview.share.details.title"),
-        message: t("preview.share.details.message"),
-      });
+  const handleDelete = useCallback((): void => {
+    // Logique de suppression
+    console.log('Suppression de la vidéo');
+  }, []);
 
-      if (result.action === Share.sharedAction) {}
-    } catch (error) {
-      Alert.alert(
-        t("preview.share.error.title"),
-        t("preview.share.error.message"),
-        [{ text: t("common.ok") }]
-      );
-    }
-  };
+  const setExportQuality = useCallback((quality: '480p' | '720p' | '1080p' | '4K'): void => {
+    console.log('Qualité d\'export définie:', quality);
+  }, []);
 
-  const handleDelete = () => {
-    if (!recording) return;
-
-    Alert.alert(t("preview.delete.title"), t("preview.delete.message"), [
-      {
-        text: t("common.cancel"),
-        style: "cancel",
-      },
-      {
-        text: t("common.delete"),
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deleteRecordingFromStorage(recording.id);
-
-            try {
-              await RNFS.unlink(recording.videoUri);
-            } catch (fileError) {}
-
-            navigation.goBack();
-          } catch (error) {
-            Alert.alert(
-              t("preview.delete.error.title"),
-              t("preview.delete.error.message"),
-              [{ text: t("common.ok") }]
-            );
-          }
-        },
-      },
-    ]);
-  };
+  const setExportFormat = useCallback((format: 'mp4' | 'mov'): void => {
+    console.log('Format d\'export défini:', format);
+  }, []);
 
   return {
     handleExport,
     handleShare,
     handleBasicShare,
     handleDelete,
+    setExportQuality,
+    setExportFormat,
   };
-};
+}

@@ -36,6 +36,7 @@ export function CameraRecorder({
   scrollSpeed = 50,
   backgroundOpacity = 80,
 }: CameraRecorderProps) {
+  const [isPaused, setIsPaused] = React.useState(false);
   const [teleprompterEnabled, setTeleprompterEnabled] = React.useState(true);
   const fromTeleprompterSettings =
     teleprompterSettings?.teleprompterEnabled ?? true;
@@ -58,6 +59,7 @@ export function CameraRecorder({
         onRecordingStart={onRecordingStart}
         onRecordingStop={onRecordingStop}
         onTeleprompterToggle={setTeleprompterEnabled}
+        onRecordingStateChange={(state) => setIsPaused(state.isPaused)}
       />
 
       {teleprompterVisible && mergedSettings && (
@@ -65,7 +67,7 @@ export function CameraRecorder({
           script={script || null}
           settings={mergedSettings}
           isRecording={Boolean(isRecording)}
-          isPaused={false}
+          isPaused={isPaused}
           scrollSpeed={scrollSpeed}
           backgroundOpacity={backgroundOpacity}
           backgroundColor={teleprompterSettings?.backgroundColor || "#000000"}

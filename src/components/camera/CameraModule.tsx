@@ -8,12 +8,13 @@ import {
 import {
   Camera,
   CameraPosition,
-  CameraProps,
+ 
   VideoFile,
 } from "react-native-vision-camera";
 import { useCamera } from "./hooks/useCamera";
 import { useAdvancedCamera } from "./hooks/useAdvancedCamera";
 import { CameraControls } from "./components/CameraControls";
+import type { RecordingState } from "./types";
 
 interface CameraModuleProps {
   onRecordingComplete?: (video: VideoFile) => void;
@@ -24,6 +25,7 @@ interface CameraModuleProps {
   onRecordingStart?: () => void;
   onRecordingStop?: () => void;
   onTeleprompterToggle?: (enabled: boolean) => void;
+  onRecordingStateChange?: (state: RecordingState) => void;
 }
 
 export const CameraModule: React.FC<CameraModuleProps> = ({
@@ -34,6 +36,7 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
   onRecordingStart,
   onRecordingStop,
   onTeleprompterToggle,
+  onRecordingStateChange,
 }) => {
   const {
     cameraRef,
@@ -74,6 +77,11 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
   useEffect(() => {
     onTeleprompterToggle?.(Boolean(advancedConfig.teleprompterEnabled));
   }, [advancedConfig.teleprompterEnabled, onTeleprompterToggle]);
+
+  // Propager tout changement d'état d'enregistrement (inclut pause/reprise)
+  useEffect(() => {
+    onRecordingStateChange?.(recordingState);
+  }, [recordingState, onRecordingStateChange]);
 
   // Les contrôles sont utilisés directement
   const enhancedControls = controls;

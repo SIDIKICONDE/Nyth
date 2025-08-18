@@ -1,57 +1,26 @@
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import LinearGradient from "react-native-linear-gradient";
-import * as React from "react";
-import { useTranslation } from "react-i18next";
+import React from 'react';
+import { View, StatusBar } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import tw from 'twrnc';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useCentralizedFont } from '@/hooks/useCentralizedFont';
+import { usePreviewData } from './hooks';
 import {
-  Dimensions,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
-  StatusBar,
-  View,
-} from "react-native";
-import Animated, {
-  Extrapolate,
-  FadeIn,
-  FadeInDown,
-  SlideInDown,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-} from "react-native-reanimated";
-import tw from "twrnc";
-import SocialShareModal from "../../components/SocialShareModal";
-import { CustomHeader } from "../../components/common";
-
-import {
+  PreviewHeader,
+  VideoPlayerSection,
   ActionButtons,
   ExportProgressBar,
   LoadingState,
   NotFoundState,
-  VideoPlayerSection,
-} from "./components";
-import { usePreviewState, useExportSettings, usePreviewActions } from "./hooks";
-
-import { UIText } from "../../components/ui/Typography";
-import { useTheme } from "../../contexts/ThemeContext";
-import { useCentralizedFont } from "../../hooks/useCentralizedFont";
-
-import { RootStackParamList } from "../../types";
-
-type PreviewScreenRouteProp = RouteProp<RootStackParamList, "Preview">;
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+} from './components';
+import { VIDEO_QUALITY_COLORS } from './constants';
 
 export default function PreviewScreen() {
-  const route = useRoute<PreviewScreenRouteProp>();
   const navigation = useNavigation();
   const { currentTheme } = useTheme();
-  const { ui } = useCentralizedFont();
-  const aspectRatio = { width: 16, height: 9 };
-  const { t } = useTranslation();
+  useCentralizedFont();
 
-  // État de base
   const {
     recording,
     loading,
@@ -62,38 +31,10 @@ export default function PreviewScreen() {
     previewVideoUri,
     isGeneratingPreview,
     showSocialShare,
-    setRecording,
-    setLoading,
-    setIsExporting,
-    setExportProgress,
-    setCurrentStep,
-    setVideoSize,
-    setPreviewVideoUri,
-    setIsGeneratingPreview,
     setShowSocialShare,
-  } = usePreviewState();
-
-  // Actions
-  const { handleExport, handleShare, handleBasicShare, handleDelete } =
-    usePreviewActions({
-      recording,
-      isExporting,
-      setIsExporting,
-      setExportProgress,
-      setCurrentStep,
-      setShowSocialShare,
-    });
-
-  // Animation values
-  const [hasScrolled, setHasScrolled] = React.useState(false);
-
-  // Style animé pour l'en-tête
-  const headerAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: 1,
-      transform: [{ translateY: 0 }],
-    };
-  });
+    handleExport,
+    handleBasicShare,
+  } = usePreviewData();
 
   // Affichage de l'état de chargement
   if (loading) {
@@ -106,16 +47,22 @@ export default function PreviewScreen() {
   }
 
   // Couleur par défaut pour le gradient
-  const qualityColor = "#3b82f6";
+  const qualityColor = VIDEO_QUALITY_COLORS['1080p'];
+
+  const handleBackPress = () => navigation.goBack();
+  const handleHomePress = () => navigation.navigate('Home' as never);
 
   return (
     <View
-      style={[tw`flex-1`, { backgroundColor: currentTheme.colors.background }]}
+      style={[
+        tw`flex-1`,
+        { backgroundColor: currentTheme.colors.background },
+      ]}
     >
       <StatusBar
         translucent
         backgroundColor="transparent"
-        barStyle={currentTheme.isDark ? "light-content" : "dark-content"}
+        barStyle={currentTheme.isDark ? 'light-content' : 'dark-content'}
       />
 
       {/* Gradient de fond dynamique */}
@@ -124,41 +71,17 @@ export default function PreviewScreen() {
           `${qualityColor}12`,
           `${qualityColor}08`,
           `${qualityColor}04`,
-          "transparent",
+          'transparent',
         ]}
         style={tw`absolute top-0 left-0 right-0 h-60 z-0`}
       />
 
       {/* En-tête avec animation */}
-      <Animated.View
-        style={[headerAnimatedStyle]}
-        entering={FadeIn.duration(400)}
-      >
-        <CustomHeader
-          title={t("preview.title", "Aperçu Vidéo")}
-          subtitle={
-            recording.createdAt
-              ? new Date(recording.createdAt).toLocaleDateString("fr-FR", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })
-              : ""
-          }
-          showBackButton={true}
-          onBackPress={() => navigation.goBack()}
-          actionButtons={[
-            {
-              icon: "🏠",
-              onPress: () => navigation.navigate("Home" as never),
-            },
-            {
-              icon: "🎬",
-              onPress: () => navigation.navigate("Recording" as never),
-            },
-          ]}
-        />
-      </Animated.View>
+      <PreviewHeader
+        recording={recording}
+        onBackPress={handleBackPress}
+        onHomePress={handleHomePress}
+      />
 
       {/* Conteneur principal divisé en deux */}
       <View style={tw`flex-1`}>
@@ -189,22 +112,13 @@ export default function PreviewScreen() {
 
             {/* Boutons d'action */}
             <ActionButtons
-              onBasicShare={handleBasicShare}
               onExport={handleExport}
+              onBasicShare={handleBasicShare}
               isExporting={isExporting}
             />
           </View>
         </View>
       </View>
-
-      {/* Modal de partage social */}
-      <SocialShareModal
-        visible={showSocialShare}
-        onClose={() => setShowSocialShare(false)}
-        videoUri={previewVideoUri || ""}
-        videoTitle={`Vidéo ${recording.id}`}
-        aspectRatio={{ width: 16, height: 9 }}
-      />
     </View>
   );
 }

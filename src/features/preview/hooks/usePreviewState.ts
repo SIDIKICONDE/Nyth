@@ -1,37 +1,48 @@
 import { useState } from 'react';
-import { PreviewState } from '../types/preview.types';
+import { PreviewState } from '../types';
 
-export const usePreviewState = (): PreviewState & {
-  setRecording: (recording: PreviewState['recording']) => void;
-  setLoading: (loading: boolean) => void;
-  setIsExporting: (isExporting: boolean) => void;
-  setExportProgress: (progress: number) => void;
-  setCurrentStep: (step: string) => void;
-  setVideoSize: (size: string) => void;
-  setPreviewVideoUri: (uri: string | null) => void;
-  setIsGeneratingPreview: (generating: boolean) => void;
-  setShowSocialShare: (show: boolean) => void;
-} => {
-  const [recording, setRecording] = useState<PreviewState['recording']>(null);
-  const [loading, setLoading] = useState(true);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState('');
-  const [videoSize, setVideoSize] = useState<string>('Calcul...');
-  const [previewVideoUri, setPreviewVideoUri] = useState<string | null>(null);
-  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
-  const [showSocialShare, setShowSocialShare] = useState(false);
+export function usePreviewState() {
+  const [state, setState] = useState<PreviewState>({
+    recording: null,
+    loading: true,
+    isExporting: false,
+    exportProgress: 0,
+    currentStep: '',
+    videoSize: '',
+    previewVideoUri: null,
+    isGeneratingPreview: false,
+    showSocialShare: false,
+  });
+
+  const setRecording = (recording: PreviewState['recording']) => 
+    setState(prev => ({ ...prev, recording }));
+  
+  const setLoading = (loading: boolean) => 
+    setState(prev => ({ ...prev, loading }));
+  
+  const setIsExporting = (isExporting: boolean) => 
+    setState(prev => ({ ...prev, isExporting }));
+  
+  const setExportProgress = (exportProgress: number) => 
+    setState(prev => ({ ...prev, exportProgress }));
+  
+  const setCurrentStep = (currentStep: string) => 
+    setState(prev => ({ ...prev, currentStep }));
+  
+  const setVideoSize = (videoSize: string) => 
+    setState(prev => ({ ...prev, videoSize }));
+  
+  const setPreviewVideoUri = (previewVideoUri: string | null) => 
+    setState(prev => ({ ...prev, previewVideoUri }));
+  
+  const setIsGeneratingPreview = (isGeneratingPreview: boolean) => 
+    setState(prev => ({ ...prev, isGeneratingPreview }));
+  
+  const setShowSocialShare = (showSocialShare: boolean) => 
+    setState(prev => ({ ...prev, showSocialShare }));
 
   return {
-    recording,
-    loading,
-    isExporting,
-    exportProgress,
-    currentStep,
-    videoSize,
-    previewVideoUri,
-    isGeneratingPreview,
-    showSocialShare,
+    ...state,
     setRecording,
     setLoading,
     setIsExporting,
@@ -42,4 +53,4 @@ export const usePreviewState = (): PreviewState & {
     setIsGeneratingPreview,
     setShowSocialShare,
   };
-}; 
+}

@@ -1,5 +1,5 @@
-import { Recording } from "../../../types";
-import { VideoMetadata } from "../../../utils/videoMetadata";
+import { Recording } from "@/types";
+import { VideoMetadata } from "@/utils/videoMetadata";
 
 export type ExportQuality = "480p" | "720p" | "1080p" | "4K";
 export type ExportFormat = "mp4" | "mov";
@@ -43,24 +43,45 @@ export interface PreviewActions {
   setExportFormat: (format: ExportFormat) => void;
 }
 
-export interface UsePreviewDataReturn {
-  // États de base
-  recording: Recording | null;
-  loading: boolean;
-  isExporting: boolean;
-  exportProgress: number;
-  currentStep: string;
-  videoSize: string;
-  previewVideoUri: string | null;
-  isGeneratingPreview: boolean;
-  showSocialShare: boolean;
-
-  // Setters
+export interface UsePreviewDataReturn extends PreviewState {
   setShowSocialShare: (show: boolean) => void;
-
-  // Actions
   handleExport: () => void;
   handleShare: () => void;
   handleBasicShare: () => void;
   handleDelete: () => void;
+}
+
+export interface VideoPlayerSectionProps {
+  recording: Recording;
+  previewVideoUri: string | null;
+  isGeneratingPreview: boolean;
+  videoSize: string;
+}
+
+export interface ActionButtonsProps {
+  isExporting: boolean;
+  onExport: () => void;
+  onBasicShare: () => void;
+}
+
+export interface ExportProgressBarProps {
+  progress: number;
+  currentStep: string;
+}
+
+export interface PreviewHeaderProps {
+  recording: Recording;
+  onBackPress: () => void;
+  onHomePress: () => void;
+}
+
+export interface SocialShareModalProps {
+  visible: boolean;
+  onClose: () => void;
+  videoUri: string;
+  videoTitle: string;
+  aspectRatio: {
+    width: number;
+    height: number;
+  };
 }

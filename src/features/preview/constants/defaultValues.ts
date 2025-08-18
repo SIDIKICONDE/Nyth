@@ -1,18 +1,18 @@
-import {
-  ExportQuality,
-  ExportFormat,
-  NoiseReductionLevel,
-} from "../types/preview.types";
+export const LOADING_DELAY = 800;
+export const EXPORT_STEPS = [
+  "Analyse de la vidéo",
+  "Optimisation audio",
+  "Compression vidéo",
+  "Finalisation",
+  "Export terminé"
+] as const;
 
-export const DEFAULT_EXPORT_QUALITY: ExportQuality = "1080p";
-export const DEFAULT_EXPORT_FORMAT: ExportFormat = "mp4";
-export const DEFAULT_NOISE_REDUCTION: NoiseReductionLevel = "none";
+export const DEFAULT_EXPORT_QUALITY = "1080p" as const;
+export const DEFAULT_EXPORT_FORMAT = "mp4" as const;
 
-export const LOADING_DELAY = 1000;
-export const EXPORT_PROGRESS_INTERVAL = 200;
-
-export const VIDEO_SIZE_UNITS = {
-  KB: 1024,
-  MB: 1024 * 1024,
-  GB: 1024 * 1024 * 1024,
+export const VIDEO_QUALITY_COLORS = {
+  "480p": "#3b82f6",
+  "720p": "#10b981",
+  "1080p": "#f59e0b",
+  "4K": "#ef4444"
 } as const;

@@ -516,8 +516,15 @@ export default function RecordingScreen({}: RecordingScreenProps) {
                 };
               }
 
-              // Sauvegarder dans AsyncStorage pour que PreviewScreen puisse le récupérer
+              // Sauvegarder dans AsyncStorage AVANT de naviguer pour que PreviewScreen puisse le récupérer
               await RecordingBackupManager.saveRecording(newRecording);
+              logger.info("Enregistrement sauvegardé dans AsyncStorage", {
+                recordingId,
+                videoUri: videoUriWithPrefix,
+              });
+
+              // Attendre un peu pour s'assurer que la sauvegarde est terminée
+              await new Promise(resolve => setTimeout(resolve, 100));
 
               navigation.navigate("Preview", {
                 recordingId,
@@ -560,6 +567,9 @@ export default function RecordingScreen({}: RecordingScreenProps) {
                 logger.info("Enregistrement de secours sauvegardé", {
                   fallbackId,
                 });
+                
+                // Attendre un peu pour s'assurer que la sauvegarde est terminée
+                await new Promise(resolve => setTimeout(resolve, 100));
               } catch (backupError) {
                 logger.error(
                   "Erreur lors de la sauvegarde de secours",

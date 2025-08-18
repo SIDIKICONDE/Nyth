@@ -8,6 +8,7 @@
     "strictNullChecks": false,
     "strictFunctionTypes": false,
     "target": "ES2017",
+    "module": "esnext",
     "lib": ["ES2017", "DOM"],
     "jsx": "react-native",
     "esModuleInterop": true,
@@ -18,7 +19,7 @@
     },
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "moduleResolution": "bundler"
+    "moduleResolution": "node"
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
   "exclude": [

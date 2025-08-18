@@ -14,6 +14,7 @@ import { AnalyticsMigrationManager } from "./src/components/common/AnalyticsMigr
 
 
 import AppNavigator from "./src/navigation/AppNavigator";
+import { MenuProvider } from "react-native-popup-menu";
 
 import {
   createOptimizedLogger,
@@ -107,9 +108,11 @@ export default function App() {
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={styles.container}>
-        <CombinedProviders>
-          <AppContent />
-        </CombinedProviders>
+        <MenuProvider>
+          <CombinedProviders>
+            <AppContent />
+          </CombinedProviders>
+        </MenuProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>
   );
