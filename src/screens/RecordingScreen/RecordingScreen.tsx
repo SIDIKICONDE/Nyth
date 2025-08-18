@@ -152,6 +152,12 @@ export default function RecordingScreen({}: RecordingScreenProps) {
 
   // Paramètres de l'écran
   const { scriptId, settings: routeSettings } = route.params;
+  
+  // Utiliser useRef pour les paramètres de route afin d'éviter les rechargements
+  const routeSettingsRef = useRef(routeSettings);
+  useEffect(() => {
+    routeSettingsRef.current = routeSettings;
+  }, [routeSettings]);
 
   // État local
   const [script, setScript] = useState<Script | null>(null);
@@ -203,7 +209,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
       setScript(foundScript);
 
       // Charger les paramètres
-      let recordingSettings = routeSettings;
+      let recordingSettings = routeSettingsRef.current;
       if (!recordingSettings) {
         try {
           const savedSettings = await AsyncStorage.getItem("recordingSettings");
@@ -280,13 +286,15 @@ export default function RecordingScreen({}: RecordingScreenProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [scriptId, routeSettings, scripts, captureError, t, navigation]);
+  }, [scriptId, scripts, captureError, t, navigation]); // Retiré routeSettings des dépendances
 
 
 
+  // Charger les données uniquement au montage initial
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Pas de dépendances pour éviter le rechargement
 
   // Charger les réglages de téléprompteur persistés
   useEffect(() => {
