@@ -9,6 +9,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import tw from 'twrnc';
 import { useTheme } from '../../contexts/ThemeContext';
+import { getMaxContainerWidth, responsiveSpacing, isTablet } from '../../utils/responsive';
 
 interface AuthContainerProps {
   children: React.ReactNode;
@@ -21,6 +22,10 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
 }) => {
   const { currentTheme } = useTheme();
   const isDark = currentTheme.isDark;
+  const maxWidth = getMaxContainerWidth();
+  const horizontalPadding = responsiveSpacing(24);
+  const verticalPadding = responsiveSpacing(32);
+  const isTabletDevice = isTablet();
 
   return (
     <View style={tw`flex-1`}>
@@ -48,11 +53,29 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
         >
           <ScrollView
             style={tw`flex-1`}
-            contentContainerStyle={tw`flex-grow justify-center px-6 py-8`}
+            contentContainerStyle={[
+              tw`flex-grow`,
+              {
+                paddingHorizontal: horizontalPadding,
+                paddingVertical: verticalPadding,
+                alignItems: 'center',
+              }
+            ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {children}
+            <View 
+              style={[
+                tw`w-full`,
+                { 
+                  maxWidth: maxWidth,
+                  justifyContent: isTabletDevice ? 'flex-start' : 'center',
+                  flex: 1,
+                }
+              ]}
+            >
+              {children}
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>

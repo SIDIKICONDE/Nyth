@@ -205,6 +205,32 @@ export const SubscriptionSection: React.FC = () => {
           </UIText>
         </TouchableOpacity>
 
+        {/* Bouton pour accéder directement à la gestion des abonnements */}
+        {!isSubscriptionLocked && (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("SubscriptionManagement")}
+            style={[
+              tw`mt-3 py-2 px-4 rounded-lg border items-center flex-row justify-center`,
+              { 
+                borderColor: currentTheme.colors.border,
+                backgroundColor: "transparent"
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="cog"
+              size={18}
+              color={currentTheme.colors.primary}
+            />
+            <UIText
+              weight="medium"
+              style={[tw`ml-2`, { color: currentTheme.colors.primary }]}
+            >
+              {t("settings.subscription.manageSubscription", "Gérer l'abonnement")}
+            </UIText>
+          </TouchableOpacity>
+        )}
+
         {!isSubscriptionLocked && subscription?.status === "trial" && (
           <View
             style={[

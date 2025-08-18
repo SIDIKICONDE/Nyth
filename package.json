@@ -8,6 +8,13 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
+    "clean": "./scripts/clean-cache.sh --all",
+    "clean:quick": "./scripts/quick-clean.sh",
+    "clean:ios": "./scripts/clean-cache.sh --ios",
+    "clean:android": "./scripts/clean-cache.sh --android",
+    "clean:metro": "./scripts/clean-cache.sh --metro",
+    "clean:npm": "./scripts/clean-cache.sh --npm",
+    "cache:status": "./scripts/cache-status.sh",
     "build:ipa": "chmod +x scripts/build-ipa.sh && ./scripts/build-ipa.sh",
     "build:ipa:debug": "chmod +x scripts/build-ipa.sh && ./scripts/build-ipa.sh Debug",
     "build:ipa:release": "chmod +x scripts/build-ipa.sh && ./scripts/build-ipa.sh Release"

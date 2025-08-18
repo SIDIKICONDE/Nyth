@@ -34,7 +34,7 @@ interface SubscriptionContextType {
   // Actions
   checkUsageLimit: () => boolean;
   incrementUsage: () => Promise<void>;
-  upgradePlan: (planId: string) => Promise<boolean>;
+  upgradePlan: (planId: string, isYearly: boolean) => Promise<boolean>;
   cancelSubscription: () => Promise<boolean>;
   restoreSubscription: () => Promise<boolean>;
 
@@ -245,7 +245,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
     }
   };
 
-  const upgradePlan = async (planId: string): Promise<boolean> => {
+  const upgradePlan = async (planId: string, isYearlyPlan: boolean): Promise<boolean> => {
     try {
       setIsLoading(true);
       
@@ -284,14 +284,13 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
         return false;
       }
 
-      // Mapper le planId vers l'identifiant du package RevenueCat
-      const packageMapping: { [key: string]: string } = {
-        starter: "starter_monthly",
-        pro: "pro_monthly", 
-        enterprise: "enterprise_monthly"
-      };
+      // Importer la configuration RevenueCat
+      const { PLAN_TO_PRODUCT_MAP } = await import('../config/revenuecat');
+      
+      // Construire la clé du produit basée sur le plan et la période
+      const productKey = `${planId}_${isYearlyPlan ? 'yearly' : 'monthly'}`;
+      const packageIdentifier = PLAN_TO_PRODUCT_MAP[productKey];
 
-      const packageIdentifier = packageMapping[planId];
       if (!packageIdentifier) {
         logger.error("Plan non reconnu:", planId);
         return false;

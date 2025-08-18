@@ -4,7 +4,6 @@ import {
   StyleSheet,
   Text,
   ActivityIndicator,
-  Dimensions,
 } from "react-native";
 import { Camera, CameraPosition, VideoFile } from "react-native-vision-camera";
 import { useCamera } from "./hooks/useCamera";
@@ -22,11 +21,8 @@ interface CameraModuleProps {
   onTeleprompterToggle?: (enabled: boolean) => void;
 }
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-
 export const CameraModule: React.FC<CameraModuleProps> = ({
   onRecordingComplete,
-  onError,
   initialPosition = "back",
   showControls = true,
   onSettingsPress,
@@ -40,9 +36,6 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
     position,
     isFlashOn,
     recordingState,
-    hasCameraPermission,
-    hasMicrophonePermission,
-    requestPermissions,
     controls,
   } = useCamera(initialPosition);
 
@@ -80,9 +73,7 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
   // Les contrôles sont utilisés directement
   const enhancedControls = controls;
 
-  const shouldShowCamera = Boolean(
-    device && hasCameraPermission && hasMicrophonePermission
-  );
+  const shouldShowCamera = Boolean(device);
 
   return (
     <View style={styles.container}>
@@ -100,16 +91,8 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
         />
       ) : (
         <View style={styles.container}>
-          {!hasCameraPermission || !hasMicrophonePermission ? (
-            <Text style={styles.permissionText}>
-              Veuillez autoriser l'accès à la caméra et au microphone
-            </Text>
-          ) : (
-            <>
-              <ActivityIndicator size="large" color="#FFFFFF" />
-              <Text style={styles.loadingText}>Chargement de la caméra...</Text>
-            </>
-          )}
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={styles.loadingText}>Chargement de la caméra...</Text>
         </View>
       )}
 

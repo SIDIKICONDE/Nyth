@@ -22,7 +22,7 @@ import { TeleprompterSettingsModal } from "@/components/recording/teleprompter/T
 import { useTheme } from "@/contexts/ThemeContext";
 import { useScripts } from "@/contexts/ScriptsContext";
 import { useTranslation } from "@/hooks/useTranslation";
-import { useSimplePermissions } from "@/hooks/useSimplePermissions";
+import { Camera } from "react-native-vision-camera";
 import { RootStackParamList, RecordingSettings, Script } from "@/types";
 import { TeleprompterSettings } from "@/components/recording/teleprompter/types";
 import { VideoCodec, VideoQuality, VideoStabilization } from "@/types/video";
@@ -55,8 +55,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
   const { currentTheme } = useTheme();
   const { scripts } = useScripts();
   const { t } = useTranslation();
-  const { permissions, requestPermissions, needsPermission, openSettings } =
-    useSimplePermissions();
+
   const { preferences: globalPreferences, updateTeleprompterSettings } =
     useGlobalPreferences();
 
@@ -190,28 +189,11 @@ export default function RecordingScreen({}: RecordingScreenProps) {
       setIsLoading(true);
       logger.info("Chargement des données d'enregistrement", { scriptId });
 
-      // Vérifier les permissions avant de continuer
-      logger.info("Vérification des permissions caméra/micro");
-      if (!permissions.isReady) {
-        const granted = await requestPermissions();
-        if (!granted) {
-          Alert.alert(
-            t("permissions.denied.title", "Permission Requise"),
-            t(
-              "permissions.denied.message",
-              "Activez la caméra et le micro dans les réglages."
-            ),
-            [
-              { text: t("common.cancel", "Annuler"), style: "cancel" },
-              {
-                text: t("permissions.denied.settings", "Paramètres"),
-                onPress: openSettings,
-              },
-            ]
-          );
-          return;
-        }
-      }
+      // Vérifier les permissions natives une seule fois au chargement
+      const cameraPermission = await Camera.getCameraPermissionStatus();
+      const microphonePermission = await Camera.getMicrophonePermissionStatus();
+      
+      logger.info("Statut des permissions", { cameraPermission, microphonePermission });
 
       // Charger le script
       const foundScript = scripts.find((s) => s.id === scriptId);
@@ -300,9 +282,11 @@ export default function RecordingScreen({}: RecordingScreenProps) {
     }
   }, [scriptId, routeSettings, scripts, captureError, t, navigation]);
 
+
+
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Charger les réglages de téléprompteur persistés
   useEffect(() => {
@@ -456,7 +440,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
             "recording.loading.data",
             "Chargement du script et des paramètres..."
           )}
-          showPermissionStatus={!permissions.isReady}
+          showPermissionStatus={false}
         />
       </>
     );

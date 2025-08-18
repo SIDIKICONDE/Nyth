@@ -474,6 +474,7 @@
       "locked": "Locked",
       "maintenanceMode": "Feature under maintenance.",
       "managePlan": "Manage my plan",
+      "manageSubscription": "Manage subscription",
       "managedMode": "Managed mode - API keys provided",
       "ownKeysMode": "You are using your own API keys",
       "sectionLocked": "Section locked",

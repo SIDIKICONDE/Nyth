@@ -81,7 +81,7 @@ export default function HomeFAB({
         }),
       ]).start();
     }
-  }, [isOpen]);
+  }, [isOpen, fadeAnim, rotateAnim, scaleAnim]);
 
   const rotation = rotateAnim.interpolate({
     inputRange: [0, 1],

@@ -9,6 +9,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import tw from 'twrnc';
 import { useTheme } from '../../contexts/ThemeContext';
 import { SocialAuthProvider } from '../../screens/auth/types';
+import { responsiveFontSize, responsiveSpacing, isTablet } from '../../utils/responsive';
 
 interface SocialAuthButtonsProps {
   onSocialLogin: (provider: SocialAuthProvider['id']) => void;
@@ -36,35 +37,61 @@ export const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({
 }) => {
   const { currentTheme } = useTheme();
   const isDark = currentTheme.isDark;
+  const isTabletDevice = isTablet();
+  
+  // Responsive values
+  const fontSize = responsiveFontSize(14);
+  const iconSize = responsiveFontSize(24);
+  const buttonSize = responsiveSpacing(56);
+  const gap = responsiveSpacing(16);
+  const marginTop = responsiveSpacing(24);
+  const marginBottom = responsiveSpacing(16);
 
   return (
-    <View style={tw`mt-6`}>
-      <View style={tw`flex-row items-center mb-4`}>
+    <View style={[tw`mt-6`, { marginTop }]}>
+      <View style={[tw`flex-row items-center mb-4`, { marginBottom }]}>
         <View style={[tw`flex-1 h-px`, { backgroundColor: isDark ? '#404040' : '#e5e7eb' }]} />
-        <Text style={[tw`mx-4 text-sm`, { color: isDark ? '#8a8a8a' : '#6b7280' }]}>
+        <Text style={[
+          tw`mx-4`,
+          { 
+            color: isDark ? '#8a8a8a' : '#6b7280',
+            fontSize,
+            marginHorizontal: responsiveSpacing(16),
+          }
+        ]}>
           Ou continuer avec
         </Text>
         <View style={[tw`flex-1 h-px`, { backgroundColor: isDark ? '#404040' : '#e5e7eb' }]} />
       </View>
 
-      <View style={tw`flex-row justify-center gap-4`}>
+      <View style={[
+        tw`justify-center`,
+        {
+          flexDirection: isTabletDevice ? 'row' : 'row',
+          gap,
+          alignItems: 'center',
+        }
+      ]}>
         {socialProviders.map((provider) => (
           <TouchableOpacity
             key={provider.id}
             onPress={() => onSocialLogin(provider.id)}
             disabled={isLoading}
             style={[
-              tw`w-14 h-14 rounded-full items-center justify-center border-2`,
+              tw`rounded-full items-center justify-center border-2`,
               {
+                width: buttonSize,
+                height: buttonSize,
                 backgroundColor: isDark ? '#2a2a2a' : '#ffffff',
                 borderColor: isDark ? '#404040' : '#e5e7eb',
                 opacity: isLoading ? 0.6 : 1,
               },
             ]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <MaterialCommunityIcons
               name={provider.icon}
-              size={24}
+              size={iconSize}
               color={isDark && provider.id === 'apple' ? '#ffffff' : provider.color}
             />
           </TouchableOpacity>

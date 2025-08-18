@@ -3426,63 +3426,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-slider (4.5.7):
-    - boost
-    - DoubleConversion
-    - fast_float
-    - fmt
-    - glog
-    - hermes-engine
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - react-native-slider/common (= 4.5.7)
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - SocketRocket
-    - Yoga
-  - react-native-slider/common (4.5.7):
-    - boost
-    - DoubleConversion
-    - fast_float
-    - fmt
-    - glog
-    - hermes-engine
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - SocketRocket
-    - Yoga
   - react-native-video (6.16.1):
     - boost
     - DoubleConversion
@@ -4344,7 +4287,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNPurchases (9.2.1):
+  - RNPurchases (9.2.2):
     - PurchasesHybridCommon (= 16.2.2)
     - React-Core
   - RNReactNativeHapticFeedback (2.3.3):
@@ -4799,7 +4742,6 @@ DEPENDENCIES:
   - "react-native-image-resizer (from `../node_modules/@bam.tech/react-native-image-resizer`)"
   - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
-  - "react-native-slider (from `../node_modules/@react-native-community/slider`)"
   - react-native-video (from `../node_modules/react-native-video`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-oscompat (from `../node_modules/react-native/ReactCommon/oscompat`)
@@ -5006,8 +4948,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-community/netinfo"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
-  react-native-slider:
-    :path: "../node_modules/@react-native-community/slider"
   react-native-video:
     :path: "../node_modules/react-native-video"
   React-NativeModulesApple:
@@ -5219,7 +5159,6 @@ SPEC CHECKSUMS:
   react-native-image-resizer: aec26f99d33422a3955a6fba6158832499548081
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
   react-native-safe-area-context: 0ef3fd18fd5822fa1a58516b3f11a7927f91376e
-  react-native-slider: 283b3a0db73e960d51d6c508f3b7a930eafc03eb
   react-native-video: d4812a9167b86d58a02fc621a21b926f51533e0d
   React-NativeModulesApple: 9c2ece8c6e423b2a13c9c50d2ed25953379cbe4e
   React-oscompat: 34f3d3c06cadcbc470bc4509c717fb9b919eaa8b
@@ -5274,7 +5213,7 @@ SPEC CHECKSUMS:
   RNLocalize: 8683824ede3ed5e58def7e7b8c45ee410c0ce739
   RNNotifee: 5e3b271e8ea7456a36eec994085543c9adca9168
   RNPermissions: 1cf24e72ad0683cb563f36eff1ac6a89e14b7b47
-  RNPurchases: 33bdc49d948800d4a3593f2f7ca8d8baf5ff7c63
+  RNPurchases: 7993b33416e67d5863140b5c62c682b34719f475
   RNReactNativeHapticFeedback: 4056c51a167a9d1e8dcfec2069e2ddd66da5af06
   RNReanimated: f75fdae5d6b8d975164d8b25ba9bc49277c6e039
   RNScreens: b2b0f7202446a9ccb7fbf7acdf33fa9612998097

@@ -86,6 +86,34 @@ You've successfully run and modified your React Native App. :partying_face:
 
 If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
 
+## 🧹 Cache Cleaning
+
+If you encounter build issues, cache problems, or dependency conflicts, you can clean the project cache:
+
+### Quick Clean (Recommended first step)
+```sh
+npm run clean:quick
+```
+
+### Full Clean (Removes all dependencies and reinstalls)
+```sh
+npm run clean
+```
+
+### Platform-specific cleaning
+```sh
+# iOS only
+npm run clean:ios
+
+# Android only
+npm run clean:android
+
+# Metro only
+npm run clean:metro
+```
+
+For more detailed information about cache cleaning, see [CACHE_CLEANING.md](docs/CACHE_CLEANING.md).
+
 # Learn More
 
 To learn more about React Native, take a look at the following resources:

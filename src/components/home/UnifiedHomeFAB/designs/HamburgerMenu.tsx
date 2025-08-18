@@ -1,12 +1,12 @@
-import React, { useCallback, useRef, useEffect, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   View,
   TouchableOpacity,
   Animated,
-  Dimensions,
   StyleSheet,
   Platform,
-  StatusBar,
+  StyleProp,
+  ViewStyle,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import LinearGradient from "react-native-linear-gradient";
@@ -38,9 +38,6 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ actions }) => {
   const line2Opacity = useRef(new Animated.Value(1)).current;
   const line3Rotate = useRef(new Animated.Value(0)).current;
   const line3TranslateY = useRef(new Animated.Value(0)).current;
-
-  const screenHeight = Dimensions.get("window").height;
-  const screenWidth = Dimensions.get("window").width;
 
   const toggleMenu = useCallback(() => {
     const toValue = isMenuOpen ? 0 : 1;
@@ -135,7 +132,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ actions }) => {
     line3TranslateY,
   ]);
 
-  const menuItemStyle = (index: number) => {
+  const menuItemStyle = (index: number): StyleProp<ViewStyle> => {
     const translateY = menuAnimation.interpolate({
       inputRange: [0, 1],
       outputRange: [0, -65 * (actions.length - index - 1) - 18],
@@ -153,11 +150,11 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ actions }) => {
 
     const rotate = menuAnimation.interpolate({
       inputRange: [0, 1],
-      outputRange: [180, 0],
+      outputRange: ["180deg", "0deg"],
     });
 
     return {
-      transform: [{ translateY }, { scale }, { rotate: `${rotate}deg` }],
+      transform: [{ translateY }, { scale }, { rotate }],
       opacity,
     };
   };
@@ -189,7 +186,15 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ actions }) => {
   });
 
   return (
-    <>
+    <View
+      style={[
+        StyleSheet.absoluteFillObject,
+        {
+          zIndex: 1000,
+          pointerEvents: isMenuOpen ? "auto" : "box-none",
+        },
+      ]}
+    >
       {/* Overlay avec blur */}
       {isMenuOpen && (
         <Animated.View
@@ -219,7 +224,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ actions }) => {
                   {
                     backgroundColor: currentTheme.isDark
                       ? "rgba(0, 0, 0, 0.6)"
-                      : "rgba(255, 255, 255, 0.8)",
+                      : "rgba(0, 0, 0, 0.4)",
                   },
                 ]}
               />
@@ -233,12 +238,14 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ actions }) => {
         style={{
           position: "absolute",
           bottom: 95,
-          alignSelf: "center",
+          left: 0,
+          right: 0,
           alignItems: "center",
           zIndex: 1000,
+          pointerEvents: isMenuOpen ? "auto" : "none",
         }}
       >
-        {actions.reverse().map((action, index) => (
+        {[...actions].reverse().map((action, index) => (
           <Animated.View
             key={action.id}
             style={[
@@ -314,8 +321,13 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ actions }) => {
       {/* Menu Button */}
       <View
         style={{
-          alignSelf: "center",
+          position: "absolute",
+          bottom: 20,
+          left: 0,
+          right: 0,
+          alignItems: "center",
           zIndex: 1001,
+          pointerEvents: "auto",
         }}
       >
         <Animated.View
@@ -389,7 +401,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ actions }) => {
           </TouchableOpacity>
         </Animated.View>
       </View>
-    </>
+    </View>
   );
 };
 

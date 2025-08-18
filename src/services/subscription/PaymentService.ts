@@ -6,16 +6,17 @@ import Purchases, {
 import { createLogger } from "../../utils/optimizedLogger";
 import {
   PaymentResult,
-  SubscriptionPlan,
   UserSubscription,
   PaymentProvider,
 } from "../../types/subscription";
 import { StripeService } from "../payment/StripeService";
+import { REVENUECAT_API_KEYS, REVENUECAT_CONFIG } from '../../config/revenuecat';
+import { FirebaseFunctionsFallbackService } from "../firebaseFunctionsFallback";
 
 const logger = createLogger("PaymentService");
 
 // Interface pour RevenueCat
-type RevenueCatOffering = PurchasesOfferings["current"] extends infer _T
+type RevenueCatOffering = PurchasesOfferings["current"] extends infer _
   ? {
       identifier: string;
       serverDescription: string;
@@ -57,21 +58,31 @@ export class PaymentService {
       if (this.isInitialized) return;
 
       const apiKey = Platform.select({
-        ios: process.env.REVENUECAT_IOS_API_KEY,
-        android: process.env.REVENUECAT_ANDROID_API_KEY,
+        ios: REVENUECAT_API_KEYS.ios,
+        android: REVENUECAT_API_KEYS.android,
       });
 
-      if (!apiKey) {
-        throw new Error("RevenueCat API key not found");
+      if (!apiKey || apiKey.includes('YOUR_')) {
+        logger.warn("RevenueCat API key not configured. Payments will not work.");
+        // Ne pas lancer d'erreur pour permettre à l'app de fonctionner sans paiements
+        return;
       }
 
-      await Purchases.configure({ apiKey: apiKey as string });
+      await Purchases.configure({
+        apiKey: apiKey as string,
+        appUserID: REVENUECAT_CONFIG.appUserID || undefined,
+      });
+
+      // Activer le mode debug en développement
+      if (REVENUECAT_CONFIG.useDebugMode) {
+        Purchases.setDebugLogsEnabled(true);
+      }
 
       this.isInitialized = true;
-      logger.info("PaymentService initialized successfully");
+      logger.info("✅ PaymentService (RevenueCat) initialized successfully");
     } catch (error) {
       logger.error("Failed to initialize PaymentService:", error);
-      throw error;
+      // Ne pas lancer d'erreur pour permettre à l'app de fonctionner
     }
   }
 
@@ -81,6 +92,8 @@ export class PaymentService {
   static async getAvailableOfferings(): Promise<RevenueCatOffering[]> {
     try {
       await this.initialize();
+      if (!this.isInitialized) return []; // Retourner un tableau vide si non initialisé
+
       const offerings = await Purchases.getOfferings();
       const current = offerings.current;
       if (!current) return [];
@@ -168,6 +181,12 @@ export class PaymentService {
   ): Promise<PaymentResult> {
     try {
       await this.initialize();
+      if (!this.isInitialized) {
+        return {
+          success: false,
+          error: "Payment service not initialized.",
+        };
+      }
 
       // Validation côté client
       if (!packageIdentifier || !userId) {
@@ -228,6 +247,12 @@ export class PaymentService {
   static async restorePurchases(userId: string): Promise<PaymentResult> {
     try {
       await this.initialize();
+      if (!this.isInitialized) {
+        return {
+          success: false,
+          error: "Payment service not initialized.",
+        };
+      }
 
       logger.info("Restoring purchases for user:", userId);
       const restoreResult: any = await Purchases.restorePurchases();
@@ -387,9 +412,6 @@ export class PaymentService {
     subscription: UserSubscription
   ): Promise<void> {
     try {
-      const { FirebaseFunctionsFallbackService } = await import(
-        "../firebaseFunctionsFallback"
-      );
       const result = await FirebaseFunctionsFallbackService.callFunction(
         "saveSubscription",
         { userId, subscription }
@@ -411,9 +433,6 @@ export class PaymentService {
     userId: string
   ): Promise<UserSubscription | null> {
     try {
-      const { FirebaseFunctionsFallbackService } = await import(
-        "../firebaseFunctionsFallback"
-      );
       const result =
         await FirebaseFunctionsFallbackService.callFunction<UserSubscription | null>(
           "getSubscription",
@@ -435,9 +454,6 @@ export class PaymentService {
     userId: string
   ): Promise<void> {
     try {
-      const { FirebaseFunctionsFallbackService } = await import(
-        "../firebaseFunctionsFallback"
-      );
       const result = await FirebaseFunctionsFallbackService.callFunction(
         "cancelSubscription",
         { userId }

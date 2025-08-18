@@ -40,7 +40,7 @@ export default function ProfileScreen() {
     isLoading: isLoadingPrefs,
   } = useProfilePreferencesSync();
   const [isRefreshing, setIsRefreshing] = useState(false);
-
+  
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await refreshProfile();
@@ -81,7 +81,11 @@ export default function ProfileScreen() {
       <ScrollView
         style={tw`flex-1`}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={tw`pb-24`}
+        contentContainerStyle={[
+          {
+            paddingBottom: 96,
+          }
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}

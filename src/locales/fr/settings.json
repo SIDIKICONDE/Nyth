@@ -474,6 +474,7 @@
       "locked": "Verrouillé",
       "maintenanceMode": "Fonctionnalité en cours de maintenance.",
       "managePlan": "Gérer mon plan",
+      "manageSubscription": "Gérer l'abonnement",
       "managedMode": "Mode managé - Clés API fournies",
       "ownKeysMode": "Vous utilisez vos propres clés API",
       "sectionLocked": "Section verrouillée",

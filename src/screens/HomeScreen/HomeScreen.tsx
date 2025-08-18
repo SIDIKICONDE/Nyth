@@ -1,5 +1,4 @@
 import {
-  SimpleHomeTabMenu,
   UnifiedHomeFAB,
   useHomeData,
 } from "@/components/home";
@@ -16,7 +15,6 @@ import Clipboard from "@react-native-clipboard/clipboard";
 import React from "react";
 import { Alert, Share, View } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import tw from "twrnc";
 import { useNavigation } from "@react-navigation/native";
 

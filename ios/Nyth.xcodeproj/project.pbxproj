@@ -23,6 +23,7 @@
 		43AFF0FBAE6378C4759709ED /* Pods-Nyth.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nyth.debug.xcconfig"; path = "Target Support Files/Pods-Nyth/Pods-Nyth.debug.xcconfig"; sourceTree = "<group>"; };
 		5C1BB482126F685642D298BD /* Pods-Nyth.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nyth.release.xcconfig"; path = "Target Support Files/Pods-Nyth/Pods-Nyth.release.xcconfig"; sourceTree = "<group>"; };
 		6F14BDEF2E532A4800771E9B /* NythRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = NythRelease.entitlements; path = Nyth/NythRelease.entitlements; sourceTree = "<group>"; };
+		6F14BDF02E532A4800771E9C /* Nyth.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = Nyth.entitlements; path = Nyth/Nyth.entitlements; sourceTree = "<group>"; };
 		6F14BDF22E53346F00771E9B /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		7109FE2993414209DDFB9998 /* Pods_Nyth.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Nyth.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Nyth/AppDelegate.swift; sourceTree = "<group>"; };
@@ -46,6 +47,7 @@
 			isa = PBXGroup;
 			children = (
 				6F14BDEF2E532A4800771E9B /* NythRelease.entitlements */,
+				6F14BDF02E532A4800771E9C /* Nyth.entitlements */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
@@ -279,6 +281,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Nyth/Nyth.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8GNN55S9HG;
 				ENABLE_BITCODE = NO;

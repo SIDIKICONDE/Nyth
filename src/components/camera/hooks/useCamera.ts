@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Alert } from "react-native";
 import {
   Camera,
   useCameraDevice,
   useCameraPermission,
   useMicrophonePermission,
   VideoFile,
-  PhotoFile,
   CameraPosition,
 } from "react-native-vision-camera";
-import { CameraConfig, RecordingState, CameraControls } from "../types";
+import { RecordingState, CameraControls } from "../types";
 
 export const useCamera = (initialPosition: CameraPosition = "back") => {
   const [position, setPosition] = useState<CameraPosition>(initialPosition);
@@ -18,18 +18,12 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
     isPaused: false,
     duration: 0,
   });
-
   const cameraRef = useRef<Camera>(null);
   const device = useCameraDevice(position);
 
-  const {
-    hasPermission: hasCameraPermission,
-    requestPermission: requestCameraPermission,
-  } = useCameraPermission();
-  const {
-    hasPermission: hasMicrophonePermission,
-    requestPermission: requestMicrophonePermission,
-  } = useMicrophonePermission();
+  // Utilisation des hooks natifs de react-native-vision-camera
+  const { hasPermission: hasCameraPermission, requestPermission: requestCameraPermission } = useCameraPermission();
+  const { hasPermission: hasMicrophonePermission, requestPermission: requestMicrophonePermission } = useMicrophonePermission();
 
   // Timer pour la durée d'enregistrement
   const recordingTimer = useRef<NodeJS.Timeout | null>(null);
@@ -51,6 +45,18 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
   const startRecording = useCallback(async () => {
     if (!cameraRef.current || recordingState.isRecording) return;
 
+    // Vérifier les permissions avant l'enregistrement
+    if (!hasCameraPermission || !hasMicrophonePermission) {
+      const granted = await requestPermissions();
+      if (!granted) {
+        Alert.alert(
+          "Permissions requises",
+          "L'accès à la caméra et au microphone est nécessaire pour enregistrer."
+        );
+        return;
+      }
+    }
+
     try {
       await cameraRef.current.startRecording({
         onRecordingFinished: (video: VideoFile) => {
@@ -64,7 +70,7 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
             clearInterval(recordingTimer.current);
           }
         },
-        onRecordingError: (error) => {
+        onRecordingError: (_error) => {
           setRecordingState((prev) => ({
             ...prev,
             isRecording: false,
@@ -90,7 +96,7 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
         }));
       }, 1000);
     } catch (error) {}
-  }, [recordingState.isRecording]);
+  }, [hasCameraPermission, hasMicrophonePermission, requestPermissions, recordingState.isRecording]);
 
   const stopRecording = useCallback(async () => {
     if (!cameraRef.current || !recordingState.isRecording) return;
@@ -165,6 +171,7 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
     position,
     isFlashOn,
     recordingState,
+    // Permissions natives via react-native-vision-camera
     hasCameraPermission,
     hasMicrophonePermission,
     requestPermissions,

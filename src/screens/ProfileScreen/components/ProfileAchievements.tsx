@@ -1,5 +1,4 @@
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import LinearGradient from "react-native-linear-gradient";
 import React from "react";
 import { ScrollView, TouchableOpacity, View } from "react-native";
 import tw from "twrnc";
@@ -8,13 +7,11 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useAchievements } from "../../../hooks/useAchievements";
 import { useTranslation } from "../../../hooks/useTranslation";
-import { useContrastOptimization } from "../../../hooks/useContrastOptimization";
 import { Achievement } from "../../../types/achievements";
 
 export default function ProfileAchievements() {
   const { currentTheme } = useTheme();
   const { t } = useTranslation();
-  const { getOptimizedButtonColors } = useContrastOptimization();
   const { achievements, userLevel, totalXP, getAchievementStats } =
     useAchievements();
   const { user } = useAuth();
@@ -66,17 +63,17 @@ export default function ProfileAchievements() {
           {/* Icône du badge */}
           <View
             style={[
-              tw`w-12 h-12 rounded-full items-center justify-center mr-3`,
+              tw`w-10 h-10 rounded-lg items-center justify-center mr-3`,
               {
                 backgroundColor: achievement.isUnlocked
-                  ? getRarityColor(achievement.rarity) + "20"
-                  : currentTheme.colors.border + "20",
+                  ? getRarityColor(achievement.rarity) + "15"
+                  : currentTheme.colors.border + "15",
               },
             ]}
           >
             <MaterialCommunityIcons
               name={achievement.icon as any}
-              size={24}
+              size={20}
               color={
                 achievement.isUnlocked
                   ? getRarityColor(achievement.rarity)
@@ -89,7 +86,7 @@ export default function ProfileAchievements() {
           <View style={tw`flex-1`}>
             <View style={tw`flex-row items-center`}>
               <UIText
-                size="base"
+                size="sm"
                 weight="semibold"
                 color={
                   achievement.isUnlocked
@@ -102,7 +99,7 @@ export default function ProfileAchievements() {
               {achievement.isUnlocked && (
                 <MaterialCommunityIcons
                   name="check-circle"
-                  size={16}
+                  size={14}
                   color={getRarityColor(achievement.rarity)}
                   style={tw`ml-2`}
                 />
@@ -154,7 +151,7 @@ export default function ProfileAchievements() {
   };
 
   return (
-    <View style={tw`pb-8`}>
+    <View style={tw`pb-6`}>
       {/* Titre avec ligne */}
       <View style={tw`flex-row items-center mb-4`}>
         <H4 style={{ color: currentTheme.colors.text }}>
@@ -168,41 +165,40 @@ export default function ProfileAchievements() {
         />
       </View>
 
-      {/* Header avec niveau et XP */}
-      <LinearGradient
-        colors={
-          currentTheme.isDark
-            ? ["#8b5cf6", "#a855f7"] // Dégradé violet pour thèmes sombres
-            : [currentTheme.colors.primary, currentTheme.colors.secondary]
-        }
-        style={tw`p-4 rounded-xl mb-4`}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      {/* Header avec niveau et XP - Style simplifié */}
+      <View
+        style={[
+          tw`p-4 rounded-xl mb-4`,
+          {
+            backgroundColor: currentTheme.colors.surface,
+            borderWidth: 1,
+            borderColor: currentTheme.colors.border,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 2,
+            elevation: 1,
+          },
+        ]}
       >
         <View style={tw`flex-row items-center justify-between`}>
           <View>
             <UIText
               size="xs"
-              style={[
-                tw`opacity-90`,
-                { color: currentTheme.isDark ? "#f8fafc" : "white" },
-              ]}
+              style={{ color: currentTheme.colors.textSecondary }}
             >
               {t("profile.achievements.level", "NIVEAU")}
             </UIText>
             <HeadingText
               size="2xl"
               weight="bold"
-              style={{ color: currentTheme.isDark ? "#ffffff" : "white" }}
+              style={{ color: currentTheme.colors.primary }}
             >
               {userLevel.level}
             </HeadingText>
             <UIText
               size="sm"
-              style={[
-                tw`opacity-90`,
-                { color: currentTheme.isDark ? "#e2e8f0" : "white" },
-              ]}
+              style={{ color: currentTheme.colors.textSecondary }}
             >
               {userLevel.title}
             </UIText>
@@ -211,17 +207,14 @@ export default function ProfileAchievements() {
           <View style={tw`items-end`}>
             <UIText
               size="xs"
-              style={[
-                tw`opacity-90`,
-                { color: currentTheme.isDark ? "#f8fafc" : "white" },
-              ]}
+              style={{ color: currentTheme.colors.textSecondary }}
             >
               {t("profile.achievements.experience", "EXPÉRIENCE")}
             </UIText>
             <HeadingText
               size="xl"
               weight="bold"
-              style={{ color: currentTheme.isDark ? "#ffffff" : "white" }}
+              style={{ color: currentTheme.colors.secondary }}
             >
               {totalXP} XP
             </HeadingText>
@@ -229,7 +222,7 @@ export default function ProfileAchievements() {
               <View
                 style={[
                   tw`h-1 w-20 rounded-full overflow-hidden`,
-                  { backgroundColor: "rgba(255,255,255,0.3)" },
+                  { backgroundColor: currentTheme.colors.border },
                 ]}
               >
                 <View
@@ -239,7 +232,7 @@ export default function ProfileAchievements() {
                       width: `${
                         (userLevel.currentXP / userLevel.requiredXP) * 100
                       }%`,
-                      backgroundColor: "white",
+                      backgroundColor: currentTheme.colors.primary,
                     },
                   ]}
                 />
@@ -247,8 +240,8 @@ export default function ProfileAchievements() {
               <UIText
                 size="xs"
                 style={[
-                  tw`ml-2 opacity-90`,
-                  { color: currentTheme.isDark ? "#e2e8f0" : "white" },
+                  tw`ml-2`,
+                  { color: currentTheme.colors.textSecondary },
                 ]}
               >
                 {userLevel.currentXP}/{userLevel.requiredXP}
@@ -256,22 +249,29 @@ export default function ProfileAchievements() {
             </View>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
-      {/* Statistiques des badges */}
+      {/* Statistiques des badges - Style simplifié */}
       <View
         style={[
           tw`p-3 rounded-xl mb-4 flex-row justify-around`,
-          { backgroundColor: currentTheme.colors.surface },
+          {
+            backgroundColor: currentTheme.colors.surface,
+            borderWidth: 1,
+            borderColor: currentTheme.colors.border,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 2,
+            elevation: 1,
+          },
         ]}
       >
         <View style={tw`items-center`}>
           <HeadingText
-            size="2xl"
+            size="xl"
             weight="bold"
-            color={
-              currentTheme.isDark ? "#60a5fa" : currentTheme.colors.primary
-            }
+            color={currentTheme.colors.primary}
           >
             {stats.unlocked}
           </HeadingText>
@@ -282,7 +282,7 @@ export default function ProfileAchievements() {
 
         <View style={tw`items-center`}>
           <HeadingText
-            size="2xl"
+            size="xl"
             weight="bold"
             color={currentTheme.colors.text}
           >
@@ -295,11 +295,9 @@ export default function ProfileAchievements() {
 
         <View style={tw`items-center`}>
           <HeadingText
-            size="2xl"
+            size="xl"
             weight="bold"
-            color={
-              currentTheme.isDark ? "#fbbf24" : currentTheme.colors.secondary
-            }
+            color={currentTheme.colors.secondary}
           >
             {stats.percentage}%
           </HeadingText>
@@ -310,7 +308,7 @@ export default function ProfileAchievements() {
       </View>
 
       <ScrollView
-        style={tw`max-h-96`}
+        style={tw`max-h-80`}
         nestedScrollEnabled
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

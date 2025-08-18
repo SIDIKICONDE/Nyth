@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   FlatList,
@@ -6,13 +6,11 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import {
-  H1,
-  H2,
   UIText,
-  ContentText,
-  Label,
 } from "../components/ui/Typography";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -87,7 +85,7 @@ export default function ThemeScreen() {
   });
 
   // Combiner les thèmes traduits avec les thèmes personnalisés
-  const allThemes = [...translatedPresetThemes, ...customThemes];
+  const allThemes = useMemo(() => [...translatedPresetThemes, ...customThemes], [translatedPresetThemes, customThemes]);
 
   // Debug: logger les thèmes disponibles
   useEffect(() => {
@@ -191,34 +189,25 @@ export default function ThemeScreen() {
       >
         <CustomButton
           title={t("theme.screen.createNewTheme")}
-          variant="primary"
+          variant="outline"
+          color={currentTheme.colors.accent}
           icon="palette-outline"
           iconPosition="left"
           onPress={() => setIsCreateModalVisible(true)}
           rounded={true}
-          size="md"
-          style={[
-            tw`px-6 py-3`,
-            {
-              backgroundColor: currentTheme.colors.accent,
-            },
-          ]}
+          size="xs"
+          style={tw`px-3 py-1.5`}
         />
-        <View style={tw`ml-3`}>
+        <View style={tw`ml-2`}>
           <CustomButton
             title={t("theme.screen.createWithAI", "Créer avec IA")}
-            variant="secondary"
+            variant="outline"
             icon="robot-excited-outline"
             iconPosition="left"
             onPress={() => setShowAIModal(true)}
             rounded={true}
-            size="md"
-            style={[
-              tw`px-6 py-3`,
-              {
-                backgroundColor: currentTheme.colors.primary,
-              },
-            ]}
+            size="xs"
+            style={tw`px-3 py-1.5`}
           />
         </View>
       </View>
@@ -298,112 +287,119 @@ export default function ThemeScreen() {
         animationType="fade"
         onRequestClose={() => !aiLoading && setShowAIModal(false)}
       >
-        <View
-          style={[
-            tw`flex-1 justify-center items-center`,
-            { backgroundColor: "rgba(0,0,0,0.5)" },
-          ]}
-        >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View
             style={[
-              tw`m-4 p-6 rounded-xl w-80`,
-              { backgroundColor: currentTheme.colors.surface },
+              tw`flex-1 justify-start items-center pt-30`,
+              { backgroundColor: "rgba(0,0,0,0.5)" },
             ]}
           >
-            <UIText
-              size="lg"
-              weight="bold"
-              style={[tw`mb-4`, { color: currentTheme.colors.text }]}
-            >
-              {t("theme.ai.createTitle", "Créer un thème avec l'IA")}
-            </UIText>
-
-            <UIText
-              size="sm"
-              style={[tw`mb-2`, { color: currentTheme.colors.textSecondary }]}
-            >
-              {t(
-                "theme.ai.descriptionLabel",
-                "Décrivez le style (ex: néon sombre, pastel doux, pro bleu)."
-              )}
-            </UIText>
-
-            <TextInput
+            <View
               style={[
-                tw`border rounded-lg p-3 mb-4 text-sm`,
-                {
-                  borderColor: currentTheme.colors.border,
-                  backgroundColor: currentTheme.colors.background,
-                  color: currentTheme.colors.text,
-                  minHeight: 80,
-                },
+                tw`m-4 p-6 rounded-xl w-80`,
+                { backgroundColor: currentTheme.colors.surface },
               ]}
-              placeholder={t(
-                "theme.ai.placeholder",
-                "Ex: Sombre futuriste néon violet/bleu, textes lisibles"
-              )}
-              placeholderTextColor={currentTheme.colors.textSecondary}
-              value={aiDescription}
-              onChangeText={setAIDescription}
-              multiline
-              textAlignVertical="top"
-              editable={!aiLoading}
-            />
+            >
+              <UIText
+                size="lg"
+                weight="bold"
+                style={[tw`mb-4`, { color: currentTheme.colors.text }]}
+              >
+                {t("theme.ai.createTitle", "Créer un thème avec l'IA")}
+              </UIText>
 
-            <View style={tw`flex-row gap-3`}>
-              <View style={tw`flex-1`}>
-                <CustomButton
-                  title={t("theme.creation.cancel", "Annuler")}
-                  variant="outline"
-                  icon="close"
-                  onPress={() => !aiLoading && setShowAIModal(false)}
-                  rounded={true}
-                  size="md"
-                  disabled={aiLoading}
-                />
-              </View>
-              <View style={tw`flex-1`}>
-                <CustomButton
-                  title={
-                    aiLoading
-                      ? t("common.loading", "Chargement…")
-                      : t("common.generate", "Générer")
-                  }
-                  variant="primary"
-                  icon={aiLoading ? "progress-clock" : "robot-love-outline"}
-                  onPress={async () => {
-                    if (aiLoading) return;
-                    if (aiDescription.trim().length === 0) {
-                      setShowErrorAlert(true);
-                      return;
-                    }
-                    setAILoading(true);
-                    try {
-                      const theme =
-                        await ThemeGenerationService.generateThemeFromDescription(
-                          aiDescription,
-                          undefined,
-                          undefined
-                        );
-                      await addCustomTheme(theme);
-                      await setTheme(theme);
+              <UIText
+                size="sm"
+                style={[tw`mb-2`, { color: currentTheme.colors.textSecondary }]}
+              >
+                {t(
+                  "theme.ai.descriptionLabel",
+                  "Décrivez le style (ex: néon sombre, pastel doux, pro bleu)."
+                )}
+              </UIText>
+
+              <TextInput
+                style={[
+                  tw`border rounded-lg p-3 mb-4 text-sm`,
+                  {
+                    borderColor: currentTheme.colors.border,
+                    backgroundColor: currentTheme.colors.background,
+                    color: currentTheme.colors.text,
+                    minHeight: 80,
+                  },
+                ]}
+                placeholder={t(
+                  "theme.ai.placeholder",
+                  "Ex: Sombre futuriste néon violet/bleu, textes lisibles"
+                )}
+                placeholderTextColor={currentTheme.colors.textSecondary}
+                value={aiDescription}
+                onChangeText={setAIDescription}
+                multiline
+                textAlignVertical="top"
+                editable={!aiLoading}
+              />
+
+              <View style={tw`flex-row gap-3`}>
+                <View style={tw`flex-1`}>
+                  <CustomButton
+                    title={t("theme.creation.cancel", "Annuler")}
+                    variant="outline"
+                    icon="close"
+                    onPress={() => {
+                      if (aiLoading) return;
+                      Keyboard.dismiss();
                       setShowAIModal(false);
-                      setAIDescription("");
-                      setShowSuccessAlert(true);
-                    } catch (e) {
-                      setShowErrorAlert(true);
-                    } finally {
-                      setAILoading(false);
+                    }}
+                    rounded={true}
+                    size="md"
+                    disabled={aiLoading}
+                  />
+                </View>
+                <View style={tw`flex-1`}>
+                  <CustomButton
+                    title={
+                      aiLoading
+                        ? t("common.loading", "Chargement…")
+                        : t("common.generate", "Générer")
                     }
-                  }}
-                  rounded={true}
-                  size="md"
-                  loading={aiLoading}
-                />
+                    variant="primary"
+                    icon={aiLoading ? "progress-clock" : "robot-love-outline"}
+                    onPress={async () => {
+                      Keyboard.dismiss();
+                      if (aiLoading) return;
+                      if (aiDescription.trim().length === 0) {
+                        setShowErrorAlert(true);
+                        return;
+                      }
+                      setAILoading(true);
+                      try {
+                        const theme =
+                          await ThemeGenerationService.generateThemeFromDescription(
+                            aiDescription,
+                            undefined,
+                            undefined
+                          );
+                        await addCustomTheme(theme);
+                        await setTheme(theme);
+                        setShowAIModal(false);
+                        setAIDescription("");
+                        setShowSuccessAlert(true);
+                      } catch (e) {
+                        setShowErrorAlert(true);
+                      } finally {
+                        setAILoading(false);
+                      }
+                    }}
+                    rounded={true}
+                    size="md"
+                    loading={aiLoading}
+                  />
+                </View>
               </View>
             </View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );

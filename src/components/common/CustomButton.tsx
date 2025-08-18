@@ -24,7 +24,7 @@ export type ButtonVariant =
   | "success"
   | "info";
 
-export type ButtonSize = "sm" | "md" | "lg";
+export type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 export interface CustomButtonProps {
   onPress: () => void;
@@ -42,6 +42,116 @@ export interface CustomButtonProps {
   color?: string;
   isAnimated?: boolean;
 }
+
+// Composant interne pour le contenu du bouton (déplacé en dehors de CustomButton)
+const ButtonContent: React.FC<
+  CustomButtonProps & {
+    textColor: string;
+    variantStyles: {
+      container: ViewStyle;
+      text: { color: string };
+    };
+    sizeStyles: {
+      container: ViewStyle;
+      textSize: "xs" | "sm" | "base" | "lg";
+      iconSize: number;
+    };
+    showGradient: boolean;
+    gradientColors: [string, string];
+  }
+> = ({
+  onPress,
+  title,
+  icon,
+  iconPosition,
+  disabled,
+  loading,
+  fullWidth,
+  rounded,
+  style,
+  textStyle,
+  textColor,
+  variantStyles,
+  sizeStyles,
+  showGradient,
+  gradientColors,
+}) => (
+  <View
+    style={[
+      tw`rounded-lg`,
+      {
+        width: fullWidth ? "100%" : "auto",
+        borderRadius: rounded ? 50 : 8,
+        // Retirer l'opacité d'ici pour éviter le conflit
+        shadowColor: "transparent",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+      },
+      style,
+    ]}
+  >
+    {showGradient && (
+      <LinearGradient
+        colors={[...gradientColors]}
+        style={tw`absolute top-0 left-0 right-0 h-1.5 z-10`}
+      />
+    )}
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled || loading}
+      activeOpacity={0.7}
+      style={[
+        tw`flex-row items-center justify-center rounded-lg`,
+        variantStyles.container,
+        sizeStyles.container,
+        { borderRadius: rounded ? 50 : 8 },
+        // Appliquer l'opacité ici sur le TouchableOpacity
+        { opacity: disabled ? 0.7 : 1 },
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={textColor} style={tw`mr-2`} />
+      ) : (
+        icon &&
+        iconPosition === "left" && (
+          <View style={[tw`mr-2`, { opacity: disabled ? 0.7 : 1 }]}>
+            <MaterialCommunityIcons
+              name={icon as any}
+              size={sizeStyles.iconSize}
+              color={textColor}
+            />
+          </View>
+        )
+      )}
+
+      <UIText
+        size={sizeStyles.textSize}
+        weight="semibold"
+        color={textColor}
+        align="center"
+        style={{
+          opacity: loading ? 0.8 : 1,
+          textTransform: "capitalize",
+          ...(textStyle as TextStyle),
+        }}
+      >
+        {title}
+      </UIText>
+
+      {icon && iconPosition === "right" && !loading && (
+        <View style={[tw`ml-2`, { opacity: disabled ? 0.7 : 1 }]}>
+          <MaterialCommunityIcons
+            name={icon as any}
+            size={sizeStyles.iconSize}
+            color={textColor}
+          />
+        </View>
+      )}
+    </TouchableOpacity>
+  </View>
+);
 
 // Fonction utilitaire pour calculer la couleur de texte avec le meilleur contraste
 const getContrastTextColor = (backgroundColor: string): string => {
@@ -70,22 +180,14 @@ const getContrastTextColor = (backgroundColor: string): string => {
   return luminance > 0.5 ? "#000000" : "#ffffff";
 };
 
-export const CustomButton: React.FC<CustomButtonProps> = ({
-  onPress,
-  title,
-  variant = "primary",
-  size = "md",
-  icon,
-  iconPosition = "left",
-  disabled = false,
-  loading = false,
-  fullWidth = false,
-  rounded = false,
-  style,
-  textStyle,
-  color,
-  isAnimated = true,
-}) => {
+export const CustomButton: React.FC<CustomButtonProps> = (props) => {
+  const {
+    variant = "primary",
+    size = "md",
+    disabled = false,
+    color,
+    isAnimated = true,
+  } = props;
   const { currentTheme } = useTheme();
 
   // Déterminer la couleur à utiliser (priorité à la prop color)
@@ -213,10 +315,19 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
   // Styles basés sur la taille
   const getSizeStyles = (): {
     container: ViewStyle;
-    textSize: "sm" | "base" | "lg";
+    textSize: "xs" | "sm" | "base" | "lg";
     iconSize: number;
   } => {
     switch (size) {
+      case "xs":
+        return {
+          container: {
+            paddingVertical: 6,
+            paddingHorizontal: 12,
+          },
+          textSize: "xs",
+          iconSize: 14,
+        };
       case "sm":
         return {
           container: {
@@ -282,96 +393,33 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
 
   const gradientColors = getGradientColors();
 
-  // Composant interne pour le contenu du bouton
-  const ButtonContent = () => (
-    <View
-      style={[
-        tw`overflow-hidden rounded-lg`,
-        {
-          width: fullWidth ? "100%" : "auto",
-          borderRadius: rounded ? 50 : 8,
-          // Retirer l'opacité d'ici pour éviter le conflit
-          shadowColor: "transparent",
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0,
-          shadowRadius: 0,
-          elevation: 0,
-        },
-        style,
-      ]}
-    >
-      {showGradient && (
-        <LinearGradient
-          colors={[...gradientColors]}
-          style={tw`absolute top-0 left-0 right-0 h-1.5 z-10`}
-        />
-      )}
-      <TouchableOpacity
-        onPress={onPress}
-        disabled={disabled || loading}
-        activeOpacity={0.7}
-        style={[
-          tw`flex-row items-center justify-center rounded-lg`,
-          variantStyles.container,
-          sizeStyles.container,
-          { borderRadius: rounded ? 50 : 8 },
-          // Appliquer l'opacité ici sur le TouchableOpacity
-          { opacity: disabled ? 0.7 : 1 },
-        ]}
-      >
-        {loading ? (
-          <ActivityIndicator size="small" color={textColor} style={tw`mr-2`} />
-        ) : (
-          icon &&
-          iconPosition === "left" && (
-            <View style={[tw`mr-2`, { opacity: disabled ? 0.7 : 1 }]}>
-              <MaterialCommunityIcons
-                name={icon as any}
-                size={sizeStyles.iconSize}
-                color={textColor}
-              />
-            </View>
-          )
-        )}
-
-        <UIText
-          size={sizeStyles.textSize}
-          weight="semibold"
-          color={textColor}
-          align="center"
-          style={{
-            opacity: loading ? 0.8 : 1,
-            textTransform: "capitalize",
-            ...(textStyle as TextStyle),
-          }}
-        >
-          {title}
-        </UIText>
-
-        {icon && iconPosition === "right" && !loading && (
-          <View style={[tw`ml-2`, { opacity: disabled ? 0.7 : 1 }]}>
-            <MaterialCommunityIcons
-              name={icon as any}
-              size={sizeStyles.iconSize}
-              color={textColor}
-            />
-          </View>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
-
   // Si l'animation est activée, encapsuler dans Animated.View
   // Sinon, retourner directement le contenu
   if (isAnimated) {
     return (
       <Animated.View entering={FadeIn.duration(300)}>
-        <ButtonContent />
+        <ButtonContent
+          {...props}
+          textColor={textColor}
+          variantStyles={variantStyles}
+          sizeStyles={sizeStyles}
+          showGradient={showGradient}
+          gradientColors={gradientColors}
+        />
       </Animated.View>
     );
   }
 
-  return <ButtonContent />;
+  return (
+    <ButtonContent
+      {...props}
+      textColor={textColor}
+      variantStyles={variantStyles}
+      sizeStyles={sizeStyles}
+      showGradient={showGradient}
+      gradientColors={gradientColors}
+    />
+  );
 };
 
 export default CustomButton;
