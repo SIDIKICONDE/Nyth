@@ -36,6 +36,7 @@ import { createOptimizedLogger } from "../utils/optimizedLogger";
 
 // Composants
 import LoginSocialButtons from "../components/auth/LoginSocialButtons";
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@env";
 import { EmailSuggestionAlert } from "../components/auth/EmailSuggestionAlert";
 
 // Hooks et contextes
@@ -104,6 +105,17 @@ const LoginScreen: React.FC = () => {
    * Animation d'entrée
    */
   useEffect(() => {
+    // Log de diagnostic: valeurs d'env essentielles (masquées)
+    if (__DEV__) {
+      try {
+        const mask = (v?: string | null) =>
+          !v ? "undefined" : `${String(v).slice(0, 8)}...${String(v).slice(-6)}`;
+        logger.debug("[LoginScreen] ENV check", {
+          webClientId: mask(GOOGLE_WEB_CLIENT_ID as unknown as string),
+          iosClientId: mask(GOOGLE_IOS_CLIENT_ID as unknown as string),
+        });
+      } catch (e) {}
+    }
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,

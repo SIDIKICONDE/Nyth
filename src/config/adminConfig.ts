@@ -8,8 +8,7 @@
 // UIDs des super administrateurs
 // Ces utilisateurs ont tous les droits dans l'application
 export const SUPER_ADMIN_UIDS = [
-  "XcdyZToiSKTjf99Ju5yf9zUVQNb2", // Conde Sidiki - Super Admin principal
-  // Ajoutez d'autres UIDs ici si nécessaire
+ 
 ];
 
 /**

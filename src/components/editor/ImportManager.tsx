@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Alert } from "react-native";
-import * as DocumentPicker from "react-native-document-picker";
+import * as DocumentPicker from "@react-native-documents/picker";
 import RNFS from "react-native-fs";
 import { useTranslation } from "../../hooks/useTranslation";
 
@@ -28,7 +28,7 @@ export function useImportManager() {
         allowMultiSelection: false,
       });
 
-      // react-native-document-picker retourne un tableau
+      // @react-native-documents/picker retourne un tableau
       if (result && result.length > 0) {
         const file = result[0];
         const content = await RNFS.readFile(file.uri);

@@ -1,13 +1,11 @@
-import messaging, {
-  FirebaseMessagingTypes,
-} from "@react-native-firebase/messaging";
+import messaging, { FirebaseMessagingTypes } from "@react-native-firebase/messaging";
 import { Platform } from "react-native";
 import PushNotification from "react-native-push-notification";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import firestore, {
   FirebaseFirestoreTypes,
 } from "@react-native-firebase/firestore";
-import auth from "@react-native-firebase/auth";
+import { getAuth } from "@react-native-firebase/auth";
 import { systemLog } from "./SystemLogService";
 
 type NotifeeEventDetail = {
@@ -239,7 +237,7 @@ class PushNotificationService {
    */
   async saveTokenToFirestore(): Promise<void> {
     try {
-      const user = auth().currentUser;
+      const user = getAuth().currentUser;
       if (!user || !this.fcmToken) return;
 
       const tokenData = {
@@ -289,12 +287,6 @@ class PushNotificationService {
    * Configure les handlers de messages FCM
    */
   setupMessageHandlers(): void {
-    // Handler pour les messages en arrière-plan
-    messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-      console.log("Message reçu en arrière-plan:", remoteMessage);
-      await this.handleRemoteMessage(remoteMessage);
-    });
-
     // Handler pour les messages quand l'app est ouverte
     messaging().onMessage(async (remoteMessage) => {
       console.log("Message reçu en premier plan:", remoteMessage);
@@ -575,7 +567,7 @@ class PushNotificationService {
   /**
    * Lance une campagne de notifications
    */
-  async launchCampaign(campaignId: string): Promise<void> {
+  async launchCampaign(_campaignId: string): Promise<void> {
     try {
       // Récupérer la campagne
       const campaignDocRef = firestore()
@@ -731,7 +723,7 @@ class PushNotificationService {
         event: "received",
         title,
         data,
-        userId: auth().currentUser?.uid,
+        userId: getAuth().currentUser?.uid,
         timestamp: firestore.FieldValue.serverTimestamp(),
       });
     } catch (error) {
@@ -773,7 +765,7 @@ class PushNotificationService {
           event: "clicked",
           notificationId: notificationId || "unknown",
           data,
-          userId: auth().currentUser?.uid,
+          userId: getAuth().currentUser?.uid,
           timestamp: firestore.FieldValue.serverTimestamp(),
         });
     } catch (error) {
@@ -795,7 +787,7 @@ class PushNotificationService {
           event: "action",
           notificationId: notificationId || "unknown",
           actionId: actionId || "unknown",
-          userId: auth().currentUser?.uid,
+          userId: getAuth().currentUser?.uid,
           timestamp: firestore.FieldValue.serverTimestamp(),
         });
     } catch (error) {
@@ -849,7 +841,7 @@ class PushNotificationService {
    */
   async disableNotifications(): Promise<void> {
     try {
-      const user = auth().currentUser;
+      const user = getAuth().currentUser;
       if (!user) return;
 
       await firestore().collection("users").doc(user.uid).update({
@@ -872,7 +864,7 @@ class PushNotificationService {
     preferences: Record<string, boolean>
   ): Promise<void> {
     try {
-      const user = auth().currentUser;
+      const user = getAuth().currentUser;
       if (!user) return;
 
       await firestore().collection("users").doc(user.uid).update({

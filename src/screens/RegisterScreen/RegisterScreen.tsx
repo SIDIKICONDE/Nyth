@@ -3,7 +3,6 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -23,6 +22,7 @@ import { RootStackParamList } from "../../types";
 import { LoginSocialButtons } from "../../components/auth";
 
 import { createOptimizedLogger } from '../../utils/optimizedLogger';
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@env";
 const logger = createOptimizedLogger('RegisterScreen');
 
 type RegisterScreenNavigationProp = StackNavigationProp<
@@ -48,78 +48,18 @@ export default function RegisterScreen() {
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
     useState(false);
 
-  // Animations natives
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const slideAnim = React.useRef(new Animated.Value(50)).current;
-  const iconRotation = React.useRef(new Animated.Value(0)).current;
-  const iconScale = React.useRef(new Animated.Value(1)).current;
-
   React.useEffect(() => {
-    // Animation d'entrée
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    // Animation continue de l'icône
-    const rotateAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(iconRotation, {
-          toValue: 1,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(iconRotation, {
-          toValue: 0,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    const scaleAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(iconScale, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(iconScale, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    rotateAnimation.start();
-    scaleAnimation.start();
-
-    return () => {
-      rotateAnimation.stop();
-      scaleAnimation.stop();
-    };
+    if (__DEV__) {
+      try {
+        const mask = (v?: string | null) =>
+          !v ? "undefined" : `${String(v).slice(0, 8)}...${String(v).slice(-6)}`;
+        logger.debug("[RegisterScreen] ENV check", {
+          webClientId: mask(GOOGLE_WEB_CLIENT_ID as unknown as string),
+          iosClientId: mask(GOOGLE_IOS_CLIENT_ID as unknown as string),
+        });
+      } catch (e) {}
+    }
   }, []);
-
-  const animatedIconStyle = {
-    transform: [
-      {
-        rotate: iconRotation.interpolate({
-          inputRange: [0, 1],
-          outputRange: ["0deg", "360deg"],
-        }),
-      },
-      { scale: iconScale },
-    ],
-  };
 
   // Validation
   const validateEmail = (email: string) => {
@@ -291,43 +231,12 @@ export default function RegisterScreen() {
         end={{ x: 1, y: 1 }}
       />
 
-      {/* Decorative Circles */}
-      <Animated.View
-        style={[
-          tw`absolute -top-20 -right-20 w-60 h-60 rounded-full`,
-          {
-            backgroundColor: currentTheme.colors.secondary + "10",
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      />
-      <Animated.View
-        style={[
-          tw`absolute -bottom-20 -left-20 w-80 h-80 rounded-full`,
-          {
-            backgroundColor: currentTheme.colors.primary + "10",
-            opacity: fadeAnim,
-            transform: [
-              {
-                translateY: slideAnim.interpolate({
-                  inputRange: [0, 50],
-                  outputRange: [0, -30],
-                }),
-              },
-            ],
-          },
-        ]}
-      />
+      {/* Decorative Circles supprimés (pas d'animation) */}
 
       {/* Back Button */}
-      <Animated.View
+      <View
         style={[
           tw`absolute top-12 left-4 z-10`,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
         ]}
       >
         <TouchableOpacity
@@ -347,7 +256,7 @@ export default function RegisterScreen() {
             color={currentTheme.colors.text}
           />
         </TouchableOpacity>
-      </Animated.View>
+      </View>
 
       <ScrollView
         style={tw`flex-1`}
@@ -358,16 +267,8 @@ export default function RegisterScreen() {
       >
         <View style={tw`flex-1 justify-center min-h-full`}>
           {/* Icon and Title */}
-          <Animated.View
-            style={[
-              tw`items-center mb-8`,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
-            <Animated.View style={[animatedIconStyle, tw`mb-4`]}>
+          <View style={tw`items-center mb-8`}>
+            <View style={tw`mb-4`}>
               <View
                 style={[
                   tw`w-24 h-24 rounded-full items-center justify-center`,
@@ -382,7 +283,7 @@ export default function RegisterScreen() {
                   color={currentTheme.colors.secondary}
                 />
               </View>
-            </Animated.View>
+            </View>
 
             <Text
               style={[
@@ -404,25 +305,10 @@ export default function RegisterScreen() {
                 "Créez votre compte pour sauvegarder vos scripts"
               )}
             </Text>
-          </Animated.View>
+          </View>
 
           {/* Form Fields */}
-          <Animated.View
-            style={[
-              tw`mb-6`,
-              {
-                opacity: fadeAnim,
-                transform: [
-                  {
-                    translateY: slideAnim.interpolate({
-                      inputRange: [0, 50],
-                      outputRange: [0, 20],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
+          <View style={tw`mb-6`}>
             {renderInputField(
               "email-outline",
               t("auth.register.emailPlaceholder"),
@@ -455,25 +341,10 @@ export default function RegisterScreen() {
               isConfirmPasswordVisible,
               () => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
             )}
-          </Animated.View>
+          </View>
 
           {/* Register Button */}
-          <Animated.View
-            style={[
-              tw`mb-6`,
-              {
-                opacity: fadeAnim,
-                transform: [
-                  {
-                    translateY: slideAnim.interpolate({
-                      inputRange: [0, 50],
-                      outputRange: [0, 30],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
+          <View style={tw`mb-6`}>
             <TouchableOpacity
               onPress={handleRegister}
               disabled={isLoading}
@@ -514,45 +385,15 @@ export default function RegisterScreen() {
                 )}
               </LinearGradient>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
 
           {/* Social Buttons */}
-          <Animated.View
-            style={[
-              tw`mb-6`,
-              {
-                opacity: fadeAnim,
-                transform: [
-                  {
-                    translateY: slideAnim.interpolate({
-                      inputRange: [0, 50],
-                      outputRange: [0, 40],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
+          <View style={tw`mb-6`}>
             <LoginSocialButtons />
-          </Animated.View>
+          </View>
 
           {/* Back to Login Link */}
-          <Animated.View
-            style={[
-              tw`items-center`,
-              {
-                opacity: fadeAnim,
-                transform: [
-                  {
-                    translateY: slideAnim.interpolate({
-                      inputRange: [0, 50],
-                      outputRange: [0, 50],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
+          <View style={tw`items-center`}>
             <TouchableOpacity
               onPress={() => navigation.navigate("Login")}
               activeOpacity={0.7}
@@ -563,7 +404,7 @@ export default function RegisterScreen() {
                   { color: currentTheme.colors.primary },
                 ]}
               >
-                {t("auth.register.haveAccount", "Vous avez déjà un compte ?")}{" "}
+                {t("auth.register.haveAccount", "Vous avez déjà un compte ?")} {" "}
                 <Text
                   style={[
                     tw`font-bold`,
@@ -574,7 +415,7 @@ export default function RegisterScreen() {
                 </Text>
               </Text>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

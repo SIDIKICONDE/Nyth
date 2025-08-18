@@ -4,6 +4,7 @@ import 'react-native-reanimated';
 import { useEffect } from "react";
 import { StatusBar, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 
 import ErrorBoundary from "./src/components/common/ErrorBoundary";
 import { SplashScreenManager } from "./src/components/common/SplashScreenManager";
@@ -44,6 +45,11 @@ export default function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        // Enregistrer le gestionnaire de messages en arrière-plan
+        messaging().setBackgroundMessageHandler(async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
+          console.log('Message handled in the background!', remoteMessage);
+        });
+
         // Initialisation i18n si nécessaire
         if (!isI18nReady()) {
           logger.debug("Initialisation i18next...");

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { appLockService, AppLockConfig } from "../services/AppLockService";
-import auth from "@react-native-firebase/auth";
+import { getAuth, getIdTokenResult } from "@react-native-firebase/auth";
 import { useNavigation } from "@react-navigation/native";
 
 interface UseAppLockReturn {
@@ -59,7 +59,7 @@ export const useAppLock = (): UseAppLockReturn => {
       return;
     }
 
-    const user = auth().currentUser;
+    const user = getAuth().currentUser;
     const userId = user?.uid;
 
     // Récupérer le rôle de l'utilisateur depuis ses custom claims

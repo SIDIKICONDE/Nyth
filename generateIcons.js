@@ -37,13 +37,13 @@ const CONFIG = {
     { size: 1024, scale: 1, name: 'Icon-App-1024x1024@1x.png' }
   ],
   
-  // Tailles Android (drawable densities)
+  // Tailles Android (mipmap densities for launcher icons)
   android: [
-    { density: 'mdpi', size: 48, folder: 'drawable-mdpi' },
-    { density: 'hdpi', size: 72, folder: 'drawable-hdpi' },
-    { density: 'xhdpi', size: 96, folder: 'drawable-xhdpi' },
-    { density: 'xxhdpi', size: 144, folder: 'drawable-xxhdpi' },
-    { density: 'xxxhdpi', size: 192, folder: 'drawable-xxxhdpi' }
+    { density: 'mdpi', size: 48, folder: 'mipmap-mdpi' },
+    { density: 'hdpi', size: 72, folder: 'mipmap-hdpi' },
+    { density: 'xhdpi', size: 96, folder: 'mipmap-xhdpi' },
+    { density: 'xxhdpi', size: 144, folder: 'mipmap-xxhdpi' },
+    { density: 'xxxhdpi', size: 192, folder: 'mipmap-xxxhdpi' }
   ],
   
   // Tailles additionnelles
@@ -253,7 +253,7 @@ class IconGenerator {
   constructor() {
     this.outputDir = './icons';
     this.iosDir = path.join(this.outputDir, 'ios', 'AppIcon.appiconset');
-    this.androidDir = path.join(this.outputDir, 'android');
+    this.androidDir = path.resolve(__dirname, 'android/app/src/main/res');
     this.webDir = path.join(this.outputDir, 'web');
   }
 
@@ -512,7 +512,7 @@ icons/
 │   ├── Icon-App-*.png          # Toutes tailles iOS
 │   └── Contents.json
 ├── android/
-│   ├── drawable-*/             # Densités multiples
+│   ├── mipmap-*/                # Densités multiples
 │   │   ├── ic_launcher.png     # Version carrée
 │   │   └── ic_launcher_round.png # Version ronde
 │   ├── drawable/

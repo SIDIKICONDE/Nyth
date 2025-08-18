@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#4A90E2</color>
+    <color name="ic_launcher_background">#667eea</color>
+    <color name="nyth_primary">#667eea</color>
+    <color name="nyth_secondary">#764ba2</color>
+    <color name="nyth_accent">#f093fb</color>
 </resources>

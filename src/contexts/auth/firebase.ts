@@ -1,5 +1,17 @@
 import { Platform } from "react-native";
-import { getAuth, EmailAuthProvider } from "@react-native-firebase/auth";
+import {
+  getAuth,
+  EmailAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  updateProfile,
+  reauthenticateWithCredential,
+  updateEmail as updateEmailAuth,
+  updatePassword as updatePasswordAuth,
+  deleteUser as deleteUserAuth,
+  sendPasswordResetEmail,
+} from "@react-native-firebase/auth";
 import { getApp } from "@react-native-firebase/app";
 import {
   getFirestore,
@@ -20,7 +32,8 @@ export const signInWithEmail = async (
   password: string
 ): Promise<{ user: User; success: boolean; error?: string }> => {
   try {
-    const userCredential = await getAuth().signInWithEmailAndPassword(
+    const userCredential = await signInWithEmailAndPassword(
+      getAuth(),
       email,
       password
     );
@@ -122,18 +135,19 @@ export const createAccount = async (
   name: string
 ): Promise<{ user: User; success: boolean; error?: string }> => {
   try {
-    const userCredential = await getAuth().createUserWithEmailAndPassword(
+    const userCredential = await createUserWithEmailAndPassword(
+      getAuth(),
       email,
       password
     );
 
     // Envoyer l'email de vérification
     try {
-      await userCredential.user.sendEmailVerification();
+      await sendEmailVerification(userCredential.user);
     } catch (emailErr) {}
 
     // Mettre à jour le nom d'affichage
-    await userCredential.user.updateProfile({
+    await updateProfile(userCredential.user, {
       displayName: name,
     });
 
@@ -199,7 +213,7 @@ export const updateUserProfileFirebase = async (updates: {
     }
 
     // Mettre à jour Firebase Auth
-    await currentUser.updateProfile({
+    await updateProfile(currentUser, {
       displayName: updates.name || currentUser.displayName,
       photoURL:
         updates.photoURL !== undefined
@@ -238,7 +252,7 @@ export const sendPasswordReset = async (
   email: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    await getAuth().sendPasswordResetEmail(email);
+    await sendPasswordResetEmail(getAuth(), email);
     return { success: true };
   } catch (error: any) {
     let errorMessage = "Erreur lors de l'envoi de l'email";
@@ -273,10 +287,10 @@ export const changeUserEmail = async (
       currentUser.email,
       currentPassword
     );
-    await currentUser.reauthenticateWithCredential(credential);
+    await reauthenticateWithCredential(currentUser, credential);
 
     // Changer l'email
-    await currentUser.updateEmail(newEmail);
+    await updateEmailAuth(currentUser, newEmail);
 
     // Mettre à jour Firestore
     const userRef = doc(
@@ -329,10 +343,10 @@ export const changeUserPassword = async (
       currentUser.email,
       currentPassword
     );
-    await currentUser.reauthenticateWithCredential(credential);
+    await reauthenticateWithCredential(currentUser, credential);
 
     // Changer le mot de passe
-    await currentUser.updatePassword(newPassword);
+    await updatePasswordAuth(currentUser, newPassword);
 
     return { success: true };
   } catch (error: any) {
@@ -368,10 +382,10 @@ export const deleteUserAccount = async (
       currentUser.email,
       password
     );
-    await currentUser.reauthenticateWithCredential(credential);
+    await reauthenticateWithCredential(currentUser, credential);
 
     // Supprimer le compte
-    await currentUser.delete();
+    await deleteUserAuth(currentUser);
 
     return { success: true };
   } catch (error: any) {

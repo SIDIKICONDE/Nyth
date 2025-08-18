@@ -23,9 +23,9 @@ if (__DEV__) {
   if (!GOOGLE_IOS_CLIENT_ID) {
     console.warn("⚠️ GOOGLE_IOS_CLIENT_ID n'est pas défini dans .env");
   }
-  if (!APPLE_SERVICE_ID && Platform.OS === "ios") {
-    console.warn("⚠️ APPLE_SERVICE_ID n'est pas défini dans .env");
-  }
+  // if (!APPLE_SERVICE_ID && Platform.OS === "ios") {
+  //   console.warn("⚠️ APPLE_SERVICE_ID n'est pas défini dans .env");
+  // }
 }
 
 /**
@@ -43,9 +43,9 @@ export const googleSignInConfig = {
   androidClientId: GOOGLE_ANDROID_CLIENT_ID || "",
 
   // Configuration additionnelle
-  offlineAccess: true,
+  offlineAccess: false,
   hostedDomain: "", // Laisser vide pour accepter tous les domaines
-  forceCodeForRefreshToken: true,
+  forceCodeForRefreshToken: false,
   accountName: "", // Android uniquement
 
   // Scopes additionnels (optionnel)
@@ -67,7 +67,7 @@ export const appleSignInConfig = {
   androidConfig: {
     clientId: APPLE_SERVICE_ID || "",
     redirectUrl: `https://${
-      FIREBASE_AUTH_DOMAIN || "camprompt-ai.firebaseapp.com"
+      FIREBASE_AUTH_DOMAIN || "com.naya.bundle"
     }/__/auth/handler`,
   },
 };
@@ -95,7 +95,7 @@ export const firebaseSocialConfig = {
     required: true,
     autoSend: true,
     redirectUrl: `https://${
-      FIREBASE_AUTH_DOMAIN || "camprompt-ai.firebaseapp.com"
+      FIREBASE_AUTH_DOMAIN || "https://com-naya.firebaseapp.com"
     }`,
   },
 };

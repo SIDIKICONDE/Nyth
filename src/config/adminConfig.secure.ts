@@ -38,9 +38,9 @@ export const isSuperAdminUID = (uid: string | undefined): boolean => {
  * Log des tentatives d'accès admin pour audit
  */
 export const logAdminAccess = (
-  uid: string,
-  action: string,
-  success: boolean
+  _uid: string,
+  _action: string,
+  _success: boolean
 ) => {
   if (__DEV__) {}
 

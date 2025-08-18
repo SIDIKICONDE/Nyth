@@ -5,6 +5,7 @@ import ReactAppDependencyProvider
 import FirebaseCore
 import UserNotifications
 import FirebaseMessaging
+import GoogleSignIn
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
@@ -42,6 +43,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     )
 
     return true
+  }
+
+  // Google Sign-In URL handler
+  func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey : Any] = [:]
+  ) -> Bool {
+    if GIDSignIn.sharedInstance.handle(url) {
+      return true
+    }
+    return false
   }
 }
 

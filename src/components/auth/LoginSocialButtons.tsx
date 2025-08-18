@@ -1,6 +1,12 @@
 import Ionicons from "react-native-vector-icons/Ionicons";
-import React, { useState } from "react";
-import { Alert, Platform, TouchableOpacity, View, Text } from "react-native";
+import * as React from "react";
+import { Alert, Platform, TouchableOpacity, View } from "react-native";
+import {
+  GOOGLE_WEB_CLIENT_ID,
+  GOOGLE_IOS_CLIENT_ID,
+  GOOGLE_ANDROID_CLIENT_ID,
+  APPLE_SERVICE_ID,
+} from "@env";
 import twrnc from "twrnc";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -17,13 +23,42 @@ export default function LoginSocialButtons({
   isDisabled,
 }: LoginSocialButtonsProps) {
   const { signInWithGoogle, signInWithApple, loading } = useAuth();
-  const [socialLoading, setSocialLoading] = useState<"google" | "apple" | null>(
+  const [socialLoading, setSocialLoading] = React.useState<"google" | "apple" | null>(
     null
   );
+
+  const mask = (value?: string | null) => {
+    if (!value) return "undefined";
+    const v = String(value);
+    if (v.length <= 14) return v;
+    return `${v.slice(0, 8)}...${v.slice(-6)}`;
+  };
+
+  const logEnvSnapshot = (provider: "google" | "apple") => {
+    if (!__DEV__) return;
+    try {
+      if (provider === "google") {
+        logger.debug("[Google] ENV snapshot", {
+          platform: Platform.OS,
+          webClientId: mask(GOOGLE_WEB_CLIENT_ID as unknown as string),
+          iosClientId: mask(GOOGLE_IOS_CLIENT_ID as unknown as string),
+          androidClientId: mask(GOOGLE_ANDROID_CLIENT_ID as unknown as string),
+        });
+      } else {
+        logger.debug("[Apple] ENV snapshot", {
+          platform: Platform.OS,
+          serviceId: mask(APPLE_SERVICE_ID as unknown as string),
+        });
+      }
+    } catch (e) {
+      // Sécurité: aucune fuite de valeurs complètes
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     try {
       setSocialLoading("google");
+      logEnvSnapshot("google");
       const success = await signInWithGoogle();
 
       if (success) {
@@ -40,6 +75,7 @@ export default function LoginSocialButtons({
   const handleAppleSignIn = async () => {
     try {
       setSocialLoading("apple");
+      logEnvSnapshot("apple");
       const success = await signInWithApple();
 
       if (success) {

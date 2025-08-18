@@ -1,10 +1,30 @@
 import { getApp } from "@react-native-firebase/app";
-import { getAuth } from "@react-native-firebase/auth";
+import { getAuth, onAuthStateChanged } from "@react-native-firebase/auth";
 import { InteractionManager } from "react-native";
 import { LazyLoadService } from "./LazyLoadService";
 
 import { createOptimizedLogger } from '../../utils/optimizedLogger';
 const logger = createOptimizedLogger('OptimizedWarmupService');
+
+// Types pour requestIdleCallback
+interface RequestIdleCallbackOptions {
+  timeout?: number;
+}
+
+interface RequestIdleCallbackHandle {
+  didTimeout: boolean;
+  timeRemaining: () => number;
+}
+
+type RequestIdleCallback = (
+  callback: (deadline: RequestIdleCallbackHandle) => void,
+  options?: RequestIdleCallbackOptions
+) => NodeJS.Timeout;
+
+// Extension du type global pour requestIdleCallback
+declare global {
+  var requestIdleCallback: RequestIdleCallback | undefined;
+}
 
 export class OptimizedWarmupService {
   private static started = false;
@@ -34,7 +54,7 @@ export class OptimizedWarmupService {
       const auth = getAuth(getApp());
       
       // Écouter les changements d'authentification (critique)
-      auth.onAuthStateChanged((user) => {
+      onAuthStateChanged(auth, (user) => {
         if (user?.uid && this.criticalTasksComplete) {
           // Charger les données utilisateur de manière lazy
           this.lazyLoadUserData(user.uid);
@@ -111,7 +131,7 @@ export class OptimizedWarmupService {
           const { memoryManager } = memoryModule;
           
           // Charger les données en arrière-plan avec priorité basse
-          requestIdleCallback(
+          global.requestIdleCallback?.(
             () => {
               memoryManager.loadUserMemory(userId).catch(() => {
                 // Ignorer les erreurs de chargement mémoire
@@ -144,12 +164,17 @@ export class OptimizedWarmupService {
 }
 
 // Polyfill pour requestIdleCallback si non disponible
-if (typeof requestIdleCallback === "undefined") {
-  (global as any).requestIdleCallback = (
-    callback: () => void,
-    options?: { timeout?: number }
-  ) => {
+if (typeof global.requestIdleCallback === "undefined") {
+  global.requestIdleCallback = (
+    callback: (deadline: RequestIdleCallbackHandle) => void,
+    options?: RequestIdleCallbackOptions
+  ): NodeJS.Timeout => {
     const timeout = options?.timeout || 1000;
-    return setTimeout(callback, timeout);
+    return setTimeout(() => {
+      callback({
+        didTimeout: false,
+        timeRemaining: () => Math.max(0, timeout - Date.now())
+      });
+    }, timeout);
   };
 }

@@ -53,5 +53,27 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+
+	<!-- Configuration Google Sign-In -->
+	<key>GIDClientID</key>
+	<string>1091603304793-i8bqq3ruv5j85j7u04ffsh3bb9r7kisr.apps.googleusercontent.com</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>google</string>
+		<string>com.google</string>
+		<string>googlechrome</string>
+		<string>com.google.gppconsent</string>
+	</array>
+	<!-- Google Sign-In URL Types -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- REVERSED_CLIENT_ID de GoogleService-Info.plist -->
+				<string>com.googleusercontent.apps.1091603304793-i8bqq3ruv5j85j7u04ffsh3bb9r7kisr</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

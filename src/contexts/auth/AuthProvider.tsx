@@ -1,11 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
-import { getAuth } from "@react-native-firebase/auth";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { getAuth, onAuthStateChanged } from "@react-native-firebase/auth";
 import {
   initializeFirebase,
   setupFirebaseServices,
 } from "../../config/firebase";
 import { DefaultApiKeyService } from "../../services/defaultApiKey";
-import { migrationService } from "../../services/firebase";
 import { AuthContext } from "./context";
 import {
   changeUserEmail,
@@ -21,21 +20,10 @@ import { createOptimizedLogger } from '../../utils/optimizedLogger';
 const logger = createOptimizedLogger('AuthProvider');
 
 // Utilisation de la version native avec EAS Build
-import {
-  clearAuthStorage,
-  getSavedUser,
-  saveUser,
-  setFirebaseSession,
-} from "./storage";
+import { clearAuthStorage, saveUser, setFirebaseSession } from "./storage";
 import { createUserProfile, syncLocalDataToFirebase } from "./syncUtils";
 import { AuthProviderProps, User } from "./types";
-import {
-  cleanupRef,
-  delay,
-  handleAuthError,
-  isMounted,
-  notifyStateChange,
-} from "./utils";
+import { cleanupRef, handleAuthError, isMounted, notifyStateChange } from "./utils";
 // Import des connexions sociales (implémentation unifiée)
 import {
   configureGoogleSignIn as configureGoogleSignInSocial,
@@ -50,7 +38,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [isFirebaseReady, setFirebaseReady] = useState(false);
 
-  // Références pour éviter les fuites mémoire et optimiser les re-rendus
+  // Références pour éviter les fuites mémoire et optimiser les re-renders
   const isMountedRef = useRef(true);
   const authStateListenerRef = useRef<(() => void) | null>(null);
   const lastUserStateRef = useRef<string>("");
@@ -168,67 +156,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   /**
    * Configure l'écouteur d'état d'authentification Firebase
    */
-  const setupAuthStateListener = () => {
+  const setupAuthStateListener = useCallback(async () => {
+    if (!isFirebaseReady) return;
+
     try {
-      if (!isFirebaseReady) {
-        logger.warn(
-          "⚠️ Firebase non prêt, l'écouteur d'authentification ne sera pas configuré."
-        );
-        setLoading(false);
-        return () => {};
-      }
-      const unsubscribe = getAuth().onAuthStateChanged(async (firebaseUser) => {
+      logger.debug("🔥 Configuration de l'écouteur d'état d'authentification.");
+      
+      const unsubscribe = onAuthStateChanged(getAuth(), async (firebaseUser) => {
         if (!isMounted(isMountedRef)) return;
 
-        logger.debug("🔄 onAuthStateChanged déclenché:", firebaseUser?.uid);
-
         if (firebaseUser) {
-          // Utilisateur Firebase connecté
-          const userData: User = {
+          // Utilisateur connecté
+          logger.debug("👤 Utilisateur Firebase connecté:", firebaseUser.uid);
+          
+          // Créer l'objet utilisateur local
+          const localUser: User = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
-            name: firebaseUser.displayName,
-            displayName: firebaseUser.displayName,
+            name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Utilisateur",
+            displayName: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Utilisateur",
             photoURL: firebaseUser.photoURL,
             emailVerified: firebaseUser.emailVerified,
             isGuest: false,
           };
 
-          logger.debug("🔥 Utilisateur Firebase détecté:", userData);
-          setUser(userData);
+          // Sauvegarder l'utilisateur localement
+          setUser(localUser);
+          await saveUser(localUser);
 
-          // Configurer automatiquement la clé OpenAI par défaut
-          DefaultApiKeyService.configureDefaultOpenAIKey()
-            .then((configured) => {
-              if (configured) {
-                logger.debug("✅ Clé OpenAI par défaut configurée avec succès");
-              }
-            })
-            .catch((error) => {
-              logger.warn(
-                "⚠️ Impossible de configurer la clé OpenAI par défaut:",
-                error
-              );
-            });
+          // Notifier le changement d'état
+          await notifyStateChange(localUser, "firebase_signin", lastUserStateRef);
 
-          // Sauvegarder localement
-          await saveUser(userData);
+          // Synchroniser les données locales avec Firebase
+          await syncLocalDataToFirebase(localUser.uid, firebaseUser.uid);
+
+          // Configurer la session Firebase
           await setFirebaseSession(true);
 
-          // Migrer les données existantes vers Firebase (si nécessaire)
-          try {
-            await migrationService.migrateToFirebase(firebaseUser.uid);
-          } catch (err) {
-            logger.error("Erreur migration:", err);
-          }
+          logger.debug("✅ État d'authentification synchronisé");
         } else {
-          // Utilisateur Firebase déconnecté
-          logger.debug("❌ Utilisateur Firebase déconnecté");
-
-          // Aucun utilisateur
+          // Utilisateur déconnecté
+          logger.debug("👤 Utilisateur Firebase déconnecté");
+          
+          // Nettoyer l'état local
           setUser(null);
-          await notifyStateChange(null, "firebase_signout", lastUserStateRef);
           await clearAuthStorage();
+          
+          // Notifier le changement d'état
+          await notifyStateChange(null, "firebase_signout", lastUserStateRef);
+          
+          logger.debug("✅ État local nettoyé après déconnexion Firebase");
         }
 
         if (isMounted(isMountedRef)) {
@@ -236,17 +213,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       });
 
+      // Nettoyer la référence
       authStateListenerRef.current = unsubscribe;
-      return unsubscribe;
+      
+      logger.debug("✅ Écouteur d'état d'authentification configuré");
     } catch (error) {
-      logger.warn(
-        "⚠️ Impossible de configurer l'écouteur d'authentification Firebase:",
-        error
-      );
-      setLoading(false);
-      return () => {};
+      logger.error("❌ Erreur lors de la configuration de l'écouteur d'état:", error);
+      setError("Erreur lors de la configuration de l'authentification");
     }
-  };
+  }, [isFirebaseReady]);
 
   // Initialisation lors du montage
   useEffect(() => {
@@ -274,7 +249,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       logger.debug("🔥 Firebase est prêt, configuration de l'écouteur d'état.");
       setupAuthStateListener();
     }
-  }, [isFirebaseReady]);
+  }, [isFirebaseReady, setupAuthStateListener]);
 
   /**
    * Connexion avec email et mot de passe
@@ -475,7 +450,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           await notifyStateChange(null, "logout_cleanup", lastUserStateRef);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       handleAuthError(err, setError, "Erreur lors de la déconnexion");
 
       // En cas d'erreur, forcer un état propre
@@ -533,7 +508,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       logger.debug("✅ Profil mis à jour avec succès");
       return true;
-    } catch (err) {
+    } catch (err: any) {
       handleAuthError(err, setError, "Erreur lors de la mise à jour du profil");
       return false;
     }

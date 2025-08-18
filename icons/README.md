@@ -48,7 +48,7 @@ icons/
 │   ├── Icon-App-*.png          # Toutes tailles iOS
 │   └── Contents.json
 ├── android/
-│   ├── drawable-*/             # Densités multiples
+│   ├── mipmap-*/                # Densités multiples
 │   │   ├── ic_launcher.png     # Version carrée
 │   │   └── ic_launcher_round.png # Version ronde
 │   ├── drawable/

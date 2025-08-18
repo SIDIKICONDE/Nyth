@@ -3,11 +3,25 @@ import PushNotification from "react-native-push-notification";
 import { Task } from "../../types/planning";
 import { enhancedNotificationService } from "./EnhancedNotificationService";
 
-// Configuration des notifications
-PushNotification.configure({
-  onNotification: function (notification) {},
-  requestPermissions: Platform.OS === "ios",
-});
+// Configuration des notifications (iOS uniquement)
+if (Platform.OS === "ios") {
+  PushNotification.configure({
+    onNotification: function (notification) {},
+    requestPermissions: true,
+  });
+}
+
+function getNotifee(): any | null {
+  try {
+    if (Platform.OS === "android") {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      return require("@notifee/react-native");
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
 
 export class TaskNotificationService {
   private static instance: TaskNotificationService;
@@ -29,6 +43,17 @@ export class TaskNotificationService {
    */
   private initializeNotifications(): void {
     if (Platform.OS === "android") {
+      const nf = getNotifee();
+      if (nf) {
+        nf.createChannel({
+          id: "tasks",
+          name: "Rappels de tâches",
+          sound: "default",
+          importance: nf.AndroidImportance.HIGH,
+          vibration: true,
+        }).catch(() => {});
+      }
+    } else {
       PushNotification.createChannel(
         {
           channelId: "tasks",
@@ -37,7 +62,7 @@ export class TaskNotificationService {
           importance: 4, // HIGH
           vibrate: true,
         },
-        (created) => void 0
+        () => void 0
       );
     }
   }
@@ -55,7 +80,11 @@ export class TaskNotificationService {
           permissions.sound
         );
       } else {
-        this.permissionGranted = true; // Android gère automatiquement
+        const nf = getNotifee();
+        if (nf?.requestPermission) {
+          await nf.requestPermission();
+        }
+        this.permissionGranted = true;
       }
 
       return this.permissionGranted;
@@ -80,24 +109,53 @@ export class TaskNotificationService {
     try {
       const notificationId = Math.random().toString(36).substr(2, 9);
 
-      PushNotification.localNotificationSchedule({
-        id: notificationId,
-        title: this.getNotificationTitle(type),
-        message: this.getNotificationBody(task, type),
-        date: reminderDate,
-        soundName: "default",
-        channelId: "tasks",
-        userInfo: {
-          taskId: task.id,
-          type,
-          task: {
-            id: task.id,
-            title: task.title,
-            priority: task.priority,
+      if (Platform.OS === "android") {
+        const nf = getNotifee();
+        if (!nf) return null;
+        await nf.createTriggerNotification(
+          {
+            id: notificationId,
+            title: this.getNotificationTitle(type),
+            body: this.getNotificationBody(task, type),
+            android: {
+              channelId: "tasks",
+              importance:
+                this.getNotificationPriority(task.priority) === "max"
+                  ? nf.AndroidImportance.HIGH
+                  : this.getNotificationPriority(task.priority) === "high"
+                  ? nf.AndroidImportance.HIGH
+                  : nf.AndroidImportance.DEFAULT,
+            },
+            data: {
+              taskId: task.id,
+              type,
+            },
           },
-        },
-        priority: this.getNotificationPriority(task.priority),
-      });
+          {
+            type: nf.TriggerType.TIMESTAMP,
+            timestamp: reminderDate.getTime(),
+          }
+        );
+      } else {
+        PushNotification.localNotificationSchedule({
+          id: notificationId,
+          title: this.getNotificationTitle(type),
+          message: this.getNotificationBody(task, type),
+          date: reminderDate,
+          soundName: "default",
+          channelId: "tasks",
+          userInfo: {
+            taskId: task.id,
+            type,
+            task: {
+              id: task.id,
+              title: task.title,
+              priority: task.priority,
+            },
+          },
+          priority: this.getNotificationPriority(task.priority),
+        });
+      }
 
       try {
         await enhancedNotificationService.registerTaskNotificationId(
@@ -186,7 +244,14 @@ export class TaskNotificationService {
    */
   async cancelNotification(notificationId: string): Promise<void> {
     try {
-      PushNotification.cancelLocalNotifications({ id: notificationId });
+      if (Platform.OS === "android") {
+        const nf = getNotifee();
+        if (nf?.cancelNotification) {
+          await nf.cancelNotification(notificationId);
+        }
+      } else {
+        PushNotification.cancelLocalNotifications({ id: notificationId });
+      }
     } catch (error) {}
   }
 
@@ -211,15 +276,32 @@ export class TaskNotificationService {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(9, 0, 0, 0);
-
-      PushNotification.localNotificationSchedule({
-        title: "📋 Tâches en retard",
-        message: "Vous avez des tâches en retard. Consultez votre planning.",
-        date: tomorrow,
-        repeatType: "day",
-        channelId: "tasks",
-        userInfo: { type: "overdue_check" },
-      });
+      if (Platform.OS === "android") {
+        const nf = getNotifee();
+        if (!nf) return;
+        await nf.createTriggerNotification(
+          {
+            title: "📋 Tâches en retard",
+            body: "Vous avez des tâches en retard. Consultez votre planning.",
+            android: { channelId: "tasks" },
+            data: { type: "overdue_check" },
+          },
+          {
+            type: nf.TriggerType.TIMESTAMP,
+            timestamp: tomorrow.getTime(),
+            repeatFrequency: nf.RepeatFrequency.DAILY,
+          }
+        );
+      } else {
+        PushNotification.localNotificationSchedule({
+          title: "📋 Tâches en retard",
+          message: "Vous avez des tâches en retard. Consultez votre planning.",
+          date: tomorrow,
+          repeatType: "day",
+          channelId: "tasks",
+          userInfo: { type: "overdue_check" },
+        });
+      }
     } catch (error) {}
   }
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Animated, Platform } from "react-native";
+import { View, Text, Platform } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import { BlurView } from "@react-native-community/blur";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
@@ -18,23 +18,6 @@ export default function RegisterHeader({
 }: RegisterHeaderProps) {
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
-
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 4,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   return (
     <View
@@ -75,15 +58,7 @@ export default function RegisterHeader({
           ]}
         >
           {/* Icon Container */}
-          <Animated.View
-            style={[
-              tw`mb-3`,
-              {
-                opacity: fadeAnim,
-                transform: [{ scale: scaleAnim }],
-              },
-            ]}
-          >
+          <View style={tw`mb-3`}>
             <View
               style={[
                 tw`w-16 h-16 rounded-full items-center justify-center`,
@@ -100,10 +75,10 @@ export default function RegisterHeader({
                 color={currentTheme.colors.primary}
               />
             </View>
-          </Animated.View>
+          </View>
 
           {/* Title */}
-          <Animated.View style={{ opacity: fadeAnim }}>
+          <View>
             <Text
               style={[
                 tw`text-xl font-bold mb-1 text-center`,
@@ -112,10 +87,10 @@ export default function RegisterHeader({
             >
               {title}
             </Text>
-          </Animated.View>
+          </View>
 
           {/* Subtitle */}
-          <Animated.View style={{ opacity: fadeAnim }}>
+          <View>
             <Text
               style={[
                 tw`text-sm text-center px-6`,
@@ -124,7 +99,7 @@ export default function RegisterHeader({
             >
               {subtitle}
             </Text>
-          </Animated.View>
+          </View>
         </View>
       </BlurView>
     </View>

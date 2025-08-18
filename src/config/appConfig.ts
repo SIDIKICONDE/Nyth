@@ -12,13 +12,13 @@
 
 export const APP_CONFIG = {
   // Nom de l'application
-  APP_NAME: "Visions",
+  APP_NAME: "NYTH",
 
   // Nom alternatif/technique
-  TECHNICAL_NAME: "Visions",
+  TECHNICAL_NAME: "NYTH",
 
   // Version
-  VERSION: "1.0.1",
+  VERSION: "1.0.0",
 
   // Informations de contact
   CONTACT: {

@@ -35,19 +35,13 @@ import {
   FirebaseFirestoreTypes,
 } from "@react-native-firebase/firestore";
 
-import {
-  GoogleSignin,
-  statusCodes,
-} from "@react-native-google-signin/google-signin";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { appleAuth } from "@invertase/react-native-apple-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import { createLogger } from "../../utils/optimizedLogger";
-import {
-  googleSignInConfig,
-  appleSignInConfig,
-  socialAuthErrors,
-} from "../../config/socialAuth.config";
+import { googleSignInConfig } from "../../config/socialAuth.config";
+import { FirebaseError } from "firebase/app";
 
 const logger = createLogger("FirebaseAuthService");
 
@@ -141,9 +135,10 @@ class FirebaseAuthService {
    */
   private configureGoogleSignIn(): void {
     try {
+      // iOS: la valeur GIDClientID est fournie via Info.plist.
+      // Pour éviter tout conflit, on n’envoie que le webClientId ici.
       GoogleSignin.configure({
         webClientId: googleSignInConfig.webClientId,
-        iosClientId: googleSignInConfig.iosClientId,
         offlineAccess: googleSignInConfig.offlineAccess,
         hostedDomain: googleSignInConfig.hostedDomain,
         forceCodeForRefreshToken: googleSignInConfig.forceCodeForRefreshToken,
@@ -307,7 +302,7 @@ class FirebaseAuthService {
 
       logger.info("✅ Inscription réussie pour:", email);
       return user;
-    } catch (error: any) {
+    } catch (error: FirebaseError | Error | unknown) {
       logger.error("❌ Erreur lors de l'inscription:", error);
       throw this.handleAuthError(error);
     }
@@ -361,7 +356,7 @@ class FirebaseAuthService {
 
       logger.info("✅ Connexion réussie pour:", email);
       return user;
-    } catch (error: any) {
+    } catch (error: FirebaseError | Error | unknown) {
       // Enregistrer l'échec de connexion
       this.recordLoginAttempt(email, false);
       logger.error("❌ Erreur lors de la connexion:", error);
@@ -424,7 +419,7 @@ class FirebaseAuthService {
 
       logger.info("✅ Connexion Google réussie");
       return user;
-    } catch (error: any) {
+    } catch (error: FirebaseError | Error | unknown) {
       logger.error("❌ Erreur lors de la connexion Google:", error);
       throw this.handleAuthError(error);
     }
@@ -494,7 +489,7 @@ class FirebaseAuthService {
 
       logger.info("✅ Connexion Apple réussie");
       return user;
-    } catch (error: any) {
+    } catch (error: FirebaseError | Error | unknown) {
       logger.error("❌ Erreur lors de la connexion Apple:", error);
 
       // Gestion des erreurs spécifiques Apple - simplifié
@@ -539,7 +534,7 @@ class FirebaseAuthService {
       await sendEmailVerification(currentUser);
 
       logger.info("✅ Email de vérification envoyé à:", currentUser.email);
-    } catch (error: any) {
+    } catch (error: FirebaseError | Error | unknown) {
       logger.error(
         "❌ Erreur lors de l'envoi de l'email de vérification:",
         error
@@ -583,7 +578,7 @@ class FirebaseAuthService {
       await sendPasswordResetEmail(this.auth, email.toLowerCase().trim());
 
       logger.info("✅ Email de réinitialisation envoyé");
-    } catch (error: any) {
+    } catch (error: FirebaseError | Error | unknown) {
       logger.error(
         "❌ Erreur lors de l'envoi de l'email de réinitialisation:",
         error
@@ -617,7 +612,7 @@ class FirebaseAuthService {
       });
 
       logger.info("✅ Profil utilisateur mis à jour");
-    } catch (error: any) {
+    } catch (error: FirebaseError | Error | unknown) {
       logger.error("❌ Erreur lors de la mise à jour du profil:", error);
       throw this.handleAuthError(error);
     }
@@ -657,7 +652,7 @@ class FirebaseAuthService {
       });
 
       logger.info("✅ Email mis à jour avec succès");
-    } catch (error: any) {
+    } catch (error: FirebaseError | Error | unknown) {
       logger.error("❌ Erreur lors du changement d'email:", error);
       throw this.handleAuthError(error);
     }
@@ -694,7 +689,7 @@ class FirebaseAuthService {
       await updatePassword(user, newPassword);
 
       logger.info("✅ Mot de passe mis à jour avec succès");
-    } catch (error: any) {
+    } catch (error: FirebaseError | Error | unknown) {
       logger.error("❌ Erreur lors du changement de mot de passe:", error);
       throw this.handleAuthError(error);
     }
@@ -724,7 +719,7 @@ class FirebaseAuthService {
       await signOut(this.auth);
 
       logger.info("✅ Déconnexion réussie");
-    } catch (error: any) {
+    } catch (error: FirebaseError | Error | unknown) {
       logger.error("❌ Erreur lors de la déconnexion:", error);
       throw this.handleAuthError(error);
     }
@@ -756,7 +751,7 @@ class FirebaseAuthService {
       await AsyncStorage.multiRemove(["@last_email", "@user_data"]);
 
       logger.info("✅ Compte supprimé avec succès");
-    } catch (error: any) {
+    } catch (error: FirebaseError | Error | unknown) {
       logger.error("❌ Erreur lors de la suppression du compte:", error);
       throw this.handleAuthError(error);
     }
@@ -906,11 +901,11 @@ class FirebaseAuthService {
   /**
    * Gestion centralisée des erreurs d'authentification
    */
-  private handleAuthError(error: any): Error {
-    const errorCode = error.code || error.message;
+  private handleAuthError(error: FirebaseError | Error | unknown): Error {
+    const errorCode = (error as FirebaseError)?.code || (error as Error)?.message;
     const errorMessage =
-      ERROR_MESSAGES[errorCode] ||
-      error.message ||
+      ERROR_MESSAGES[errorCode as string] ||
+      (error as Error)?.message ||
       "Une erreur inattendue s'est produite";
 
     logger.error("🔴 Erreur d'authentification:", {

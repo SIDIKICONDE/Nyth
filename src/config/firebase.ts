@@ -1,5 +1,5 @@
 // @ts-nocheck
-import AsyncStorage from "@react-native-async-storage/async-storage";
+//  import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createLogger } from "../utils/optimizedLogger";
 
 // Import React Native Firebase (API modulaire)

@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  Animated,
 } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
@@ -16,7 +15,6 @@ import {
   useRegisterValidation,
   useRegisterSubmit,
 } from "../hooks";
-import { ANIMATION_DELAYS } from "../utils/constants";
 import FormField from "./FormField";
 import RegisterHeader from "./RegisterHeader";
 import RegisterFooter from "./RegisterFooter";
@@ -44,17 +42,6 @@ export default function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
     setIsConfirmPasswordVisible,
     setIsLoading,
   } = useRegisterForm();
-
-  const buttonAnim = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    Animated.timing(buttonAnim, {
-      toValue: 1,
-      duration: 600,
-      delay: 600,
-      useNativeDriver: true,
-    }).start();
-  }, []);
 
   const handleFieldBlur = (field: keyof typeof formData) => {
     const error = validateField(field, formData[field], formData);
@@ -133,22 +120,7 @@ export default function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
         />
 
         {/* Bouton d'inscription */}
-        <Animated.View
-          style={[
-            tw`mb-4 mt-1`,
-            {
-              opacity: buttonAnim,
-              transform: [
-                {
-                  translateY: buttonAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
+        <View style={tw`mb-4 mt-1`}>
           <TouchableOpacity
             onPress={handleRegister}
             disabled={isLoading}
@@ -188,7 +160,7 @@ export default function RegisterForm({ onNavigateToLogin }: RegisterFormProps) {
               )}
             </LinearGradient>
           </TouchableOpacity>
-        </Animated.View>
+        </View>
 
         {/* Séparateur visuel */}
         <View style={tw`flex-row items-center mb-3`}>

@@ -1,5 +1,5 @@
 import { getApp } from "@react-native-firebase/app";
-import { getAuth } from "@react-native-firebase/auth";
+import { getAuth, onAuthStateChanged } from "@react-native-firebase/auth";
 
 export class WarmupService {
   private static started = false;
@@ -9,7 +9,7 @@ export class WarmupService {
     this.started = true;
     void this.warmApp();
     const auth = getAuth(getApp());
-    auth.onAuthStateChanged((u) => {
+    onAuthStateChanged(auth, (u) => {
       if (u?.uid) {
         void this.warmForUser(u.uid);
       }

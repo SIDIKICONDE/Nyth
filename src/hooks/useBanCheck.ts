@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Alert } from "react-native";
-import { getAuth, FirebaseAuthTypes } from "@react-native-firebase/auth";
+import { getAuth, onAuthStateChanged, FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { banService } from "../services/BanService";
 import { useNavigation } from "@react-navigation/native";
-import { signOut } from "firebase/auth";
+// import { signOut } from "firebase/auth"; // Non utilisé
 
 interface BanStatus {
   isBanned: boolean;
@@ -20,38 +20,53 @@ export const useBanCheck = () => {
   const [checking, setChecking] = useState(true);
   const navigation = useNavigation();
 
-  useEffect(() => {
-    // Initialiser le service de ban au démarrage
-    initializeBanService();
-  }, []);
-
-  useEffect(() => {
-    // Vérifier le ban à chaque changement d'authentification
-    const unsubscribe = getAuth().onAuthStateChanged(
-      async (user: FirebaseAuthTypes.User | null) => {
-        if (user) {
-          await checkBanStatus();
-        }
-      }
-    );
-
-    return unsubscribe;
-  }, []);
-
-  const initializeBanService = async () => {
+  const handleBannedUser = useCallback(async () => {
     try {
-      await banService.initialize();
+      // Déconnecter l'utilisateur
+      await getAuth().signOut();
 
-      // Enregistrer le device si un utilisateur est connecté
-      if (getAuth().currentUser) {
-        await banService.registerUserDevice();
-      }
+      // Rediriger vers l'écran de connexion
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" as never }],
+      });
     } catch (error) {
-      console.error("Erreur lors de l'initialisation du BanService:", error);
+      console.error("Erreur lors de la déconnexion:", error);
     }
-  };
+  }, [navigation]);
 
-  const checkBanStatus = async () => {
+  const showBanAlert = useCallback((ban: any) => {
+    let message = `Votre appareil a été banni.\n\nRaison: ${ban.reason}`;
+
+    if (ban.severity === "temporary" && ban.expiresAt) {
+      const expiresAt = ban.expiresAt.toDate();
+      message += `\n\nCe ban expirera le: ${expiresAt.toLocaleDateString()}`;
+    } else if (ban.severity === "permanent") {
+      message += `\n\nCe ban est permanent.`;
+    }
+
+    if (ban.notes) {
+      message += `\n\nDétails: ${ban.notes}`;
+    }
+
+    const buttons: any[] = [
+      {
+        text: "OK",
+        onPress: () => handleBannedUser(),
+      },
+    ];
+
+    if (ban.appealStatus !== "rejected" && ban.severity !== "warning") {
+      buttons.unshift({
+        text: "Faire appel",
+        onPress: () => showAppealDialog(),
+      });
+    }
+
+    Alert.alert("Accès Refusé", message, buttons, { cancelable: false });
+  }, [handleBannedUser]);
+
+  const checkBanStatus = useCallback(async () => {
     setChecking(true);
     try {
       const isBanned = await banService.isDeviceBanned();
@@ -87,37 +102,38 @@ export const useBanCheck = () => {
     } finally {
       setChecking(false);
     }
-  };
+  }, [showBanAlert, handleBannedUser]);
 
-  const showBanAlert = (ban: any) => {
-    let message = `Votre appareil a été banni.\n\nRaison: ${ban.reason}`;
+  useEffect(() => {
+    // Initialiser le service de ban au démarrage
+    initializeBanService();
+  }, []);
 
-    if (ban.severity === "temporary" && ban.expiresAt) {
-      const expiresAt = ban.expiresAt.toDate();
-      message += `\n\nCe ban expirera le: ${expiresAt.toLocaleDateString()}`;
-    } else if (ban.severity === "permanent") {
-      message += `\n\nCe ban est permanent.`;
+  useEffect(() => {
+    // Vérifier le ban à chaque changement d'authentification
+    const unsubscribe = onAuthStateChanged(
+      getAuth(),
+      async (user: FirebaseAuthTypes.User | null) => {
+        if (user) {
+          await checkBanStatus();
+        }
+      }
+    );
+
+    return unsubscribe;
+  }, [checkBanStatus]);
+
+  const initializeBanService = async () => {
+    try {
+      await banService.initialize();
+
+      // Enregistrer le device si un utilisateur est connecté
+      if (getAuth().currentUser) {
+        await banService.registerUserDevice();
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'initialisation du BanService:", error);
     }
-
-    if (ban.notes) {
-      message += `\n\nDétails: ${ban.notes}`;
-    }
-
-    const buttons: any[] = [
-      {
-        text: "OK",
-        onPress: () => handleBannedUser(),
-      },
-    ];
-
-    if (ban.appealStatus !== "rejected" && ban.severity !== "warning") {
-      buttons.unshift({
-        text: "Faire appel",
-        onPress: () => showAppealDialog(),
-      });
-    }
-
-    Alert.alert("Accès Refusé", message, buttons, { cancelable: false });
   };
 
   const showAppealDialog = () => {
@@ -154,21 +170,6 @@ export const useBanCheck = () => {
       ],
       "plain-text"
     );
-  };
-
-  const handleBannedUser = async () => {
-    try {
-      // Déconnecter l'utilisateur
-      await getAuth().signOut();
-
-      // Rediriger vers l'écran de connexion
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Login" as never }],
-      });
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
-    }
   };
 
   const registerDevice = async () => {

@@ -50,18 +50,20 @@ export class EnhancedNotificationService {
     if (this.isInitialized) return;
 
     try {
-      // Configuration des notifications
-      PushNotification.configure({
-        onNotification: (notification) => {
-          logger.info("Notification reçue:", notification);
-          this.handleNotificationReceived(notification);
-        },
-        requestPermissions: Platform.OS === "ios",
-      });
+      // Configuration des notifications (iOS uniquement)
+      if (Platform.OS === "ios") {
+        PushNotification.configure({
+          onNotification: (notification) => {
+            logger.info("Notification reçue:", notification);
+            this.handleNotificationReceived(notification);
+          },
+          requestPermissions: true,
+        });
+      }
 
-      // Créer les canaux de notification pour Android
+      // Créer les canaux de notification pour Android (via Notifee)
       if (Platform.OS === "android") {
-        this.createNotificationChannels();
+        await this.createNotificationChannels();
       }
 
       // Demander les permissions
@@ -77,7 +79,7 @@ export class EnhancedNotificationService {
     }
   }
 
-  private createNotificationChannels() {
+  private async createNotificationChannels() {
     const channels = [
       {
         channelId: "events",
@@ -113,17 +115,47 @@ export class EnhancedNotificationService {
       },
     ];
 
-    channels.forEach((channel) => {
-      PushNotification.createChannel(channel, () => {
-        logger.info(`Canal ${channel.channelId} créé`);
+    if (Platform.OS === "android") {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const nf = require("@notifee/react-native");
+        for (const channel of channels) {
+          await nf.createChannel({
+            id: channel.channelId,
+            name: channel.channelName,
+            sound: channel.soundName,
+            importance:
+              channel.importance === 4
+                ? nf.AndroidImportance.HIGH
+                : nf.AndroidImportance.DEFAULT,
+            vibration: channel.vibrate,
+          });
+        }
+      } catch (e) {}
+    } else {
+      channels.forEach((channel) => {
+        PushNotification.createChannel(channel, () => {
+          logger.info(`Canal ${channel.channelId} créé`);
+        });
       });
-    });
+    }
   }
 
   private async requestPermissions(): Promise<boolean> {
     try {
-      const permissions = await PushNotification.requestPermissions();
-      this.permissionGranted = permissions.alert === true;
+      if (Platform.OS === "android") {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const nf = require("@notifee/react-native");
+          await nf.requestPermission();
+          this.permissionGranted = true;
+        } catch {
+          this.permissionGranted = true;
+        }
+      } else {
+        const permissions = await PushNotification.requestPermissions();
+        this.permissionGranted = permissions.alert === true;
+      }
 
       if (this.permissionGranted) {
         logger.info("✅ Permissions de notification accordées");
@@ -366,21 +398,44 @@ export class EnhancedNotificationService {
         );
       }
 
-      PushNotification.localNotificationSchedule({
-        id: notificationId,
-        title: "📅 Événement à venir",
-        message,
-        date: fireDate,
-        soundName: this.getNotificationSound("event"),
-        channelId: "events",
-        priority: event.priority === "urgent" ? "max" : "high",
-        vibration: this.getVibrationPattern("event"),
-        userInfo: {
-          type: "event",
-          eventId: event.id,
-          minutesBefore,
-        },
-      });
+      if (Platform.OS === "android") {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const nf = require("@notifee/react-native");
+          await nf.createTriggerNotification(
+            {
+              id: notificationId,
+              title: "📅 Événement à venir",
+              body: message,
+              android: {
+                channelId: "events",
+                importance:
+                  event.priority === "urgent"
+                    ? nf.AndroidImportance.HIGH
+                    : nf.AndroidImportance.DEFAULT,
+              },
+              data: { type: "event", eventId: event.id, minutesBefore },
+            },
+            { type: nf.TriggerType.TIMESTAMP, timestamp: fireDate.getTime() }
+          );
+        } catch {}
+      } else {
+        PushNotification.localNotificationSchedule({
+          id: notificationId,
+          title: "📅 Événement à venir",
+          message,
+          date: fireDate,
+          soundName: this.getNotificationSound("event"),
+          channelId: "events",
+          priority: event.priority === "urgent" ? "max" : "high",
+          vibration: this.getVibrationPattern("event"),
+          userInfo: {
+            type: "event",
+            eventId: event.id,
+            minutesBefore,
+          },
+        });
+      }
 
       await this.registerNotificationId("event", event.id, notificationId);
       logger.info(`📅 Notification d'événement programmée: ${notificationId}`);
@@ -441,20 +496,44 @@ export class EnhancedNotificationService {
           break;
       }
 
-      PushNotification.localNotification({
-        id: notificationId,
-        title,
-        message,
-        soundName: this.getNotificationSound("goal"),
-        channelId: "goals",
-        priority: type === "achievement" ? "max" : "default",
-        vibration: this.getVibrationPattern("goal"),
-        userInfo: {
-          type: "goal",
-          goalId: goal.id,
-          notificationType: type,
-        },
-      });
+      if (Platform.OS === "android") {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const nf = require("@notifee/react-native");
+          await nf.displayNotification({
+            id: notificationId,
+            title,
+            body: message,
+            android: {
+              channelId: "goals",
+              importance:
+                type === "achievement"
+                  ? nf.AndroidImportance.HIGH
+                  : nf.AndroidImportance.DEFAULT,
+            },
+            data: {
+              type: "goal",
+              goalId: goal.id,
+              notificationType: type,
+            },
+          });
+        } catch {}
+      } else {
+        PushNotification.localNotification({
+          id: notificationId,
+          title,
+          message,
+          soundName: this.getNotificationSound("goal"),
+          channelId: "goals",
+          priority: type === "achievement" ? "max" : "default",
+          vibration: this.getVibrationPattern("goal"),
+          userInfo: {
+            type: "goal",
+            goalId: goal.id,
+            notificationType: type,
+          },
+        });
+      }
 
       await this.registerNotificationId("goal", goal.id, notificationId);
       logger.info(`🎯 Notification d'objectif envoyée: ${notificationId}`);
@@ -486,22 +565,43 @@ export class EnhancedNotificationService {
 
     try {
       const notificationId = `goal_${goal.id}_progress_daily`;
-      PushNotification.localNotificationSchedule({
-        id: notificationId,
-        title: "🎯 Progrès quotidien",
-        message: `N'oubliez pas de mettre à jour: ${goal.title}`,
-        date: first,
-        repeatType: "day",
-        soundName: this.getNotificationSound("goal"),
-        channelId: "goals",
-        priority: "default",
-        vibration: this.getVibrationPattern("goal"),
-        userInfo: {
-          type: "goal",
-          goalId: goal.id,
-          notificationType: "progress",
-        },
-      });
+      if (Platform.OS === "android") {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const nf = require("@notifee/react-native");
+          await nf.createTriggerNotification(
+            {
+              id: notificationId,
+              title: "🎯 Progrès quotidien",
+              body: `N'oubliez pas de mettre à jour: ${goal.title}`,
+              android: { channelId: "goals" },
+              data: { type: "goal", goalId: goal.id, notificationType: "progress" },
+            },
+            {
+              type: nf.TriggerType.TIMESTAMP,
+              timestamp: first.getTime(),
+              repeatFrequency: nf.RepeatFrequency.DAILY,
+            }
+          );
+        } catch {}
+      } else {
+        PushNotification.localNotificationSchedule({
+          id: notificationId,
+          title: "🎯 Progrès quotidien",
+          message: `N'oubliez pas de mettre à jour: ${goal.title}`,
+          date: first,
+          repeatType: "day",
+          soundName: this.getNotificationSound("goal"),
+          channelId: "goals",
+          priority: "default",
+          vibration: this.getVibrationPattern("goal"),
+          userInfo: {
+            type: "goal",
+            goalId: goal.id,
+            notificationType: "progress",
+          },
+        });
+      }
       await this.registerNotificationId("goal", goal.id, notificationId);
       return notificationId;
     } catch (error) {
@@ -532,22 +632,43 @@ export class EnhancedNotificationService {
 
     try {
       const notificationId = `goal_${goal.id}_review_weekly`;
-      PushNotification.localNotificationSchedule({
-        id: notificationId,
-        title: "📅 Revue hebdomadaire",
-        message: `Faites le point sur: ${goal.title}`,
-        date: first,
-        repeatType: "week",
-        soundName: this.getNotificationSound("goal"),
-        channelId: "goals",
-        priority: "default",
-        vibration: this.getVibrationPattern("goal"),
-        userInfo: {
-          type: "goal",
-          goalId: goal.id,
-          notificationType: "progress",
-        },
-      });
+      if (Platform.OS === "android") {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const nf = require("@notifee/react-native");
+          await nf.createTriggerNotification(
+            {
+              id: notificationId,
+              title: "📅 Revue hebdomadaire",
+              body: `Faites le point sur: ${goal.title}`,
+              android: { channelId: "goals" },
+              data: { type: "goal", goalId: goal.id, notificationType: "progress" },
+            },
+            {
+              type: nf.TriggerType.TIMESTAMP,
+              timestamp: first.getTime(),
+              repeatFrequency: nf.RepeatFrequency.WEEKLY,
+            }
+          );
+        } catch {}
+      } else {
+        PushNotification.localNotificationSchedule({
+          id: notificationId,
+          title: "📅 Revue hebdomadaire",
+          message: `Faites le point sur: ${goal.title}`,
+          date: first,
+          repeatType: "week",
+          soundName: this.getNotificationSound("goal"),
+          channelId: "goals",
+          priority: "default",
+          vibration: this.getVibrationPattern("goal"),
+          userInfo: {
+            type: "goal",
+            goalId: goal.id,
+            notificationType: "progress",
+          },
+        });
+      }
       await this.registerNotificationId("goal", goal.id, notificationId);
       return notificationId;
     } catch (error) {
@@ -570,21 +691,38 @@ export class EnhancedNotificationService {
 
     try {
       const notificationId = `goal_${goal.id}_overdue_once`;
-      PushNotification.localNotificationSchedule({
-        id: notificationId,
-        title: "⚠️ Objectif en retard",
-        message: `L'objectif "${goal.title}" nécessite votre attention`,
-        date,
-        soundName: this.getNotificationSound("goal"),
-        channelId: "goals",
-        priority: "high",
-        vibration: this.getVibrationPattern("goal"),
-        userInfo: {
-          type: "goal",
-          goalId: goal.id,
-          notificationType: "overdue",
-        },
-      });
+      if (Platform.OS === "android") {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const nf = require("@notifee/react-native");
+          await nf.createTriggerNotification(
+            {
+              id: notificationId,
+              title: "⚠️ Objectif en retard",
+              body: `L'objectif "${goal.title}" nécessite votre attention`,
+              android: { channelId: "goals", importance: nf.AndroidImportance.HIGH },
+              data: { type: "goal", goalId: goal.id, notificationType: "overdue" },
+            },
+            { type: nf.TriggerType.TIMESTAMP, timestamp: date.getTime() }
+          );
+        } catch {}
+      } else {
+        PushNotification.localNotificationSchedule({
+          id: notificationId,
+          title: "⚠️ Objectif en retard",
+          message: `L'objectif "${goal.title}" nécessite votre attention`,
+          date,
+          soundName: this.getNotificationSound("goal"),
+          channelId: "goals",
+          priority: "high",
+          vibration: this.getVibrationPattern("goal"),
+          userInfo: {
+            type: "goal",
+            goalId: goal.id,
+            notificationType: "overdue",
+          },
+        });
+      }
       await this.registerNotificationId("goal", goal.id, notificationId);
       return notificationId;
     } catch (error) {
@@ -696,7 +834,15 @@ export class EnhancedNotificationService {
   // Annuler une notification
   async cancelNotification(notificationId: string): Promise<void> {
     try {
-      PushNotification.cancelLocalNotification(notificationId);
+      if (Platform.OS === "android") {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const nf = require("@notifee/react-native");
+          await nf.cancelNotification(notificationId);
+        } catch {}
+      } else {
+        PushNotification.cancelLocalNotification(notificationId);
+      }
       logger.info(`🗑️ Notification annulée: ${notificationId}`);
     } catch (error) {
       logger.error("❌ Erreur lors de l'annulation de notification:", error);
@@ -706,7 +852,15 @@ export class EnhancedNotificationService {
   // Annuler toutes les notifications
   async cancelAllNotifications(): Promise<void> {
     try {
-      PushNotification.cancelAllLocalNotifications();
+      if (Platform.OS === "android") {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const nf = require("@notifee/react-native");
+          await nf.cancelAllNotifications();
+        } catch {}
+      } else {
+        PushNotification.cancelAllLocalNotifications();
+      }
       logger.info("🗑️ Toutes les notifications annulées");
     } catch (error) {
       logger.error(
@@ -718,6 +872,23 @@ export class EnhancedNotificationService {
 
   // Obtenir les notifications programmées
   async getScheduledNotifications(): Promise<ScheduledNotification[]> {
+    if (Platform.OS === "android") {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const nf = require("@notifee/react-native");
+        const scheduled = await nf.getTriggerNotifications();
+        return scheduled.map((n: any) => ({
+          id: n.notification.id,
+          fireDate: new Date(n.trigger?.timestamp ?? Date.now()),
+          type: n.notification?.data?.type ?? "unknown",
+          title: n.notification?.title ?? "",
+          message: n.notification?.body ?? "",
+          data: n.notification?.data ?? {},
+        }));
+      } catch {
+        return [];
+      }
+    }
     return new Promise((resolve) => {
       PushNotification.getScheduledLocalNotifications((notifications) => {
         const scheduledNotifications: ScheduledNotification[] =
