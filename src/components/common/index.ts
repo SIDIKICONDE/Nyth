@@ -1,6 +1,13 @@
-export { default as CustomButton } from './CustomButton';
-export { default as CustomHeader } from './CustomHeader';
-export { Collapsible } from './Collapsible';
-export { default as CollapsibleSection } from './CollapsibleSection';
+// Responsive Components
+export { ResponsiveView } from './ResponsiveView';
+export { ResponsiveText } from './ResponsiveText';
+export { ResponsiveButton } from './ResponsiveButton';
+export { ResponsiveImage } from './ResponsiveImage';
+export { ResponsiveGrid, ResponsiveRow, ResponsiveColumn } from './ResponsiveGrid';
+export { ResponsiveModal } from './ResponsiveModal';
+export { ResponsiveCard } from './ResponsiveCard';
 
-export { AnalyticsMigrationManager } from './AnalyticsMigrationManager'; 
+// Re-export existing components if any
+export * from './ErrorBoundary';
+export * from './SplashScreenManager';
+export * from './AnalyticsMigrationManager';
