@@ -51,6 +51,12 @@ const PricingScreen: React.FC = () => {
   const cardWidth = screenWidth * 0.85;
   const cardMargin = 10;
 
+  const handleScroll = (event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / (cardWidth + 2 * cardMargin));
+    setCurrentIndex(index);
+  };
+
   const handleSelectPlan = async (planId: string) => {
     if (planId === currentPlan.id) {
       // Si l'utilisateur est déjà sur ce plan, ouvrir le portail client
@@ -170,7 +176,8 @@ const PricingScreen: React.FC = () => {
   };
 
   const renderPlanCard = (
-    plan: (typeof SUBSCRIPTION_PLANS)[keyof typeof SUBSCRIPTION_PLANS]
+    plan: (typeof SUBSCRIPTION_PLANS)[keyof typeof SUBSCRIPTION_PLANS],
+    index: number
   ) => {
     const isCurrentPlan = plan.id === currentPlan.id;
     const isSelected = plan.id === selectedPlan;
@@ -181,8 +188,10 @@ const PricingScreen: React.FC = () => {
         onPress={() => handleSelectPlan(plan.id)}
         disabled={isProcessing}
         style={[
-          tw`mb-4 rounded-2xl overflow-hidden`,
+          tw`rounded-2xl overflow-hidden`,
           {
+            width: cardWidth,
+            marginHorizontal: cardMargin,
             borderWidth: isCurrentPlan ? 2 : 1,
             borderColor: isCurrentPlan
               ? plan.color
@@ -211,13 +220,13 @@ const PricingScreen: React.FC = () => {
 
         <LinearGradient
           colors={[`${plan.color}20`, "transparent"]}
-          style={tw`p-5`}
+          style={tw`p-5 h-full`}
         >
           <View style={tw`flex-row justify-between items-start mb-3`}>
-            <View>
+            <View style={tw`flex-1`}>
               <Text
                 style={[
-                  tw`text-2xl font-bold mb-1`,
+                  tw`text-xl font-bold mb-1`,
                   { color: currentTheme.colors.text },
                 ]}
               >
@@ -252,35 +261,42 @@ const PricingScreen: React.FC = () => {
             )}
           </View>
 
-          <View style={tw`mb-4`}>
-            <Text style={[tw`text-3xl font-bold`, { color: plan.color }]}>
+          <View style={tw`mb-3`}>
+            <Text style={[tw`text-2xl font-bold`, { color: plan.color }]}>
               {plan.price === 0
                 ? t("subscription.free", "Gratuit")
+                : isYearlyPlan && plan.price > 0
+                ? `${Math.round(plan.price * 12 * 0.8)}€`
                 : `${plan.price}€`}
               {plan.price > 0 && (
                 <Text
                   style={[
-                    tw`text-base font-normal`,
+                    tw`text-sm font-normal`,
                     { color: currentTheme.colors.textSecondary },
                   ]}
                 >
-                  /{t(`subscription.period.${plan.period}`, "mois")}
+                  /{t(`subscription.period.${isYearlyPlan ? "yearly" : plan.period}`, isYearlyPlan ? "an" : "mois")}
                 </Text>
               )}
             </Text>
+            {isYearlyPlan && plan.price > 0 && (
+              <Text style={[tw`text-xs`, { color: currentTheme.colors.success }]}>
+                {t("subscription.save", "Économisez 20%")}
+              </Text>
+            )}
           </View>
 
-          <View style={tw`mb-4`}>
+          <View style={tw`mb-3`}>
             {plan.limits.dailyGenerations && (
               <View style={tw`flex-row items-center mb-2`}>
                 <MaterialCommunityIcons
                   name="calendar-today"
-                  size={16}
+                  size={14}
                   color={currentTheme.colors.textSecondary}
                 />
                 <Text
                   style={[
-                    tw`ml-2 text-sm`,
+                    tw`ml-2 text-xs`,
                     { color: currentTheme.colors.text },
                   ]}
                 >
@@ -294,12 +310,12 @@ const PricingScreen: React.FC = () => {
               <View style={tw`flex-row items-center mb-2`}>
                 <MaterialCommunityIcons
                   name="calendar-month"
-                  size={16}
+                  size={14}
                   color={currentTheme.colors.textSecondary}
                 />
                 <Text
                   style={[
-                    tw`ml-2 text-sm`,
+                    tw`ml-2 text-xs`,
                     { color: currentTheme.colors.text },
                   ]}
                 >
@@ -312,14 +328,14 @@ const PricingScreen: React.FC = () => {
             {!plan.limits.dailyGenerations &&
               !plan.limits.monthlyGenerations && (
                 <View style={tw`flex-row items-center mb-2`}>
-                  <MaterialCommunityIcons
-                    name="infinity"
-                    size={16}
-                    color={plan.color}
-                  />
+                                  <MaterialCommunityIcons
+                  name="infinity"
+                  size={14}
+                  color={plan.color}
+                />
                   <Text
                     style={[
-                      tw`ml-2 text-sm font-medium`,
+                      tw`ml-2 text-xs font-medium`,
                       { color: plan.color },
                     ]}
                   >
@@ -329,18 +345,18 @@ const PricingScreen: React.FC = () => {
               )}
           </View>
 
-          <View>
-            {plan.limits.features.map((feature, index) => (
-              <View key={index} style={tw`flex-row items-start mb-2`}>
+          <View style={tw`flex-1`}>
+            {plan.limits.features.slice(0, 4).map((feature, index) => (
+              <View key={index} style={tw`flex-row items-start mb-1.5`}>
                 <MaterialCommunityIcons
                   name="check-circle"
-                  size={16}
+                  size={14}
                   color={plan.color}
                   style={tw`mt-0.5`}
                 />
                 <Text
                   style={[
-                    tw`ml-2 text-sm flex-1`,
+                    tw`ml-2 text-xs flex-1`,
                     { color: currentTheme.colors.text },
                   ]}
                 >
@@ -348,6 +364,16 @@ const PricingScreen: React.FC = () => {
                 </Text>
               </View>
             ))}
+            {plan.limits.features.length > 4 && (
+              <Text
+                style={[
+                  tw`text-xs mt-1`,
+                  { color: currentTheme.colors.textSecondary },
+                ]}
+              >
+                +{plan.limits.features.length - 4} {t("subscription.moreFeatures", "autres fonctionnalités")}
+              </Text>
+            )}
           </View>
 
           {!isCurrentPlan && (
@@ -355,7 +381,7 @@ const PricingScreen: React.FC = () => {
               onPress={() => handleSelectPlan(plan.id)}
               disabled={isProcessing}
               style={[
-                tw`mt-4 py-3 rounded-lg items-center`,
+                tw`mt-3 py-2.5 rounded-lg items-center`,
                 {
                   backgroundColor: isSelected
                     ? getOptimizedButtonColors().background
@@ -368,7 +394,7 @@ const PricingScreen: React.FC = () => {
               ) : (
                 <Text
                   style={[
-                    tw`font-semibold`,
+                    tw`font-semibold text-sm`,
                     {
                       color: isSelected
                         ? getOptimizedButtonColors().text
@@ -383,6 +409,29 @@ const PricingScreen: React.FC = () => {
           )}
         </LinearGradient>
       </TouchableOpacity>
+    );
+  };
+
+  const renderPaginationDots = () => {
+    const plans = Object.values(SUBSCRIPTION_PLANS);
+    return (
+      <View style={tw`flex-row justify-center mt-4 mb-2`}>
+        {plans.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              tw`mx-1 rounded-full`,
+              {
+                width: currentIndex === index ? 20 : 8,
+                height: 8,
+                backgroundColor: currentIndex === index 
+                  ? currentTheme.colors.primary 
+                  : currentTheme.colors.border,
+              },
+            ]}
+          />
+        ))}
+      </View>
     );
   };
 
@@ -411,10 +460,9 @@ const PricingScreen: React.FC = () => {
 
       <ScrollView
         style={tw`flex-1`}
-        contentContainerStyle={tw`p-4 pb-8`}
         showsVerticalScrollIndicator={false}
       >
-        <View style={tw`mb-6`}>
+        <View style={tw`p-4`}>
           <Text
             style={[
               tw`text-2xl font-bold mb-2`,
@@ -432,72 +480,67 @@ const PricingScreen: React.FC = () => {
             {t("subscription.subtitle", "Débloquez tout le potentiel de l'IA")}
           </Text>
 
-          {/* Sélecteur de période pour Stripe */}
+          {/* Switch pour plan annuel */}
           {isStripeConfigured() && (
             <View style={[
-              tw`flex-row rounded-lg p-1 mb-4`,
+              tw`flex-row items-center justify-between p-4 rounded-lg mb-4`,
               { backgroundColor: currentTheme.colors.surface }
             ]}>
-              <TouchableOpacity
-                style={[
-                  tw`flex-1 py-2 px-4 rounded-md`,
-                  {
-                    backgroundColor: selectedPeriod === "monthly" 
-                      ? currentTheme.colors.primary 
-                      : "transparent"
-                  }
-                ]}
-                onPress={() => setSelectedPeriod("monthly")}
-              >
+              <View style={tw`flex-1`}>
                 <Text
                   style={[
-                    tw`text-center font-medium`,
-                    {
-                      color: selectedPeriod === "monthly"
-                        ? getOptimizedButtonColors().text
-                        : currentTheme.colors.text
-                    }
+                    tw`font-medium`,
+                    { color: currentTheme.colors.text }
                   ]}
                 >
-                  {t("subscription.monthly", "Mensuel")}
+                  {t("subscription.yearlyPlan", "Plan annuel")}
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  tw`flex-1 py-2 px-4 rounded-md`,
-                  {
-                    backgroundColor: selectedPeriod === "yearly" 
-                      ? currentTheme.colors.primary 
-                      : "transparent"
-                  }
-                ]}
-                onPress={() => setSelectedPeriod("yearly")}
-              >
                 <Text
                   style={[
-                    tw`text-center font-medium`,
-                    {
-                      color: selectedPeriod === "yearly"
-                        ? getOptimizedButtonColors().text
-                        : currentTheme.colors.text
-                    }
+                    tw`text-xs`,
+                    { color: currentTheme.colors.success }
                   ]}
                 >
-                  {t("subscription.yearly", "Annuel")}
-                  <Text style={[tw`text-xs`, { color: currentTheme.colors.success }]}>
-                    {" "}({t("subscription.save", "Économisez 20%")})
-                  </Text>
+                  {t("subscription.yearlyDiscount", "Économisez 20% avec un paiement annuel")}
                 </Text>
-              </TouchableOpacity>
+              </View>
+              <Switch
+                value={isYearlyPlan}
+                onValueChange={setIsYearlyPlan}
+                trackColor={{ 
+                  false: currentTheme.colors.border, 
+                  true: currentTheme.colors.primary 
+                }}
+                thumbColor={isYearlyPlan ? getOptimizedButtonColors().text : "#f4f3f4"}
+                ios_backgroundColor={currentTheme.colors.border}
+              />
             </View>
           )}
         </View>
 
-        {Object.values(SUBSCRIPTION_PLANS).map(renderPlanCard)}
+        {/* Slider horizontal des plans */}
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{
+            paddingHorizontal: (screenWidth - cardWidth) / 2,
+          }}
+          snapToInterval={cardWidth + 2 * cardMargin}
+          decelerationRate="fast"
+        >
+          {Object.values(SUBSCRIPTION_PLANS).map((plan, index) => renderPlanCard(plan, index))}
+        </ScrollView>
+
+        {/* Indicateurs de pagination */}
+        {renderPaginationDots()}
 
         <View
           style={[
-            tw`mt-6 p-4 rounded-lg`,
+            tw`mx-4 mt-4 mb-6 p-4 rounded-lg`,
             { backgroundColor: currentTheme.colors.surface },
           ]}
         >
@@ -524,7 +567,7 @@ const PricingScreen: React.FC = () => {
           ]}>
             <StripeCheckout
               planId={checkoutPlanId}
-              priceId={getStripePriceId(checkoutPlanId, selectedPeriod)}
+              priceId={getStripePriceId(checkoutPlanId, isYearlyPlan ? "yearly" : "monthly")}
               onSuccess={handleStripeSuccess}
               onCancel={handleStripeCancel}
               onError={handleStripeError}
