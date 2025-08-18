@@ -34,6 +34,7 @@ export default function PreviewScreen() {
     setShowSocialShare,
     handleExport,
     handleBasicShare,
+    loadRecording,
   } = usePreviewData();
 
   // Affichage de l'état de chargement
@@ -43,7 +44,7 @@ export default function PreviewScreen() {
 
   // Affichage de l'état d'erreur si l'enregistrement n'est pas trouvé
   if (!recording) {
-    return <NotFoundState />;
+    return <NotFoundState onRetry={loadRecording} />;
   }
 
   // Couleur par défaut pour le gradient

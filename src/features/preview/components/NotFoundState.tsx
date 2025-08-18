@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import { useNavigation } from '@react-navigation/native';
 import tw from 'twrnc';
 import { UIText } from '@/components/ui/Typography';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -11,6 +12,7 @@ interface NotFoundStateProps {
 
 export function NotFoundState({ onRetry }: NotFoundStateProps) {
   const { currentTheme } = useTheme();
+  const navigation = useNavigation();
 
   return (
     <View
@@ -38,9 +40,10 @@ export function NotFoundState({ onRetry }: NotFoundStateProps) {
           </UIText>
         </Animated.View>
 
-        {/* Bouton de retry */}
-        {onRetry && (
-          <Animated.View entering={FadeInUp.duration(800).delay(600)}>
+        {/* Boutons d'action */}
+        <Animated.View entering={FadeInUp.duration(800).delay(600)} style={tw`flex-row gap-3`}>
+          {/* Bouton de retry */}
+          {onRetry && (
             <Pressable
               onPress={onRetry}
               style={({ pressed }) => [
@@ -56,8 +59,26 @@ export function NotFoundState({ onRetry }: NotFoundStateProps) {
                 Réessayer
               </UIText>
             </Pressable>
-          </Animated.View>
-        )}
+          )}
+          
+          {/* Bouton retour accueil */}
+          <Pressable
+            onPress={() => navigation.navigate('Home' as never)}
+            style={({ pressed }) => [
+              tw`px-6 py-3 rounded-2xl border-2`,
+              {
+                borderColor: currentTheme.colors.primary,
+                backgroundColor: pressed ? currentTheme.colors.primary + '10' : 'transparent',
+                opacity: pressed ? 0.8 : 1,
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+              },
+            ]}
+          >
+            <UIText size="base" weight="medium" style={[tw`text-center`, { color: currentTheme.colors.primary }]}>
+              Retour à l'accueil
+            </UIText>
+          </Pressable>
+        </Animated.View>
       </Animated.View>
     </View>
   );

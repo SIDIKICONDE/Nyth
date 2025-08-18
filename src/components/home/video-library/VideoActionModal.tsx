@@ -58,12 +58,12 @@ export const VideoActionModal: React.FC<VideoActionModalProps> = ({
 
     // Naviguer vers l'écran Preview
     navigation.navigate("Preview", {
+      recordingId: recording.id,
       videoUri: recording.videoUri || recording.uri || "",
       duration: recording.duration || 0,
       scriptId: recording.scriptId,
       scriptTitle: recording.scriptTitle,
       thumbnailUri: recording.thumbnailUri,
-      recordingId: recording.id,
     });
   };
 

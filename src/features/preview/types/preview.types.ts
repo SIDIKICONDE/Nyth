@@ -49,6 +49,7 @@ export interface UsePreviewDataReturn extends PreviewState {
   handleShare: () => void;
   handleBasicShare: () => void;
   handleDelete: () => void;
+  loadRecording: () => void;
 }
 
 export interface VideoPlayerSectionProps {
