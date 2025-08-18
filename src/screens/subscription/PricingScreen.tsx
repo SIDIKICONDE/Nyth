@@ -124,7 +124,7 @@ const PricingScreen: React.FC = () => {
 
   const renderPlanCard = (
     plan: (typeof SUBSCRIPTION_PLANS)[keyof typeof SUBSCRIPTION_PLANS],
-    index: number
+    _index: number
   ) => {
     const isCurrentPlan = plan.id === currentPlan.id;
     const isSelected = plan.id === selectedPlan;

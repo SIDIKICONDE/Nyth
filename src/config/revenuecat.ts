@@ -11,11 +11,12 @@
  */
 
 import { Platform } from 'react-native';
+import { REVENUECAT_IOS_API_KEY, REVENUECAT_ANDROID_API_KEY } from '@env';
 
 // Clés API RevenueCat (à remplacer par vos vraies clés)
 export const REVENUECAT_API_KEYS = {
-  ios: process.env.REVENUECAT_IOS_API_KEY || 'YOUR_IOS_API_KEY_HERE',
-  android: process.env.REVENUECAT_ANDROID_API_KEY || 'YOUR_ANDROID_API_KEY_HERE',
+  ios: REVENUECAT_IOS_API_KEY || process.env.REVENUECAT_IOS_API_KEY || 'YOUR_IOS_API_KEY_HERE',
+  android: REVENUECAT_ANDROID_API_KEY || process.env.REVENUECAT_ANDROID_API_KEY || 'YOUR_ANDROID_API_KEY_HERE',
 };
 
 // Configuration des identifiants de produits

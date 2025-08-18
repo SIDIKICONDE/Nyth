@@ -7,14 +7,11 @@ import {
   useFocusEffect,
 } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { SafeAreaView } from "react-native-safe-area-context";
 import tw from "twrnc";
 import { LoadingScreen } from "./components/LoadingScreen";
 import { ErrorScreen } from "./components/ErrorScreen";
 import { RecordingErrorBoundary } from "./components/ErrorBoundary";
-import { MemoryIndicator } from "./components/MemoryIndicator";
 import { useErrorRecovery } from "./hooks/useErrorRecovery";
-import { useMemoryMonitor } from "./hooks/useMemoryMonitor";
 import { useEmergencyRecordingSave } from "./hooks/useEmergencyRecordingSave";
 import { CameraRecorder } from "./components/CameraRecorder";
 import { TeleprompterSettingsModal } from "@/components/recording/teleprompter/TeleprompterSettingsModal";
@@ -62,13 +59,11 @@ export default function RecordingScreen({}: RecordingScreenProps) {
   // Système de récupération d'erreurs
   const {
     error: recoveryError,
-    isRecovering,
     retryCount,
     canRecover,
     captureError,
     manualRecovery,
     resetErrorState,
-    safeExecute,
     errorStats,
   } = useErrorRecovery({
     maxRetries: 3,
@@ -84,12 +79,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
   });
 
   // Sauvegarde d'urgence
-  const {
-    performEmergencySave,
-    getEmergencyRecordings,
-    checkForRecoveryData,
-    isSaving: isEmergencySaving,
-  } = useEmergencyRecordingSave({
+  useEmergencyRecordingSave({
     onSaveStarted: () => {
       logger.info("Sauvegarde d'urgence démarrée");
       setIsLoading(true);
@@ -109,49 +99,14 @@ export default function RecordingScreen({}: RecordingScreenProps) {
     },
   });
 
-  // Surveillance mémoire
-  const {
-    memoryStats,
-    isMonitoring: isMemoryMonitoring,
-    memoryStatus,
-    recommendations,
-    startMonitoring: startMemoryMonitoring,
-    stopMonitoring: stopMemoryMonitoring,
-    optimizeMemory,
-    formatMemorySize,
-  } = useMemoryMonitor({
-    warningThreshold: 75,
-    criticalThreshold: 85,
-    monitoringInterval: 3000,
-    onWarning: (stats) => {
-      logger.warn("Mémoire faible détectée pendant l'enregistrement", {
-        percentage: stats.percentage,
-        used: formatMemorySize(stats.used),
-        trend: stats.trend,
-      });
-    },
-    onCritical: (stats) => {
-      logger.error("Mémoire critique pendant l'enregistrement", stats);
-      // Capturer comme erreur pour déclencher les mécanismes de récupération
-      captureError(
-        new Error(`Mémoire critique: ${stats.percentage.toFixed(1)}% utilisée`),
-        "memoire_critique"
-      );
-    },
-    onLowMemory: async () => {
-      logger.error("Arrêt forcé de l'enregistrement - mémoire insuffisante");
-      setIsRecording(false);
-
-      Alert.alert(
-        "Mémoire insuffisante",
-        "L'enregistrement a été arrêté pour éviter un crash.",
-        [{ text: "OK", onPress: () => navigation.goBack() }]
-      );
-    },
-  });
-
   // Paramètres de l'écran
   const { scriptId, settings: routeSettings } = route.params;
+
+  // Utiliser useRef pour les paramètres de route afin d'éviter les rechargements
+  const routeSettingsRef = useRef(routeSettings);
+  useEffect(() => {
+    routeSettingsRef.current = routeSettings;
+  }, [routeSettings]);
 
   // État local
   const [script, setScript] = useState<Script | null>(null);
@@ -192,8 +147,11 @@ export default function RecordingScreen({}: RecordingScreenProps) {
       // Vérifier les permissions natives une seule fois au chargement
       const cameraPermission = await Camera.getCameraPermissionStatus();
       const microphonePermission = await Camera.getMicrophonePermissionStatus();
-      
-      logger.info("Statut des permissions", { cameraPermission, microphonePermission });
+
+      logger.info("Statut des permissions", {
+        cameraPermission,
+        microphonePermission,
+      });
 
       // Charger le script
       const foundScript = scripts.find((s) => s.id === scriptId);
@@ -203,7 +161,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
       setScript(foundScript);
 
       // Charger les paramètres
-      let recordingSettings = routeSettings;
+      let recordingSettings = routeSettingsRef.current;
       if (!recordingSettings) {
         try {
           const savedSettings = await AsyncStorage.getItem("recordingSettings");
@@ -256,20 +214,21 @@ export default function RecordingScreen({}: RecordingScreenProps) {
         settingsKeys: Object.keys(recordingSettings),
       });
     } catch (err) {
-      const error = err instanceof Error ? err : new Error("Erreur inconnue");
-      const errorMessage = error.message;
+      const errorWithCatch =
+        err instanceof Error ? err : new Error("Erreur inconnue");
+      const errorMessage = errorWithCatch.message;
 
-      logger.error("Erreur lors du chargement", error);
+      logger.error("Erreur lors du chargement", errorWithCatch);
 
       // Capturer l'erreur dans le système de récupération
-      captureError(error, "chargement_donnees");
+      captureError(errorWithCatch, "chargement_donnees");
 
       setError(errorMessage);
 
       // Afficher une alerte seulement si ce n'est pas une erreur récupérable
       if (
-        !error.message.includes("permission") &&
-        !error.message.includes("camera")
+        !errorWithCatch.message.includes("permission") &&
+        !errorWithCatch.message.includes("camera")
       ) {
         Alert.alert(
           t("recording.error.loadError", "Erreur de chargement"),
@@ -280,13 +239,13 @@ export default function RecordingScreen({}: RecordingScreenProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [scriptId, routeSettings, scripts, captureError, t, navigation]);
+  }, [scriptId, scripts, captureError, t, navigation]); // Retiré routeSettings des dépendances
 
-
-
+  // Charger les données uniquement au montage initial
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Pas de dépendances pour éviter le rechargement
 
   // Charger les réglages de téléprompteur persistés
   useEffect(() => {
@@ -372,10 +331,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
     recordingTimerRef.current = setInterval(() => {
       setRecordingDuration((prev) => prev + 1);
     }, 1000);
-
-    // Démarrer le monitoring mémoire
-    startMemoryMonitoring();
-  }, [startMemoryMonitoring]);
+  }, []);
 
   const handleRecordingStop = useCallback(() => {
     logger.info("Enregistrement arrêté depuis RecordingScreen");
@@ -386,14 +342,11 @@ export default function RecordingScreen({}: RecordingScreenProps) {
       clearInterval(recordingTimerRef.current);
       recordingTimerRef.current = null;
     }
-
-    // Arrêter le monitoring mémoire
-    stopMemoryMonitoring();
-  }, [stopMemoryMonitoring]);
+  }, []);
 
   const handleRecordingError = useCallback(
-    (error: string) => {
-      logger.error("Erreur d'enregistrement", error);
+    (errorRecording: Error) => {
+      logger.error("Erreur d'enregistrement", errorRecording);
       setIsRecording(false);
 
       // Arrêter le timer en cas d'erreur
@@ -403,17 +356,14 @@ export default function RecordingScreen({}: RecordingScreenProps) {
       }
 
       // Capturer l'erreur
-      captureError(new Error(error), "enregistrement");
+      captureError(errorRecording, "enregistrement");
 
-      Alert.alert("Erreur d'enregistrement", error, [{ text: "OK" }]);
+      Alert.alert("Erreur d'enregistrement", errorRecording.message, [
+        { text: "OK" },
+      ]);
     },
     [captureError]
   );
-
-  const handlePhotoCapture = useCallback((uri: string) => {
-    logger.info("Photo capturée", { uri });
-    // Optionnel : afficher une notification ou sauvegarder l'info
-  }, []);
 
   // Nettoyage au démontage
   useEffect(() => {
@@ -503,12 +453,12 @@ export default function RecordingScreen({}: RecordingScreenProps) {
 
   return (
     <RecordingErrorBoundary
-      onError={(error, errorInfo) => {
+      onError={(reactError, errorInfo) => {
         logger.error("Erreur React capturée par ErrorBoundary", {
-          error: error.message,
+          error: reactError.message,
           componentStack: errorInfo.componentStack,
         });
-        captureError(error, "react_component");
+        captureError(reactError, "react_component");
       }}
       onReset={() => {
         resetErrorState();
@@ -561,7 +511,8 @@ export default function RecordingScreen({}: RecordingScreenProps) {
               if (settings?.videoSettings) {
                 (newRecording as any).videoSettings = {
                   codec: settings.videoSettings.codec || "h264",
-                  stabilization: settings.videoSettings.stabilization || "auto",
+                  stabilization:
+                    settings.videoSettings.stabilization || "auto",
                 };
               }
 
@@ -599,7 +550,8 @@ export default function RecordingScreen({}: RecordingScreenProps) {
               if (settings?.videoSettings) {
                 (fallbackRecording as any).videoSettings = {
                   codec: settings.videoSettings.codec || "h264",
-                  stabilization: settings.videoSettings.stabilization || "auto",
+                  stabilization:
+                    settings.videoSettings.stabilization || "auto",
                 };
               }
 
@@ -623,10 +575,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
               } as never);
             }
           }}
-          onError={(error: Error) => {
-            logger.error("Erreur camera", error);
-            captureError(error, "camera_module");
-          }}
+          onError={handleRecordingError}
           isRecording={isRecording}
           script={script}
           settings={settings}
@@ -640,18 +589,6 @@ export default function RecordingScreen({}: RecordingScreenProps) {
             navigation.navigate("Editor", { scriptId: script?.id });
           }}
         />
-
-        {/* Indicateur de mémoire pendant l'enregistrement */}
-        {isRecording && (
-          <MemoryIndicator
-            memoryStats={memoryStats}
-            memoryStatus={memoryStatus}
-            isVisible={isMemoryMonitoring}
-            onOptimize={optimizeMemory}
-            formatMemorySize={formatMemorySize}
-            compact={true} // Mode compact pour ne pas gêner l'enregistrement
-          />
-        )}
 
         {/* Modal de réglages du téléprompter */}
         <TeleprompterSettingsModal

@@ -8,7 +8,7 @@
 	</array>
 	<key>com.apple.developer.in-app-payments</key>
 	<array>
-		<string>Default</string>
+		<string>merchant.Nyth</string>
 	</array>
 </dict>
 </plist>

@@ -22,6 +22,83 @@ interface CameraCapabilities {
 export const useAdvancedCamera = (position: CameraPosition) => {
   const device = useCameraDevice(position);
 
+  // Obtenir les résolutions supportées
+  const getSupportedResolutions = useCallback((): Resolution[] => {
+    const resolutions: Resolution[] = ["720p", "1080p"];
+
+    if (device?.formats) {
+      const has4K = device.formats.some(
+        (format: any) =>
+          format.videoWidth === 3840 && format.videoHeight === 2160
+      );
+      if (has4K) {
+        resolutions.push("4K");
+      }
+    }
+
+    return resolutions;
+  }, [device]);
+
+  // Obtenir les codecs supportés
+  const getSupportedCodecs = useCallback((): Codec[] => {
+    const codecs: Codec[] = ["h264"];
+
+    // Vérifier si H.265 est supporté (iOS 11+, Android API 21+)
+    if (device?.formats?.some((f: any) => f.supportsVideoHdr)) {
+      codecs.push("h265");
+    }
+
+    return codecs;
+  }, [device]);
+
+  // Obtenir les fréquences d'images supportées
+  const getSupportedFrameRates = useCallback((): number[] => {
+    const frameRates = [24, 30];
+
+    if (device?.formats) {
+      const has60fps = device.formats.some(
+        (format: any) => format.maxFps && format.maxFps >= 60
+      );
+      if (has60fps) {
+        frameRates.push(60);
+      }
+    }
+
+    return frameRates;
+  }, [device]);
+
+  // Calculer le débit vidéo selon la résolution et qualité
+  const getVideoBitRate = useCallback(
+    (resolution: string, quality: string): number => {
+      const baseRates = {
+        "720p": { speed: 2000000, balanced: 4000000, quality: 6000000 },
+        "1080p": { speed: 4000000, balanced: 8000000, quality: 12000000 },
+        "4K": { speed: 12000000, balanced: 20000000, quality: 35000000 },
+      };
+
+      return (
+        baseRates[resolution as keyof typeof baseRates]?.[
+          quality as keyof (typeof baseRates)["720p"]
+        ] || 8000000
+      );
+    },
+    []
+  );
+
+  // Calculer le débit audio selon la qualité
+  const getAudioBitRate = useCallback((quality: string): number => {
+    switch (quality) {
+      case "standard":
+        return 128000; // 128 kbps
+      case "high":
+        return 256000; // 256 kbps
+      case "lossless":
+        return 1411200; // 1411 kbps (équivalent CD)
+      default:
+        return 256000;
+    }
+  }, []);
+
   // Configuration par défaut
   const [config, setConfig] = useState<AdvancedCameraConfig>({
     resolution: "1080p",
@@ -35,7 +112,7 @@ export const useAdvancedCamera = (position: CameraPosition) => {
     stabilization: "standard",
     hdr: false,
     lowLightBoost: false,
-    aspectRatio: "16:9",
+    aspectRatio: "auto",
     orientation: "auto",
     audioQuality: "high",
     microphoneGain: 50,
@@ -64,57 +141,18 @@ export const useAdvancedCamera = (position: CameraPosition) => {
       minZoom: device.minZoom || 1,
       supportsHDR: device.formats?.some((f) => f.supportsVideoHdr) || false,
       supportsLowLight: device.supportsLowLightBoost || false,
-      supportedResolutions: getSupportedResolutions(device),
-      supportedCodecs: getSupportedCodecs(device),
-      supportedFrameRates: getSupportedFrameRates(device),
+      supportedResolutions: getSupportedResolutions(),
+      supportedCodecs: getSupportedCodecs(),
+      supportedFrameRates: getSupportedFrameRates(),
       physicalDevices: device.physicalDevices || [],
       hasTorch: device.hasTorch || false,
     };
-  }, [device]);
-
-  // Obtenir les résolutions supportées
-  const getSupportedResolutions = (device: any): Resolution[] => {
-    const resolutions: Resolution[] = ["720p", "1080p"];
-
-    if (device.formats) {
-      const has4K = device.formats.some(
-        (format: any) => format.videoWidth >= 3840 || format.videoHeight >= 3840
-      );
-      if (has4K) {
-        resolutions.push("4K");
-      }
-    }
-
-    return resolutions;
-  };
-
-  // Obtenir les codecs supportés
-  const getSupportedCodecs = (device: any): Codec[] => {
-    const codecs: Codec[] = ["h264"];
-
-    // Vérifier si H.265 est supporté (iOS 11+, Android API 21+)
-    if (device.formats?.some((f: any) => f.supportsVideoHdr)) {
-      codecs.push("h265");
-    }
-
-    return codecs;
-  };
-
-  // Obtenir les fréquences d'images supportées
-  const getSupportedFrameRates = (device: any): number[] => {
-    const frameRates = [24, 30];
-
-    if (device.formats) {
-      const has60fps = device.formats.some(
-        (format: any) => format.maxFps && format.maxFps >= 60
-      );
-      if (has60fps) {
-        frameRates.push(60);
-      }
-    }
-
-    return frameRates;
-  };
+  }, [
+    device,
+    getSupportedResolutions,
+    getSupportedCodecs,
+    getSupportedFrameRates,
+  ]);
 
   // Convertir la configuration en props pour la caméra
   const getCameraProps = useCallback(() => {
@@ -174,36 +212,14 @@ export const useAdvancedCamera = (position: CameraPosition) => {
       videoBitRate: getVideoBitRate(config.resolution, config.qualityMode),
       audioBitRate: getAudioBitRate(config.audioQuality),
     };
-  }, [config]);
-
-  // Calculer le débit vidéo selon la résolution et qualité
-  const getVideoBitRate = (resolution: string, quality: string): number => {
-    const baseRates = {
-      "720p": { speed: 2000000, balanced: 4000000, quality: 6000000 },
-      "1080p": { speed: 4000000, balanced: 8000000, quality: 12000000 },
-      "4K": { speed: 12000000, balanced: 20000000, quality: 35000000 },
-    };
-
-    return (
-      baseRates[resolution as keyof typeof baseRates]?.[
-        quality as keyof (typeof baseRates)["720p"]
-      ] || 8000000
-    );
-  };
-
-  // Calculer le débit audio selon la qualité
-  const getAudioBitRate = (quality: string): number => {
-    switch (quality) {
-      case "standard":
-        return 128000; // 128 kbps
-      case "high":
-        return 256000; // 256 kbps
-      case "lossless":
-        return 1411200; // 1411 kbps (équivalent CD)
-      default:
-        return 256000;
-    }
-  };
+  }, [
+    config.codec,
+    config.resolution,
+    config.qualityMode,
+    config.audioQuality,
+    getVideoBitRate,
+    getAudioBitRate,
+  ]);
 
   // Valider la configuration
   const validateConfig = useCallback(
@@ -254,7 +270,6 @@ export const useAdvancedCamera = (position: CameraPosition) => {
           codec: "h264",
           qualityMode: "balanced",
           frameRate: 30,
-          aspectRatio: "9:16",
           stabilization: "standard",
           audioQuality: "high",
         },
@@ -263,7 +278,6 @@ export const useAdvancedCamera = (position: CameraPosition) => {
           codec: "h265",
           qualityMode: "quality",
           frameRate: 24,
-          aspectRatio: "16:9",
           stabilization: "cinematic",
           audioQuality: "lossless",
           hdr: true,
@@ -273,7 +287,6 @@ export const useAdvancedCamera = (position: CameraPosition) => {
           codec: "h264",
           qualityMode: "speed",
           frameRate: 60,
-          aspectRatio: "16:9",
           stabilization: "standard",
           audioQuality: "high",
         },
@@ -282,7 +295,6 @@ export const useAdvancedCamera = (position: CameraPosition) => {
           codec: "h264",
           qualityMode: "speed",
           frameRate: 30,
-          aspectRatio: "16:9",
           stabilization: "standard",
           audioQuality: "standard",
         },

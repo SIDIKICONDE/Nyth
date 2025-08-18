@@ -5,7 +5,7 @@ module.exports = {
       moduleName: '@env',
       path: '.env',
       // Restreindre aux variables vraiment nécessaires côté app
-      allowlist: ['GOOGLE_WEB_CLIENT_ID', 'GOOGLE_IOS_CLIENT_ID', 'SERVER_URL', 'CLIENT_API_KEY', 'BYPASS_PROXY'],
+      allowlist: ['GOOGLE_WEB_CLIENT_ID', 'GOOGLE_IOS_CLIENT_ID', 'SERVER_URL', 'CLIENT_API_KEY', 'BYPASS_PROXY', 'REVENUECAT_IOS_API_KEY', 'REVENUECAT_ANDROID_API_KEY'],
       safe: false,
       allowUndefined: true
     }],

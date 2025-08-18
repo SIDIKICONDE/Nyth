@@ -47,9 +47,22 @@ export class RecordingsService {
       try {
         await RNFS.moveFile(sourcePath, videoPath);
       } catch (moveError) {
+        logger.error("moveFile a échoué, tentative de copyFile", {
+          source: sourcePath,
+          destination: videoPath,
+          error: moveError,
+        });
         // Si moveFile échoue (ex: cross-device), utiliser copyFile
-        logger.warn("moveFile échoué, utilisation de copyFile", moveError);
-        await RNFS.copyFile(sourcePath, videoPath);
+        try {
+          await RNFS.copyFile(sourcePath, videoPath);
+        } catch (copyError) {
+          logger.error("copyFile a également échoué", {
+            source: sourcePath,
+            destination: videoPath,
+            error: copyError,
+          });
+          throw new Error("Impossible de sauvegarder le fichier vidéo.");
+        }
         // Supprimer l'original après la copie
         try {
           await RNFS.unlink(sourcePath);
@@ -65,6 +78,11 @@ export class RecordingsService {
         try {
           await RNFS.moveFile(thumbnailSource, thumbnailPath);
         } catch (moveError) {
+          logger.warn("moveFile pour le thumbnail a échoué, tentative de copyFile", {
+            source: thumbnailSource,
+            destination: thumbnailPath,
+            error: moveError,
+          });
           await RNFS.copyFile(thumbnailSource, thumbnailPath);
           try {
             await RNFS.unlink(thumbnailSource);
@@ -91,6 +109,11 @@ export class RecordingsService {
 
       return recordingId;
     } catch (error) {
+      logger.error("Erreur lors de la sauvegarde de l'enregistrement", {
+        videoUri,
+        scriptId,
+        error,
+      });
       throw error;
     }
   }

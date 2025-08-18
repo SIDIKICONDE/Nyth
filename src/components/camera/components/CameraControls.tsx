@@ -6,7 +6,7 @@ import {
   Text,
   Dimensions,
 } from "react-native";
-import { CameraPosition } from "react-native-vision-camera";
+import { CameraPosition, CameraProps } from "react-native-vision-camera";
 import { CameraControls as CameraControlsType, RecordingState } from "../types";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { AdvancedCameraSettings } from "./AdvancedCameraSettings";
@@ -18,7 +18,7 @@ interface CameraControlsProps {
   controls: CameraControlsType;
   recordingState: RecordingState;
   position: CameraPosition;
-  isFlashOn: boolean;
+  flash: CameraProps["torch"];
   onSettingsPress?: () => void;
   // Options avancées
   advancedConfig?: AdvancedCameraConfig;
@@ -64,7 +64,7 @@ export const CameraControls: React.FC<CameraControlsProps> = ({
   controls,
   recordingState,
   position,
-  isFlashOn,
+  flash,
   onSettingsPress,
   advancedConfig,
   onAdvancedConfigChange,
@@ -88,12 +88,12 @@ export const CameraControls: React.FC<CameraControlsProps> = ({
           <TouchableOpacity
             style={[
               styles.floatingButton,
-              isFlashOn && styles.floatingButtonActive,
+              flash !== "off" && styles.floatingButtonActive,
             ]}
             onPress={controls.toggleFlash}
           >
             <MaterialCommunityIcons
-              name={isFlashOn ? "flash" : "flash-off"}
+              name={flash === "on" ? "flash" : "flash-off"}
               size={22}
               color="#FFFFFF"
             />

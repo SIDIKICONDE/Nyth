@@ -4,7 +4,7 @@ import tw from "twrnc";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useCentralizedFont } from "../../hooks/useCentralizedFont";
 import { useTranslation } from "../../hooks/useTranslation";
-import { Collapsible } from "../common";
+import { Collapsible } from "../common/Collapsible";
 import { UIText } from "../ui/Typography";
 
 interface Platform {

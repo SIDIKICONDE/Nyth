@@ -205,11 +205,11 @@ export const WelcomeBubble: React.FC<WelcomeBubbleProps> = ({
 
           {/* Bouton d'action */}
           {!isGenerating && (
-            <LinearGradient
-              colors={[currentTheme.colors.primary, currentTheme.colors.accent]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={tw`rounded-lg py-2 px-4`}
+            <View
+              style={[
+                tw`rounded-lg py-2 px-4`,
+                { backgroundColor: currentTheme.colors.primary },
+              ]}
             >
               <UIText
                 weight="medium"
@@ -217,7 +217,7 @@ export const WelcomeBubble: React.FC<WelcomeBubbleProps> = ({
               >
                 {t("welcomeBubble.chatWithMe")}
               </UIText>
-            </LinearGradient>
+            </View>
           )}
         </View>
 

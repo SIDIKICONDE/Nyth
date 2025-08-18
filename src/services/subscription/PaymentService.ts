@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 import Purchases, {
   PurchasesPackage,
   PurchasesOfferings,
+  CustomerInfo,
 } from "react-native-purchases";
 import { createLogger } from "../../utils/optimizedLogger";
 import {
@@ -68,10 +69,8 @@ export class PaymentService {
         return;
       }
 
-      await Purchases.configure({
-        apiKey: apiKey as string,
-        appUserID: REVENUECAT_CONFIG.appUserID || undefined,
-      });
+      // Configure uniquement avec la clé, lier l'utilisateur explicitement côté achat/restauration
+      await Purchases.configure({ apiKey: apiKey as string });
 
       // Activer le mode debug en développement
       if (REVENUECAT_CONFIG.useDebugMode) {
@@ -83,6 +82,22 @@ export class PaymentService {
     } catch (error) {
       logger.error("Failed to initialize PaymentService:", error);
       // Ne pas lancer d'erreur pour permettre à l'app de fonctionner
+    }
+  }
+
+  /**
+   * S'assure que l'utilisateur RevenueCat courant est bien `userId` (login si nécessaire)
+   */
+  private static async ensureRevenueCatLogin(userId: string): Promise<void> {
+    if (!userId) return;
+    try {
+      const currentId = await Purchases.getAppUserID();
+      if (currentId !== userId) {
+        await Purchases.logIn(userId);
+        logger.info("🔐 RevenueCat logIn effectué", { userId });
+      }
+    } catch (error) {
+      logger.warn("Impossible de lier l'utilisateur RevenueCat", { error });
     }
   }
 
@@ -193,6 +208,9 @@ export class PaymentService {
         throw new Error("Missing required parameters");
       }
 
+      // Lier l'utilisateur à RevenueCat avant l'achat
+      await this.ensureRevenueCatLogin(userId);
+
       const offerings = await Purchases.getOfferings();
       const current = offerings.current;
       const selected = current?.availablePackages.find(
@@ -202,19 +220,19 @@ export class PaymentService {
         throw new Error("Package not found");
       }
 
-      const purchaseResult = await Purchases.purchasePackage(selected);
-      const customerInfo: any =
-        (purchaseResult as any).customerInfo ?? purchaseResult;
+      const { customerInfo } = await Purchases.purchasePackage(selected);
+      // customerInfo: CustomerInfo
       const entitlementId = this.mapPackageToEntitlement(packageIdentifier);
-      const isActive = Boolean(
-        customerInfo?.entitlements?.active?.[entitlementId]
-      );
+      const isActive = Boolean(customerInfo.entitlements.active[entitlementId]);
       if (!isActive) {
         throw new Error("Entitlement not active after purchase");
       }
 
-      const latestExpiration =
-        (customerInfo as any).latestExpirationDate || undefined;
+      const latestExpiration = Object.values(customerInfo.entitlements.active)
+        .map((e) => e.expirationDate)
+        .filter((d): d is string => Boolean(d))
+        .sort()
+        .pop();
       const subscription = this.convertToUserSubscription(
         latestExpiration,
         packageIdentifier
@@ -255,18 +273,25 @@ export class PaymentService {
       }
 
       logger.info("Restoring purchases for user:", userId);
-      const restoreResult: any = await Purchases.restorePurchases();
-      const customerInfo: any = restoreResult.customerInfo ?? restoreResult;
-      const active = Object.keys(customerInfo.entitlements.active);
-      const pkg = active.find(
-        (e) =>
-          e.includes("starter") || e.includes("pro") || e.includes("enterprise")
+      await this.ensureRevenueCatLogin(userId);
+      const customerInfo: CustomerInfo = await Purchases.restorePurchases();
+      const activeEntitlements = Object.keys(customerInfo.entitlements.active);
+      const activeKey = activeEntitlements.find(
+        (e) => e.includes("starter") || e.includes("pro") || e.includes("enterprise")
       );
-      if (!pkg) {
+      if (!activeKey) {
         return { success: false, error: "No active subscription found" };
       }
-      const planId = this.mapPackageToPlanId(pkg);
-      const latestExpiration = customerInfo.latestExpirationDate || undefined;
+      const planId = activeKey.includes("enterprise")
+        ? "enterprise"
+        : activeKey.includes("pro")
+        ? "pro"
+        : "starter";
+      const latestExpiration = Object.values(customerInfo.entitlements.active)
+        .map((e) => e.expirationDate)
+        .filter((d): d is string => Boolean(d))
+        .sort()
+        .pop();
       const subscription: UserSubscription = {
         planId,
         status: "active",

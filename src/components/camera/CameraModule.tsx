@@ -5,7 +5,12 @@ import {
   Text,
   ActivityIndicator,
 } from "react-native";
-import { Camera, CameraPosition, VideoFile } from "react-native-vision-camera";
+import {
+  Camera,
+  CameraPosition,
+  CameraProps,
+  VideoFile,
+} from "react-native-vision-camera";
 import { useCamera } from "./hooks/useCamera";
 import { useAdvancedCamera } from "./hooks/useAdvancedCamera";
 import { CameraControls } from "./components/CameraControls";
@@ -34,7 +39,7 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
     cameraRef,
     device,
     position,
-    isFlashOn,
+    flash,
     recordingState,
     controls,
   } = useCamera(initialPosition);
@@ -85,7 +90,7 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
           isActive={true}
           video={true}
           audio={true}
-          torch={isFlashOn ? "on" : "off"}
+          torch={flash}
           enableZoomGesture
           {...cameraProps}
         />
@@ -101,7 +106,7 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
           controls={enhancedControls}
           recordingState={recordingState}
           position={position}
-          isFlashOn={isFlashOn}
+          flash={flash}
           onSettingsPress={onSettingsPress}
           advancedConfig={advancedConfig}
           onAdvancedConfigChange={updateAdvancedConfig}

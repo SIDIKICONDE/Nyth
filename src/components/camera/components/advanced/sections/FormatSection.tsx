@@ -2,10 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "../../../../../contexts/ThemeContext";
 import { OptionButton } from "../OptionButton";
-import type {
-  AdvancedCameraConfig,
-  AspectRatio,
-} from "../../../types/advanced";
+import type { AdvancedCameraConfig } from "../../../types/advanced";
 
 interface Props {
   config: AdvancedCameraConfig;
@@ -16,20 +13,6 @@ export const FormatSection: React.FC<Props> = ({ config, onChange }) => {
   const { currentTheme } = useTheme();
   return (
     <View>
-      <Text style={[styles.optionLabel, { color: currentTheme.colors.text }]}>
-        Ratio d'aspect
-      </Text>
-      <View style={styles.optionRow}>
-        {(["16:9", "9:16", "1:1", "4:3"] as AspectRatio[]).map((ratio) => (
-          <OptionButton
-            key={ratio}
-            label={ratio}
-            isActive={config.aspectRatio === ratio}
-            onPress={() => onChange({ aspectRatio: ratio })}
-          />
-        ))}
-      </View>
-
       <Text style={[styles.optionLabel, { color: currentTheme.colors.text }]}>
         Orientation
       </Text>

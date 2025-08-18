@@ -7,34 +7,49 @@ import {
   useMicrophonePermission,
   VideoFile,
   CameraPosition,
+  CameraProps,
 } from "react-native-vision-camera";
 import { RecordingState, CameraControls } from "../types";
 
 export const useCamera = (initialPosition: CameraPosition = "back") => {
   const [position, setPosition] = useState<CameraPosition>(initialPosition);
-  const [isFlashOn, setIsFlashOn] = useState(false);
+  const [flash, setFlash] = useState<CameraProps["torch"]>("off");
   const [recordingState, setRecordingState] = useState<RecordingState>({
     isRecording: false,
     isPaused: false,
     duration: 0,
+    videoFile: undefined, // S'assurer que videoFile est initialisé
   });
   const cameraRef = useRef<Camera>(null);
   const device = useCameraDevice(position);
 
   // Utilisation des hooks natifs de react-native-vision-camera
-  const { hasPermission: hasCameraPermission, requestPermission: requestCameraPermission } = useCameraPermission();
-  const { hasPermission: hasMicrophonePermission, requestPermission: requestMicrophonePermission } = useMicrophonePermission();
+  const {
+    hasPermission: hasCameraPermission,
+    requestPermission: requestCameraPermission,
+  } = useCameraPermission();
+  const {
+    hasPermission: hasMicrophonePermission,
+    requestPermission: requestMicrophonePermission,
+  } = useMicrophonePermission();
 
-  // Timer pour la durée d'enregistrement
-  const recordingTimer = useRef<NodeJS.Timeout | null>(null);
-
+  // Gestion centralisée du timer pour la durée d'enregistrement
   useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (recordingState.isRecording && !recordingState.isPaused) {
+      timer = setInterval(() => {
+        setRecordingState((prev) => ({
+          ...prev,
+          duration: prev.duration + 1,
+        }));
+      }, 1000);
+    }
     return () => {
-      if (recordingTimer.current) {
-        clearInterval(recordingTimer.current);
+      if (timer) {
+        clearInterval(timer);
       }
     };
-  }, []);
+  }, [recordingState.isRecording, recordingState.isPaused]);
 
   const requestPermissions = useCallback(async () => {
     const cameraGranted = await requestCameraPermission();
@@ -66,47 +81,51 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
             isPaused: false,
             videoFile: video,
           }));
-          if (recordingTimer.current) {
-            clearInterval(recordingTimer.current);
-          }
         },
-        onRecordingError: (_error) => {
+        onRecordingError: (error) => {
+          console.error("Recording Error:", error);
           setRecordingState((prev) => ({
             ...prev,
             isRecording: false,
             isPaused: false,
+            error: error.message,
           }));
-          if (recordingTimer.current) {
-            clearInterval(recordingTimer.current);
-          }
         },
       });
 
       setRecordingState((prev) => ({
         ...prev,
         isRecording: true,
+        isPaused: false, // S'assurer que isPaused est false au démarrage
         duration: 0,
+        videoFile: undefined,
+        error: undefined,
       }));
-
-      // Démarrer le timer
-      recordingTimer.current = setInterval(() => {
-        setRecordingState((prev) => ({
-          ...prev,
-          duration: prev.duration + 1,
-        }));
-      }, 1000);
-    } catch (error) {}
-  }, [hasCameraPermission, hasMicrophonePermission, requestPermissions, recordingState.isRecording]);
+    } catch (error) {
+      console.error("Failed to start recording:", error);
+      setRecordingState((prev) => ({
+        ...prev,
+        isRecording: false,
+        error:
+          error instanceof Error ? error.message : "Erreur de démarrage inconnue",
+      }));
+    }
+  }, [
+    hasCameraPermission,
+    hasMicrophonePermission,
+    requestPermissions,
+    recordingState.isRecording,
+  ]);
 
   const stopRecording = useCallback(async () => {
     if (!cameraRef.current || !recordingState.isRecording) return;
 
     try {
       await cameraRef.current.stopRecording();
-      if (recordingTimer.current) {
-        clearInterval(recordingTimer.current);
-      }
-    } catch (error) {}
+      // L'état est déjà géré par onRecordingFinished
+    } catch (error) {
+      console.error("Failed to stop recording:", error);
+    }
   }, [recordingState.isRecording]);
 
   const pauseRecording = useCallback(async () => {
@@ -120,10 +139,9 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
     try {
       await cameraRef.current.pauseRecording();
       setRecordingState((prev) => ({ ...prev, isPaused: true }));
-      if (recordingTimer.current) {
-        clearInterval(recordingTimer.current);
-      }
-    } catch (error) {}
+    } catch (error) {
+      console.error("Failed to pause recording:", error);
+    }
   }, [recordingState.isRecording, recordingState.isPaused]);
 
   const resumeRecording = useCallback(async () => {
@@ -137,15 +155,9 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
     try {
       await cameraRef.current.resumeRecording();
       setRecordingState((prev) => ({ ...prev, isPaused: false }));
-
-      // Redémarrer le timer
-      recordingTimer.current = setInterval(() => {
-        setRecordingState((prev) => ({
-          ...prev,
-          duration: prev.duration + 1,
-        }));
-      }, 1000);
-    } catch (error) {}
+    } catch (error) {
+      console.error("Failed to resume recording:", error);
+    }
   }, [recordingState.isRecording, recordingState.isPaused]);
 
   const switchCamera = useCallback(() => {
@@ -153,8 +165,12 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
   }, []);
 
   const toggleFlash = useCallback(() => {
-    setIsFlashOn((prev) => !prev);
-  }, []);
+    if (device?.hasTorch) {
+      setFlash((prev) => (prev === "off" ? "on" : "off"));
+    } else {
+      console.log("Flash not available on this device");
+    }
+  }, [device]);
 
   const controls: CameraControls = {
     startRecording,
@@ -169,7 +185,7 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
     cameraRef,
     device,
     position,
-    isFlashOn,
+    flash,
     recordingState,
     // Permissions natives via react-native-vision-camera
     hasCameraPermission,

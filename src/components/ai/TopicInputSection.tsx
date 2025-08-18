@@ -12,7 +12,7 @@ import { TextInput } from "react-native-paper";
 import tw from "twrnc";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useCentralizedFont } from "../../hooks/useCentralizedFont";
-import { Collapsible } from "../common";
+import { Collapsible } from "../common/Collapsible";
 import { UIText } from "../ui/Typography";
 
 interface TopicInputSectionProps {

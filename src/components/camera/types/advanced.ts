@@ -3,7 +3,7 @@ export type Codec = "h264" | "h265";
 export type QualityMode = "speed" | "balanced" | "quality";
 export type FrameRate = 24 | 30 | 60;
 export type StabilizationMode = "off" | "standard" | "cinematic";
-export type AspectRatio = "16:9" | "9:16" | "1:1" | "4:3";
+export type AspectRatio = "16:9" | "9:16" | "1:1" | "4:3" | "auto";
 export type Orientation = "auto" | "portrait" | "landscape";
 export type AudioQuality = "standard" | "high" | "lossless";
 

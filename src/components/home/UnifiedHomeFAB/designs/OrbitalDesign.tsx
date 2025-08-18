@@ -50,7 +50,7 @@ const useOrbitalAnimations = (actions: FABAction[], isExpanded: boolean) => {
     );
     pulse.start();
     return () => pulse.stop();
-  }, []);
+  }, [pulseAnim]);
 
   // Animation d'expansion/fermeture
   useEffect(() => {
@@ -121,7 +121,7 @@ const useOrbitalAnimations = (actions: FABAction[], isExpanded: boolean) => {
       orbitLoopRef.current?.stop();
       orbitLoopRef.current = null;
     };
-  }, [isExpanded]);
+  }, [isExpanded, buttonAnimations, rotationAnim, centerMoveAnim, orbitRotationAnim]);
 
   return {
     buttonAnimations,
@@ -396,7 +396,8 @@ const OrbitGuide: React.FC<{
 export const OrbitalDesign: React.FC<OrbitalDesignProps> = ({ actions }) => {
   const { currentTheme } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
-  const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+  const [isRendered, setIsRendered] = useState(false);
+  const { height: screenHeight } = Dimensions.get("window");
 
   const {
     buttonAnimations,
@@ -405,6 +406,15 @@ export const OrbitalDesign: React.FC<OrbitalDesignProps> = ({ actions }) => {
     orbitRotationAnim,
     centerMoveAnim,
   } = useOrbitalAnimations(actions, isExpanded);
+
+  useEffect(() => {
+    if (isExpanded) {
+      setIsRendered(true);
+    } else {
+      const timer = setTimeout(() => setIsRendered(false), CONFIG.ANIMATION.DURATION);
+      return () => clearTimeout(timer);
+    }
+  }, [isExpanded]);
 
   const handleActionPress = (action: FABAction) => {
     setIsExpanded(false);
@@ -430,7 +440,7 @@ export const OrbitalDesign: React.FC<OrbitalDesignProps> = ({ actions }) => {
       ]}
     >
       {/* Cercle de guidage orbital */}
-      {isExpanded && (
+      {isRendered && (
         <View
           style={[
             tw`absolute`,
@@ -449,7 +459,7 @@ export const OrbitalDesign: React.FC<OrbitalDesignProps> = ({ actions }) => {
       )}
 
       {/* Boutons orbitaux */}
-      {isExpanded && (
+      {isRendered && (
         <View
           style={[
             tw`absolute`,
