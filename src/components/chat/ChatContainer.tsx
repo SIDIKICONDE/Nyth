@@ -175,38 +175,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     return () => {};
   }, []); // Pas de dépendances pour éviter les re-exécutions
 
-  // Ajouter cette fonction de test temporaire dans le composant
-  const handleTestAutoSave = async () => {
-    if (user?.uid) {
-      logger.debug("🧪 Démarrage du test complet de la mémoire...");
 
-      try {
-        // Test de base
-        await testAutoSave(user.uid);
-
-        // Test de connexion mémoire
-        const { testMemoryConnection } = await import(
-          "./message-handler/memory"
-        );
-        const result = await testMemoryConnection(user.uid);
-
-        logger.debug("📊 Résultat du test de connexion:", result);
-
-        if (result.success) {
-          logger.debug("✅ Mémoire connectée et fonctionnelle !");
-          logger.debug("📈 Détails:", result.details);
-        } else {
-          logger.debug("❌ Problème avec la mémoire:", result.details.error);
-        }
-      } catch (error) {
-        logger.error("❌ Erreur pendant le test:", error);
-      }
-
-      logger.debug("✅ Test terminé ! Vérifiez la console pour les résultats.");
-    } else {
-      logger.debug("❌ Utilisateur non connecté");
-    }
-  };
 
   return (
     <View

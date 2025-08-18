@@ -397,22 +397,11 @@ export default function HomeScreen() {
           onClearSelection={clearSelection}
           onToggleScriptSelection={toggleScriptSelection}
           onToggleRecordingSelection={toggleRecordingSelection}
+          onTabChange={onTabChange}
         />
       </View>
 
-      {/* Sélecteur d'onglets */}
-      <Animated.View
-        entering={
-          isInitialLoad ? FadeInDown.delay(100).duration(500) : undefined
-        }
-      >
-        <SimpleHomeTabMenu
-          activeTab={activeTab}
-          scriptsCount={scripts.length}
-          recordingsCount={recordings.length}
-          onTabChange={onTabChange}
-        />
-      </Animated.View>
+      {/* Sélecteur d'onglets déplacé dans l'en-tête (mode compact) */}
 
       {/* Contenu des onglets */}
       <ContentTabs

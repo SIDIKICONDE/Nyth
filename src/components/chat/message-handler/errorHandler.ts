@@ -57,6 +57,23 @@ export function categorizeError(error: Error | string): ErrorType {
   const lowerMsg = errorMsg.toLowerCase();
 
   if (
+    lowerMsg.includes("aucun service ai configuré") ||
+    lowerMsg.includes("no ai service") ||
+    lowerMsg.includes("not configured") ||
+    lowerMsg.includes("aucun service ia configuré") ||
+    lowerMsg.includes("configure une clé api") ||
+    lowerMsg.includes("aucun fournisseur activé") ||
+    lowerMsg.includes("aucun provider activé") ||
+    lowerMsg.includes("no providers") ||
+    lowerMsg.includes("no provider enabled") ||
+    lowerMsg.includes("no provider configured") ||
+    lowerMsg.includes("aucune clé api configurée") ||
+    lowerMsg.includes("no api key configured")
+  ) {
+    return ErrorType.CONFIG_ERROR;
+  }
+
+  if (
     lowerMsg.includes("auth_error") ||
     lowerMsg.includes("invalid or expired") ||
     lowerMsg.includes("unauthorized") ||
@@ -77,16 +94,6 @@ export function categorizeError(error: Error | string): ErrorType {
     lowerMsg.includes("completion")
   ) {
     return ErrorType.MODEL_ERROR;
-  }
-
-  if (
-    lowerMsg.includes("aucun service ai configuré") ||
-    lowerMsg.includes("no ai service") ||
-    lowerMsg.includes("not configured") ||
-    lowerMsg.includes("aucun service ia configuré") ||
-    lowerMsg.includes("configure une clé api")
-  ) {
-    return ErrorType.CONFIG_ERROR;
   }
 
   if (

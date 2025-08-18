@@ -179,7 +179,7 @@ export default function EditorHeader({
     <>
       <View
         style={[
-          tw`px-4 py-2`,
+          tw`px-4`,
           {
             backgroundColor: currentTheme.colors.surface,
             borderBottomWidth: 1,
@@ -189,6 +189,8 @@ export default function EditorHeader({
             shadowOpacity: 0.1,
             shadowRadius: 4,
             elevation: 2,
+            paddingTop: 48,
+            paddingBottom: 8,
           },
         ]}
       >

@@ -25,7 +25,7 @@ import { OrbitalDesign } from "./designs/OrbitalDesign";
 import { StackedCardsDesign } from "./designs/StackedCardsDesign";
 import { HamburgerMenu } from "./designs/HamburgerMenu";
 
-export { FABAction, FABDesignType };
+export type { FABAction, FABDesignType };
 
 interface UnifiedHomeFABProps {
   activeTab: string;

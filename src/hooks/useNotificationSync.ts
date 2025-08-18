@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useGlobalPreferences } from "./useGlobalPreferences";
-import { enhancedNotificationService } from "../services/notifications/EnhancedNotificationService";
 import { DEFAULT_EXTENDED_NOTIFICATION_SETTINGS } from "../components/planning/settings/constants";
 import { createLogger } from "../utils/optimizedLogger";
 
@@ -32,6 +31,12 @@ export const useNotificationSync = () => {
   useEffect(() => {
     const syncSettings = async () => {
       try {
+        // Import dynamique pour éviter les dépendances circulaires
+        const { enhancedNotificationService } = await import("../services/notifications/EnhancedNotificationService");
+        
+        // Initialiser le service si ce n'est pas déjà fait
+        await enhancedNotificationService.initialize();
+        
         // Récupérer les paramètres de notification depuis les préférences de planning
         const notificationSettings = mergeSettings(
           DEFAULT_EXTENDED_NOTIFICATION_SETTINGS,

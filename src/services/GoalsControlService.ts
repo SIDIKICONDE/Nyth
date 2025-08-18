@@ -224,58 +224,7 @@ class GoalsControlService {
         .filter((g) => g.status === "active")
         .slice(0, 3);
 
-      if (activeGoals.length === 0) {
-        // Créer des objectifs de test si aucun n'est actif
-        const testGoals = [
-          {
-            id: "test1",
-            title: "Boire 8 verres d'eau",
-            current: 3,
-            target: 8,
-            unit: "verres",
-            progress: 37,
-            status: "active",
-          },
-          {
-            id: "test2",
-            title: "Faire 10000 pas",
-            current: 6500,
-            target: 10000,
-            unit: "pas",
-            progress: 65,
-            status: "active",
-          },
-        ];
-
-        for (const goal of testGoals) {
-          const notificationId = `goal_control_${goal.id}`;
-
-          PushNotification.localNotification({
-            id: notificationId,
-            title: `🎯 ${goal.title}`,
-            message: `Progression: ${goal.current}/${goal.target} ${goal.unit} (${goal.progress}%)`,
-            bigText: `Contrôlez votre objectif directement depuis cette notification.\n\nProgression actuelle: ${goal.current}/${goal.target} ${goal.unit}\nPourcentage: ${goal.progress}%`,
-            subText: "Contrôles rapides",
-            actions: [
-              "➕ +1",
-              "➖ -1",
-              goal.progress >= 100 ? "✅ Accompli" : "🎯 Voir",
-            ],
-            userInfo: {
-              goalId: goal.id,
-              title: goal.title,
-            },
-            ongoing: true, // Notification persistante
-            priority: "high",
-            visibility: "public",
-            invokeApp: false,
-            autoCancel: false,
-            playSound: true,
-            vibrate: true,
-            importance: "high",
-          });
-        }
-      } else {
+      if (activeGoals.length > 0) {
         for (const goal of activeGoals) {
           // Notification principale avec actions
           const notificationId = `goal_control_${goal.id}`;
@@ -306,17 +255,6 @@ class GoalsControlService {
           });
         }
       }
-
-      // Créer une notification de test simple pour vérifier
-      PushNotification.localNotification({
-        id: "test_notification",
-        title: "🧪 Test Notification",
-        message: "Si vous voyez cette notification, le système fonctionne !",
-        playSound: true,
-        vibrate: true,
-        priority: "high",
-        importance: "high",
-      });
 
       logger.info("Notifications de contrôle créées pour", {
         count: activeGoals.length || 2,

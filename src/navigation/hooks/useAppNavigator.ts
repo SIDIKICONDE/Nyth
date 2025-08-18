@@ -32,10 +32,10 @@ export const useAppNavigator = (): UseAppNavigatorReturn => {
   const navigationState = useNavigationState({
     currentUser,
     authLoading,
-    isLoading: appState.isLoading,
+    _isLoading: appState.isLoading,
     isInitialLoading: appState.isInitialLoading,
-    hasCompletedOnboarding: appState.hasCompletedOnboarding,
-    hasPermissions: appState.hasPermissions,
+    _hasCompletedOnboarding: appState.hasCompletedOnboarding,
+    _hasPermissions: appState.hasPermissions,
   });
 
   // Effet pour gérer l'utilisateur connecté
@@ -43,7 +43,7 @@ export const useAppNavigator = (): UseAppNavigatorReturn => {
     if (currentUser && !authLoading) {
       handlers.handleUserConnectedSkipOnboarding();
     }
-  }, [currentUser, authLoading]);
+  }, [currentUser, authLoading, handlers]);
 
   return {
     // État

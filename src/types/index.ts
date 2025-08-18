@@ -141,4 +141,4 @@ export interface Recording {
 }
 
 // RootStackParamList est maintenant défini dans navigation.ts
-export { RootStackParamList } from "./navigation";
+export type { RootStackParamList } from "./navigation";

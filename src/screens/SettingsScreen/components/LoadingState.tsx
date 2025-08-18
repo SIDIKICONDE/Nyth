@@ -38,13 +38,15 @@ export default function LoadingState() {
       -1,
       true
     );
-  }, []);
+  }, [rotation, scale]);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ rotate: `${rotation.value}deg` }, { scale: scale.value }],
-    };
-  });
+  const rotateStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
+  const scaleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   const pulseStyle = useAnimatedStyle(() => {
     const opacity = interpolate(scale.value, [1, 1.2], [0.3, 0.1]);
@@ -80,7 +82,8 @@ export default function LoadingState() {
             {
               backgroundColor: currentTheme.colors.primary,
             },
-            animatedStyle,
+            rotateStyle,
+            scaleStyle,
           ]}
         >
           <MaterialCommunityIcons

@@ -6,6 +6,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { Recording, Script } from "@/types";
 import React, { useEffect, useState } from "react";
 import { View } from "react-native";
+import SimpleHomeTabMenu from "@/components/home/SimpleHomeTabMenu";
 import tw from "twrnc";
 import { useWelcomeBubblePreferences } from "../../../hooks/useWelcomeBubblePreferences";
 
@@ -24,6 +25,7 @@ interface HomeHeaderProps {
   onClearSelection: () => void;
   onToggleScriptSelection: (scriptId: string) => void;
   onToggleRecordingSelection: (recordingId: string) => void;
+  onTabChange: (tab: "scripts" | "videos") => void;
 }
 
 export const HomeHeader: React.FC<HomeHeaderProps> = ({
@@ -38,6 +40,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onClearSelection,
   onToggleScriptSelection,
   onToggleRecordingSelection,
+  onTabChange,
 }) => {
   const { currentTheme } = useTheme();
   const { t } = useTranslation();
@@ -133,6 +136,18 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 t("profile.guest.title", "Invité")}
             </UIText>
           </View>
+        </View>
+
+        {/* Section droite - Onglets compacts */}
+        <View style={tw`ml-2`}>
+          <SimpleHomeTabMenu
+            activeTab={activeTab}
+            scriptsCount={scripts.length}
+            recordingsCount={recordings.length}
+            onTabChange={onTabChange}
+            variant="compact"
+            showLabels={false}
+          />
         </View>
       </View>
     </View>

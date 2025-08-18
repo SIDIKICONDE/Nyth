@@ -815,8 +815,7 @@ export const AppLockTab: React.FC = () => {
               { color: currentTheme.colors.textSecondary },
             ]}
           >
-            • Une notification push est envoyée lors du verrouillage pour "Test
-            terminé"
+            • Une notification push est envoyée lors du verrouillage pour informer les utilisateurs
           </Text>
           <Text
             style={[tw`text-sm`, { color: currentTheme.colors.textSecondary }]}

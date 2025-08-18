@@ -153,7 +153,6 @@ class PushNotificationService {
         authStatus === FirebaseMessagingTypes.AuthorizationStatus.PROVISIONAL;
 
       if (enabled) {
-        console.log("Permission notifications accordée");
         return true;
       }
 
@@ -289,7 +288,6 @@ class PushNotificationService {
   setupMessageHandlers(): void {
     // Handler pour les messages quand l'app est ouverte
     messaging().onMessage(async (remoteMessage) => {
-      console.log("Message reçu en premier plan:", remoteMessage);
       await this.handleRemoteMessage(remoteMessage);
     });
 
@@ -311,10 +309,8 @@ class PushNotificationService {
     nf.onBackgroundEvent(async ({ type, detail }) => {
       switch (type) {
         case nf.EventType.DISMISSED:
-          console.log("Notification dismissed:", detail.notification);
           break;
         case nf.EventType.PRESS:
-          console.log("Notification pressed:", detail.notification);
           if (detail.notification) {
             await this.handleNotificationPress(
               detail.notification as {
@@ -325,7 +321,6 @@ class PushNotificationService {
           }
           break;
         case nf.EventType.ACTION_PRESS:
-          console.log("Action pressed:", detail.pressAction);
           if (detail.pressAction && detail.notification) {
             await this.handleActionPress(
               detail.pressAction as { id: string },

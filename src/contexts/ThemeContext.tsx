@@ -28,7 +28,7 @@ import { useSystemTheme } from "../hooks/useSystemTheme";
 const logger = createLogger("ThemeContext");
 
 // Re-export types and constants for backward compatibility
-export { CustomTheme, ThemeColors } from "../types/theme";
+export type { CustomTheme, ThemeColors } from "../types/theme";
 
 // Create context
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);

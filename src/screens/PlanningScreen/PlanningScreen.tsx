@@ -1,5 +1,5 @@
 import React, { useCallback, useReducer } from "react";
-import { Alert, SafeAreaView, View } from "react-native";
+import { Alert, SafeAreaView, View, StatusBar } from "react-native";
 import { CreateEventModal } from "../../components/planning/CreateEventModal";
 import { LayoutSettingsButton } from "../../components/planning/LayoutSettingsButton";
 import { PlanningCalendar } from "../../components/planning/PlanningCalendar";
@@ -17,7 +17,6 @@ import {
   PlanningScreenTabs,
   TasksTabContent,
   TimelineTabContent,
-  TeamsTabContent,
 } from "./components";
 import { PLANNING_TABS } from "./constants";
 import { useGlobalPreferencesContext } from "../../contexts/GlobalPreferencesContext";
@@ -245,12 +244,18 @@ export const PlanningScreen: React.FC = () => {
   // Rendre toutes les vues montées et masquer/afficher par style pour éviter les délais de re-montage
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.container,
         { backgroundColor: currentTheme.colors.background },
       ]}
     >
+      <StatusBar
+        barStyle={currentTheme.isDark ? "light-content" : "dark-content"}
+        backgroundColor={currentTheme.colors.surface}
+        translucent
+      />
+      
       {/* Header */}
       <PlanningScreenHeader
         activeTab={activeTab}
@@ -301,7 +306,7 @@ export const PlanningScreen: React.FC = () => {
 
         {activeTab === "tasks" && <TasksTabContent />}
 
-        {activeTab === "teams" && <TeamsTabContent />}
+        
 
         {activeTab === "calendar" && (
           <PlanningCalendar
@@ -367,6 +372,6 @@ export const PlanningScreen: React.FC = () => {
         visible={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 };

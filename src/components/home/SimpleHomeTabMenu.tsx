@@ -15,6 +15,8 @@ interface SimpleHomeTabMenuProps {
   scriptsCount: number;
   recordingsCount: number;
   onTabChange: (tab: TabType) => void;
+  variant?: "default" | "compact";
+  showLabels?: boolean;
 }
 
 const SimpleHomeTabMenu: React.FC<SimpleHomeTabMenuProps> = ({
@@ -22,6 +24,8 @@ const SimpleHomeTabMenu: React.FC<SimpleHomeTabMenuProps> = ({
   scriptsCount,
   recordingsCount,
   onTabChange,
+  variant = "default",
+  showLabels = true,
 }) => {
   const { currentTheme } = useTheme();
   const { t } = useTranslation();
@@ -49,10 +53,13 @@ const SimpleHomeTabMenu: React.FC<SimpleHomeTabMenuProps> = ({
   return (
     <View
       style={[
-        tw`mx-4 my-3 p-1 rounded-2xl flex-row`,
+        variant === "compact"
+          ? tw`p-0.5 rounded-lg flex-row`
+          : tw`mx-4 my-3 p-1 rounded-2xl flex-row`,
         {
-          backgroundColor: currentTheme.colors.surface,
-          borderWidth: 1,
+          backgroundColor:
+            variant === "compact" ? "transparent" : currentTheme.colors.surface,
+          borderWidth: variant === "compact" ? 0 : 1,
           borderColor: currentTheme.colors.border,
         },
       ]}
@@ -64,7 +71,9 @@ const SimpleHomeTabMenu: React.FC<SimpleHomeTabMenuProps> = ({
             key={tab.id}
             onPress={() => onTabChange(tab.id)}
             style={[
-              tw`flex-1 px-4 py-3 rounded-xl flex-row items-center justify-center`,
+              variant === "compact"
+                ? tw`px-2 py-1 rounded-lg flex-row items-center justify-center`
+                : tw`flex-1 px-4 py-3 rounded-xl flex-row items-center justify-center`,
               {
                 backgroundColor: isActive
                   ? getOptimizedTabColors(true).background
@@ -75,28 +84,32 @@ const SimpleHomeTabMenu: React.FC<SimpleHomeTabMenuProps> = ({
           >
             <MaterialCommunityIcons
               name={tab.icon}
-              size={20}
+              size={variant === "compact" ? 12 : 20}
               color={
                 isActive
                   ? getOptimizedTabColors(true).text
                   : currentTheme.colors.textSecondary
               }
             />
-            <UIText
-              size="base"
-              weight="medium"
-              color={
-                isActive
-                  ? getOptimizedTabColors(true).text
-                  : currentTheme.colors.textSecondary
-              }
-              style={tw`ml-2`}
-            >
-              {tab.label}
-            </UIText>
+            {showLabels && (
+              <UIText
+                size={variant === "compact" ? "xs" : "base"}
+                weight="medium"
+                color={
+                  isActive
+                    ? getOptimizedTabColors(true).text
+                    : currentTheme.colors.textSecondary
+                }
+                style={variant === "compact" ? tw`ml-1` : tw`ml-2`}
+              >
+                {tab.label}
+              </UIText>
+            )}
             <View
               style={[
-                tw`ml-2 px-2 py-0.5 rounded-full`,
+                variant === "compact"
+                  ? tw`${showLabels ? "ml-1" : "ml-1"} px-1 py-0 rounded-full`
+                  : tw`ml-2 px-2 py-0.5 rounded-full`,
                 {
                   backgroundColor: isActive
                     ? getOptimizedBadgeColors(true).background
@@ -105,7 +118,7 @@ const SimpleHomeTabMenu: React.FC<SimpleHomeTabMenuProps> = ({
               ]}
             >
               <UIText
-                size="xs"
+                size={variant === "compact" ? "xs" : "xs"}
                 weight="bold"
                 color={
                   isActive

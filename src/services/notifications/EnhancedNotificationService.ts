@@ -36,7 +36,7 @@ export class EnhancedNotificationService {
   // Les options Email et SMS sont temporairement désactivées dans l'interface
 
   private constructor() {
-    this.initializeService();
+    // Ne pas initialiser immédiatement pour éviter les dépendances circulaires
   }
 
   static getInstance(): EnhancedNotificationService {
@@ -44,6 +44,23 @@ export class EnhancedNotificationService {
       EnhancedNotificationService.instance = new EnhancedNotificationService();
     }
     return EnhancedNotificationService.instance;
+  }
+
+  /**
+   * Initialiser le service de manière explicite
+   */
+  async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+    await this.initializeService();
+  }
+
+  /**
+   * Vérifier si le service est initialisé, sinon l'initialiser
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
   }
 
   private async initializeService() {
@@ -188,6 +205,7 @@ export class EnhancedNotificationService {
     newSettings: ExtendedNotificationSettings
   ): Promise<void> {
     try {
+      await this.ensureInitialized(); // Assure que le service est initialisé
       this.settings = newSettings;
       await AsyncStorage.setItem(
         "@planning_notification_settings",
@@ -369,6 +387,7 @@ export class EnhancedNotificationService {
     event: PlanningEvent,
     minutesBefore: number
   ): Promise<string | null> {
+    await this.ensureInitialized(); // Assure que le service est initialisé
     if (!this.permissionGranted || !this.settings?.eventReminders.enabled) {
       return null;
     }
@@ -454,6 +473,7 @@ export class EnhancedNotificationService {
     goal: Goal,
     type: "progress" | "overdue" | "achievement"
   ): Promise<string | null> {
+    await this.ensureInitialized(); // Assure que le service est initialisé
     if (!this.permissionGranted || !this.settings?.goalReminders.enabled) {
       return null;
     }
@@ -553,6 +573,7 @@ export class EnhancedNotificationService {
     hour: number = 18,
     minute: number = 0
   ): Promise<string | null> {
+    await this.ensureInitialized(); // Assure que le service est initialisé
     if (!this.permissionGranted || !this.settings?.goalReminders.enabled) {
       return null;
     }
@@ -617,6 +638,7 @@ export class EnhancedNotificationService {
     hour: number = 9,
     minute: number = 0
   ): Promise<string | null> {
+    await this.ensureInitialized(); // Assure que le service est initialisé
     if (!this.permissionGranted || !this.settings?.goalReminders.enabled) {
       return null;
     }
@@ -679,6 +701,7 @@ export class EnhancedNotificationService {
 
   // Alerte à l'échéance
   async scheduleGoalOverdueReminder(goal: Goal): Promise<string | null> {
+    await this.ensureInitialized(); // Assure que le service est initialisé
     if (!this.permissionGranted || !this.settings?.goalReminders.enabled) {
       return null;
     }
@@ -740,6 +763,7 @@ export class EnhancedNotificationService {
     task: Task,
     type: "due" | "start" | "overdue"
   ): Promise<string | null> {
+    await this.ensureInitialized(); // Assure que le service est initialisé
     if (!this.permissionGranted || !this.settings?.taskReminders.enabled) {
       return null;
     }
@@ -872,6 +896,7 @@ export class EnhancedNotificationService {
 
   // Obtenir les notifications programmées
   async getScheduledNotifications(): Promise<ScheduledNotification[]> {
+    await this.ensureInitialized(); // Assure que le service est initialisé
     if (Platform.OS === "android") {
       try {
         // eslint-disable-next-line @typescript-eslint/no-var-requires

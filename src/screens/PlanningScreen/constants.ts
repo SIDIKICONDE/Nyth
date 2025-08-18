@@ -17,11 +17,6 @@ export const PLANNING_TABS: Tab[] = [
     icon: "calendar-outline",
   },
   {
-    key: "teams",
-    title: "planning.tabs.teams",
-    icon: "people-outline",
-  },
-  {
     key: "analytics",
     title: "planning.tabs.analytics",
     icon: "bar-chart-outline",

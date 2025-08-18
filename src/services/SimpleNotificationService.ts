@@ -26,7 +26,6 @@ class SimpleNotificationService {
    */
   async showSimpleNotification(title: string, message: string) {
     try {
-      // Utiliser Alert pour les tests
       Alert.alert(title, message, [
         { text: "OK", onPress: () => void 0 },
       ]);
@@ -34,44 +33,6 @@ class SimpleNotificationService {
       logger.info("Notification affichée", { title, message });
     } catch (error) {
       logger.error("Erreur lors de l'affichage de la notification:", error);
-    }
-  }
-
-  /**
-   * Créer des notifications de test pour les objectifs
-   */
-  async createTestNotifications() {
-    try {
-      const testGoals = [
-        {
-          id: "test1",
-          title: "Boire 8 verres d'eau",
-          current: 3,
-          target: 8,
-          progress: 37,
-        },
-        {
-          id: "test2",
-          title: "Faire 10000 pas",
-          current: 6500,
-          target: 10000,
-          progress: 65,
-        },
-      ];
-
-      for (const goal of testGoals) {
-        await this.showSimpleNotification(
-          `🎯 ${goal.title}`,
-          `Progression: ${goal.current}/${goal.target} (${goal.progress}%)`
-        );
-      }
-
-      logger.info("Notifications de test créées", { count: testGoals.length });
-    } catch (error) {
-      logger.error(
-        "Erreur lors de la création des notifications de test:",
-        error
-      );
     }
   }
 
@@ -105,37 +66,7 @@ class SimpleNotificationService {
     }
   }
 
-  /**
-   * Programmer des rappels (simulation)
-   */
-  async scheduleReminders() {
-    try {
-      await this.showSimpleNotification(
-        "⏰ Rappels Programmés",
-        "Rappels configurés pour 9h00 et 20h00 chaque jour"
-      );
 
-      logger.info("Rappels programmés");
-    } catch (error) {
-      logger.error("Erreur lors de la programmation des rappels:", error);
-    }
-  }
-
-  /**
-   * Nettoyer les notifications
-   */
-  async clearNotifications() {
-    try {
-      await this.showSimpleNotification(
-        "🧹 Nettoyage Terminé",
-        "Toutes les notifications ont été supprimées"
-      );
-
-      logger.info("Notifications nettoyées");
-    } catch (error) {
-      logger.error("Erreur lors du nettoyage des notifications:", error);
-    }
-  }
 }
 
 export const simpleNotificationService =

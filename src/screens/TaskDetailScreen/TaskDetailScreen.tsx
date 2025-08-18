@@ -1,6 +1,6 @@
 import React from "react";
 import { SafeAreaView, ScrollView } from "react-native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { StackScreenProps } from "@react-navigation/stack";
 import { useTheme } from "../../contexts/ThemeContext";
 import { TaskModal } from "../../components/planning/TaskModal";
 import {
@@ -19,7 +19,7 @@ type RootStackParamList = {
   TaskDetail: { taskId: string };
 };
 
-type Props = NativeStackScreenProps<RootStackParamList, "TaskDetail">;
+type Props = StackScreenProps<RootStackParamList, "TaskDetail">;
 
 export const TaskDetailScreen: React.FC<Props> = ({ route }) => {
   const { taskId } = route.params;

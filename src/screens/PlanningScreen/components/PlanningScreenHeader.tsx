@@ -285,7 +285,7 @@ export const PlanningScreenHeader = React.memo(PlanningScreenHeaderComponent);
 const styles = StyleSheet.create({
   header: {
     borderBottomWidth: 1,
-    paddingTop: 4,
+    paddingTop: 48,
   },
 
   headerContent: {

@@ -4,7 +4,7 @@ import { AIGenerationOptions, AIPrompt } from "../types/ai";
 import { AIService as NewAIService } from "./ai/AIService";
 
 // Export des interfaces pour la compatibilité
-export { AIGenerationOptions, AIPrompt } from "../types/ai";
+export type { AIGenerationOptions, AIPrompt } from "../types/ai";
 
 export class AIService {
   static getInstance() {

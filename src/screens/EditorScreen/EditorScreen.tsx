@@ -7,6 +7,7 @@ import {
   Platform,
   Pressable,
   View,
+  StatusBar,
 } from "react-native";
 import tw from "twrnc";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -205,10 +206,15 @@ export default function EditorScreen() {
   return (
     <View
       style={[
-        tw`flex-1 pt-12`,
+        tw`flex-1`,
         { backgroundColor: currentTheme.colors.background },
       ]}
     >
+      <StatusBar
+        barStyle={currentTheme.isDark ? "light-content" : "dark-content"}
+        backgroundColor="transparent"
+        translucent
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" || isTablet ? "padding" : "height"}
         style={tw`flex-1`}
