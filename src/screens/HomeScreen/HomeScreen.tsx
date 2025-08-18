@@ -21,6 +21,7 @@ import tw from "twrnc";
 import { useNavigation } from "@react-navigation/native";
 
 import { createOptimizedLogger } from '../../utils/optimizedLogger';
+import { responsiveSpacing, isTablet, responsiveBreakpoints } from '../../utils/responsive';
 const logger = createOptimizedLogger('HomeScreen');
 
 // Hooks refactorisés

@@ -30,6 +30,7 @@ import { AuthFormData, AuthValidationErrors } from './types';
 // Utilitaires
 import { validateEmail, calculatePasswordStrength } from '../../utils/authValidation';
 import { createOptimizedLogger } from '../../utils/optimizedLogger';
+import { responsiveFontSize, responsiveSpacing, isTablet, responsiveBreakpoints } from '../../utils/responsive';
 
 const logger = createOptimizedLogger('RegisterScreen');
 
@@ -167,6 +168,30 @@ export const RegisterScreen: React.FC = () => {
   };
 
   const passwordStrength = getPasswordStrength();
+  const isTabletDevice = isTablet();
+
+  // Responsive values
+  const titleFontSize = responsiveFontSize(28);
+  const subtitleFontSize = responsiveFontSize(16);
+  const baseFontSize = responsiveFontSize(16);
+  const smallFontSize = responsiveFontSize(14);
+  const extraSmallFontSize = responsiveFontSize(12);
+  
+  const iconSize = responsiveSpacing(80);
+  const iconInnerSize = responsiveSpacing(40);
+  const checkboxSize = responsiveSpacing(20);
+  
+  const marginBottom = responsiveSpacing(32);
+  const spacing = responsiveSpacing(16);
+  const smallSpacing = responsiveSpacing(8);
+  
+  // Layout responsive pour tablettes
+  const inputLayout = isTabletDevice ? 'row' : 'col';
+  const formMaxWidth = responsiveBreakpoints({
+    lg: 600,
+    xl: 700,
+    default: '100%',
+  });
 
   const styles = useMemo(() => ({
     titleColor: { color: isDark ? '#ffffff' : '#1a1a1a' },
@@ -183,57 +208,80 @@ export const RegisterScreen: React.FC = () => {
 
   return (
     <AuthContainer>
-      <View style={tw`items-center mb-8`}>
-        {/* Logo ou icône */}
-        <View
-          style={[tw`w-20 h-20 rounded-full items-center justify-center mb-4`, styles.badgeBackground]}
-        >
-          <MaterialCommunityIcons
-            name="account-plus"
-            size={40}
-            color={currentTheme.colors.primary}
-          />
-        </View>
-
-        {/* Titre */}
-        <Text style={[tw`text-3xl font-bold mb-2`, styles.titleColor]}>
-          Créer un compte
-        </Text>
-        
-        <Text style={[tw`text-base text-center`, styles.subtitleColor]}>
-          Rejoignez-nous aujourd'hui
-        </Text>
-      </View>
-
-      {/* Formulaire */}
-      <View style={tw`mb-6`}>
-        {/* Nom et prénom */}
-        <View style={tw`flex-row gap-3 mb-4`}>
-          <View style={tw`flex-1`}>
-            <AuthInput
-              label="Prénom"
-              icon="account"
-              placeholder="Votre prénom"
-              value={formData.firstName || ''}
-              onChangeText={(value) => updateFormData('firstName', value)}
-              autoCapitalize="words"
-              error={errors.firstName}
-              isRequired
+      <View style={[tw`w-full`, { maxWidth: formMaxWidth }]}>
+        <View style={[tw`items-center`, { marginBottom }]}>
+          {/* Logo ou icône */}
+          <View
+            style={[
+              tw`rounded-full items-center justify-center mb-4`,
+              styles.badgeBackground,
+              {
+                width: iconSize,
+                height: iconSize,
+                marginBottom: spacing,
+              }
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="account-plus"
+              size={iconInnerSize}
+              color={currentTheme.colors.primary}
             />
           </View>
-          <View style={tw`flex-1`}>
-            <AuthInput
-              label="Nom"
-              icon="account"
-              placeholder="Votre nom"
-              value={formData.lastName || ''}
-              onChangeText={(value) => updateFormData('lastName', value)}
-              autoCapitalize="words"
-              error={errors.lastName}
-              isRequired
-            />
-          </View>
+
+          {/* Titre */}
+          <Text style={[
+            tw`font-bold mb-2`,
+            styles.titleColor,
+            {
+              fontSize: titleFontSize,
+              marginBottom: smallSpacing,
+            }
+          ]}>
+            Créer un compte
+          </Text>
+          
+          <Text style={[
+            tw`text-center`,
+            styles.subtitleColor,
+            { fontSize: subtitleFontSize }
+          ]}>
+            Rejoignez-nous aujourd'hui
+          </Text>
         </View>
+
+        {/* Formulaire */}
+        <View style={[tw`mb-6`, { marginBottom: responsiveSpacing(24) }]}>
+          {/* Nom et prénom */}
+          <View style={[
+            tw`mb-4`,
+            isTabletDevice ? tw`flex-row gap-3` : tw``,
+          ]}>
+            <View style={isTabletDevice ? tw`flex-1` : tw`mb-4`}>
+              <AuthInput
+                label="Prénom"
+                icon="account"
+                placeholder="Votre prénom"
+                value={formData.firstName || ''}
+                onChangeText={(value) => updateFormData('firstName', value)}
+                autoCapitalize="words"
+                error={errors.firstName}
+                isRequired
+              />
+            </View>
+            <View style={isTabletDevice ? tw`flex-1` : tw``}>
+              <AuthInput
+                label="Nom"
+                icon="account"
+                placeholder="Votre nom"
+                value={formData.lastName || ''}
+                onChangeText={(value) => updateFormData('lastName', value)}
+                autoCapitalize="words"
+                error={errors.lastName}
+                isRequired
+              />
+            </View>
+          </View>
 
         <AuthInput
           label="Email"
@@ -260,27 +308,34 @@ export const RegisterScreen: React.FC = () => {
           isRequired
         />
 
-        {/* Indicateur de force du mot de passe */}
-        {passwordStrength && (
-          <View style={tw`mb-4`}>
-            <View style={tw`flex-row justify-between items-center mb-1`}>
-              <Text style={[tw`text-xs`, styles.subtitleColor]}>
-                Force du mot de passe
-              </Text>
-              <Text style={[tw`text-xs font-medium`, { color: passwordStrength.color }]}>
-                {passwordStrength.label}
-              </Text>
+          {/* Indicateur de force du mot de passe */}
+          {passwordStrength && (
+            <View style={[tw`mb-4`, { marginBottom: spacing }]}>
+              <View style={tw`flex-row justify-between items-center mb-1`}>
+                <Text style={[styles.subtitleColor, { fontSize: extraSmallFontSize }]}>
+                  Force du mot de passe
+                </Text>
+                <Text style={[
+                  tw`font-medium`,
+                  { color: passwordStrength.color, fontSize: extraSmallFontSize }
+                ]}>
+                  {passwordStrength.label}
+                </Text>
+              </View>
+              <View style={[
+                tw`h-2 rounded-full`,
+                styles.progressBackground,
+                { height: responsiveSpacing(8) }
+              ]}>
+                <View
+                  style={[
+                    tw`h-full rounded-full`,
+                    { backgroundColor: passwordStrength.color, width: `${passwordStrength.width}%` },
+                  ]}
+                />
+              </View>
             </View>
-            <View style={[tw`h-2 rounded-full`, styles.progressBackground]}>
-              <View
-                style={[
-                  tw`h-full rounded-full`,
-                  { backgroundColor: passwordStrength.color, width: `${passwordStrength.width}%` },
-                ]}
-              />
-            </View>
-          </View>
-        )}
+          )}
 
         <AuthInput
           label="Confirmer le mot de passe"
@@ -294,77 +349,104 @@ export const RegisterScreen: React.FC = () => {
           isRequired
         />
 
-        {/* Conditions d'utilisation */}
-        <TouchableOpacity
-          onPress={() => setAcceptTerms(!acceptTerms)}
-          style={tw`flex-row items-start mb-4`}
-        >
-          <View style={[
-            tw`w-5 h-5 rounded border-2 mr-3 mt-0.5 items-center justify-center`,
-            styles.checkboxBorder(acceptTerms),
-          ]}>
-            {acceptTerms && (
+          {/* Conditions d'utilisation */}
+          <TouchableOpacity
+            onPress={() => setAcceptTerms(!acceptTerms)}
+            style={[tw`flex-row items-start mb-4`, { marginBottom: spacing }]}
+          >
+            <View style={[
+              tw`rounded border-2 mr-3 mt-0.5 items-center justify-center`,
+              styles.checkboxBorder(acceptTerms),
+              {
+                width: checkboxSize,
+                height: checkboxSize,
+                marginRight: responsiveSpacing(12),
+              }
+            ]}>
+              {acceptTerms && (
+                <MaterialCommunityIcons
+                  name="check"
+                  size={responsiveSpacing(12)}
+                  color="#ffffff"
+                />
+              )}
+            </View>
+            <Text style={[
+              tw`flex-1`,
+              styles.subtitleColor,
+              { fontSize: smallFontSize }
+            ]}>
+              J'accepte les{' '}
+              <Text style={[tw`font-medium`, styles.linkColor]}>
+                conditions d'utilisation
+              </Text>
+              {' '}et la{' '}
+              <Text style={[tw`font-medium`, styles.linkColor]}>
+                politique de confidentialité
+              </Text>
+            </Text>
+          </TouchableOpacity>
+
+          {/* Erreur générale */}
+          {errors.general && (
+            <View style={[
+              tw`rounded-lg mb-4 flex-row items-center`,
+              styles.dangerBox,
+              {
+                padding: responsiveSpacing(12),
+                marginBottom: spacing,
+              }
+            ]}>
               <MaterialCommunityIcons
-                name="check"
-                size={12}
-                color="#ffffff"
+                name="alert-circle"
+                size={responsiveFontSize(16)}
+                color="#ef4444"
+                style={[tw`mr-2`, { marginRight: smallSpacing }]}
               />
-            )}
-          </View>
-          <Text style={[tw`text-sm flex-1`, styles.subtitleColor]}>
-            J'accepte les{' '}
-            <Text style={[tw`font-medium`, styles.linkColor]}>
-              conditions d'utilisation
-            </Text>
-            {' '}et la{' '}
-            <Text style={[tw`font-medium`, styles.linkColor]}>
-              politique de confidentialité
-            </Text>
-          </Text>
-        </TouchableOpacity>
+              <Text style={[
+                tw`text-red-700 flex-1`,
+                { fontSize: smallFontSize }
+              ]}>
+                {errors.general}
+              </Text>
+            </View>
+          )}
 
-        {/* Erreur générale */}
-        {errors.general && (
-          <View style={[tw`p-3 rounded-lg mb-4 flex-row items-center`, styles.dangerBox]}>
-            <MaterialCommunityIcons
-              name="alert-circle"
-              size={16}
-              color="#ef4444"
-              style={tw`mr-2`}
-            />
-            <Text style={tw`text-red-700 text-sm flex-1`}>
-              {errors.general}
-            </Text>
-          </View>
-        )}
+          {/* Bouton d'inscription */}
+          <AuthButton
+            title="Créer mon compte"
+            onPress={handleSubmit}
+            isLoading={isLoading}
+            variant="primary"
+            icon="account-plus"
+            style={[tw`w-full`, { marginTop: smallSpacing }]}
+          />
+        </View>
 
-        {/* Bouton d'inscription */}
-        <AuthButton
-          title="Créer mon compte"
-          onPress={handleSubmit}
+        {/* Authentification sociale */}
+        <SocialAuthButtons
+          onSocialLogin={handleSocialLogin}
           isLoading={isLoading}
-          variant="primary"
-          icon="account-plus"
-          style={tw`w-full mt-2`}
         />
-      </View>
 
-      {/* Authentification sociale */}
-      <SocialAuthButtons
-        onSocialLogin={handleSocialLogin}
-        isLoading={isLoading}
-      />
-
-      {/* Lien vers la connexion */}
-      <View style={tw`flex-row justify-center items-center mt-8`}>
-        <Text style={[tw`text-base`, styles.subtitleColor]}>
-          Déjà un compte ?{' '}
-        </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={[tw`text-base font-semibold`, styles.linkColor]}>
-            Se connecter
+        {/* Lien vers la connexion */}
+        <View style={[
+          tw`flex-row justify-center items-center`,
+          { marginTop: marginBottom }
+        ]}>
+          <Text style={[styles.subtitleColor, { fontSize: baseFontSize }]}>
+            Déjà un compte ?{' '}
           </Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={[
+              tw`font-semibold`,
+              styles.linkColor,
+              { fontSize: baseFontSize }
+            ]}>
+              Se connecter
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </AuthContainer>
   );

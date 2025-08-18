@@ -30,6 +30,7 @@ import { AuthFormData, AuthValidationErrors } from './types';
 // Utilitaires
 import { validateEmail } from '../../utils/authValidation';
 import { createOptimizedLogger } from '../../utils/optimizedLogger';
+import { responsiveFontSize, responsiveSpacing, isTablet, responsiveBreakpoints } from '../../utils/responsive';
 
 const logger = createOptimizedLogger('LoginScreen');
 
@@ -119,6 +120,29 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
+  const isTabletDevice = isTablet();
+
+  // Responsive values
+  const titleFontSize = responsiveFontSize(28);
+  const subtitleFontSize = responsiveFontSize(16);
+  const baseFontSize = responsiveFontSize(16);
+  const smallFontSize = responsiveFontSize(14);
+  const extraSmallFontSize = responsiveFontSize(12);
+  
+  const iconSize = responsiveSpacing(80);
+  const iconInnerSize = responsiveSpacing(40);
+  
+  const marginBottom = responsiveSpacing(32);
+  const spacing = responsiveSpacing(16);
+  const smallSpacing = responsiveSpacing(8);
+  
+  // Layout responsive pour tablettes
+  const formMaxWidth = responsiveBreakpoints({
+    lg: 500,
+    xl: 600,
+    default: '100%',
+  });
+
   const styles = useMemo(() => ({
     titleColor: { color: isDark ? '#ffffff' : '#1a1a1a' },
     subtitleColor: { color: isDark ? '#8a8a8a' : '#6b7280' },
@@ -129,117 +153,157 @@ export const LoginScreen: React.FC = () => {
 
   return (
     <AuthContainer>
-      <View style={tw`items-center mb-8`}>
-        {/* Logo ou icône */}
-        <View
-          style={[
-            tw`w-20 h-20 rounded-full items-center justify-center mb-4`,
-            styles.badgeBackground,
-          ]}
-        >
-          <MaterialCommunityIcons
-            name="account-circle"
-            size={40}
-            color={currentTheme.colors.primary}
+      <View style={[tw`w-full`, { maxWidth: formMaxWidth }]}>
+        <View style={[tw`items-center`, { marginBottom }]}>
+          {/* Logo ou icône */}
+          <View
+            style={[
+              tw`rounded-full items-center justify-center mb-4`,
+              styles.badgeBackground,
+              {
+                width: iconSize,
+                height: iconSize,
+                marginBottom: spacing,
+              }
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="account-circle"
+              size={iconInnerSize}
+              color={currentTheme.colors.primary}
+            />
+          </View>
+
+          {/* Titre */}
+          <Text
+            style={[
+              tw`font-bold mb-2`,
+              styles.titleColor,
+              {
+                fontSize: titleFontSize,
+                marginBottom: smallSpacing,
+              }
+            ]}
+          >
+            Bon retour !
+          </Text>
+          
+          <Text
+            style={[
+              tw`text-center`,
+              styles.subtitleColor,
+              { fontSize: subtitleFontSize }
+            ]}
+          >
+            Connectez-vous à votre compte
+          </Text>
+        </View>
+
+        {/* Formulaire */}
+        <View style={[tw`mb-6`, { marginBottom: responsiveSpacing(24) }]}>
+          <AuthInput
+            label="Email"
+            icon="email"
+            placeholder="votre@email.com"
+            value={formData.email}
+            onChangeText={(value) => updateFormData('email', value)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            error={errors.email}
+            isRequired
+          />
+
+          <AuthInput
+            label="Mot de passe"
+            icon="lock"
+            placeholder="Votre mot de passe"
+            value={formData.password}
+            onChangeText={(value) => updateFormData('password', value)}
+            isPassword
+            autoComplete="password"
+            error={errors.password}
+            isRequired
+          />
+
+          {/* Mot de passe oublié */}
+          <TouchableOpacity
+            onPress={() => {
+              // TODO: Implémenter l'écran de mot de passe oublié
+              Alert.alert('Non disponible', 'La réinitialisation de mot de passe sera disponible bientôt');
+            }}
+            style={[tw`self-end mb-4`, { marginBottom: spacing }]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={[
+              tw`font-medium`,
+              styles.linkColor,
+              { fontSize: smallFontSize }
+            ]}>
+              Mot de passe oublié ?
+            </Text>
+          </TouchableOpacity>
+
+          {/* Erreur générale */}
+          {errors.general && (
+            <View style={[
+              tw`rounded-lg mb-4 flex-row items-center`,
+              styles.dangerBox,
+              {
+                padding: responsiveSpacing(12),
+                marginBottom: spacing,
+              }
+            ]}>
+              <MaterialCommunityIcons
+                name="alert-circle"
+                size={responsiveFontSize(16)}
+                color="#ef4444"
+                style={[tw`mr-2`, { marginRight: smallSpacing }]}
+              />
+              <Text style={[
+                tw`text-red-700 flex-1`,
+                { fontSize: smallFontSize }
+              ]}>
+                {errors.general}
+              </Text>
+            </View>
+          )}
+
+          {/* Bouton de connexion */}
+          <AuthButton
+            title="Se connecter"
+            onPress={handleSubmit}
+            isLoading={isLoading}
+            variant="primary"
+            icon="login"
+            style={[tw`w-full`, { marginTop: smallSpacing }]}
           />
         </View>
 
-        {/* Titre */}
-        <Text
-          style={[tw`text-3xl font-bold mb-2`, styles.titleColor]}
-        >
-          Bon retour !
-        </Text>
-        
-        <Text
-          style={[tw`text-base text-center`, styles.subtitleColor]}
-        >
-          Connectez-vous à votre compte
-        </Text>
-      </View>
-
-      {/* Formulaire */}
-      <View style={tw`mb-6`}>
-        <AuthInput
-          label="Email"
-          icon="email"
-          placeholder="votre@email.com"
-          value={formData.email}
-          onChangeText={(value) => updateFormData('email', value)}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-          error={errors.email}
-          isRequired
-        />
-
-        <AuthInput
-          label="Mot de passe"
-          icon="lock"
-          placeholder="Votre mot de passe"
-          value={formData.password}
-          onChangeText={(value) => updateFormData('password', value)}
-          isPassword
-          autoComplete="password"
-          error={errors.password}
-          isRequired
-        />
-
-        {/* Mot de passe oublié */}
-        <TouchableOpacity
-          onPress={() => {
-            // TODO: Implémenter l'écran de mot de passe oublié
-            Alert.alert('Non disponible', 'La réinitialisation de mot de passe sera disponible bientôt');
-          }}
-          style={tw`self-end mb-4`}
-        >
-          <Text style={[tw`text-sm font-medium`, styles.linkColor]}>
-            Mot de passe oublié ?
-          </Text>
-        </TouchableOpacity>
-
-        {/* Erreur générale */}
-        {errors.general && (
-          <View style={[tw`p-3 rounded-lg mb-4 flex-row items-center`, styles.dangerBox]}>
-            <MaterialCommunityIcons
-              name="alert-circle"
-              size={16}
-              color="#ef4444"
-              style={tw`mr-2`}
-            />
-            <Text style={tw`text-red-700 text-sm flex-1`}>
-              {errors.general}
-            </Text>
-          </View>
-        )}
-
-        {/* Bouton de connexion */}
-        <AuthButton
-          title="Se connecter"
-          onPress={handleSubmit}
+        {/* Authentification sociale */}
+        <SocialAuthButtons
+          onSocialLogin={handleSocialLogin}
           isLoading={isLoading}
-          variant="primary"
-          icon="login"
-          style={tw`w-full mt-2`}
         />
-      </View>
 
-      {/* Authentification sociale */}
-      <SocialAuthButtons
-        onSocialLogin={handleSocialLogin}
-        isLoading={isLoading}
-      />
-
-      {/* Lien vers l'inscription */}
-      <View style={tw`flex-row justify-center items-center mt-8`}>
-        <Text style={[tw`text-base`, styles.subtitleColor]}>
-          Pas encore de compte ?{' '}
-        </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={[tw`text-base font-semibold`, styles.linkColor]}>
-            S'inscrire
+        {/* Lien vers l'inscription */}
+        <View style={[
+          tw`flex-row justify-center items-center`,
+          { marginTop: marginBottom }
+        ]}>
+          <Text style={[styles.subtitleColor, { fontSize: baseFontSize }]}>
+            Pas encore de compte ?{' '}
           </Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+            <Text style={[
+              tw`font-semibold`,
+              styles.linkColor,
+              { fontSize: baseFontSize }
+            ]}>
+              S'inscrire
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </AuthContainer>
   );

@@ -9,6 +9,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import tw from 'twrnc';
 import { useTheme } from '../../contexts/ThemeContext';
+import { responsiveFontSize, responsiveSpacing, responsiveHeight } from '../../utils/responsive';
 
 interface AuthButtonProps extends TouchableOpacityProps {
   title: string;
@@ -33,18 +34,32 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
   
   const isDisabled = disabled || isLoading;
   
+  // Responsive values
+  const buttonHeight = responsiveHeight(56);
+  const paddingHorizontal = responsiveSpacing(24);
+  const paddingVertical = responsiveSpacing(16);
+  const fontSize = responsiveFontSize(16);
+  const iconSize = responsiveFontSize(20);
+  
   const getButtonStyle = () => {
-    const baseStyle = tw`rounded-xl py-4 px-6 flex-row items-center justify-center`;
+    const baseStyle = [
+      tw`rounded-xl flex-row items-center justify-center`,
+      {
+        minHeight: buttonHeight,
+        paddingHorizontal,
+        paddingVertical,
+      }
+    ];
     
     switch (variant) {
       case 'primary':
         return [
-          baseStyle,
+          ...baseStyle,
           { opacity: isDisabled ? 0.6 : 1 },
         ];
       case 'secondary':
         return [
-          baseStyle,
+          ...baseStyle,
           {
             backgroundColor: isDark ? '#2a2a2a' : '#f3f4f6',
             opacity: isDisabled ? 0.6 : 1,
@@ -52,7 +67,7 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
         ];
       case 'outline':
         return [
-          baseStyle,
+          ...baseStyle,
           tw`border-2`,
           {
             borderColor: currentTheme.colors.primary,
@@ -83,9 +98,9 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
       {icon && iconPosition === 'left' && (
         <MaterialCommunityIcons
           name={icon}
-          size={20}
+          size={iconSize}
           color={getTextColor()}
-          style={tw`mr-2`}
+          style={[tw`mr-2`, { marginRight: responsiveSpacing(8) }]}
         />
       )}
       
@@ -94,8 +109,11 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
       ) : (
         <Text
           style={[
-            tw`text-base font-semibold`,
-            { color: getTextColor() },
+            tw`font-semibold`,
+            { 
+              color: getTextColor(),
+              fontSize,
+            },
           ]}
         >
           {title}
@@ -105,9 +123,9 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
       {icon && iconPosition === 'right' && !isLoading && (
         <MaterialCommunityIcons
           name={icon}
-          size={20}
+          size={iconSize}
           color={getTextColor()}
-          style={tw`ml-2`}
+          style={[tw`ml-2`, { marginLeft: responsiveSpacing(8) }]}
         />
       )}
     </>
@@ -122,7 +140,14 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
       >
         <LinearGradient
           colors={[currentTheme.colors.primary, currentTheme.colors.secondary]}
-          style={tw`w-full rounded-xl py-4 px-6 flex-row items-center justify-center`}
+          style={[
+            tw`w-full rounded-xl flex-row items-center justify-center`,
+            {
+              minHeight: buttonHeight,
+              paddingHorizontal,
+              paddingVertical,
+            }
+          ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
         >

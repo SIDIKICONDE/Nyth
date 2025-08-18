@@ -9,6 +9,7 @@ import {
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import tw from 'twrnc';
 import { useTheme } from '../../contexts/ThemeContext';
+import { responsiveFontSize, responsiveSpacing, responsiveHeight } from '../../utils/responsive';
 
 interface AuthInputProps extends TextInputProps {
   label: string;
@@ -43,35 +44,56 @@ export const AuthInput: React.FC<AuthInputProps> = ({
     : '#e5e7eb';
   const backgroundColor = isDark ? '#2a2a2a' : '#f9fafb';
 
+  // Responsive values
+  const labelFontSize = responsiveFontSize(14);
+  const inputFontSize = responsiveFontSize(16);
+  const iconSize = responsiveFontSize(20);
+  const paddingHorizontal = responsiveSpacing(16);
+  const paddingVertical = responsiveSpacing(12);
+  const marginBottom = responsiveSpacing(16);
+  const inputHeight = responsiveHeight(56);
+
   return (
-    <View style={tw`mb-4`}>
-      <Text style={[tw`text-sm font-medium mb-2`, { color: inputTextColor }]}>
+    <View style={[tw`mb-4`, { marginBottom }]}>
+      <Text style={[
+        tw`font-medium mb-2`,
+        { 
+          color: inputTextColor,
+          fontSize: labelFontSize,
+        }
+      ]}>
         {label}
         {isRequired && <Text style={tw`text-red-500 ml-1`}>*</Text>}
       </Text>
       
       <View
         style={[
-          tw`flex-row items-center rounded-xl px-4 py-3 border-2`,
+          tw`flex-row items-center rounded-xl border-2`,
           {
             backgroundColor,
             borderColor,
+            paddingHorizontal,
+            paddingVertical,
+            minHeight: inputHeight,
           },
         ]}
       >
         {icon && (
           <MaterialCommunityIcons
             name={icon}
-            size={20}
+            size={iconSize}
             color={placeholderColor}
-            style={tw`mr-3`}
+            style={[tw`mr-3`, { marginRight: responsiveSpacing(12) }]}
           />
         )}
         
         <TextInput
           style={[
-            tw`flex-1 text-base`,
-            { color: inputTextColor },
+            tw`flex-1`,
+            { 
+              color: inputTextColor,
+              fontSize: inputFontSize,
+            },
             style,
           ]}
           placeholderTextColor={placeholderColor}
@@ -84,11 +106,12 @@ export const AuthInput: React.FC<AuthInputProps> = ({
         {isPassword && (
           <TouchableOpacity
             onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-            style={tw`ml-2`}
+            style={[tw`ml-2`, { marginLeft: responsiveSpacing(8) }]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <MaterialCommunityIcons
               name={isPasswordVisible ? 'eye-off' : 'eye'}
-              size={20}
+              size={iconSize}
               color={placeholderColor}
             />
           </TouchableOpacity>
@@ -96,7 +119,13 @@ export const AuthInput: React.FC<AuthInputProps> = ({
       </View>
       
       {error && (
-        <Text style={tw`text-red-500 text-sm mt-1 ml-1`}>
+        <Text style={[
+          tw`text-red-500 mt-1 ml-1`,
+          { 
+            fontSize: responsiveFontSize(12),
+            marginTop: responsiveSpacing(4),
+          }
+        ]}>
           {error}
         </Text>
       )}
