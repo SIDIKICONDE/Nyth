@@ -190,28 +190,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
       setIsLoading(true);
       logger.info("Chargement des données d'enregistrement", { scriptId });
 
-      // Vérifier les permissions avant de continuer
-      logger.info("Vérification des permissions caméra/micro");
-      if (!permissions.isReady) {
-        const granted = await requestPermissions();
-        if (!granted) {
-          Alert.alert(
-            t("permissions.denied.title", "Permission Requise"),
-            t(
-              "permissions.denied.message",
-              "Activez la caméra et le micro dans les réglages."
-            ),
-            [
-              { text: t("common.cancel", "Annuler"), style: "cancel" },
-              {
-                text: t("permissions.denied.settings", "Paramètres"),
-                onPress: openSettings,
-              },
-            ]
-          );
-          return;
-        }
-      }
+      // Ne PAS vérifier les permissions ici - on le fera quand l'utilisateur cliquera sur enregistrer
 
       // Charger le script
       const foundScript = scripts.find((s) => s.id === scriptId);

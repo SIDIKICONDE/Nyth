@@ -10,6 +10,7 @@ import { Camera, CameraPosition, VideoFile } from "react-native-vision-camera";
 import { useCamera } from "./hooks/useCamera";
 import { useAdvancedCamera } from "./hooks/useAdvancedCamera";
 import { CameraControls } from "./components/CameraControls";
+import { usePermissionCheck } from "./hooks/usePermissionCheck";
 
 interface CameraModuleProps {
   onRecordingComplete?: (video: VideoFile) => void;
@@ -80,9 +81,7 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
   // Les contrôles sont utilisés directement
   const enhancedControls = controls;
 
-  const shouldShowCamera = Boolean(
-    device && hasCameraPermission && hasMicrophonePermission
-  );
+  const shouldShowCamera = Boolean(device);
 
   return (
     <View style={styles.container}>
@@ -100,16 +99,8 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
         />
       ) : (
         <View style={styles.container}>
-          {!hasCameraPermission || !hasMicrophonePermission ? (
-            <Text style={styles.permissionText}>
-              Veuillez autoriser l'accès à la caméra et au microphone
-            </Text>
-          ) : (
-            <>
-              <ActivityIndicator size="large" color="#FFFFFF" />
-              <Text style={styles.loadingText}>Chargement de la caméra...</Text>
-            </>
-          )}
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={styles.loadingText}>Chargement de la caméra...</Text>
         </View>
       )}
 

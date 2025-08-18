@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Alert } from "react-native";
 import {
   Camera,
   useCameraDevice,
@@ -50,6 +51,38 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
 
   const startRecording = useCallback(async () => {
     if (!cameraRef.current || recordingState.isRecording) return;
+
+    // Vérifier les permissions avant de démarrer l'enregistrement
+    if (!hasCameraPermission || !hasMicrophonePermission) {
+      // Afficher un popup explicatif avant de demander les permissions
+      Alert.alert(
+        "Permissions requises",
+        "CamPrompt AI a besoin d'accéder à votre caméra et microphone pour enregistrer des vidéos.",
+        [
+          {
+            text: "Annuler",
+            style: "cancel",
+          },
+          {
+            text: "Continuer",
+            onPress: async () => {
+              const granted = await requestPermissions();
+              if (!granted) {
+                Alert.alert(
+                  "Permissions refusées",
+                  "Impossible d'enregistrer sans accès à la caméra et au microphone. Vous pouvez modifier les permissions dans les réglages de votre appareil.",
+                  [{ text: "OK" }]
+                );
+              } else {
+                // Les permissions ont été accordées, redémarrer l'enregistrement
+                startRecording();
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
 
     try {
       await cameraRef.current.startRecording({
