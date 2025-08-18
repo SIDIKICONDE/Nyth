@@ -78,9 +78,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.naya.bundle"
+    namespace "com.nyth.app"
     defaultConfig {
-        applicationId "com.naya.bundle"
+        applicationId "com.nyth.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

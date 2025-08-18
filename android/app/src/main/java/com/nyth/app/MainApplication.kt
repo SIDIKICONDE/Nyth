@@ -1,4 +1,4 @@
-package com.naya.bundle
+package com.nyth.app
 
 import android.app.Application
 import com.facebook.react.PackageList

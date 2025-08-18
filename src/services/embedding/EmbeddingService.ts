@@ -27,99 +27,115 @@ class EmbeddingService {
 
   private async ensureInitialized(): Promise<boolean> {
     if (this.isInitialized) return true;
-    // Use server-side embeddings via functions proxy
+    // Use Firebase Functions for embeddings
     this.embedder = async (text: string) => {
-      const { getSecureHeaders } = await import("../../utils/securityUtils");
-      const { SERVER_CONFIG } = await import("../../config/serverConfig");
-      const headers = await getSecureHeaders();
-      const response = await fetch(
-        `${SERVER_CONFIG.BASE_URL}/embeddingsProxy`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
+      try {
+        // Try Firebase Functions first
+        const { functions } = await import("../../config/firebase");
+        if (functions) {
+          const embeddingsProxy = functions.httpsCallable('embeddingsProxy');
+          const result = await embeddingsProxy({
             input: text,
             model: "text-embedding-3-small",
-          }),
+          });
+          
+          if (result.data && result.data.embeddings) {
+            const vec = result.data.embeddings[0] || [];
+            const dims = [1, 1, vec.length];
+            const arr = new Float32Array(vec);
+            return { data: arr, dims } as EmbedderOutput;
+          }
         }
-      );
-      if (response.ok) {
-        const data = (await response.json()) as { embeddings: number[][] };
-        const vec = (data.embeddings?.[0] || []) as number[];
-        const dims = [1, 1, vec.length];
-        const arr = new Float32Array(vec);
-        return { data: arr, dims } as EmbedderOutput;
+      } catch (error) {
+        this.logger.warn("Firebase Functions embeddings failed, trying fallback:", error);
       }
 
-      if (response.status !== 404) {
-        throw new Error(`Embeddings HTTP ${response.status}`);
-      }
-
+      // Use user-configured providers in priority order instead of hardcoded OpenAI first
       const { ApiKeyManager } = await import("../ai/ApiKeyManager");
-
-      const openaiKey = await ApiKeyManager.getOpenAIKey();
-      if (openaiKey) {
-        type OpenAIEmbeddingsResponse = {
-          data: { embedding: number[]; index: number }[];
-        };
-        const r = await fetch("https://api.openai.com/v1/embeddings", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${openaiKey}`,
-          },
-          body: JSON.stringify({
-            model: "text-embedding-3-small",
-            input: text,
-          }),
-        });
-        if (!r.ok) throw new Error(`Embeddings HTTP ${r.status}`);
-        const j = (await r.json()) as OpenAIEmbeddingsResponse;
-        const vec = (j.data?.[0]?.embedding || []) as number[];
-        const dims = [1, 1, vec.length];
-        return { data: new Float32Array(vec), dims } as EmbedderOutput;
+      const { getEnabledProviders } = await import("../../config/aiConfig");
+      
+      const enabledProviders = await getEnabledProviders();
+      this.logger.info(`Available providers for embeddings: ${enabledProviders.length} enabled`);
+      
+      for (const provider of enabledProviders) {
+        try {
+          if (provider === "OPENAI") {
+            const openaiKey = await ApiKeyManager.getOpenAIKey();
+            if (openaiKey) {
+              type OpenAIEmbeddingsResponse = {
+                data: { embedding: number[]; index: number }[];
+              };
+              const r = await fetch("https://api.openai.com/v1/embeddings", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${openaiKey}`,
+                },
+                body: JSON.stringify({
+                  model: "text-embedding-3-small",
+                  input: text,
+                }),
+              });
+              if (!r.ok) throw new Error(`OpenAI Embeddings HTTP ${r.status}`);
+              const j = (await r.json()) as OpenAIEmbeddingsResponse;
+              const vec = (j.data?.[0]?.embedding || []) as number[];
+              const dims = [1, 1, vec.length];
+              this.logger.info("Successfully used OpenAI for embeddings");
+              return { data: new Float32Array(vec), dims } as EmbedderOutput;
+            }
+          }
+          
+          if (provider === "GEMINI") {
+            const geminiKey = await ApiKeyManager.getGeminiKey();
+            if (geminiKey) {
+              type GeminiEmbeddingResponse = { embedding?: { values?: number[] } };
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`;
+              const r = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  model: "models/text-embedding-004",
+                  content: { parts: [{ text }] },
+                }),
+              });
+              if (!r.ok) throw new Error(`Gemini Embeddings HTTP ${r.status}`);
+              const j = (await r.json()) as GeminiEmbeddingResponse;
+              const vec = (j.embedding?.values || []) as number[];
+              const dims = [1, 1, vec.length];
+              this.logger.info("Successfully used Gemini for embeddings");
+              return { data: new Float32Array(vec), dims } as EmbedderOutput;
+            }
+          }
+          
+          if (provider === "MISTRAL") {
+            const mistralKey = await ApiKeyManager.getMistralKey();
+            if (mistralKey) {
+              type MistralEmbeddingsResponse = {
+                data: { embedding: number[]; index: number }[];
+              };
+              const r = await fetch("https://api.mistral.ai/v1/embeddings", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${mistralKey}`,
+                },
+                body: JSON.stringify({ model: "mistral-embed", input: text }),
+              });
+              if (!r.ok) throw new Error(`Mistral Embeddings HTTP ${r.status}`);
+              const j = (await r.json()) as MistralEmbeddingsResponse;
+              const vec = (j.data?.[0]?.embedding || []) as number[];
+              const dims = [1, 1, vec.length];
+              this.logger.info("Successfully used Mistral for embeddings");
+              return { data: new Float32Array(vec), dims } as EmbedderOutput;
+            }
+          }
+        } catch (error) {
+          this.logger.warn(`Provider ${provider} failed for embeddings:`, error);
+          // Continue to next provider
+        }
       }
 
-      const geminiKey = await ApiKeyManager.getGeminiKey();
-      if (geminiKey) {
-        type GeminiEmbeddingResponse = { embedding?: { values?: number[] } };
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`;
-        const r = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "models/text-embedding-004",
-            content: { parts: [{ text }] },
-          }),
-        });
-        if (!r.ok) throw new Error(`Embeddings HTTP ${r.status}`);
-        const j = (await r.json()) as GeminiEmbeddingResponse;
-        const vec = (j.embedding?.values || []) as number[];
-        const dims = [1, 1, vec.length];
-        return { data: new Float32Array(vec), dims } as EmbedderOutput;
-      }
-
-      const mistralKey = await ApiKeyManager.getMistralKey();
-      if (mistralKey) {
-        type OpenAIEmbeddingsResponse = {
-          data: { embedding: number[]; index: number }[];
-        };
-        const r = await fetch("https://api.mistral.ai/v1/embeddings", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${mistralKey}`,
-          },
-          body: JSON.stringify({ model: "mistral-embed", input: text }),
-        });
-        if (!r.ok) throw new Error(`Embeddings HTTP ${r.status}`);
-        const j = (await r.json()) as OpenAIEmbeddingsResponse;
-        const vec = (j.data?.[0]?.embedding || []) as number[];
-        const dims = [1, 1, vec.length];
-        return { data: new Float32Array(vec), dims } as EmbedderOutput;
-      }
-
-      throw new Error("Embeddings HTTP 404");
+      throw new Error("No available providers for embeddings");
     };
     try {
       const probe = await this.embedder("ok", { normalize: true });

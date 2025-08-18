@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createLogger } from "../../../utils/optimizedLogger";
 import { getAuth } from "@react-native-firebase/auth";
+import { SUBSCRIPTION_PLANS } from "../../../constants/subscriptionPlans";
+import subscriptionService from "../../firebase/subscriptionService";
 
 const logger = createLogger("UsageTrackingService");
 
@@ -168,6 +170,7 @@ export class UsageTrackingService {
         throw new Error("User not authenticated");
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const idToken = await user.getIdToken();
 
       const { FirebaseFunctionsFallbackService } = await import("../../firebaseFunctionsFallback");
@@ -207,6 +210,218 @@ export class UsageTrackingService {
     } catch (error) {
       logger.error("Error importing usage data:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Vérifie si l'utilisateur peut effectuer une action selon ses quotas
+   */
+  static async canPerformAction(
+    userId: string,
+    actionType: "generation" | "api_call",
+    provider?: string
+  ): Promise<{ allowed: boolean; reason?: string; resetTime?: number }> {
+    try {
+      const subscription = await subscriptionService.getSubscription(userId);
+      const planId = subscription?.planId || "free";
+      const plan = SUBSCRIPTION_PLANS[planId];
+
+      if (!plan) {
+        return { allowed: false, reason: "Plan non reconnu" };
+      }
+
+      const today = new Date().toISOString().split("T")[0];
+      const thisMonth = new Date().toISOString().substring(0, 7);
+      
+      const usage = await this.getUsageStats(userId);
+      const dailyUsage = usage[today] || {};
+      const monthlyUsage = usage.monthly?.[thisMonth] || {};
+
+      // Vérifier les limites journalières
+      if (plan.limits.dailyGenerations) {
+        const totalDailyGenerations = Object.values(dailyUsage).reduce(
+          (sum, entry) => sum + entry.calls,
+          0
+        );
+
+        if (totalDailyGenerations >= plan.limits.dailyGenerations) {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(0, 0, 0, 0);
+          
+          return {
+            allowed: false,
+            reason: `Limite journalière atteinte (${plan.limits.dailyGenerations})`,
+            resetTime: tomorrow.getTime(),
+          };
+        }
+      }
+
+      // Vérifier les limites mensuelles
+      if (plan.limits.monthlyGenerations) {
+        const totalMonthlyGenerations = Object.values(monthlyUsage).reduce(
+          (sum, entry) => sum + entry.calls,
+          0
+        );
+
+        if (totalMonthlyGenerations >= plan.limits.monthlyGenerations) {
+          const nextMonth = new Date();
+          nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+          nextMonth.setHours(0, 0, 0, 0);
+          
+          return {
+            allowed: false,
+            reason: `Limite mensuelle atteinte (${plan.limits.monthlyGenerations})`,
+            resetTime: nextMonth.getTime(),
+          };
+        }
+      }
+
+      // Vérifier si l'API/provider est autorisé
+      if (provider && !plan.limits.apis.includes(provider) && !plan.limits.apis.includes("all")) {
+        return {
+          allowed: false,
+          reason: `API ${provider} non disponible sur le plan ${planId}`,
+        };
+      }
+
+      return { allowed: true };
+    } catch (error) {
+      logger.error("Error checking quota:", error);
+      return { allowed: false, reason: "Erreur lors de la vérification des quotas" };
+    }
+  }
+
+  /**
+   * Obtient les statistiques de quota en temps réel
+   */
+  static async getRealTimeQuotaStats(userId: string): Promise<{
+    daily: { used: number; limit: number | null; remaining: number | null };
+    monthly: { used: number; limit: number | null; remaining: number | null };
+    resetTimes: { daily: number; monthly: number };
+  }> {
+    try {
+      const subscription = await subscriptionService.getSubscription(userId);
+      const planId = subscription?.planId || "free";
+      const plan = SUBSCRIPTION_PLANS[planId];
+
+      const today = new Date().toISOString().split("T")[0];
+      const thisMonth = new Date().toISOString().substring(0, 7);
+      
+      const usage = await this.getUsageStats(userId);
+      const dailyUsage = usage[today] || {};
+      const monthlyUsage = usage.monthly?.[thisMonth] || {};
+
+      const dailyUsed = Object.values(dailyUsage).reduce(
+        (sum, entry) => sum + entry.calls,
+        0
+      );
+      const monthlyUsed = Object.values(monthlyUsage).reduce(
+        (sum, entry) => sum + entry.calls,
+        0
+      );
+
+      // Calculer les temps de reset
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+
+      const nextMonth = new Date();
+      nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+      nextMonth.setHours(0, 0, 0, 0);
+
+      return {
+        daily: {
+          used: dailyUsed,
+          limit: plan?.limits.dailyGenerations || null,
+          remaining: plan?.limits.dailyGenerations 
+            ? Math.max(0, plan.limits.dailyGenerations - dailyUsed)
+            : null,
+        },
+        monthly: {
+          used: monthlyUsed,
+          limit: plan?.limits.monthlyGenerations || null,
+          remaining: plan?.limits.monthlyGenerations
+            ? Math.max(0, plan.limits.monthlyGenerations - monthlyUsed)
+            : null,
+        },
+        resetTimes: {
+          daily: tomorrow.getTime(),
+          monthly: nextMonth.getTime(),
+        },
+      };
+    } catch (error) {
+      logger.error("Error getting quota stats:", error);
+      return {
+        daily: { used: 0, limit: null, remaining: null },
+        monthly: { used: 0, limit: null, remaining: null },
+        resetTimes: { daily: 0, monthly: 0 },
+      };
+    }
+  }
+
+  /**
+   * Prédit si une action sera possible dans le futur
+   */
+  static async predictQuotaAvailability(
+    userId: string,
+    hoursAhead: number = 24
+  ): Promise<{ willBeAvailable: boolean; nextAvailableTime?: number }> {
+    try {
+      const quotaCheck = await this.canPerformAction(userId, "generation");
+      
+      if (quotaCheck.allowed) {
+        return { willBeAvailable: true };
+      }
+
+      if (quotaCheck.resetTime) {
+        const resetDate = new Date(quotaCheck.resetTime);
+        const targetDate = new Date(Date.now() + hoursAhead * 60 * 60 * 1000);
+        
+        return {
+          willBeAvailable: targetDate >= resetDate,
+          nextAvailableTime: quotaCheck.resetTime,
+        };
+      }
+
+      return { willBeAvailable: false };
+    } catch (error) {
+      logger.error("Error predicting quota availability:", error);
+      return { willBeAvailable: false };
+    }
+  }
+
+  /**
+   * Optimise automatiquement l'usage en redistribuant les quotas
+   */
+  static async optimizeUsage(userId: string): Promise<{
+    suggestions: string[];
+    optimizedSchedule?: { time: number; action: string }[];
+  }> {
+    try {
+      const stats = await this.getRealTimeQuotaStats(userId);
+      const suggestions: string[] = [];
+      
+      // Analyser l'usage et suggérer des optimisations
+      if (stats.daily.remaining !== null && stats.daily.remaining < 5) {
+        suggestions.push("Limite journalière presque atteinte. Considérez une mise à niveau ou attendez demain.");
+      }
+
+      if (stats.monthly.remaining !== null && stats.monthly.remaining < 20) {
+        suggestions.push("Limite mensuelle bientôt atteinte. Planifiez votre usage pour le reste du mois.");
+      }
+
+      const subscription = await subscriptionService.getSubscription(userId);
+      const planId = subscription?.planId || "free";
+      
+      if (planId === "free") {
+        suggestions.push("Passez à un plan payant pour plus de générations et de fonctionnalités.");
+      }
+
+      return { suggestions };
+    } catch (error) {
+      logger.error("Error optimizing usage:", error);
+      return { suggestions: ["Erreur lors de l'optimisation"] };
     }
   }
 }

@@ -84,4 +84,5 @@ export interface PaymentResult {
   success: boolean;
   subscriptionId?: string;
   error?: string;
+  checkoutUrl?: string;
 }

@@ -3,8 +3,15 @@ export * from "./types/api";
 
 // Services principaux
 export { ManagedAPIService } from "./ManagedAPIService";
+export { PaymentService } from "./PaymentService";
 export { RateLimitService } from "./rate-limiting/RateLimitService";
 export { UsageTrackingService } from "./usage-tracking/UsageTrackingService";
+
+// Services avancés d'abonnement
+export { SubscriptionSyncService } from "./SubscriptionSyncService";
+export { WebhookService } from "./WebhookService";
+export { TrialService } from "./TrialService";
+export { SubscriptionAnalytics } from "./SubscriptionAnalytics";
 
 // Providers
 export { ProviderRegistry } from "./providers/ProviderRegistry";

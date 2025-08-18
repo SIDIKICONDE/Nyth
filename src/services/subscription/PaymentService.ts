@@ -8,7 +8,9 @@ import {
   PaymentResult,
   SubscriptionPlan,
   UserSubscription,
+  PaymentProvider,
 } from "../../types/subscription";
+import { StripeService } from "../payment/StripeService";
 
 const logger = createLogger("PaymentService");
 
@@ -24,6 +26,28 @@ type RevenueCatOffering = PurchasesOfferings["current"] extends infer _T
 
 export class PaymentService {
   private static isInitialized = false;
+  private static preferredProvider: PaymentProvider = "revenuecat"; // Default to RevenueCat
+
+  /**
+   * Configure le fournisseur de paiement préféré
+   */
+  static setPreferredProvider(provider: PaymentProvider): void {
+    this.preferredProvider = provider;
+    logger.info(`📝 Fournisseur de paiement configuré: ${provider}`);
+  }
+
+  /**
+   * Obtient le fournisseur de paiement préféré
+   */
+  static getPreferredProvider(): PaymentProvider {
+    // Sur web, préférer Stripe
+    if (Platform.OS === "web") {
+      return "stripe";
+    }
+    
+    // Sur mobile, utiliser le provider configuré
+    return this.preferredProvider;
+  }
 
   /**
    * Initialise RevenueCat
@@ -74,9 +98,71 @@ export class PaymentService {
   }
 
   /**
-   * Achète un abonnement
+   * Achète un abonnement (utilise le provider approprié)
    */
   static async purchaseSubscription(
+    packageIdentifier: string,
+    userId: string,
+    userEmail?: string
+  ): Promise<PaymentResult> {
+    const provider = this.getPreferredProvider();
+    
+    logger.info("Starting purchase process", { 
+      packageIdentifier, 
+      userId, 
+      provider 
+    });
+
+    switch (provider) {
+      case "stripe":
+        return this.purchaseWithStripe(packageIdentifier, userId, userEmail);
+      case "revenuecat":
+        return this.purchaseWithRevenueCat(packageIdentifier, userId);
+      default:
+        return {
+          success: false,
+          error: `Provider non supporté: ${provider}`,
+        };
+    }
+  }
+
+  /**
+   * Achète un abonnement via Stripe
+   */
+  private static async purchaseWithStripe(
+    priceId: string,
+    userId: string,
+    userEmail?: string
+  ): Promise<PaymentResult> {
+    try {
+      if (!userEmail) {
+        throw new Error("Email utilisateur requis pour Stripe");
+      }
+
+      // Mapper priceId vers planId
+      const planId = this.mapPriceIdToPlanId(priceId);
+      
+      const result = await StripeService.purchaseSubscription(
+        priceId,
+        userId,
+        userEmail,
+        planId
+      );
+
+      return result;
+    } catch (error) {
+      logger.error("Stripe purchase failed:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Stripe purchase failed",
+      };
+    }
+  }
+
+  /**
+   * Achète un abonnement via RevenueCat
+   */
+  private static async purchaseWithRevenueCat(
     packageIdentifier: string,
     userId: string
   ): Promise<PaymentResult> {
@@ -87,8 +173,6 @@ export class PaymentService {
       if (!packageIdentifier || !userId) {
         throw new Error("Missing required parameters");
       }
-
-      logger.info("Starting purchase process", { packageIdentifier, userId });
 
       const offerings = await Purchases.getOfferings();
       const current = offerings.current;
@@ -120,7 +204,7 @@ export class PaymentService {
       // Sauvegarder dans Firebase via fonction cloud
       await this.saveSubscriptionToServer(userId, subscription);
 
-      logger.info("Purchase completed successfully", {
+      logger.info("RevenueCat purchase completed successfully", {
         packageIdentifier,
         userId,
       });
@@ -130,7 +214,7 @@ export class PaymentService {
         subscriptionId: packageIdentifier,
       };
     } catch (error) {
-      logger.error("Purchase failed:", error);
+      logger.error("RevenueCat purchase failed:", error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Purchase failed",
@@ -244,7 +328,7 @@ export class PaymentService {
   }
 
   /**
-   * Mappe un package à un plan ID
+   * Mappe un package à un plan ID (RevenueCat)
    */
   private static mapPackageToPlanId(packageIdentifier: string): string {
     const mapping: { [key: string]: string } = {
@@ -254,6 +338,45 @@ export class PaymentService {
     };
 
     return mapping[packageIdentifier] || "free";
+  }
+
+  /**
+   * Mappe un price ID Stripe vers un plan ID
+   */
+  private static mapPriceIdToPlanId(priceId: string): string {
+    // Configuration des price IDs Stripe (à adapter selon votre configuration Stripe)
+    const mapping: { [key: string]: string } = {
+      "price_starter_monthly": "starter",
+      "price_pro_monthly": "pro", 
+      "price_enterprise_monthly": "enterprise",
+      "price_starter_yearly": "starter",
+      "price_pro_yearly": "pro",
+      "price_enterprise_yearly": "enterprise",
+    };
+
+    return mapping[priceId] || "free";
+  }
+
+  /**
+   * Mappe un plan ID vers un price ID Stripe
+   */
+  static mapPlanIdToPriceId(planId: string, period: "monthly" | "yearly" = "monthly"): string {
+    const mapping: { [key: string]: { [period: string]: string } } = {
+      starter: {
+        monthly: "price_starter_monthly",
+        yearly: "price_starter_yearly",
+      },
+      pro: {
+        monthly: "price_pro_monthly", 
+        yearly: "price_pro_yearly",
+      },
+      enterprise: {
+        monthly: "price_enterprise_monthly",
+        yearly: "price_enterprise_yearly",
+      },
+    };
+
+    return mapping[planId]?.[period] || "";
   }
 
   /**

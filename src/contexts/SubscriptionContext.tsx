@@ -9,6 +9,9 @@ import React, {
 } from "react";
 import { SUBSCRIPTION_PLANS } from "../constants/subscriptionPlans";
 import { PaymentService } from "../services/subscription/PaymentService";
+import { SubscriptionSyncService } from "../services/subscription/SubscriptionSyncService";
+import { TrialService } from "../services/subscription/TrialService";
+import { UsageTrackingService } from "../services/subscription/usage-tracking/UsageTrackingService";
 import subscriptionService from "../services/firebase/subscriptionService";
 import {
   SubscriptionPlan,
@@ -40,6 +43,13 @@ interface SubscriptionContextType {
   canUseAPI: (api: string) => boolean;
   getRemainingGenerations: () => { daily?: number; monthly?: number };
   isManaged: boolean;
+
+  // Nouveaux services
+  startTrial: (planId: string) => Promise<boolean>;
+  checkTrialEligibility: (planId?: string) => Promise<{ eligible: boolean; reason?: string }>;
+  syncSubscription: () => Promise<boolean>;
+  getRealTimeQuotaStats: () => Promise<any>;
+  canPerformAction: (actionType: "generation" | "api_call", provider?: string) => Promise<{ allowed: boolean; reason?: string; resetTime?: number }>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(
@@ -78,7 +88,51 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
 
   // Load subscription data
   useEffect(() => {
-    loadSubscriptionData();
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+
+        // Si l'utilisateur est connecté, charger depuis Firebase
+        if (currentUser?.uid) {
+          // Charger l'abonnement depuis Firebase
+          const firebaseSubscription = await subscriptionService.getSubscription(
+            currentUser.uid
+          );
+
+          if (firebaseSubscription) {
+            setSubscription(firebaseSubscription as unknown as UserSubscription);
+          }
+
+          // Charger les stats d'usage depuis Firebase
+          const usageStats = await subscriptionService.getUsageStats(
+            currentUser.uid
+          );
+          if (usageStats) {
+            setUsage(usageStats);
+          }
+        } else {
+          // Si l'utilisateur n'est pas connecté, charger depuis AsyncStorage
+          const localSubscription = await AsyncStorage.getItem(
+            "user_subscription"
+          );
+          const localUsage = await AsyncStorage.getItem("usage_stats");
+
+          if (localSubscription) {
+            setSubscription(JSON.parse(localSubscription));
+          }
+
+          if (localUsage) {
+            setUsage(JSON.parse(localUsage));
+          }
+        }
+      } catch (error) {
+        logger.error("Error loading subscription data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
 
     // Setup real-time listeners if user is connected
     if (currentUser?.uid) {
@@ -113,10 +167,14 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
         }
       );
 
+      // Démarrer la synchronisation automatique
+      SubscriptionSyncService.startAutoSync(currentUser.uid, 30); // Sync toutes les 30 minutes
+
       // Cleanup function
       return () => {
         unsubscribeSubscription();
         unsubscribeUsage();
+        SubscriptionSyncService.stopAutoSync();
       };
     }
 
@@ -124,104 +182,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
     return () => {};
   }, [currentUser]);
 
-  const loadSubscriptionData = async () => {
-    try {
-      setIsLoading(true);
 
-      // Si l'utilisateur est connecté, charger depuis Firebase
-      if (currentUser?.uid) {
-        // Charger l'abonnement depuis Firebase
-        const firebaseSubscription = await subscriptionService.getSubscription(
-          currentUser.uid
-        );
-
-        if (firebaseSubscription) {
-          setSubscription(firebaseSubscription as unknown as UserSubscription);
-
-          // Sauvegarder localement pour le cache
-          await AsyncStorage.setItem(
-            "user_subscription",
-            JSON.stringify(firebaseSubscription)
-          );
-
-          // Update usage limits based on plan
-          const plan =
-            SUBSCRIPTION_PLANS[firebaseSubscription.planId] ||
-            SUBSCRIPTION_PLANS.free;
-          setUsage((prev) => ({
-            ...prev,
-            limits: {
-              daily: plan.limits.dailyGenerations,
-              monthly: plan.limits.monthlyGenerations,
-            },
-          }));
-        }
-
-        // Charger l'usage depuis Firebase
-        const firebaseUsage = await subscriptionService.getUsageStats(
-          currentUser.uid
-        );
-
-        if (firebaseUsage) {
-          setUsage(firebaseUsage);
-          await AsyncStorage.setItem(
-            "usage_stats",
-            JSON.stringify(firebaseUsage)
-          );
-        }
-      } else {
-        // Utilisateur non connecté, charger depuis le stockage local
-        const savedSubscription = await AsyncStorage.getItem(
-          "user_subscription"
-        );
-        const savedUsage = await AsyncStorage.getItem("usage_stats");
-
-        if (savedSubscription) {
-          const sub = JSON.parse(savedSubscription) as UserSubscription;
-          setSubscription(sub);
-
-          // Update usage limits based on plan
-          const plan =
-            SUBSCRIPTION_PLANS[sub.planId] || SUBSCRIPTION_PLANS.free;
-          setUsage((prev) => ({
-            ...prev,
-            limits: {
-              daily: plan.limits.dailyGenerations,
-              monthly: plan.limits.monthlyGenerations,
-            },
-          }));
-        }
-
-        if (savedUsage) {
-          const stats = JSON.parse(savedUsage) as UsageStats;
-          // Check if we need to reset daily/monthly counters
-          const today = new Date().toDateString();
-          const savedDate = new Date(stats.resetDate).toDateString();
-
-          if (today !== savedDate) {
-            // Reset daily counter
-            stats.generations.today = 0;
-
-            // Check if month changed
-            const currentMonth = new Date().getMonth();
-            const savedMonth = new Date(stats.resetDate).getMonth();
-            if (currentMonth !== savedMonth) {
-              stats.generations.thisMonth = 0;
-            }
-
-            stats.resetDate = new Date().toISOString();
-            await AsyncStorage.setItem("usage_stats", JSON.stringify(stats));
-          }
-
-          setUsage(stats);
-        }
-      }
-    } catch (error) {
-      logger.error("Error loading subscription data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const checkUsageLimit = (): boolean => {
     const plan = SUBSCRIPTION_PLANS[subscription?.planId || "free"];
@@ -286,47 +247,118 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
 
   const upgradePlan = async (planId: string): Promise<boolean> => {
     try {
-      // TODO: Implement payment processing
-      // For now, just update the subscription
-      const newSubscription: UserSubscription = {
-        planId,
-        status: "active",
-        startDate: new Date().toISOString(),
-        usage: subscription?.usage || {
-          daily: 0,
-          monthly: 0,
-          total: 0,
-          lastReset: new Date().toISOString(),
-        },
-      };
+      setIsLoading(true);
+      
+      // Si c'est le plan gratuit, pas besoin de paiement
+      if (planId === "free") {
+        const newSubscription: UserSubscription = {
+          planId: "free",
+          status: "active",
+          startDate: new Date().toISOString(),
+          usage: {
+            daily: 0,
+            monthly: 0,
+            total: 0,
+            lastReset: new Date().toISOString(),
+          },
+        };
 
-      if (currentUser?.uid) {
-        // Sauvegarder dans Firebase pour les utilisateurs connectés
-        await subscriptionService.createOrUpdateSubscription(
-          currentUser.uid,
-          newSubscription
-        );
-      } else {
-        // Sauvegarder localement pour les utilisateurs non connectés
-        setSubscription(newSubscription);
-        await AsyncStorage.setItem(
-          "user_subscription",
-          JSON.stringify(newSubscription)
-        );
+        if (currentUser?.uid) {
+          await subscriptionService.createOrUpdateSubscription(
+            currentUser.uid,
+            newSubscription
+          );
+        } else {
+          setSubscription(newSubscription);
+          await AsyncStorage.setItem(
+            "user_subscription",
+            JSON.stringify(newSubscription)
+          );
+        }
+        return true;
       }
 
+      // Vérifier que l'utilisateur est connecté pour les plans payants
+      if (!currentUser?.uid) {
+        logger.error("L'utilisateur doit être connecté pour acheter un abonnement");
+        return false;
+      }
+
+      // Mapper le planId vers l'identifiant du package RevenueCat
+      const packageMapping: { [key: string]: string } = {
+        starter: "starter_monthly",
+        pro: "pro_monthly", 
+        enterprise: "enterprise_monthly"
+      };
+
+      const packageIdentifier = packageMapping[planId];
+      if (!packageIdentifier) {
+        logger.error("Plan non reconnu:", planId);
+        return false;
+      }
+
+      // Effectuer l'achat via PaymentService
+      logger.info("Début du processus d'achat pour le plan:", planId);
+      const paymentResult = await PaymentService.purchaseSubscription(
+        packageIdentifier,
+        currentUser.uid,
+        currentUser.email || undefined
+      );
+
+      if (!paymentResult.success) {
+        logger.error("Échec du paiement:", paymentResult.error);
+        return false;
+      }
+
+      // L'abonnement a été sauvegardé côté serveur par PaymentService
+      // Récupérer l'abonnement mis à jour
+      const updatedSubscription = await subscriptionService.getSubscription(currentUser.uid);
+      if (updatedSubscription) {
+        setSubscription(updatedSubscription as UserSubscription);
+      }
+
+      logger.info("✅ Mise à niveau du plan réussie vers:", planId);
       return true;
     } catch (error) {
-      logger.error("Error upgrading plan:", error);
+      logger.error("❌ Erreur lors de la mise à niveau du plan:", error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const cancelSubscription = async (): Promise<boolean> => {
     try {
+      setIsLoading(true);
+      
       if (currentUser?.uid) {
-        // Annuler dans Firebase pour les utilisateurs connectés
-        await subscriptionService.deleteSubscription(currentUser.uid);
+        // Annuler via PaymentService pour les utilisateurs connectés
+        logger.info("🚫 Début de l'annulation de l'abonnement pour l'utilisateur:", currentUser.uid);
+        
+        const cancelResult = await PaymentService.cancelSubscription(currentUser.uid);
+        
+        if (cancelResult.success) {
+          logger.info("✅ Abonnement annulé avec succès via PaymentService");
+          
+          // Marquer l'abonnement comme annulé localement
+          if (subscription) {
+            const cancelled = {
+              ...subscription,
+              status: "cancelled" as const,
+              endDate: new Date().toISOString(),
+            };
+            setSubscription(cancelled);
+          }
+          return true;
+        } else {
+          logger.error("❌ Échec de l'annulation via PaymentService:", cancelResult.error);
+          
+          // Fallback: supprimer directement dans Firebase
+          await subscriptionService.deleteSubscription(currentUser.uid);
+          setSubscription(null);
+          logger.info("✅ Abonnement supprimé via fallback Firebase");
+          return true;
+        }
       } else if (subscription) {
         // Annuler localement pour les utilisateurs non connectés
         const cancelled = {
@@ -340,23 +372,62 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
           "user_subscription",
           JSON.stringify(cancelled)
         );
+        logger.info("✅ Abonnement annulé localement");
+        return true;
       }
 
-      return true;
-    } catch (error) {
-      logger.error("Error cancelling subscription:", error);
       return false;
+    } catch (error) {
+      logger.error("❌ Erreur lors de l'annulation de l'abonnement:", error);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const restoreSubscription = async (): Promise<boolean> => {
     try {
-      if (!currentUser?.uid) return false;
-      const result = await PaymentService.restorePurchases(currentUser.uid);
-      return result.success;
-    } catch (error) {
-      logger.error("Error restoring subscription:", error);
+      setIsLoading(true);
+      
+      if (!currentUser?.uid) {
+        logger.error("L'utilisateur doit être connecté pour restaurer un abonnement");
+        return false;
+      }
+
+      logger.info("🔄 Début de la restauration des achats pour l'utilisateur:", currentUser.uid);
+
+      // Tenter de restaurer via PaymentService (RevenueCat)
+      const restoreResult = await PaymentService.restorePurchases(currentUser.uid);
+      
+      if (restoreResult.success) {
+        logger.info("✅ Achats restaurés avec succès via RevenueCat");
+        
+        // Récupérer l'abonnement mis à jour depuis Firebase
+        const restoredSubscription = await subscriptionService.getSubscription(currentUser.uid);
+        if (restoredSubscription) {
+          setSubscription(restoredSubscription as UserSubscription);
+          logger.info("✅ Abonnement restauré:", restoredSubscription.planId);
+        }
+        return true;
+      }
+
+      // Fallback: vérifier directement dans Firebase
+      logger.info("🔍 Vérification fallback dans Firebase...");
+      const existingSubscription = await subscriptionService.getSubscription(currentUser.uid);
+      
+      if (existingSubscription && existingSubscription.status === "active") {
+        setSubscription(existingSubscription as UserSubscription);
+        logger.info("✅ Abonnement trouvé dans Firebase:", existingSubscription.planId);
+        return true;
+      }
+
+      logger.info("ℹ️ Aucun abonnement actif trouvé à restaurer");
       return false;
+    } catch (error) {
+      logger.error("❌ Erreur lors de la restauration de l'abonnement:", error);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -386,6 +457,118 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
     };
   };
 
+  // Nouvelles méthodes utilisant nos services avancés
+  const startTrial = async (planId: string): Promise<boolean> => {
+    try {
+      if (!currentUser?.uid) {
+        logger.error("L'utilisateur doit être connecté pour démarrer un essai");
+        return false;
+      }
+
+      setIsLoading(true);
+      const result = await TrialService.startTrial(currentUser.uid, planId);
+      
+      if (result.success && result.trial) {
+        // Mettre à jour l'état local
+        const trialSubscription: UserSubscription = {
+          planId: result.trial.planId,
+          status: "trial",
+          startDate: result.trial.startDate,
+          endDate: result.trial.endDate,
+          usage: {
+            daily: 0,
+            monthly: 0,
+            total: 0,
+            lastReset: result.trial.startDate,
+          },
+        };
+        setSubscription(trialSubscription);
+        logger.info("✅ Essai gratuit démarré:", planId);
+        return true;
+      }
+
+      logger.error("❌ Échec du démarrage de l'essai:", result.error);
+      return false;
+    } catch (error) {
+      logger.error("❌ Erreur lors du démarrage de l'essai:", error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkTrialEligibility = async (planId?: string): Promise<{ eligible: boolean; reason?: string }> => {
+    try {
+      if (!currentUser?.uid) {
+        return { eligible: false, reason: "Utilisateur non connecté" };
+      }
+
+      const eligibility = await TrialService.checkTrialEligibility(currentUser.uid, planId);
+      return {
+        eligible: eligibility.eligible,
+        reason: eligibility.reason,
+      };
+    } catch (error) {
+      logger.error("❌ Erreur lors de la vérification d'éligibilité:", error);
+      return { eligible: false, reason: "Erreur lors de la vérification" };
+    }
+  };
+
+  const syncSubscription = async (): Promise<boolean> => {
+    try {
+      if (!currentUser?.uid) {
+        return false;
+      }
+
+      setIsLoading(true);
+      const success = await SubscriptionSyncService.syncSubscription(currentUser.uid);
+      
+      if (success) {
+        // Récupérer l'abonnement synchronisé
+        const syncedSubscription = await subscriptionService.getSubscription(currentUser.uid);
+        if (syncedSubscription) {
+          setSubscription(syncedSubscription as UserSubscription);
+        }
+      }
+
+      return success;
+    } catch (error) {
+      logger.error("❌ Erreur lors de la synchronisation:", error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getRealTimeQuotaStats = async (): Promise<any> => {
+    try {
+      if (!currentUser?.uid) {
+        return null;
+      }
+
+      return await UsageTrackingService.getRealTimeQuotaStats(currentUser.uid);
+    } catch (error) {
+      logger.error("❌ Erreur lors de la récupération des stats de quota:", error);
+      return null;
+    }
+  };
+
+  const canPerformAction = async (
+    actionType: "generation" | "api_call",
+    provider?: string
+  ): Promise<{ allowed: boolean; reason?: string; resetTime?: number }> => {
+    try {
+      if (!currentUser?.uid) {
+        return { allowed: false, reason: "Utilisateur non connecté" };
+      }
+
+      return await UsageTrackingService.canPerformAction(currentUser.uid, actionType, provider);
+    } catch (error) {
+      logger.error("❌ Erreur lors de la vérification d'action:", error);
+      return { allowed: false, reason: "Erreur lors de la vérification" };
+    }
+  };
+
   // Check if user is using managed API or their own keys
   const isManaged = !currentUser || !SecureApiKeyManager.getApiKey("openai");
 
@@ -407,6 +590,12 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
         canUseAPI,
         getRemainingGenerations,
         isManaged,
+        // Nouveaux services
+        startTrial,
+        checkTrialEligibility,
+        syncSubscription,
+        getRealTimeQuotaStats,
+        canPerformAction,
       }}
     >
       {children}
