@@ -30,7 +30,14 @@ export const SubscriptionSection: React.FC = () => {
       // Ne rien faire si la section est verrouillée
       return;
     }
-    navigation.navigate("Pricing");
+    
+    // Si l'utilisateur a un abonnement actif, aller vers la gestion
+    if (subscription && subscription.status === "active") {
+      navigation.navigate("SubscriptionManagement");
+    } else {
+      // Sinon, aller vers la page de tarification
+      navigation.navigate("Pricing");
+    }
   };
 
   return (

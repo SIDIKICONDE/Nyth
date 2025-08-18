@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -20,6 +19,11 @@ import { useSubscription } from "../../contexts/SubscriptionContext";
 import { CustomHeader } from "../../components/common";
 import { SUBSCRIPTION_PLANS } from "../../constants/subscriptionPlans";
 import { RootStackParamList } from "../../types/navigation";
+import { StripeCheckout } from "../../components/subscription/StripeCheckout";
+import { StripeCustomerPortal } from "../../components/subscription/StripeCustomerPortal";
+import { PaymentService } from "../../services/subscription/PaymentService";
+import { getStripePriceId } from "../../config/stripe";
+import { useStripe } from "../../hooks/useStripe";
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -30,65 +34,131 @@ const PricingScreen: React.FC = () => {
   const { getOptimizedButtonColors } = useContrastOptimization();
   const { currentPlan, subscription, upgradePlan, isLoading } =
     useSubscription();
+  const { isStripeConfigured } = useStripe();
 
   const [selectedPlan, setSelectedPlan] = useState<string>(currentPlan.id);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showStripeCheckout, setShowStripeCheckout] = useState(false);
+  const [showCustomerPortal, setShowCustomerPortal] = useState(false);
+  const [checkoutPlanId, setCheckoutPlanId] = useState<string>("");
+  const [selectedPeriod, setSelectedPeriod] = useState<"monthly" | "yearly">("monthly");
 
   const handleSelectPlan = async (planId: string) => {
     if (planId === currentPlan.id) {
-      Alert.alert(
-        t("subscription.alreadyOnPlan.title", "Déjà abonné"),
-        t("subscription.alreadyOnPlan.message", "Vous êtes déjà sur ce plan.")
-      );
+      // Si l'utilisateur est déjà sur ce plan, ouvrir le portail client
+      if (subscription && subscription.status === "active" && planId !== "free") {
+        setShowCustomerPortal(true);
+      } else {
+        Alert.alert(
+          t("subscription.alreadyOnPlan.title", "Déjà abonné"),
+          t("subscription.alreadyOnPlan.message", "Vous êtes déjà sur ce plan.")
+        );
+      }
       return;
     }
 
     setSelectedPlan(planId);
 
-    Alert.alert(
-      t("subscription.confirmUpgrade.title", "Confirmer le changement"),
-      t(
-        "subscription.confirmUpgrade.message",
-        `Voulez-vous passer au plan ${SUBSCRIPTION_PLANS[planId].displayName} ?`
-      ),
-      [
-        {
-          text: t("common.cancel", "Annuler"),
-          style: "cancel",
-        },
-        {
-          text: t("common.confirm", "Confirmer"),
-          onPress: async () => {
-            setIsProcessing(true);
-            try {
-              const success = await upgradePlan(planId);
-              if (success) {
-                Alert.alert(
-                  t("subscription.upgradeSuccess.title", "Succès"),
-                  t(
-                    "subscription.upgradeSuccess.message",
-                    "Votre plan a été mis à jour avec succès."
-                  )
-                );
-                navigation.goBack();
-              } else {
-                throw new Error("Upgrade failed");
-              }
-            } catch (error) {
-              Alert.alert(
-                t("common.error", "Erreur"),
-                t(
-                  "subscription.upgradeError",
-                  "Impossible de changer de plan. Veuillez réessayer."
-                )
-              );
-            } finally {
-              setIsProcessing(false);
-            }
+    // Si c'est le plan gratuit, utiliser l'ancienne méthode
+    if (planId === "free") {
+      Alert.alert(
+        t("subscription.confirmDowngrade.title", "Confirmer le changement"),
+        t(
+          "subscription.confirmDowngrade.message",
+          "Voulez-vous passer au plan gratuit ? Vous perdrez l'accès aux fonctionnalités premium."
+        ),
+        [
+          {
+            text: t("common.cancel", "Annuler"),
+            style: "cancel",
           },
-        },
-      ]
+          {
+            text: t("common.confirm", "Confirmer"),
+            onPress: () => performUpgrade(planId),
+          },
+        ]
+      );
+      return;
+    }
+
+    // Pour les plans payants, configurer le provider et ouvrir Stripe
+    if (isStripeConfigured()) {
+      PaymentService.setPreferredProvider("stripe");
+      setCheckoutPlanId(planId);
+      setShowStripeCheckout(true);
+    } else {
+      // Fallback vers l'ancienne méthode si Stripe n'est pas configuré
+      Alert.alert(
+        t("subscription.confirmUpgrade.title", "Confirmer le changement"),
+        t(
+          "subscription.confirmUpgrade.message",
+          `Voulez-vous passer au plan ${SUBSCRIPTION_PLANS[planId].displayName} ?`
+        ),
+        [
+          {
+            text: t("common.cancel", "Annuler"),
+            style: "cancel",
+          },
+          {
+            text: t("common.confirm", "Confirmer"),
+            onPress: () => performUpgrade(planId),
+          },
+        ]
+      );
+    }
+  };
+
+  const performUpgrade = async (planId: string) => {
+    setIsProcessing(true);
+    try {
+      const success = await upgradePlan(planId);
+      if (success) {
+        Alert.alert(
+          t("subscription.upgradeSuccess.title", "Succès"),
+          t(
+            "subscription.upgradeSuccess.message",
+            "Votre plan a été mis à jour avec succès."
+          )
+        );
+        navigation.goBack();
+      } else {
+        throw new Error("Upgrade failed");
+      }
+    } catch (error) {
+      Alert.alert(
+        t("common.error", "Erreur"),
+        t(
+          "subscription.upgradeError",
+          "Impossible de changer de plan. Veuillez réessayer."
+        )
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleStripeSuccess = () => {
+    setShowStripeCheckout(false);
+    Alert.alert(
+      t("subscription.upgradeSuccess.title", "Paiement réussi"),
+      t(
+        "subscription.upgradeSuccess.message",
+        "Votre abonnement a été mis à jour avec succès !"
+      )
     );
+    navigation.goBack();
+  };
+
+  const handleStripeError = (error: string) => {
+    setShowStripeCheckout(false);
+    Alert.alert(
+      t("subscription.upgradeError.title", "Erreur de paiement"),
+      error
+    );
+  };
+
+  const handleStripeCancel = () => {
+    setShowStripeCheckout(false);
   };
 
   const renderPlanCard = (
@@ -347,12 +417,72 @@ const PricingScreen: React.FC = () => {
           </Text>
           <Text
             style={[
-              tw`text-base`,
+              tw`text-base mb-4`,
               { color: currentTheme.colors.textSecondary },
             ]}
           >
             {t("subscription.subtitle", "Débloquez tout le potentiel de l'IA")}
           </Text>
+
+          {/* Sélecteur de période pour Stripe */}
+          {isStripeConfigured() && (
+            <View style={[
+              tw`flex-row rounded-lg p-1 mb-4`,
+              { backgroundColor: currentTheme.colors.surface }
+            ]}>
+              <TouchableOpacity
+                style={[
+                  tw`flex-1 py-2 px-4 rounded-md`,
+                  {
+                    backgroundColor: selectedPeriod === "monthly" 
+                      ? currentTheme.colors.primary 
+                      : "transparent"
+                  }
+                ]}
+                onPress={() => setSelectedPeriod("monthly")}
+              >
+                <Text
+                  style={[
+                    tw`text-center font-medium`,
+                    {
+                      color: selectedPeriod === "monthly"
+                        ? getOptimizedButtonColors().text
+                        : currentTheme.colors.text
+                    }
+                  ]}
+                >
+                  {t("subscription.monthly", "Mensuel")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  tw`flex-1 py-2 px-4 rounded-md`,
+                  {
+                    backgroundColor: selectedPeriod === "yearly" 
+                      ? currentTheme.colors.primary 
+                      : "transparent"
+                  }
+                ]}
+                onPress={() => setSelectedPeriod("yearly")}
+              >
+                <Text
+                  style={[
+                    tw`text-center font-medium`,
+                    {
+                      color: selectedPeriod === "yearly"
+                        ? getOptimizedButtonColors().text
+                        : currentTheme.colors.text
+                    }
+                  ]}
+                >
+                  {t("subscription.yearly", "Annuel")}
+                  <Text style={[tw`text-xs`, { color: currentTheme.colors.success }]}>
+                    {" "}({t("subscription.save", "Économisez 20%")})
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {Object.values(SUBSCRIPTION_PLANS).map(renderPlanCard)}
@@ -376,6 +506,64 @@ const PricingScreen: React.FC = () => {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Modal Stripe Checkout */}
+      {showStripeCheckout && checkoutPlanId && (
+        <View style={tw`absolute inset-0 bg-black bg-opacity-50 items-center justify-center`}>
+          <View style={[
+            tw`w-11/12 max-h-5/6 rounded-xl overflow-hidden`,
+            { backgroundColor: currentTheme.colors.background }
+          ]}>
+            <StripeCheckout
+              planId={checkoutPlanId}
+              priceId={getStripePriceId(checkoutPlanId, selectedPeriod)}
+              onSuccess={handleStripeSuccess}
+              onCancel={handleStripeCancel}
+              onError={handleStripeError}
+            />
+          </View>
+        </View>
+      )}
+
+      {/* Modal Portail Client */}
+      {showCustomerPortal && (
+        <View style={tw`absolute inset-0 bg-black bg-opacity-50 items-center justify-center`}>
+          <View style={[
+            tw`w-11/12 max-h-5/6 rounded-xl overflow-hidden`,
+            { backgroundColor: currentTheme.colors.background }
+          ]}>
+            <StripeCustomerPortal
+              onSuccess={() => {
+                setShowCustomerPortal(false);
+                Alert.alert(
+                  t("subscription.portal.success", "Portail ouvert"),
+                  t("subscription.portal.message", "Le portail client a été ouvert dans votre navigateur.")
+                );
+              }}
+              onError={(error) => {
+                setShowCustomerPortal(false);
+                Alert.alert(
+                  t("subscription.portal.error", "Erreur"),
+                  error
+                );
+              }}
+            />
+            <TouchableOpacity
+              style={[
+                tw`absolute top-4 right-4 w-8 h-8 rounded-full items-center justify-center`,
+                { backgroundColor: currentTheme.colors.surface }
+              ]}
+              onPress={() => setShowCustomerPortal(false)}
+            >
+              <MaterialCommunityIcons
+                name="close"
+                size={20}
+                color={currentTheme.colors.text}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 };

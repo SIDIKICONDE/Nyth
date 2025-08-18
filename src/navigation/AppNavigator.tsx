@@ -37,6 +37,7 @@ import ThemeScreen from "../screens/ThemeScreen";
 import RecordingScreen from "../screens/RecordingScreen/RecordingScreen";
 
 import PricingScreen from "../screens/subscription/PricingScreen";
+import SubscriptionManagementScreen from "../screens/subscription/SubscriptionManagementScreen";
 
 // Auth Screens
 import { LoginScreen, RegisterScreen } from "../screens/auth";
@@ -151,6 +152,11 @@ const MainNavigator = () => {
       <Stack.Screen
         name="Pricing"
         component={PricingScreen}
+        options={getScreenTransitionOptions()}
+      />
+      <Stack.Screen
+        name="SubscriptionManagement"
+        component={SubscriptionManagementScreen}
         options={getScreenTransitionOptions()}
       />
       <Stack.Screen
