@@ -28,17 +28,7 @@ export const configureGoogleSignIn = (): boolean => {
 	const webClientId = GOOGLE_WEB_CLIENT_ID;
 	const iosClientId = GOOGLE_IOS_CLIENT_ID;
 
-	if (!webClientId) {
-		if (__DEV__) {
-			logger.warn("[Google] GOOGLE_WEB_CLIENT_ID manquant. Configuration ignorée.");
-		}
-		return false;
-	}
-
-	// IMPORTANT: Sur iOS, la librairie utilise par défaut le CLIENT_ID défini dans Info.plist (clé GIDClientID).
-	// Pour éviter tout risque d'incohérence (espaces, mauvaise valeur .env), on n'envoie PAS iosClientId ici.
-	// On ne bloque pas non plus si GOOGLE_IOS_CLIENT_ID est absent, car Info.plist fait foi.
-
+	// Ne pas bloquer si .env manquant. Sur iOS, GIDClientID d'Info.plist suffit pour ouvrir l'UI.
 	try {
 		if (__DEV__) {
 			const mask = (v?: string | null) =>
@@ -48,15 +38,31 @@ export const configureGoogleSignIn = (): boolean => {
 				webClientId: mask(webClientId as unknown as string),
 				iosClientId: mask(iosClientId as unknown as string),
 			});
+			if (!webClientId) {
+				logger.warn("[Google] GOOGLE_WEB_CLIENT_ID manquant (.env). L'idToken Firebase peut être indisponible.");
+			}
 		}
-		GoogleSignin.configure({
-			webClientId,
+
+		const config: Record<string, unknown> = {
 			offlineAccess: false,
 			hostedDomain: "",
 			forceCodeForRefreshToken: false,
 			accountName: "",
 			profileImageSize: 120,
-		});
+		};
+
+		// Toujours privilégier le Web Client ID (requis pour Firebase)
+		if (webClientId) {
+			config.webClientId = webClientId;
+		}
+
+		// Fournir l'iOS Client ID uniquement s'il est défini
+		if (Platform.OS === "ios" && iosClientId) {
+			// @ts-ignore propriété supportée par la lib
+			config.iosClientId = iosClientId;
+		}
+
+		GoogleSignin.configure(config as any);
 		return true;
 	} catch (error: unknown) {
 		logger.error("[Google] Échec de GoogleSignin.configure", error as any);
@@ -80,13 +86,12 @@ export const signInWithGoogle = async (): Promise<SocialAuthResult> => {
 			return { success: false, error: "Connexion Google annulée" };
 		}
 
-		// idToken se trouve directement sur la réponse quand webClientId est configuré
+		// idToken se trouve directement sur la réponse quand un client_id est configuré
 		const idToken = (response as unknown as { idToken?: string | null })?.idToken ?? null;
 
 		let finalIdToken: string | null = idToken;
 		if (!finalIdToken) {
 			try {
-				// getTokens() n'est fiable que sur Android; on essaie en dernier recours
 				const tokens = await GoogleSignin.getTokens();
 				finalIdToken = tokens.idToken ?? null;
 			} catch {}

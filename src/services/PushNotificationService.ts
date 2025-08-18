@@ -572,20 +572,20 @@ class PushNotificationService {
       // Récupérer la campagne
       const campaignDocRef = firestore()
         .collection("notification_campaigns")
-        .doc(campaignId);
+        .doc(_campaignId);
       await campaignDocRef.update({
         status: "sending",
         sentAt: firestore.FieldValue.serverTimestamp(),
       });
 
       // Récupérer les destinataires selon les critères
-      const recipients = await this.getCampaignRecipients(campaignId);
+      const recipients = await this.getCampaignRecipients(_campaignId);
 
       // Envoyer les notifications
       const notification: AppPushNotification = {
         title: "", // À remplir depuis la campagne
         body: "", // À remplir depuis la campagne
-        data: { campaignId },
+        data: { campaignId: _campaignId },
       };
 
       await this.sendToMultipleUsers(recipients, notification);
@@ -597,7 +597,7 @@ class PushNotificationService {
       });
 
       systemLog.info("system", "Campagne lancée", {
-        campaignId,
+        campaignId: _campaignId,
         recipientCount: recipients.length,
       });
     } catch (error) {
@@ -606,7 +606,7 @@ class PushNotificationService {
       // Marquer comme échouée
       await firestore()
         .collection("notification_campaigns")
-        .doc(campaignId)
+        .doc(_campaignId)
         .update({
           status: "failed",
         });
@@ -618,7 +618,7 @@ class PushNotificationService {
   /**
    * Récupère les destinataires d'une campagne
    */
-  private async getCampaignRecipients(campaignId: string): Promise<string[]> {
+  private async getCampaignRecipients(_campaignId: string): Promise<string[]> {
     // Logique pour récupérer les utilisateurs selon les critères de la campagne
     // À implémenter selon les besoins
     return [];

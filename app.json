@@ -1,4 +1,66 @@
 {
   "name": "Nyth",
-  "displayName": "Nyth"
+  "displayName": "Nyth",
+  "expo": {
+    "name": "Nyth",
+    "slug": "nyth",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f0f23"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nyth.app",
+      "icon": "./assets/icon.png",
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#0f0f23",
+        "tabletImage": "./assets/splash.png"
+      },
+      "infoPlist": {
+        "UISupportsDocumentBrowser": true
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f0f23"
+      },
+      "package": "com.nyth.app",
+      "icon": "./assets/icon.png",
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#0f0f23",
+        "mdpi": "./assets/android-icons/icon-144.png",
+        "hdpi": "./assets/android-icons/icon-192.png",
+        "xhdpi": "./assets/android-icons/icon-192.png",
+        "xxhdpi": "./assets/android-icons/icon-192.png",
+        "xxxhdpi": "./assets/android-icons/icon-512.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icons/icon-96.png",
+          "color": "#8b5cf6",
+          "defaultChannel": "default"
+        }
+      ]
+    ]
+  }
 }

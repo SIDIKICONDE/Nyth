@@ -1,3 +1,4 @@
+import { RootStackParamList } from "../../types/navigation";
 export interface AppState {
   isLoading: boolean;
   isInitialLoading: boolean;
@@ -22,7 +23,7 @@ export interface AppHandlers {
 
 export interface NavigationState {
   canAccessApp: boolean;
-  initialRoute: string;
+  initialRoute: keyof RootStackParamList;
   shouldShowPrivacy: boolean;
   shouldShowOnboarding: boolean;
   shouldShowPermissions: boolean;

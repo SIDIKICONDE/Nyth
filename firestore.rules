@@ -325,7 +325,9 @@ service cloud.firestore {
       allow update: if request.auth != null && 
         request.auth.uid == userId &&
         resource.data.userId == userId &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt']);
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt']) &&
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalScripts', 'totalRecordings', 'updatedAt']) ||
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt']));
       
       // Suppression : interdite (les analytics doivent être persistantes)
       allow delete: if false;

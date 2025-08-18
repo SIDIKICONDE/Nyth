@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "isolatedModules": false,
+    "lib": ["esnext", "dom"],
+    "types": ["react", "react-native"],
+    "noEmit": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "nyth-icons",
+    "functions",
+    "server",
+    "vendor",
+    "android",
+    "ios"
+  ]
+}
+
+

@@ -30,51 +30,71 @@ class AnalyticsService {
    */
   async initializeUserAnalytics(userId: string): Promise<void> {
     try {
-      if (!this.isAuthenticatedFor(userId)) {
+      // Vérifications d'authentification renforcées
+      const currentUser = getAuth().currentUser;
+      if (!currentUser) {
+        logger.info("⚠️ Aucun utilisateur Firebase connecté");
+        return;
+      }
+
+      if (currentUser.uid !== userId) {
         logger.info(
-          "ℹ️ Ignoré: utilisateur non authentifié pour l'initialisation des analytics",
-          { userId }
+          "⚠️ Utilisateur Firebase ne correspond pas à l'UID demandé",
+          { currentUser: currentUser.uid, requested: userId }
         );
         return;
       }
+
       const db = getFirestore(getApp());
       const analyticsRef = doc(collection(db, "userAnalytics"), userId);
-      const existing = await getDoc(analyticsRef);
+      
+      // Vérifier l'existence du document avec gestion d'erreur
+      let existing;
+      try {
+        existing = await getDoc(analyticsRef);
+      } catch (readError) {
+        logger.error("❌ Erreur lors de la lecture du document analytics:", readError);
+        return;
+      }
 
-      if (!existing.exists) {
+      if (!existing.exists()) {
         // Création autorisée si l'utilisateur est propriétaire (cf. règles Firestore)
-        await setDoc(analyticsRef, {
-          userId,
-          avgRecordingTime: 0,
-          totalRecordingTime: 0,
-          totalRecordings: 0,
-          totalScripts: 0,
-          productivity: 0,
-          currentStreak: 0,
-          longestStreak: 0,
-          lastActiveDate: new Date().toISOString(),
-          weeklyStats: {
-            thisWeekTotal: 0,
-            lastWeekTotal: 0,
-            weekTrend: 0,
-            dailyActivity: {},
-          },
-          monthlyStats: {},
-          hourlyDistribution: {},
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          lifetimeStats: {
-            totalScriptsCreated: 0,
-            totalRecordingsCreated: 0,
+        try {
+          await setDoc(analyticsRef, {
+            userId,
+            avgRecordingTime: 0,
             totalRecordingTime: 0,
-            firstActivityDate: new Date().toISOString(),
-          },
-        });
-        logger.info("✅ Analytics utilisateur initialisés");
+            totalRecordings: 0,
+            totalScripts: 0,
+            productivity: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            lastActiveDate: new Date().toISOString(),
+            weeklyStats: {
+              thisWeekTotal: 0,
+              lastWeekTotal: 0,
+              weekTrend: 0,
+              dailyActivity: {},
+            },
+            monthlyStats: {},
+            hourlyDistribution: {},
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            lifetimeStats: {
+              totalScriptsCreated: 0,
+              totalRecordingsCreated: 0,
+              totalRecordingTime: 0,
+              firstActivityDate: new Date().toISOString(),
+            },
+          });
+          logger.info("✅ Analytics utilisateur initialisés avec setDoc");
+        } catch (createError) {
+          logger.error("❌ Erreur lors de la création des analytics:", createError);
+        }
       } else {
-        // Ne pas toucher à createdAt/userId (interdits par les règles en update)
-        await updateDoc(analyticsRef, { updatedAt: serverTimestamp() });
-        logger.info("ℹ️ Analytics déjà présents, mise à jour de updatedAt");
+        // Document existe déjà, on évite de le mettre à jour inutilement
+        // pour éviter les erreurs de permission
+        logger.info("ℹ️ Analytics déjà présents, pas de mise à jour nécessaire");
       }
     } catch (error) {
       logger.error("❌ Erreur initialisation analytics:", error);
@@ -214,7 +234,7 @@ class AnalyticsService {
   /**
    * Tracker la création d'un script (pour compatibilité)
    */
-  async onScriptCreated(userId: string, script: any): Promise<void> {
+  async onScriptCreated(userId: string, _script: any): Promise<void> {
     try {
       if (!this.isAuthenticatedFor(userId)) {
         logger.info(
@@ -238,7 +258,7 @@ class AnalyticsService {
   /**
    * Tracker la suppression d'un script (pour compatibilité)
    */
-  async onScriptDeleted(userId: string, scriptId: string): Promise<void> {
+  async onScriptDeleted(userId: string, _scriptId: string): Promise<void> {
     try {
       if (!this.isAuthenticatedFor(userId)) {
         logger.info(
@@ -282,21 +302,41 @@ class AnalyticsService {
     recordings: any[]
   ): Promise<void> {
     try {
-      if (!this.isAuthenticatedFor(userId)) {
+      // Vérifications d'authentification renforcées
+      const currentUser = getAuth().currentUser;
+      if (!currentUser || currentUser.uid !== userId) {
         logger.info(
-          "ℹ️ Ignoré: recalcul analytics sans authentification Firebase",
-          { userId }
+          "ℹ️ Ignoré: recalcul analytics sans authentification Firebase appropriée",
+          { userId, currentUser: currentUser?.uid }
         );
         return;
       }
+
       const db = getFirestore(getApp());
       const analyticsRef = doc(collection(db, "userAnalytics"), userId);
-      await updateDoc(analyticsRef, {
-        totalScripts: scripts.length,
-        totalRecordings: recordings.length,
-        updatedAt: serverTimestamp(),
-      });
-      logger.info("📊 Analytics recalculées");
+      
+      // Vérifier que le document existe avant de le mettre à jour
+      try {
+        const docSnapshot = await getDoc(analyticsRef);
+        if (!docSnapshot.exists()) {
+          logger.info("ℹ️ Document analytics n'existe pas, initialisation d'abord");
+          await this.initializeUserAnalytics(userId);
+          return;
+        }
+
+        // Mettre à jour seulement les champs autorisés par les règles Firestore
+        await updateDoc(analyticsRef, {
+          totalScripts: scripts.length,
+          totalRecordings: recordings.length,
+          updatedAt: serverTimestamp(),
+        });
+        logger.info("📊 Analytics recalculées avec succès");
+      } catch (updateError) {
+        logger.error("❌ Erreur lors de la mise à jour des analytics:", updateError);
+        // Tentative de réinitialisation si la mise à jour échoue
+        logger.info("🔄 Tentative de réinitialisation des analytics");
+        await this.initializeUserAnalytics(userId);
+      }
     } catch (error) {
       logger.error("❌ Erreur recalcul analytics:", error);
     }

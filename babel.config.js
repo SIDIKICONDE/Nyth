@@ -4,8 +4,8 @@ module.exports = {
     ['module:react-native-dotenv', {
       moduleName: '@env',
       path: '.env',
-      blacklist: null,
-      whitelist: null,
+      // Restreindre aux variables vraiment nécessaires côté app
+      allowlist: ['GOOGLE_WEB_CLIENT_ID', 'GOOGLE_IOS_CLIENT_ID', 'SERVER_URL', 'CLIENT_API_KEY', 'BYPASS_PROXY'],
       safe: false,
       allowUndefined: true
     }],

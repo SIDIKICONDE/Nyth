@@ -9,6 +9,9 @@ import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messag
 import ErrorBoundary from "./src/components/common/ErrorBoundary";
 import { SplashScreenManager } from "./src/components/common/SplashScreenManager";
 import { CombinedProviders } from "./src/contexts/CombinedProviders";
+import { NavigationContainer } from "@react-navigation/native";
+import { AnalyticsMigrationManager } from "./src/components/common/AnalyticsMigrationManager";
+
 
 import AppNavigator from "./src/navigation/AppNavigator";
 
@@ -34,7 +37,11 @@ function AppContent() {
   return (
     <SplashScreenManager>
       <StatusBar barStyle="default" />
-      <AppNavigator />
+      <NavigationContainer>
+        <AnalyticsMigrationManager>
+          <AppNavigator />
+        </AnalyticsMigrationManager>
+      </NavigationContainer>
     </SplashScreenManager>
   );
 }

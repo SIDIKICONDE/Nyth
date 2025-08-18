@@ -37,6 +37,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFirebaseReady, setFirebaseReady] = useState(false);
+  const [isGoogleSignInConfigured, setGoogleSignInConfigured] = useState(false);
 
   // Références pour éviter les fuites mémoire et optimiser les re-renders
   const isMountedRef = useRef(true);
@@ -114,6 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Configurer Google Sign-In
       const googleConfigured = configureGoogleSignInSocial();
+      setGoogleSignInConfigured(googleConfigured);
       if (googleConfigured) {
         logger.debug("✅ Google Sign-In configuré");
       } else {
@@ -616,6 +618,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * Connexion avec Google (version native avec EAS Build)
    */
   const handleGoogleSignIn = async (): Promise<boolean> => {
+    if (!isGoogleSignInConfigured) {
+      const errorMessage = "La connexion Google n'est pas configurée. Vérifiez les clés API.";
+      logger.error(errorMessage);
+      setError(errorMessage);
+      return false;
+    }
+
     try {
       setError(null);
       setLoading(true);

@@ -1,21 +1,22 @@
 import { useMemo, useRef } from "react";
 import { createLogger } from "../../utils/optimizedLogger";
 import { useGlobalPreferencesContext } from "../../contexts/GlobalPreferencesContext";
+import { RootStackParamList } from "../../types/navigation";
 
 const logger = createLogger("NavigationState");
 
 export interface UseNavigationStateProps {
   currentUser: any;
   authLoading: boolean;
-  isLoading: boolean;
+  _isLoading: boolean;
   isInitialLoading: boolean;
-  hasCompletedOnboarding: boolean;
-  hasPermissions: boolean;
+  _hasCompletedOnboarding: boolean;
+  _hasPermissions: boolean;
 }
 
 export interface NavigationState {
   canAccessApp: boolean;
-  initialRoute: string;
+  initialRoute: keyof RootStackParamList;
   shouldShowPrivacy: boolean;
   shouldShowOnboarding: boolean;
   shouldShowPermissions: boolean;
@@ -24,20 +25,20 @@ export interface NavigationState {
 export const useNavigationState = ({
   currentUser,
   authLoading,
-  isLoading,
+  _isLoading,
   isInitialLoading,
-  hasCompletedOnboarding,
-  hasPermissions,
+  _hasCompletedOnboarding,
+  _hasPermissions,
 }: UseNavigationStateProps): NavigationState => {
   const lastStateRef = useRef<string>("");
   const { homePage } = useGlobalPreferencesContext();
 
-  const navigationState = useMemo(() => {
+  const navigationState = useMemo<NavigationState>(() => {
     // Si on est encore en train de charger l'authentification, attendre
     if (authLoading || isInitialLoading) {
       return {
         canAccessApp: false,
-        initialRoute: "Login", // Temporaire pendant le chargement
+        initialRoute: "Login" as keyof RootStackParamList,
         shouldShowPrivacy: false,
         shouldShowOnboarding: false,
         shouldShowPermissions: false,
@@ -49,7 +50,7 @@ export const useNavigationState = ({
     const isGuestUser = currentUser && currentUser.isGuest;
 
     // Déterminer la route initiale et l'accès à l'app
-    let initialRoute: string;
+    let initialRoute: keyof RootStackParamList;
     let canAccessApp: boolean;
 
     if (isAuthenticated || isGuestUser) {
@@ -85,16 +86,7 @@ export const useNavigationState = ({
       shouldShowOnboarding,
       shouldShowPermissions,
     };
-  }, [
-    currentUser,
-    authLoading,
-    isLoading,
-    isInitialLoading,
-    hasCompletedOnboarding,
-    hasPermissions,
-    currentUser?.emailVerified,
-    homePage,
-  ]);
+  }, [currentUser, authLoading, isInitialLoading, homePage]);
 
   // Log state changes pour le debugging
   const currentStateString = JSON.stringify(navigationState);

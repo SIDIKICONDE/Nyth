@@ -16,7 +16,6 @@ export type RootStackParamList = {
     recordingId: string; // Rendre obligatoire pour éviter les crashes
   };
   // OnboardingScreen: undefined; // Supprimé
-  RegisterScreen: undefined;
   Register: undefined;
   PrivacyPolicyScreen: undefined;
   ProfileScreen: undefined;
