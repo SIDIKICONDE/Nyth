@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Dimensions,
+  Switch,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -41,7 +43,13 @@ const PricingScreen: React.FC = () => {
   const [showStripeCheckout, setShowStripeCheckout] = useState(false);
   const [showCustomerPortal, setShowCustomerPortal] = useState(false);
   const [checkoutPlanId, setCheckoutPlanId] = useState<string>("");
-  const [selectedPeriod, setSelectedPeriod] = useState<"monthly" | "yearly">("monthly");
+  const [isYearlyPlan, setIsYearlyPlan] = useState<boolean>(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const scrollRef = useRef<ScrollView>(null);
+  const { width: screenWidth } = Dimensions.get("window");
+  const cardWidth = screenWidth * 0.85;
+  const cardMargin = 10;
 
   const handleSelectPlan = async (planId: string) => {
     if (planId === currentPlan.id) {
