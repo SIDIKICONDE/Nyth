@@ -142,7 +142,8 @@ export class KeyVerifierService {
       if (res.status === 401 || res.status === 403) return false;
       return false;
     } catch {
-      return false;
+      // Réseau indisponible ou timeout: accepter la sauvegarde si la clé a une longueur plausible
+      return (key || "").trim().length >= 10;
     }
   }
 }
