@@ -24,16 +24,18 @@ export enum API_KEY_STATES {
 }
 
 // Préférences par défaut
+// Par défaut, on n'active que OpenAI. Les autres providers sont désactivés
+// afin d'éviter que la validation exige des clés non fournies et bloque la sauvegarde.
 const DEFAULT_PREFERENCES = {
   useOpenAI: true,
-  useGemini: true,
-  useMistral: true,
-  useCohere: true,
-  useClaude: true,
-  usePerplexity: true,
-  useTogether: true,
-  useGroq: true,
-  useFireworks: true,
+  useGemini: false,
+  useMistral: false,
+  useCohere: false,
+  useClaude: false,
+  usePerplexity: false,
+  useTogether: false,
+  useGroq: false,
+  useFireworks: false,
   useAzureOpenAI: false,
   useOpenRouter: false,
   useDeepInfra: false,
