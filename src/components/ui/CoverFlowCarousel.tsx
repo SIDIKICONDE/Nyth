@@ -97,7 +97,7 @@ export const CoverFlowCarousel: React.FC<CoverFlowCarouselProps> = ({
         { perspective: 1200 },
         { rotateY: `${rotateY}deg` },
         { translateX },
-      ],
+      ] as const,
       opacity,
       shadowColor: "#000",
       shadowOffset: {

@@ -50,7 +50,7 @@ const WelcomeScreen = () => {
   const maxContentWidth = responsiveBreakpoints({
     lg: 600,
     xl: 800,
-    default: '100%',
+    default: 100,
   });
 
   // Animations

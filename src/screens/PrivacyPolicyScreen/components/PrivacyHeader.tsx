@@ -70,7 +70,7 @@ export const PrivacyHeader = ({
           outputRange: ["0deg", "360deg"],
         }),
       },
-    ],
+    ] as const,
   };
 
   return (

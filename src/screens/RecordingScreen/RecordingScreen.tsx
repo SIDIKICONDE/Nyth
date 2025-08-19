@@ -34,6 +34,8 @@ import { createLogger } from "@/utils/optimizedLogger";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGlobalPreferences } from "@/hooks/useGlobalPreferences";
 import { FileManager } from "@/services/social-share/utils/fileManager";
+import { PermissionsAndroid, Platform, Linking } from "react-native";
+import { CameraRecorderRef } from "./components/CameraRecorder";
 
 const logger = createLogger("RecordingScreen");
 
@@ -98,6 +100,22 @@ export default function RecordingScreen({}: RecordingScreenProps) {
       setIsLoading(false);
       captureError(error, "sauvegarde_urgence");
     },
+    // Implémentation de l'arrêt d'urgence: utiliser la ref du CameraRecorder
+    stopActiveRecordingAndGetPath: async () => {
+      try {
+        if (cameraRecorderRef.current) {
+          const videoFile = await cameraRecorderRef.current.stopRecordingAndGetFile();
+          if (videoFile) {
+            // Retourner le chemin du fichier vidéo
+            return videoFile.path;
+          }
+        }
+        return null;
+      } catch (error) {
+        logger.error("Erreur lors de l'arrêt d'urgence", error);
+        return null;
+      }
+    },
   });
 
   // Paramètres de l'écran
@@ -138,6 +156,8 @@ export default function RecordingScreen({}: RecordingScreenProps) {
 
   // Timer pour suivre la durée d'enregistrement
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Ref pour accéder au CameraRecorder et arrêter l'enregistrement en urgence
+  const cameraRecorderRef = useRef<CameraRecorderRef>(null);
 
   // Charger le script et les paramètres
   const loadData = useCallback(async () => {
@@ -153,6 +173,68 @@ export default function RecordingScreen({}: RecordingScreenProps) {
         cameraPermission,
         microphonePermission,
       });
+
+      // Vérifier les permissions de stockage pour Android
+      if (Platform.OS === "android") {
+        try {
+          let storagePermissionGranted = true;
+          
+          if (Platform.Version >= 33) {
+            // Android 13+ : vérifier les permissions granulaires
+            const videoPermission = await PermissionsAndroid.check(
+              PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO
+            );
+            if (!videoPermission) {
+              const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
+                {
+                  title: "Permission d'accès aux vidéos",
+                  message: "Nyth a besoin d'accéder à vos vidéos pour sauvegarder les enregistrements.",
+                  buttonNeutral: "Demander plus tard",
+                  buttonNegative: "Annuler",
+                  buttonPositive: "OK",
+                }
+              );
+              storagePermissionGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
+            }
+          } else {
+            // Android < 13 : vérifier WRITE_EXTERNAL_STORAGE
+            const writePermission = await PermissionsAndroid.check(
+              PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+            );
+            if (!writePermission) {
+              const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+                {
+                  title: "Permission de stockage",
+                  message: "Nyth a besoin d'accéder au stockage pour sauvegarder vos vidéos.",
+                  buttonNeutral: "Demander plus tard",
+                  buttonNegative: "Annuler",
+                  buttonPositive: "OK",
+                }
+              );
+              storagePermissionGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
+            }
+          }
+
+          if (!storagePermissionGranted) {
+            logger.warn("Permission de stockage refusée");
+            Alert.alert(
+              t("recording.error.storagePermission", "Permission de stockage requise"),
+              t("recording.error.storagePermissionMessage", "Pour sauvegarder vos vidéos, veuillez autoriser l'accès au stockage dans les paramètres."),
+              [
+                { text: t("common.cancel", "Annuler"), onPress: () => navigation.goBack() },
+                { text: t("common.settings", "Paramètres"), onPress: () => {
+                  Linking.openSettings();
+                }}
+              ]
+            );
+            return;
+          }
+        } catch (error) {
+          logger.error("Erreur lors de la vérification des permissions de stockage", error);
+        }
+      }
 
       // Charger le script
       const foundScript = scripts.find((s) => s.id === scriptId);
@@ -475,6 +557,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
         />
 
         <CameraRecorder
+          ref={cameraRecorderRef}
           onRecordingStart={handleRecordingStart}
           onRecordingStop={handleRecordingStop}
           onRecordingComplete={async (video: VideoFile) => {
@@ -534,20 +617,19 @@ export default function RecordingScreen({}: RecordingScreenProps) {
                 navigation.navigate("Home" as never);
               } else {
                 logger.error("Échec de la sauvegarde dans la galerie");
+                // Ne pas bloquer la navigation: le fichier est déjà sauvegardé localement
                 Alert.alert(
-                  "Erreur de sauvegarde",
-                  "La vidéo n'a pas pu être sauvegardée dans la galerie.",
+                  "Galerie non disponible",
+                  "La vidéo a été sauvegardée localement. Vous pourrez réessayer l'export vers la galerie depuis votre bibliothèque.",
                   [
-                    { text: "Annuler", style: "cancel" },
-                    { 
-                      text: "Réessayer", 
+                    { text: "OK", onPress: () => navigation.navigate("Home" as never) },
+                    {
+                      text: "Réessayer",
                       onPress: async () => {
-                        const retry = await FileManager.saveToGallery(videoUriWithPrefix);
-                        if (retry) {
-                          navigation.navigate("Home" as never);
-                        }
-                      }
-                    }
+                        await FileManager.saveToGallery(videoUriWithPrefix);
+                        navigation.navigate("Home" as never);
+                      },
+                    },
                   ]
                 );
               }

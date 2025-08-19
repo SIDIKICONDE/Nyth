@@ -126,7 +126,7 @@ export const NativeColorPickerField: React.FC<NativeColorPickerFieldProps> = ({
             </TouchableOpacity>
           </View>
 
-          <View style={styles.pickerArea}>
+          <View style={[styles.pickerArea, styles.wheel]}>
             <WheelColorPicker
               key={sessionKey}
               color={draftColor}
@@ -137,7 +137,6 @@ export const NativeColorPickerField: React.FC<NativeColorPickerFieldProps> = ({
               sliderSize={28}
               noSnap={true}
               row={false}
-              style={styles.wheel}
             />
           </View>
         </View>

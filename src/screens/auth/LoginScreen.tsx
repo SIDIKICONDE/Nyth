@@ -140,7 +140,7 @@ export const LoginScreen: React.FC = () => {
   const formMaxWidth = responsiveBreakpoints({
     lg: 500,
     xl: 600,
-    default: '100%',
+    default: 100,
   });
 
   const styles = useMemo(() => ({

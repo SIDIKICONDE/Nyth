@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useImperativeHandle, forwardRef } from "react";
 import {
   View,
   StyleSheet,
@@ -14,7 +14,7 @@ import {
 import { useCamera } from "./hooks/useCamera";
 import { useAdvancedCamera } from "./hooks/useAdvancedCamera";
 import { CameraControls } from "./components/CameraControls";
-import type { RecordingState } from "./types";
+import type { RecordingState, CameraModuleRef } from "./types";
 
 interface CameraModuleProps {
   onRecordingComplete?: (video: VideoFile) => void;
@@ -28,106 +28,134 @@ interface CameraModuleProps {
   onRecordingStateChange?: (state: RecordingState) => void;
 }
 
-export const CameraModule: React.FC<CameraModuleProps> = ({
-  onRecordingComplete,
-  initialPosition = "back",
-  showControls = true,
-  onSettingsPress,
-  onRecordingStart,
-  onRecordingStop,
-  onTeleprompterToggle,
-  onRecordingStateChange,
-}) => {
-  const {
-    cameraRef,
-    device,
-    position,
-    flash,
-    recordingState,
-    controls,
-  } = useCamera(initialPosition);
+export const CameraModule = forwardRef<CameraModuleRef, CameraModuleProps>(
+  (
+    {
+      onRecordingComplete,
+      initialPosition = "back",
+      showControls = true,
+      onSettingsPress,
+      onRecordingStart,
+      onRecordingStop,
+      onTeleprompterToggle,
+      onRecordingStateChange,
+    },
+    ref
+  ) => {
+    const {
+      cameraRef,
+      device,
+      position,
+      flash,
+      recordingState,
+      controls,
+      setStartRecordingOptions,
+      stopRecordingAndGetFile,
+    } = useCamera(initialPosition);
 
-  // Hook pour les options avancées
-  const {
-    config: advancedConfig,
-    updateConfig: updateAdvancedConfig,
-    capabilities,
-    cameraProps,
-  } = useAdvancedCamera(position);
+    // Hook pour les options avancées
+    const {
+      config: advancedConfig,
+      updateConfig: updateAdvancedConfig,
+      capabilities,
+      cameraProps,
+      recordingOptions,
+    } = useAdvancedCamera(position);
 
-  // Les permissions sont désormais gérées en amont par RecordingScreen
+    // Exposer la fonction d'arrêt d'urgence via la ref
+    useImperativeHandle(ref, () => ({
+      stopRecordingAndGetFile: async () => {
+        const file = await stopRecordingAndGetFile();
+        return file;
+      },
+    }));
 
-  // Gérer la fin de l'enregistrement
-  useEffect(() => {
-    if (recordingState.videoFile && onRecordingComplete) {
-      onRecordingComplete(recordingState.videoFile);
-    }
-  }, [recordingState.videoFile, onRecordingComplete]);
+    // Les permissions sont désormais gérées en amont par RecordingScreen
 
-  // Relayer les événements start/stop aux parents
-  useEffect(() => {
-    // Utiliser directement les changements d'état au lieu du polling
-    if (recordingState.isRecording) {
-      onRecordingStart?.();
-    } else if (recordingState.videoFile) {
-      onRecordingStop?.();
-    }
-  }, [recordingState.isRecording, recordingState.videoFile, onRecordingStart, onRecordingStop]);
+    // Gérer la fin de l'enregistrement
+    useEffect(() => {
+      if (recordingState.videoFile && onRecordingComplete) {
+        onRecordingComplete(recordingState.videoFile);
+      }
+    }, [recordingState.videoFile, onRecordingComplete]);
 
-  useEffect(() => {
-    onTeleprompterToggle?.(Boolean(advancedConfig.teleprompterEnabled));
-  }, [advancedConfig.teleprompterEnabled, onTeleprompterToggle]);
+    // Relayer les événements start/stop aux parents
+    useEffect(() => {
+      // Utiliser directement les changements d'état au lieu du polling
+      if (recordingState.isRecording) {
+        onRecordingStart?.();
+      } else if (recordingState.videoFile) {
+        onRecordingStop?.();
+      }
+    }, [recordingState.isRecording, recordingState.videoFile, onRecordingStart, onRecordingStop]);
 
-  // Propager tout changement d'état d'enregistrement (inclut pause/reprise)
-  useEffect(() => {
-    onRecordingStateChange?.(recordingState);
-  }, [recordingState, onRecordingStateChange]);
+    useEffect(() => {
+      onTeleprompterToggle?.(Boolean(advancedConfig.teleprompterEnabled));
+    }, [advancedConfig.teleprompterEnabled, onTeleprompterToggle]);
 
-  // Les contrôles sont utilisés directement
-  const enhancedControls = controls;
+    // Propager tout changement d'état d'enregistrement (inclut pause/reprise)
+    useEffect(() => {
+      onRecordingStateChange?.(recordingState);
+    }, [recordingState, onRecordingStateChange]);
 
-  const shouldShowCamera = Boolean(device);
+    // Mettre à jour les options d'enregistrement lorsque la config avancée change
+    useEffect(() => {
+      if (recordingOptions) {
+        setStartRecordingOptions({
+          fileType: recordingOptions.fileType as any,
+          videoCodec: recordingOptions.videoCodec as any,
+          videoBitRate: (recordingOptions as any).videoBitRate,
+          audioBitRate: (recordingOptions as any).audioBitRate,
+        });
+      }
+    }, [recordingOptions, setStartRecordingOptions]);
 
-  return (
-    <View style={styles.container}>
-      {shouldShowCamera ? (
-        <Camera
-          ref={cameraRef}
-          style={StyleSheet.absoluteFill}
-          device={device!}
-          isActive={true}
-          video={true}
-          audio={true}
-          torch={flash}
-          enableZoomGesture
-          {...cameraProps}
-        />
-      ) : (
-        <View style={styles.container}>
-          <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text style={styles.loadingText}>Chargement de la caméra...</Text>
-        </View>
-      )}
+    // Les contrôles sont utilisés directement
+    const enhancedControls = controls;
 
-      {showControls && (
-        <CameraControls
-          controls={enhancedControls}
-          recordingState={recordingState}
-          position={position}
-          flash={flash}
-          onSettingsPress={onSettingsPress}
-          advancedConfig={advancedConfig}
-          onAdvancedConfigChange={updateAdvancedConfig}
-          capabilities={{
-            ...capabilities,
-            supportsManualFocus: false, // À implémenter selon les besoins
-            supportsManualWhiteBalance: false, // À implémenter selon les besoins
-          }}
-        />
-      )}
-    </View>
-  );
-};
+    const shouldShowCamera = Boolean(device);
+
+    return (
+      <View style={styles.container}>
+        {shouldShowCamera ? (
+          <Camera
+            ref={cameraRef}
+            style={StyleSheet.absoluteFill}
+            device={device!}
+            isActive={true}
+            video={true}
+            audio={true}
+            torch={flash}
+            enableZoomGesture
+            {...cameraProps}
+          />
+        ) : (
+          <View style={styles.container}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <Text style={styles.loadingText}>Chargement de la caméra...</Text>
+          </View>
+        )}
+
+        {showControls && (
+          <CameraControls
+            controls={enhancedControls}
+            recordingState={recordingState}
+            position={position}
+            flash={flash}
+            onSettingsPress={onSettingsPress}
+            advancedConfig={advancedConfig}
+            onAdvancedConfigChange={updateAdvancedConfig}
+            capabilities={{
+              ...capabilities,
+              supportsManualFocus: false, // À implémenter selon les besoins
+              supportsManualWhiteBalance: false, // À implémenter selon les besoins
+            }}
+          />
+        )}
+      </View>
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   container: {

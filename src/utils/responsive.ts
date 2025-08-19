@@ -1,4 +1,4 @@
-import { Dimensions, Platform } from 'react-native';
+import { Dimensions } from 'react-native';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -138,3 +138,96 @@ export const responsiveHeight = (baseHeight: number): number => {
 
 // Import React manquant
 import React from 'react';
+
+// Constantes de dimensions pour les composants
+export const dimensions = {
+  buttonHeight: {
+    small: 36,
+    medium: 48,
+    large: 56,
+  },
+  borderRadius: {
+    small: 4,
+    medium: 8,
+    large: 12,
+    round: 20,
+    xlarge: 24,
+  },
+  padding: {
+    small: 8,
+    medium: 16,
+    large: 24,
+    xlarge: 32,
+  },
+  margin: {
+    small: 8,
+    medium: 16,
+    large: 24,
+  },
+} as const;
+
+// Fonction pour calculer le padding des safe areas
+export const getSafeAreaPadding = (insets: {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}) => ({
+  paddingTop: insets.top,
+  paddingBottom: insets.bottom,
+  paddingLeft: insets.left,
+  paddingRight: insets.right,
+});
+
+// Fonctions de scaling pour la responsivité
+export const scale = (size: number): number => {
+  return size * (screenWidth / 375); // Base sur iPhone 6/7/8
+};
+
+export const verticalScale = (size: number): number => {
+  return size * (screenHeight / 667); // Base sur iPhone 6/7/8
+};
+
+export const moderateScale = (size: number, factor = 0.5): number => {
+  return size + (scale(size) - size) * factor;
+};
+
+export const moderateVerticalScale = (size: number, factor = 0.5): number => {
+  return size + (verticalScale(size) - size) * factor;
+};
+
+// Fonctions de dimensionnement
+export const wp = (percentage: number): number => {
+  return (screenWidth * percentage) / 100;
+};
+
+export const hp = (percentage: number): number => {
+  return (screenHeight * percentage) / 100;
+};
+
+// Détection du type d'appareil
+export const isSmallDevice = (): boolean => {
+  return screenWidth < 375;
+};
+
+export const isLargeDevice = (): boolean => {
+  return screenWidth >= 768;
+};
+
+export const isLandscape = (): boolean => {
+  return screenWidth > screenHeight;
+};
+
+export const getCurrentBreakpoint = (): keyof typeof BREAKPOINTS => {
+  if (screenWidth >= BREAKPOINTS.xxl) return 'xxl';
+  if (screenWidth >= BREAKPOINTS.xl) return 'xl';
+  if (screenWidth >= BREAKPOINTS.lg) return 'lg';
+  if (screenWidth >= BREAKPOINTS.md) return 'md';
+  if (screenWidth >= BREAKPOINTS.sm) return 'sm';
+  return 'xs';
+};
+
+// Fonction pour calculer le ratio d'aspect
+export const aspectRatio = (width: number, height: number): number => {
+  return width / height;
+};

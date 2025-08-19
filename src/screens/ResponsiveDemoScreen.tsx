@@ -192,7 +192,7 @@ const ResponsiveDemoScreen = () => {
               value={switchValue}
               onValueChange={setSwitchValue}
               trackColor={{
-                false: currentTheme.colors.disabled,
+                false: currentTheme.colors.border,
                 true: currentTheme.colors.primary + '80',
               }}
               thumbColor={

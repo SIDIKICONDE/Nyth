@@ -19,6 +19,7 @@ export type {
   CameraConfig,
   RecordingState,
   CameraControls as CameraControlsType,
+  CameraModuleRef,
 } from "./types";
 
 export type { AdvancedCameraConfig } from "./types/advanced";

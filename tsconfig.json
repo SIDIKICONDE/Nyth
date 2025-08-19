@@ -1,5 +1,4 @@
 {
-  "extends": "@react-native/typescript-config",
   "compilerOptions": {
     "strict": false,
     "noImplicitAny": false,
@@ -19,7 +18,10 @@
     },
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "allowJs": true,
+    "noEmit": true,
+    "isolatedModules": true
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
   "exclude": [

@@ -20,6 +20,7 @@
     "build:ipa:release": "chmod +x scripts/build-ipa.sh && ./scripts/build-ipa.sh Release"
   },
   "dependencies": {
+    "@react-native-camera-roll/camera-roll": "^7.4.0",
     "@bam.tech/react-native-image-resizer": "^3.0.11",
     "@invertase/react-native-apple-authentication": "^2.4.1",
     "@notifee/react-native": "^9.1.8",

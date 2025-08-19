@@ -70,3 +70,7 @@ export interface TeleprompterSettings {
   autoScroll: boolean;
   margin: number;
 }
+
+export interface CameraModuleRef {
+  stopRecordingAndGetFile: () => Promise<VideoFile | null>;
+}

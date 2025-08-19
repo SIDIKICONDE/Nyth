@@ -23,9 +23,9 @@ export const DraggableTaskCard: React.FC<DraggableTaskCardProps> = ({
   const { currentTheme } = useTheme();
 
   const { gestureHandler, animatedStyle } = useDragGesture({
-    taskId: task.id,
-    onDragStart,
-    onDragEnd,
+    _taskId: task.id,
+    _onDragStart: onDragStart,
+    _onDragEnd: onDragEnd,
   });
 
   const priorityColor = getPriorityColor(task.priority);

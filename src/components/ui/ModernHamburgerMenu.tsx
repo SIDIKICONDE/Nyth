@@ -177,7 +177,7 @@ export default function ModernHamburgerMenu({
     });
 
     return {
-      transform: [{ translateY }, { scale }, { rotate: `${rotate}deg` }],
+      transform: [{ translateY }, { scale }, { rotate: `${rotate}deg` }] as const,
       opacity,
     };
   };

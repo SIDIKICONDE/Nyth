@@ -190,7 +190,7 @@ export const RegisterScreen: React.FC = () => {
   const formMaxWidth = responsiveBreakpoints({
     lg: 600,
     xl: 700,
-    default: '100%',
+    default: 100,
   });
 
   const styles = useMemo(() => ({

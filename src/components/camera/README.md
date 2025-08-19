@@ -53,6 +53,7 @@ const {
   hasMicrophonePermission,
   requestPermissions,
   controls,
+  setStartRecordingOptions,
 } = useCamera("back");
 
 // Contrôles disponibles
@@ -63,6 +64,14 @@ controls.resumeRecording();
 controls.takePhoto();
 controls.switchCamera();
 controls.toggleFlash();
+
+// Optionnel: définir dynamiquement les options d'enregistrement (codec, bitrate...)
+setStartRecordingOptions({
+  fileType: 'mp4',
+  videoCodec: 'h264',
+  videoBitRate: 8_000_000, // 8 Mbps
+  audioBitRate: 256_000,   // 256 kbps
+});
 ```
 
 ## Fonctionnalités

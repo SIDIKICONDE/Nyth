@@ -355,7 +355,7 @@ export default function LibraryScreen() {
   const numColumns = getNumColumns(orientation);
 
   // Gestion du changement d'onglet avec nettoyage de la sélection
-  const onTabChange = (tab: typeof activeTab) => {
+  const onTabChange = (tab: "scripts" | "videos") => {
     handleTabChange(tab);
     setActiveTab(tab);
   };
@@ -396,6 +396,7 @@ export default function LibraryScreen() {
         onClearSelection={clearSelection}
         onToggleScriptSelection={toggleScriptSelection}
         onToggleRecordingSelection={toggleRecordingSelection}
+        onTabChange={onTabChange}
       />
 
       {/* Sélecteur d'onglets */}

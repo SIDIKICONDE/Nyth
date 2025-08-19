@@ -171,7 +171,7 @@ const StackCard: React.FC<{
         { translateY: baseTranslateY },
         { scale: scale.value * baseScale },
         { rotateZ: `${rotateZ.value + fanRotation}deg` },
-      ],
+      ] as const,
       opacity: fanMode !== "none" ? 1 : baseOpacity, // En mode éventail, toutes les cartes sont visibles
       zIndex: totalCards - index, // Carte du dessus a le z-index le plus élevé
     };

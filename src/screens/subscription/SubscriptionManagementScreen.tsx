@@ -42,10 +42,6 @@ const SubscriptionManagementScreen: React.FC = () => {
   const [quotaStats, setQuotaStats] = useState<any>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
 
-  useEffect(() => {
-    loadQuotaStats();
-  }, [loadQuotaStats]);
-
   const loadQuotaStats = useCallback(async () => {
     setIsLoadingStats(true);
     try {
@@ -57,6 +53,10 @@ const SubscriptionManagementScreen: React.FC = () => {
       setIsLoadingStats(false);
     }
   }, [getRealTimeQuotaStats]);
+
+  useEffect(() => {
+    loadQuotaStats();
+  }, [loadQuotaStats]);
 
   const handleCancelSubscription = () => {
     if (!subscription || subscription.status !== "active") {

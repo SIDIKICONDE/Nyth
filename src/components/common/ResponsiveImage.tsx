@@ -11,8 +11,8 @@ import { useResponsive } from '../../hooks/useResponsive';
 import { aspectRatio } from '../../utils/responsive';
 
 interface ResponsiveImageProps extends Omit<ImageProps, 'style'> {
-  width?: number | string;
-  height?: number | string;
+  width?: number;
+  height?: number;
   aspectRatioValue?: number; // width/height ratio
   containerStyle?: ViewStyle;
   imageStyle?: ImageStyle;
@@ -33,23 +33,27 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const { wp, hp, moderateScale } = useResponsive();
+  const { wp, moderateScale } = useResponsive();
 
   const getImageDimensions = (): ImageStyle => {
     if (aspectRatioValue) {
-      return aspectRatio(aspectRatioValue, 1);
+      const ratio = aspectRatio(aspectRatioValue, 1);
+      return {
+        width: wp(100),
+        height: wp(100) / ratio,
+      };
     }
 
     if (width && height) {
       return {
-        width: typeof width === 'string' ? width : moderateScale(width),
-        height: typeof height === 'string' ? height : moderateScale(height),
+        width: moderateScale(width),
+        height: moderateScale(height),
       };
     }
 
     if (width) {
       return {
-        width: typeof width === 'string' ? width : moderateScale(width),
+        width: moderateScale(width),
         height: undefined,
       };
     }
@@ -57,12 +61,16 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
     if (height) {
       return {
         width: undefined,
-        height: typeof height === 'string' ? height : moderateScale(height),
+        height: moderateScale(height),
       };
     }
 
     // Default to full width with 16:9 aspect ratio
-    return aspectRatio(16, 9);
+    const ratio = aspectRatio(16, 9);
+    return {
+      width: wp(100),
+      height: wp(100) / ratio,
+    };
   };
 
   const handleLoadStart = () => {

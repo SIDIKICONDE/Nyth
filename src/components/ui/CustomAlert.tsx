@@ -113,7 +113,7 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
     transform: [
       { scale: scale.value },
       { translateY: translateY.value }
-    ],
+    ] as const,
     opacity: opacity.value
   }));
 

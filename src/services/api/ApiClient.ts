@@ -4,7 +4,6 @@ import { SERVER_CONFIG } from "../../config/serverConfig";
 import {
   AI_PROVIDERS,
   AI_PROVIDER_CONFIG,
-  AI_PROVIDER_PRIORITY,
 } from "../../config/aiConfig";
 import { getSecureHeaders } from "../../utils/securityUtils";
 
@@ -45,7 +44,7 @@ export class ApiClient {
         " | "
       )}.`;
 
-      const order = AI_PROVIDER_PRIORITY;
+      const order = Object.values(AI_PROVIDERS);
 
       const buildPayload = (
         provider: string

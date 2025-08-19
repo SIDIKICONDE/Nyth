@@ -152,9 +152,7 @@ export const useAISettings = (): UseAISettingsReturn => {
     testingApi: apiTesting.testingApi,
     clearingCache: cacheManagement.clearingCache,
 
-    // Priority management
-    priorityOrder: [], // Removed priorityOrder state
-    setPriorityOrder: () => {}, // Removed setPriorityOrder function
+    // Priority management removed
 
     // Cache management
     cacheStats: cacheManagement.cacheStats,
