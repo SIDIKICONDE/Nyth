@@ -243,6 +243,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   };
 
   const loadSelectedTheme = async (availableCustomThemes: CustomTheme[]) => {
+    // Priorité: préférences globales (cloud si connecté) puis stockage local
     const themeId = savedThemeId || (await themeStorage.getSelectedTheme());
 
     if (themeId) {
@@ -296,6 +297,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
           }
         } else {
           setCurrentTheme(foundTheme);
+          // S'assurer que le stockage local reflète la sélection courante
+          await themeStorage.saveSelectedTheme(foundTheme.id);
         }
       } else {
         // Theme not found, use default
@@ -303,6 +306,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         setCurrentTheme(defaultTheme);
         setSelectedThemeId(defaultTheme.id);
         await updatePreference("theme", defaultTheme.id);
+        await themeStorage.saveSelectedTheme(defaultTheme.id);
       }
     } else {
       // No saved theme, initialize with default
@@ -310,6 +314,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       setCurrentTheme(defaultTheme);
       setSelectedThemeId(defaultTheme.id);
       await updatePreference("theme", defaultTheme.id);
+      await themeStorage.saveSelectedTheme(defaultTheme.id);
     }
   };
 
@@ -342,6 +347,9 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
       // Utiliser le système global de préférences
       await updatePreference("theme", theme.id);
+
+      // Sauvegarder localement pour restauration rapide au prochain lancement
+      await themeStorage.saveSelectedTheme(theme.id);
 
       // Sauvegarder l'état override pour la persistance
       await AsyncStorage.setItem("@system_theme_overridden", "true");

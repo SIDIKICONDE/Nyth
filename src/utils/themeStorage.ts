@@ -3,7 +3,8 @@ import { CustomTheme } from '../types/theme';
 import { createLogger } from './optimizedLogger';
 
 const logger = createLogger('ThemeStorage');
-const THEME_STORAGE_KEY = 'selectedTheme';
+const THEME_STORAGE_KEY = '@selected_theme';
+const LEGACY_THEME_STORAGE_KEY = 'selectedTheme';
 const CUSTOM_THEMES_KEY = 'customThemes';
 
 export const themeStorage = {
@@ -22,11 +23,25 @@ export const themeStorage = {
   // Get selected theme ID
   async getSelectedTheme(): Promise<string | null> {
     try {
+      // Essayer d'abord la nouvelle clé
       const themeId = await AsyncStorage.getItem(THEME_STORAGE_KEY);
       if (themeId) {
         logger.info(`Selected theme loaded: ${themeId}`);
+        return themeId;
       }
-      return themeId;
+
+      // Fallback migration depuis l'ancienne clé
+      const legacy = await AsyncStorage.getItem(LEGACY_THEME_STORAGE_KEY);
+      if (legacy) {
+        try {
+          await AsyncStorage.setItem(THEME_STORAGE_KEY, legacy);
+          await AsyncStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
+          logger.info(`Migrated legacy selectedTheme -> ${THEME_STORAGE_KEY}: ${legacy}`);
+        } catch {}
+        return legacy;
+      }
+
+      return null;
     } catch (error) {
       const errorMessage = 'Error loading selected theme';
       logger.error(errorMessage, error);
@@ -63,7 +78,11 @@ export const themeStorage = {
   // Clear all theme data
   async clearThemeData(): Promise<void> {
     try {
-      await AsyncStorage.multiRemove([THEME_STORAGE_KEY, CUSTOM_THEMES_KEY]);
+      await AsyncStorage.multiRemove([
+        THEME_STORAGE_KEY,
+        LEGACY_THEME_STORAGE_KEY,
+        CUSTOM_THEMES_KEY,
+      ]);
       logger.info('Theme data cleared successfully');
     } catch (error) {
       const errorMessage = 'Error clearing theme data';
