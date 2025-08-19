@@ -35,7 +35,7 @@ import { TaskDetailScreen } from "../screens/TaskDetailScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import ThemeScreen from "../screens/ThemeScreen";
 
-import RecordingScreen from "../screens/RecordingScreen/RecordingScreen";
+import RecordingScreen from "../screens/RecordingScreen/RecordingScreenOld";
 
 import PricingScreen from "../screens/subscription/PricingScreen";
 import SubscriptionManagementScreen from "../screens/subscription/SubscriptionManagementScreen";

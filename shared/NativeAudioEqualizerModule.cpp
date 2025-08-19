@@ -618,48 +618,6 @@ NativeAudioEqualizerModule::NativeAudioEqualizerModule(std::shared_ptr<CallInvok
     // ===== FX controls exposed to JS =====
     methodMap_["fxSetEnabled"] = MethodMetadata{1, [](jsi::Runtime& /*rt*/, TurboModule& /*turboModule*/, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
         bool en = args[0].getBool();
-        std::lock_guard<std::mutex> lk(g_naaya_fx_mutex);
-        g_naaya_fx_enabled = en;
-        g_naaya_fx_dirty.store(true);
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["fxGetEnabled"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& /*turboModule*/, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        std::lock_guard<std::mutex> lk(g_naaya_fx_mutex);
-        return jsi::Value(g_naaya_fx_enabled);
-    }};
-
-    methodMap_["fxSetCompressor"] = MethodMetadata{5, [](jsi::Runtime& /*rt*/, TurboModule& /*turboModule*/, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
-        double th = args[0].asNumber();
-        double ra = args[1].asNumber();
-        double at = args[2].asNumber();
-        double rl = args[3].asNumber();
-        double mk = args[4].asNumber();
-        std::lock_guard<std::mutex> lk(g_naaya_fx_mutex);
-        g_naaya_fx_comp_threshold_db = th;
-        g_naaya_fx_comp_ratio = ra;
-        g_naaya_fx_comp_attack_ms = at;
-        g_naaya_fx_comp_release_ms = rl;
-        g_naaya_fx_comp_makeup_db = mk;
-        g_naaya_fx_dirty.store(true);
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["fxSetDelay"] = MethodMetadata{3, [](jsi::Runtime& /*rt*/, TurboModule& /*turboModule*/, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
-        double dm = args[0].asNumber();
-        double fb = args[1].asNumber();
-        double mx = args[2].asNumber();
-        std::lock_guard<std::mutex> lk(g_naaya_fx_mutex);
-        g_naaya_fx_delay_ms = dm;
-        g_naaya_fx_delay_feedback = fb;
-        g_naaya_fx_delay_mix = mx;
-        g_naaya_fx_dirty.store(true);
-        return jsi::Value::undefined();
-    }};
-
-    // ===== Creative Effects (FX) controls exposed to JS =====
-    methodMap_["fxSetEnabled"] = MethodMetadata{1, [](jsi::Runtime& /*rt*/, TurboModule& /*turboModule*/, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
-        bool en = args[0].getBool();
         {
           std::lock_guard<std::mutex> lk(g_naaya_fx_mutex);
           g_naaya_fx_enabled = en;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../common/FilterTypes.hpp"
+#include "common/FilterTypes.hpp"
 #include <memory>
 #include <vector>
 #include <unordered_map>

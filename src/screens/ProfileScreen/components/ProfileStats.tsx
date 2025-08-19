@@ -136,7 +136,7 @@ export default function ProfileStats({ stats }: ProfileStatsProps) {
         isTabletDevice ? tw`justify-around` : tw`justify-between`
       ]}>
         {statItems.map((item, index) => {
-          const StatContent = () => (
+          const StatContent = (
             <View style={tw`flex-row items-center`}>
               {/* Icône */}
               <View
@@ -195,7 +195,7 @@ export default function ProfileStats({ stats }: ProfileStatsProps) {
               onPress={item.onPress}
               activeOpacity={0.6}
             >
-              <StatContent />
+              {StatContent}
             </TouchableOpacity>
           ) : (
             <View
@@ -215,7 +215,7 @@ export default function ProfileStats({ stats }: ProfileStatsProps) {
                 },
               ]}
             >
-              <StatContent />
+              {StatContent}
             </View>
           );
         })}
