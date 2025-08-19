@@ -45,11 +45,12 @@ export default function ProfileStats({ stats }: ProfileStatsProps) {
     }
   };
 
-  // Calculer les statistiques réelles
+  // Calculer les statistiques réelles en priorisant les données du profil (cloud)
   const favoriteScripts = getFavoriteScripts();
-  const totalScripts = scripts.length;
-  const totalFavorites = favoriteScripts.length;
-  const totalRecordings = recordings.length;
+  const totalScripts = stats?.totalScripts ?? scripts.length;
+  const totalFavorites = stats?.totalFavorites ?? favoriteScripts.length;
+  const totalRecordings =
+    stats?.totalRecordings ?? (isLoaded ? cumulativeStats.totalRecordingsCreated : recordings.length);
 
   // Utiliser les statistiques cumulatives pour le temps total
   logger.debug("📊 ProfileStats - Statistiques cumulatives chargées:", isLoaded);
@@ -66,8 +67,9 @@ export default function ProfileStats({ stats }: ProfileStatsProps) {
   logger.debug("📊 ProfileStats - Enregistrements locaux:", totalRecordings);
   logger.debug("📊 ProfileStats - Stats props:", stats);
 
-  // Le temps total vient maintenant des statistiques cumulatives
-  const totalRecordingTime = isLoaded ? cumulativeStats.totalRecordingTime : 0;
+  // Le temps total vient des stats du profil si disponibles, sinon cumul local
+  const totalRecordingTime =
+    stats?.totalRecordingTime ?? (isLoaded ? cumulativeStats.totalRecordingTime : 0);
 
   logger.debug("⏰ Temps total affiché (secondes):", totalRecordingTime);
   logger.debug("⏰ Temps total formaté:", formatDuration(totalRecordingTime));
@@ -96,9 +98,7 @@ export default function ProfileStats({ stats }: ProfileStatsProps) {
     {
       icon: "video-outline",
       label: t("profile.stats.recordings"),
-      value: isLoaded
-        ? cumulativeStats.totalRecordingsCreated
-        : totalRecordings,
+      value: totalRecordings,
       onPress: totalRecordings > 0 ? handleRecordingsPress : undefined,
     },
     {
