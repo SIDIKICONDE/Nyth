@@ -45,6 +45,7 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
     flash,
     recordingState,
     controls,
+    setStartRecordingOptions,
   } = useCamera(initialPosition);
 
   // Hook pour les options avancées
@@ -53,6 +54,7 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
     updateConfig: updateAdvancedConfig,
     capabilities,
     cameraProps,
+    recordingOptions,
   } = useAdvancedCamera(position);
 
   // Les permissions sont désormais gérées en amont par RecordingScreen
@@ -82,6 +84,18 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
   useEffect(() => {
     onRecordingStateChange?.(recordingState);
   }, [recordingState, onRecordingStateChange]);
+
+  // Mettre à jour les options d'enregistrement lorsque la config avancée change
+  useEffect(() => {
+    if (recordingOptions) {
+      setStartRecordingOptions({
+        fileType: recordingOptions.fileType as any,
+        videoCodec: recordingOptions.videoCodec as any,
+        videoBitRate: (recordingOptions as any).videoBitRate,
+        audioBitRate: (recordingOptions as any).audioBitRate,
+      });
+    }
+  }, [recordingOptions, setStartRecordingOptions]);
 
   // Les contrôles sont utilisés directement
   const enhancedControls = controls;

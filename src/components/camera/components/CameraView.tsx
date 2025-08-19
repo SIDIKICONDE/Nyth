@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import { Camera } from "react-native-vision-camera";
 import { useCamera } from "../hooks/useCamera";
+import { useAdvancedCamera } from "../hooks/useAdvancedCamera";
 
 interface CameraViewProps {
   onRecordingComplete?: (video: any) => void;
@@ -26,7 +27,22 @@ export const CameraView: React.FC<CameraViewProps> = ({
     recordingState,
     hasCameraPermission,
     hasMicrophonePermission,
+    setStartRecordingOptions,
   } = useCamera(initialPosition);
+
+  // Appliquer également les options issues du hook avancé au cas où ce composant est utilisé seul
+  const { cameraProps, recordingOptions } = useAdvancedCamera(initialPosition);
+
+  useEffect(() => {
+    if (recordingOptions) {
+      setStartRecordingOptions({
+        fileType: recordingOptions.fileType as any,
+        videoCodec: recordingOptions.videoCodec as any,
+        videoBitRate: (recordingOptions as any).videoBitRate,
+        audioBitRate: (recordingOptions as any).audioBitRate,
+      });
+    }
+  }, [recordingOptions, setStartRecordingOptions]);
 
   // Les permissions sont désormais gérées par l'écran parent (RecordingScreen)
 
@@ -68,6 +84,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
         torch={flash}
         enableZoomGesture
         photo={true}
+        {...cameraProps}
       />
     </View>
   );

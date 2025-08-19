@@ -25,13 +25,16 @@ interface EmergencyRecordingOptions {
   onSaveStarted?: () => void;
   onSaveCompleted?: (savedData: EmergencyRecordingData) => void;
   onSaveFailed?: (error: Error) => void;
+  // Fournir une manière d'arrêter l'enregistrement actif et de récupérer le chemin
+  // Implémentation côté appelant: doit retourner le chemin absolu du fichier ou null
+  stopActiveRecordingAndGetPath?: () => Promise<string | null>;
 }
 
 export function useEmergencyRecordingSave(
   options: EmergencyRecordingOptions = {}
 ) {
   const { t } = useTranslation();
-  const { onSaveStarted, onSaveCompleted, onSaveFailed } = options;
+  const { onSaveStarted, onSaveCompleted, onSaveFailed, stopActiveRecordingAndGetPath } = options;
 
   const savingInProgressRef = useRef(false);
   const lastSaveAttemptRef = useRef<number>(0);
@@ -92,7 +95,8 @@ export function useEmergencyRecordingSave(
 
         // 1. Arrêter l'enregistrement en cours et récupérer le fichier
         logger.info("Arrêt d'urgence de l'enregistrement en cours...");
-        const savedVideoPath = await stopRecordingAndGetPath();
+        const savedVideoPath =
+          (await stopActiveRecordingAndGetPath?.()) ?? (await stopRecordingAndGetPath());
 
         if (savedVideoPath) {
           emergencyData.videoPath = savedVideoPath;
@@ -138,21 +142,13 @@ export function useEmergencyRecordingSave(
   );
 
   // Arrêter l'enregistrement et récupérer le chemin du fichier
-  const stopRecordingAndGetPath = useCallback(async (): Promise<
-    string | null
-  > => {
+  const stopRecordingAndGetPath = useCallback(async (): Promise<string | null> => {
     try {
-      // Service d'enregistrement standard
-      // const service = RecordingService;
-
-      // Simulation d'arrêt d'enregistrement
-      logger.warn("Service d'enregistrement non disponible");
+      // Fallback si aucun service n'est fourni par l'appelant
+      logger.warn("Aucun service d'arrêt fourni. Impossible de récupérer le fichier en cours.");
       return null;
     } catch (error) {
-      logger.error(
-        "Erreur lors de l'arrêt d'urgence de l'enregistrement",
-        error
-      );
+      logger.error("Erreur lors de l'arrêt d'urgence de l'enregistrement", error);
       return null;
     }
   }, []);

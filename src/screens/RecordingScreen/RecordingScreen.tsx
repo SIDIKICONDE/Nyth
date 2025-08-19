@@ -98,6 +98,9 @@ export default function RecordingScreen({}: RecordingScreenProps) {
       setIsLoading(false);
       captureError(error, "sauvegarde_urgence");
     },
+    // Implémentation de l'arrêt d'urgence: on ne peut pas stopper depuis ici
+    // mais on peut signaler l'absence et laisser le hook tomber sur son fallback
+    stopActiveRecordingAndGetPath: async () => null,
   });
 
   // Paramètres de l'écran
@@ -534,20 +537,19 @@ export default function RecordingScreen({}: RecordingScreenProps) {
                 navigation.navigate("Home" as never);
               } else {
                 logger.error("Échec de la sauvegarde dans la galerie");
+                // Ne pas bloquer la navigation: le fichier est déjà sauvegardé localement
                 Alert.alert(
-                  "Erreur de sauvegarde",
-                  "La vidéo n'a pas pu être sauvegardée dans la galerie.",
+                  "Galerie non disponible",
+                  "La vidéo a été sauvegardée localement. Vous pourrez réessayer l'export vers la galerie depuis votre bibliothèque.",
                   [
-                    { text: "Annuler", style: "cancel" },
-                    { 
-                      text: "Réessayer", 
+                    { text: "OK", onPress: () => navigation.navigate("Home" as never) },
+                    {
+                      text: "Réessayer",
                       onPress: async () => {
                         const retry = await FileManager.saveToGallery(videoUriWithPrefix);
-                        if (retry) {
-                          navigation.navigate("Home" as never);
-                        }
-                      }
-                    }
+                        navigation.navigate("Home" as never);
+                      },
+                    },
                   ]
                 );
               }
