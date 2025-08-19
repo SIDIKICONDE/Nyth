@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
+import { Alert } from 'react-native';
 import { useTranslation } from '@/hooks/useTranslation';
 import { PreviewActions } from '../types';
+import { FileManager } from '@/services/social-share/utils/fileManager';
 
 interface UsePreviewActionsProps {
   recording: {
@@ -30,26 +32,30 @@ export function usePreviewActions({
     try {
       setIsExporting(true);
       setExportProgress(0);
-      setCurrentStep(t('preview.export.analyzing', 'Analyse de la vidéo'));
+      setCurrentStep(t('preview.export.preparation', 'Préparation de la vidéo...'));
 
-      // Simulation du processus d'export
-      const steps = [
-        { step: t('preview.export.analyzing', 'Analyse de la vidéo'), progress: 20 },
-        { step: t('preview.export.audioOptimization', 'Optimisation audio'), progress: 40 },
-        { step: t('preview.export.videoCompression', 'Compression vidéo'), progress: 70 },
-        { step: t('preview.export.finalizing', 'Finalisation'), progress: 90 },
-        { step: t('preview.export.completed', 'Export terminé'), progress: 100 },
-      ];
+      // Valider l'existence du fichier
+      await FileManager.validateVideoFile(recording.videoUri);
+      setCurrentStep(t('preview.export.encoding', 'Encodage en cours'));
+      setExportProgress(40);
 
-      for (const { step, progress } of steps) {
-        setCurrentStep(step);
-        setExportProgress(progress);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      // Sauvegarder dans la galerie (gère permissions)
+      const ok = await FileManager.saveToGallery(recording.videoUri);
+      if (!ok) {
+        throw new Error('save_failed');
       }
+      setCurrentStep(t('preview.export.finalizing', 'Finalisation'));
+      setExportProgress(90);
 
+      setCurrentStep(t('preview.export.completed', 'Export terminé'));
+      setExportProgress(100);
       setShowSocialShare(true);
     } catch (error) {
-      console.error('Erreur lors de l\'export:', error);
+      Alert.alert(
+        t('preview.export.error.title', 'Erreur d\'export'),
+        t('preview.export.error.message', 'Impossible d\'exporter la vidéo. Veuillez réessayer.'),
+        [{ text: t('preview.export.error.ok', 'OK') }]
+      );
     } finally {
       setIsExporting(false);
       setExportProgress(0);

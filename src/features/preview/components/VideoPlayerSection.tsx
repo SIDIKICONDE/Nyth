@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Dimensions } from 'react-native';
 import Video from 'react-native-video';
+import RNFS from 'react-native-fs';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import tw from 'twrnc';
 import { UIText } from '@/components/ui/Typography';
@@ -15,6 +16,29 @@ export function VideoPlayerSection({
   isGeneratingPreview,
   videoSize,
 }: VideoPlayerSectionProps) {
+  const [validatedUri, setValidatedUri] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+    const validate = async () => {
+      const uri = previewVideoUri || '';
+      if (!uri) {
+        if (mounted) setValidatedUri(null);
+        return;
+      }
+      const localPath = uri.startsWith('file://') ? uri.replace('file://', '') : uri;
+      try {
+        const exists = await RNFS.exists(localPath);
+        if (mounted) setValidatedUri(exists ? uri : null);
+      } catch {
+        if (mounted) setValidatedUri(null);
+      }
+    };
+    validate();
+    return () => {
+      mounted = false;
+    };
+  }, [previewVideoUri]);
 
   if (isGeneratingPreview) {
     return (
@@ -28,7 +52,7 @@ export function VideoPlayerSection({
     );
   }
 
-  if (!previewVideoUri) {
+  if (!validatedUri) {
     return (
       <View style={tw`items-center justify-center py-8`}>
         <Animated.View entering={FadeIn.duration(500)}>
@@ -44,7 +68,7 @@ export function VideoPlayerSection({
     <Animated.View entering={FadeIn.duration(500)} style={tw`items-center`}>
       <View style={tw`rounded-2xl overflow-hidden bg-black`}>
         <Video
-          source={{ uri: previewVideoUri }}
+          source={{ uri: validatedUri }}
           style={{
             width: SCREEN_WIDTH - 32,
             height: VIDEO_HEIGHT,
@@ -52,7 +76,7 @@ export function VideoPlayerSection({
           controls={true}
           resizeMode="contain"
           repeat={false}
-          paused={true}
+          paused={false}
         />
       </View>
       

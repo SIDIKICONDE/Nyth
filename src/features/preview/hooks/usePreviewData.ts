@@ -44,6 +44,19 @@ export function usePreviewData(): UsePreviewDataReturn {
     setShowSocialShare,
   });
 
+  // Normalise une URI vidéo locale pour la lecture
+  const normalizeVideoUri = (uri?: string | null): string => {
+    if (!uri) return '';
+    const trimmed = uri.trim();
+    if (trimmed.startsWith('file://') || trimmed.startsWith('content://')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('/')) {
+      return `file://${trimmed}`;
+    }
+    return trimmed;
+  };
+
   const loadRecording = useCallback(async () => {
     if (!route.params?.recordingId) {
       setRecording(null);
@@ -68,7 +81,9 @@ export function usePreviewData(): UsePreviewDataReturn {
       
       if (foundRecording) {
         setRecording(foundRecording);
-        setPreviewVideoUri(foundRecording.videoUri || foundRecording.uri || '');
+        setPreviewVideoUri(
+          normalizeVideoUri(foundRecording.videoUri || foundRecording.uri || '')
+        );
         
         // Calculer la taille approximative de la vidéo (en MB)
         const videoSizeInMB = foundRecording.duration ? 
@@ -83,13 +98,13 @@ export function usePreviewData(): UsePreviewDataReturn {
             id: route.params.recordingId,
             scriptId: route.params.scriptId,
             scriptTitle: route.params.scriptTitle || 'Sans titre',
-            videoUri: route.params.videoUri,
+            videoUri: normalizeVideoUri(route.params.videoUri),
             duration: route.params.duration || 0,
             createdAt: new Date().toISOString(),
             thumbnailUri: route.params.thumbnailUri || null,
           };
           setRecording(fallbackRecording);
-          setPreviewVideoUri(fallbackRecording.videoUri);
+          setPreviewVideoUri(normalizeVideoUri(fallbackRecording.videoUri));
           setVideoSize('N/A');
           setIsGeneratingPreview(false);
         } else {
