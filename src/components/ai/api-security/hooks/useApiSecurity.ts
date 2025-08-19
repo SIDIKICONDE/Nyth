@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { SecureApiKeyService } from '../../../../services/SecureApiKeyService';
+import { SecureApiKeyService } from '../../../../services/secureApiKey';
 import { ApiKey } from '../types';
 
 export const useApiSecurity = () => {
