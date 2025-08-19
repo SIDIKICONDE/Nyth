@@ -5,9 +5,10 @@
  */
 
 import CryptoJS from "crypto-js";
-import * as Keychain from "react-native-keychain";
-import { Platform } from "react-native";
+  import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { createLogger } from "../../utils/optimizedLogger";
+import { KeychainService, USE_KEYCHAIN, STORAGE_PREFIX } from "./keychain.service";
 
 const logger = createLogger("CryptoService");
 
@@ -41,31 +42,40 @@ export class SecureCryptoService {
 
     try {
       // Récupérer ou générer la clé maître
-      const credentials = await Keychain.getInternetCredentials(
-        "naya_master_key"
-      );
-
-      if (credentials) {
-        this.masterKey = credentials.password;
-      } else {
-        // Générer une nouvelle clé maître
-        this.masterKey = this.generateSecureKey();
-
-        // Stocker la clé maître de manière sécurisée
-        await Keychain.setInternetCredentials(
-          "naya_master_key",
-          "master",
-          this.masterKey,
-          {
-            accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-            authenticationPrompt: {
-              title: "Sécurité Naya",
-            },
-            ...(Platform.OS === "ios" && {
-              accessGroup: "group.com.naya.app",
-            }),
-          }
+      if (USE_KEYCHAIN) {
+        const credentials = await KeychainService.getInternetCredentials(
+          "naya_master_key"
         );
+        if (credentials) {
+          this.masterKey = credentials.password;
+        } else {
+          this.masterKey = this.generateSecureKey();
+          const accessible = KeychainService.getAccessibleOption();
+          await KeychainService.setInternetCredentials(
+            "naya_master_key",
+            "master",
+            this.masterKey,
+            accessible
+              ? {
+                  accessible,
+                  authenticationPrompt: { title: "Sécurité Naya" },
+                }
+              : undefined
+          );
+        }
+      } else {
+        const stored = await AsyncStorage.getItem(
+          `${STORAGE_PREFIX}master_key`
+        );
+        if (stored) {
+          this.masterKey = stored;
+        } else {
+          this.masterKey = this.generateSecureKey();
+          await AsyncStorage.setItem(
+            `${STORAGE_PREFIX}master_key`,
+            this.masterKey
+          );
+        }
       }
 
       this.isInitialized = true;
@@ -316,21 +326,25 @@ export class SecureCryptoService {
       // Chiffrer la valeur
       const encrypted = await this.encrypt(value);
 
-      // Stocker dans Keychain
-      await Keychain.setInternetCredentials(
-        `naya_secure_${key}`,
-        "encrypted",
-        JSON.stringify(encrypted),
-        {
-          accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-          authenticationPrompt: {
-            title: "Accès sécurisé",
-          },
-          ...(Platform.OS === "ios" && {
-            accessGroup: "group.com.naya.app",
-          }),
-        }
-      );
+      if (USE_KEYCHAIN) {
+        const accessible = KeychainService.getAccessibleOption();
+        await KeychainService.setInternetCredentials(
+          `naya_secure_${key}`,
+          "encrypted",
+          JSON.stringify(encrypted),
+          accessible
+            ? {
+                accessible,
+                authenticationPrompt: { title: "Accès sécurisé" },
+              }
+            : undefined
+        );
+      } else {
+        await AsyncStorage.setItem(
+          `${STORAGE_PREFIX}secure_${key}`,
+          JSON.stringify(encrypted)
+        );
+      }
 
       logger.info(`Donnée stockée de manière sécurisée: ${key}`);
     } catch (error) {
@@ -344,17 +358,23 @@ export class SecureCryptoService {
    */
   static async secureRetrieve(key: string): Promise<string | null> {
     try {
-      // Récupérer depuis Keychain
-      const credentials = await Keychain.getInternetCredentials(
-        `naya_secure_${key}`
-      );
-
-      if (!credentials) {
-        return null;
+      let encryptedString: string | null = null;
+      if (USE_KEYCHAIN) {
+        const credentials = await KeychainService.getInternetCredentials(
+          `naya_secure_${key}`
+        );
+        if (!credentials) return null;
+        encryptedString = credentials.password;
+      } else {
+        const stored = await AsyncStorage.getItem(
+          `${STORAGE_PREFIX}secure_${key}`
+        );
+        if (!stored) return null;
+        encryptedString = stored;
       }
 
       // Déchiffrer
-      const encrypted = JSON.parse(credentials.password);
+      const encrypted = JSON.parse(encryptedString);
       const decrypted = await this.decrypt(encrypted);
 
       return decrypted;
@@ -369,7 +389,13 @@ export class SecureCryptoService {
    */
   static async secureDelete(key: string): Promise<void> {
     try {
-      await Keychain.resetInternetCredentials({ server: `naya_secure_${key}` });
+      if (USE_KEYCHAIN) {
+        await KeychainService.resetInternetCredentials({
+          server: `naya_secure_${key}`,
+        });
+      } else {
+        await AsyncStorage.removeItem(`${STORAGE_PREFIX}secure_${key}`);
+      }
       logger.info(`Donnée supprimée: ${key}`);
     } catch (error) {
       logger.error("Erreur suppression sécurisée:", error);

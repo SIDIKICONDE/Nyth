@@ -33,6 +33,7 @@ import { VideoFile } from "react-native-vision-camera";
 import { createLogger } from "@/utils/optimizedLogger";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGlobalPreferences } from "@/hooks/useGlobalPreferences";
+import { FileManager } from "@/services/social-share/utils/fileManager";
 
 const logger = createLogger("RecordingScreen");
 
@@ -516,23 +517,40 @@ export default function RecordingScreen({}: RecordingScreenProps) {
                 };
               }
 
-              // Sauvegarder dans AsyncStorage AVANT de naviguer pour que PreviewScreen puisse le récupérer
+              // Sauvegarder dans AsyncStorage
               await RecordingBackupManager.saveRecording(newRecording);
               logger.info("Enregistrement sauvegardé dans AsyncStorage", {
                 recordingId,
                 videoUri: videoUriWithPrefix,
               });
 
-              // Attendre un peu pour s'assurer que la sauvegarde est terminée
-              await new Promise(resolve => setTimeout(resolve, 100));
-
-              navigation.navigate("Preview", {
-                recordingId,
-                videoUri: videoUriWithPrefix,
-                duration: recordingDuration,
-                scriptTitle: script?.title,
-                scriptId: script?.id,
-              } as never);
+              // Sauvegarder directement dans la galerie
+              logger.info("Sauvegarde dans la galerie", { videoUri: videoUriWithPrefix });
+              const savedToGallery = await FileManager.saveToGallery(videoUriWithPrefix);
+              
+              if (savedToGallery) {
+                logger.info("Vidéo sauvegardée dans la galerie avec succès");
+                // Naviguer vers l'écran d'accueil après la sauvegarde réussie
+                navigation.navigate("Home" as never);
+              } else {
+                logger.error("Échec de la sauvegarde dans la galerie");
+                Alert.alert(
+                  "Erreur de sauvegarde",
+                  "La vidéo n'a pas pu être sauvegardée dans la galerie.",
+                  [
+                    { text: "Annuler", style: "cancel" },
+                    { 
+                      text: "Réessayer", 
+                      onPress: async () => {
+                        const retry = await FileManager.saveToGallery(videoUriWithPrefix);
+                        if (retry) {
+                          navigation.navigate("Home" as never);
+                        }
+                      }
+                    }
+                  ]
+                );
+              }
             } catch (e) {
               logger.error(
                 "Erreur lors de la sauvegarde de l'enregistrement",
@@ -568,21 +586,24 @@ export default function RecordingScreen({}: RecordingScreenProps) {
                   fallbackId,
                 });
                 
-                // Attendre un peu pour s'assurer que la sauvegarde est terminée
-                await new Promise(resolve => setTimeout(resolve, 100));
+                // Essayer de sauvegarder dans la galerie même en cas d'erreur
+                const savedToGallery = await FileManager.saveToGallery(fallbackVideoUri);
+                if (savedToGallery) {
+                  navigation.navigate("Home" as never);
+                } else {
+                  Alert.alert(
+                    "Erreur",
+                    "L'enregistrement a été sauvegardé localement mais n'a pas pu être exporté dans la galerie.",
+                    [{ text: "OK", onPress: () => navigation.navigate("Home" as never) }]
+                  );
+                }
               } catch (backupError) {
                 logger.error(
                   "Erreur lors de la sauvegarde de secours",
                   backupError
                 );
+                navigation.navigate("Home" as never);
               }
-              navigation.navigate("Preview", {
-                recordingId: fallbackId,
-                videoUri: fallbackVideoUri,
-                duration: recordingDuration,
-                scriptTitle: script?.title,
-                scriptId: script?.id,
-              } as never);
             }
           }}
           onError={handleRecordingError}

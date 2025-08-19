@@ -1,21 +1,18 @@
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import { useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
 import { BlurView } from "@react-native-community/blur";
 import React, { useState } from "react";
-import { Modal, Pressable, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, TouchableOpacity, View, Alert } from "react-native";
 import tw from "twrnc";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useCentralizedFont } from "../../../hooks/useCentralizedFont";
 import { useTranslation } from "../../../hooks/useTranslation";
-import { Recording, RootStackParamList } from "../../../types";
+import { Recording } from "../../../types";
 import { HeadingText, UIText } from "../../ui/Typography";
 import { VideoPlayerModal } from "./VideoPlayerModal";
+import { FileManager } from "../../../services/social-share/utils/fileManager";
 
 import { createOptimizedLogger } from '../../../utils/optimizedLogger';
 const logger = createOptimizedLogger('VideoActionModal');
-
-type VideoActionModalNavigationProp = StackNavigationProp<RootStackParamList>;
 
 interface VideoActionModalProps {
   visible: boolean;
@@ -36,7 +33,6 @@ export const VideoActionModal: React.FC<VideoActionModalProps> = ({
   const { t } = useTranslation();
   const { ui, heading } = useCentralizedFont();
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
-  const navigation = useNavigation<VideoActionModalNavigationProp>();
 
   if (!recording) return null;
 
@@ -50,21 +46,41 @@ export const VideoActionModal: React.FC<VideoActionModalProps> = ({
     setVideoPlayerVisible(true);
   };
 
-  const handleSendToPreview = () => {
-    logger.debug("🎬 Navigation vers l'écran Preview pour:", recording.id);
+  const handleSaveToGallery = async () => {
+    logger.debug("📱 Sauvegarde dans la galerie pour:", recording.id);
 
-    // Fermer le modal
-    onClose();
-
-    // Naviguer vers l'écran Preview
-    navigation.navigate("Preview", {
-      recordingId: recording.id,
-      videoUri: recording.videoUri || recording.uri || "",
-      duration: recording.duration || 0,
-      scriptId: recording.scriptId,
-      scriptTitle: recording.scriptTitle,
-      thumbnailUri: recording.thumbnailUri,
-    });
+    try {
+      const videoUri = recording.videoUri || recording.uri || "";
+      
+      // Afficher une alerte de confirmation
+      Alert.alert(
+        t("common.saveToGallery"),
+        t("common.saveToGalleryConfirm"),
+        [
+          {
+            text: t("common.cancel"),
+            style: "cancel"
+          },
+          {
+            text: t("common.save"),
+            onPress: async () => {
+              const saved = await FileManager.saveToGallery(videoUri);
+              if (saved) {
+                logger.info("Vidéo sauvegardée dans la galerie avec succès");
+                onClose();
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      logger.error("Erreur lors de la sauvegarde dans la galerie:", error);
+      Alert.alert(
+        t("common.error"),
+        t("common.saveToGalleryError"),
+        [{ text: t("common.ok") }]
+      );
+    }
   };
 
   const closeVideoPlayer = () => {
@@ -187,9 +203,9 @@ export const VideoActionModal: React.FC<VideoActionModalProps> = ({
                   />
                 </TouchableOpacity>
 
-                {/* Envoyer vers prévisualisation */}
+                {/* Sauvegarder dans la galerie */}
                 <TouchableOpacity
-                  onPress={handleSendToPreview}
+                  onPress={handleSaveToGallery}
                   style={[
                     tw`flex-row items-center p-4 rounded-xl`,
                     { backgroundColor: currentTheme.colors.secondary + "15" },
@@ -202,7 +218,7 @@ export const VideoActionModal: React.FC<VideoActionModalProps> = ({
                     ]}
                   >
                     <MaterialCommunityIcons
-                      name="eye"
+                      name="download"
                       size={20}
                       color="white"
                     />
@@ -213,7 +229,7 @@ export const VideoActionModal: React.FC<VideoActionModalProps> = ({
                       weight="semibold"
                       style={[ui, { color: currentTheme.colors.text }]}
                     >
-                      {t("teleprompter.videoLibrary.actionModal.sendToPreview")}
+                      {t("teleprompter.videoLibrary.actionModal.saveToGallery")}
                     </UIText>
                     <UIText
                       size="sm"
@@ -225,7 +241,7 @@ export const VideoActionModal: React.FC<VideoActionModalProps> = ({
                       ]}
                     >
                       {t(
-                        "teleprompter.videoLibrary.actionModal.sendToPreviewDescription"
+                        "teleprompter.videoLibrary.actionModal.saveToGalleryDescription"
                       )}
                     </UIText>
                   </View>

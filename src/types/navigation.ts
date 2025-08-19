@@ -7,14 +7,6 @@ export type RootStackParamList = {
   Editor: { scriptId?: string; initialContent?: string };
   Settings: { scriptId: string };
   Recording: { scriptId: string; settings?: RecordingSettings };
-  Preview: {
-    videoUri?: string;
-    duration?: number;
-    scriptId?: string;
-    scriptTitle?: string;
-    thumbnailUri?: string;
-    recordingId: string; // Rendre obligatoire pour éviter les crashes
-  };
   // OnboardingScreen: undefined; // Supprimé
   Register: undefined;
   PrivacyPolicyScreen: undefined;
