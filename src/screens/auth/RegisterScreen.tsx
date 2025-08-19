@@ -21,7 +21,6 @@ import {
 // Services et hooks
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-// import { useTranslation } from '../../hooks/useTranslation';
 
 // Types
 import { RootStackParamList } from '../../types';
@@ -30,14 +29,12 @@ import { AuthFormData, AuthValidationErrors } from './types';
 // Utilitaires
 import { validateEmail, calculatePasswordStrength } from '../../utils/authValidation';
 import { createOptimizedLogger } from '../../utils/optimizedLogger';
-import { responsiveFontSize, responsiveSpacing, isTablet, responsiveBreakpoints } from '../../utils/responsive';
 
 const logger = createOptimizedLogger('RegisterScreen');
 
 type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
 
 export const RegisterScreen: React.FC = () => {
-  // const { t } = useTranslation();
   const navigation = useNavigation<RegisterScreenNavigationProp>();
   const { currentTheme } = useTheme();
   const isDark = currentTheme.isDark;
@@ -102,13 +99,12 @@ export const RegisterScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-              await signUp(
+      await signUp(
         formData.email,
         formData.password,
         `${formData.firstName} ${formData.lastName}`
       );
       logger.info('Inscription réussie');
-      // La navigation sera gérée automatiquement par AuthContext
     } catch (error) {
       logger.error('Erreur d\'inscription:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur d\'inscription';
@@ -143,7 +139,6 @@ export const RegisterScreen: React.FC = () => {
   // Mise à jour des champs du formulaire
   const updateFormData = (field: keyof AuthFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Effacer l'erreur du champ lors de la modification
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
@@ -168,37 +163,12 @@ export const RegisterScreen: React.FC = () => {
   };
 
   const passwordStrength = getPasswordStrength();
-  const isTabletDevice = isTablet();
-
-  // Responsive values
-  const titleFontSize = responsiveFontSize(28);
-  const subtitleFontSize = responsiveFontSize(16);
-  const baseFontSize = responsiveFontSize(16);
-  const smallFontSize = responsiveFontSize(14);
-  const extraSmallFontSize = responsiveFontSize(12);
-  
-  const iconSize = responsiveSpacing(80);
-  const iconInnerSize = responsiveSpacing(40);
-  const checkboxSize = responsiveSpacing(20);
-  
-  const marginBottom = responsiveSpacing(32);
-  const spacing = responsiveSpacing(16);
-  const smallSpacing = responsiveSpacing(8);
-  
-  // Layout responsive pour tablettes
-  const inputLayout = isTabletDevice ? 'row' : 'col';
-  const formMaxWidth = responsiveBreakpoints({
-    lg: 600,
-    xl: 700,
-    default: 100,
-  });
 
   const styles = useMemo(() => ({
     titleColor: { color: isDark ? '#ffffff' : '#1a1a1a' },
     subtitleColor: { color: isDark ? '#8a8a8a' : '#6b7280' },
     badgeBackground: { backgroundColor: currentTheme.colors.primary + '20' },
     progressBackground: { backgroundColor: isDark ? '#404040' : '#e5e7eb' },
-    dangerBox: { backgroundColor: '#fef2f2', borderColor: '#fecaca', borderWidth: 1 },
     linkColor: { color: currentTheme.colors.primary },
     checkboxBorder: (checked: boolean) => ({
       borderColor: checked ? currentTheme.colors.primary : (isDark ? '#404040' : '#d1d5db'),
@@ -208,56 +178,43 @@ export const RegisterScreen: React.FC = () => {
 
   return (
     <AuthContainer>
-      <View style={[tw`w-full`, { maxWidth: formMaxWidth }]}>
-        <View style={[tw`items-center`, { marginBottom }]}>
+      <View style={tw`w-full max-w-md mx-auto px-6`}>
+        <View style={tw`items-center mb-8`}>
           {/* Logo ou icône */}
           <View
             style={[
-              tw`rounded-full items-center justify-center mb-4`,
+              tw`w-20 h-20 rounded-full items-center justify-center mb-4`,
               styles.badgeBackground,
-              {
-                width: iconSize,
-                height: iconSize,
-                marginBottom: spacing,
-              }
             ]}
           >
             <MaterialCommunityIcons
               name="account-plus"
-              size={iconInnerSize}
+              size={40}
               color={currentTheme.colors.primary}
             />
           </View>
 
           {/* Titre */}
           <Text style={[
-            tw`font-bold mb-2`,
+            tw`text-2xl font-bold text-center mb-2`,
             styles.titleColor,
-            {
-              fontSize: titleFontSize,
-              marginBottom: smallSpacing,
-            }
           ]}>
             Créer un compte
           </Text>
           
           <Text style={[
-            tw`text-center`,
+            tw`text-center text-base`,
             styles.subtitleColor,
-            { fontSize: subtitleFontSize }
           ]}>
             Rejoignez-nous aujourd'hui
           </Text>
         </View>
 
         {/* Formulaire */}
-        <View style={[tw`mb-6`, { marginBottom: responsiveSpacing(24) }]}>
+        <View style={tw`mb-6`}>
           {/* Nom et prénom */}
-          <View style={[
-            tw`mb-4`,
-            isTabletDevice ? tw`flex-row gap-3` : tw``,
-          ]}>
-            <View style={isTabletDevice ? tw`flex-1` : tw`mb-4`}>
+          <View style={tw`flex-row gap-3 mb-4`}>
+            <View style={tw`flex-1`}>
               <AuthInput
                 label="Prénom"
                 icon="account"
@@ -269,7 +226,7 @@ export const RegisterScreen: React.FC = () => {
                 isRequired
               />
             </View>
-            <View style={isTabletDevice ? tw`flex-1` : tw``}>
+            <View style={tw`flex-1`}>
               <AuthInput
                 label="Nom"
                 icon="account"
@@ -283,41 +240,41 @@ export const RegisterScreen: React.FC = () => {
             </View>
           </View>
 
-        <AuthInput
-          label="Email"
-          icon="email"
-          placeholder="votre@email.com"
-          value={formData.email}
-          onChangeText={(value) => updateFormData('email', value)}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-          error={errors.email}
-          isRequired
-        />
+          <AuthInput
+            label="Email"
+            icon="email"
+            placeholder="votre@email.com"
+            value={formData.email}
+            onChangeText={(value) => updateFormData('email', value)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            error={errors.email}
+            isRequired
+          />
 
-        <AuthInput
-          label="Mot de passe"
-          icon="lock"
-          placeholder="Votre mot de passe"
-          value={formData.password}
-          onChangeText={(value) => updateFormData('password', value)}
-          isPassword
-          autoComplete="new-password"
-          error={errors.password}
-          isRequired
-        />
+          <AuthInput
+            label="Mot de passe"
+            icon="lock"
+            placeholder="Votre mot de passe"
+            value={formData.password}
+            onChangeText={(value) => updateFormData('password', value)}
+            isPassword
+            autoComplete="new-password"
+            error={errors.password}
+            isRequired
+          />
 
           {/* Indicateur de force du mot de passe */}
           {passwordStrength && (
-            <View style={[tw`mb-4`, { marginBottom: spacing }]}>
+            <View style={tw`mb-4`}>
               <View style={tw`flex-row justify-between items-center mb-1`}>
-                <Text style={[styles.subtitleColor, { fontSize: extraSmallFontSize }]}>
+                <Text style={[tw`text-xs`, styles.subtitleColor]}>
                   Force du mot de passe
                 </Text>
                 <Text style={[
-                  tw`font-medium`,
-                  { color: passwordStrength.color, fontSize: extraSmallFontSize }
+                  tw`font-medium text-xs`,
+                  { color: passwordStrength.color }
                 ]}>
                   {passwordStrength.label}
                 </Text>
@@ -325,7 +282,6 @@ export const RegisterScreen: React.FC = () => {
               <View style={[
                 tw`h-2 rounded-full`,
                 styles.progressBackground,
-                { height: responsiveSpacing(8) }
               ]}>
                 <View
                   style={[
@@ -337,44 +293,38 @@ export const RegisterScreen: React.FC = () => {
             </View>
           )}
 
-        <AuthInput
-          label="Confirmer le mot de passe"
-          icon="lock-check"
-          placeholder="Confirmez votre mot de passe"
-          value={formData.confirmPassword || ''}
-          onChangeText={(value) => updateFormData('confirmPassword', value)}
-          isPassword
-          autoComplete="new-password"
-          error={errors.confirmPassword}
-          isRequired
-        />
+          <AuthInput
+            label="Confirmer le mot de passe"
+            icon="lock-check"
+            placeholder="Confirmez votre mot de passe"
+            value={formData.confirmPassword || ''}
+            onChangeText={(value) => updateFormData('confirmPassword', value)}
+            isPassword
+            autoComplete="new-password"
+            error={errors.confirmPassword}
+            isRequired
+          />
 
           {/* Conditions d'utilisation */}
           <TouchableOpacity
             onPress={() => setAcceptTerms(!acceptTerms)}
-            style={[tw`flex-row items-start mb-4`, { marginBottom: spacing }]}
+            style={tw`flex-row items-start mb-4`}
           >
             <View style={[
-              tw`rounded border-2 mr-3 mt-0.5 items-center justify-center`,
+              tw`w-5 h-5 rounded border-2 mr-3 mt-0.5 items-center justify-center`,
               styles.checkboxBorder(acceptTerms),
-              {
-                width: checkboxSize,
-                height: checkboxSize,
-                marginRight: responsiveSpacing(12),
-              }
             ]}>
               {acceptTerms && (
                 <MaterialCommunityIcons
                   name="check"
-                  size={responsiveSpacing(12)}
+                  size={12}
                   color="#ffffff"
                 />
               )}
             </View>
             <Text style={[
-              tw`flex-1`,
+              tw`flex-1 text-sm`,
               styles.subtitleColor,
-              { fontSize: smallFontSize }
             ]}>
               J'accepte les{' '}
               <Text style={[tw`font-medium`, styles.linkColor]}>
@@ -389,24 +339,14 @@ export const RegisterScreen: React.FC = () => {
 
           {/* Erreur générale */}
           {errors.general && (
-            <View style={[
-              tw`rounded-lg mb-4 flex-row items-center`,
-              styles.dangerBox,
-              {
-                padding: responsiveSpacing(12),
-                marginBottom: spacing,
-              }
-            ]}>
+            <View style={tw`rounded-lg mb-4 p-3 flex-row items-start bg-red-50 border border-red-200`}>
               <MaterialCommunityIcons
                 name="alert-circle"
-                size={responsiveFontSize(16)}
+                size={16}
                 color="#ef4444"
-                style={[tw`mr-2`, { marginRight: smallSpacing }]}
+                style={tw`mr-2 mt-0.5`}
               />
-              <Text style={[
-                tw`text-red-700 flex-1`,
-                { fontSize: smallFontSize }
-              ]}>
+              <Text style={tw`text-red-700 text-sm flex-1`}>
                 {errors.general}
               </Text>
             </View>
@@ -419,7 +359,7 @@ export const RegisterScreen: React.FC = () => {
             isLoading={isLoading}
             variant="primary"
             icon="account-plus"
-            style={[tw`w-full`, { marginTop: smallSpacing }]}
+            style={tw`w-full mt-2`}
           />
         </View>
 
@@ -430,18 +370,14 @@ export const RegisterScreen: React.FC = () => {
         />
 
         {/* Lien vers la connexion */}
-        <View style={[
-          tw`flex-row justify-center items-center`,
-          { marginTop: marginBottom }
-        ]}>
-          <Text style={[styles.subtitleColor, { fontSize: baseFontSize }]}>
+        <View style={tw`flex-row justify-center items-center mt-8`}>
+          <Text style={[tw`text-base`, styles.subtitleColor]}>
             Déjà un compte ?{' '}
           </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
             <Text style={[
-              tw`font-semibold`,
+              tw`font-semibold text-base`,
               styles.linkColor,
-              { fontSize: baseFontSize }
             ]}>
               Se connecter
             </Text>

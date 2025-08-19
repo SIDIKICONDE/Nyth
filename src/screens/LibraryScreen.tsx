@@ -150,7 +150,7 @@ export default function LibraryScreen() {
   } = useHomeData();
 
   // Gestion du cache
-  const { handleClearCache } = useCacheManagement(
+  const {  } = useCacheManagement(
     cacheSize,
     setCacheSize,
     isClearingCache,

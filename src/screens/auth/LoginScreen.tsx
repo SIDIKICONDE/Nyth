@@ -21,7 +21,6 @@ import {
 // Services et hooks
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-// import { useTranslation } from '../../hooks/useTranslation';
 
 // Types
 import { RootStackParamList } from '../../types';
@@ -30,14 +29,12 @@ import { AuthFormData, AuthValidationErrors } from './types';
 // Utilitaires
 import { validateEmail } from '../../utils/authValidation';
 import { createOptimizedLogger } from '../../utils/optimizedLogger';
-import { responsiveFontSize, responsiveSpacing, isTablet, responsiveBreakpoints } from '../../utils/responsive';
 
 const logger = createOptimizedLogger('LoginScreen');
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
 export const LoginScreen: React.FC = () => {
-  // const { t } = useTranslation();
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { currentTheme } = useTheme();
   const isDark = currentTheme.isDark;
@@ -79,7 +76,6 @@ export const LoginScreen: React.FC = () => {
     try {
       await signIn(formData.email, formData.password);
       logger.info('Connexion réussie');
-      // La navigation sera gérée automatiquement par AuthContext
     } catch (error) {
       logger.error('Erreur de connexion:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion';
@@ -114,34 +110,10 @@ export const LoginScreen: React.FC = () => {
   // Mise à jour des champs du formulaire
   const updateFormData = (field: keyof AuthFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Effacer l'erreur du champ lors de la modification
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
-
-  const isTabletDevice = isTablet();
-
-  // Responsive values
-  const titleFontSize = responsiveFontSize(28);
-  const subtitleFontSize = responsiveFontSize(16);
-  const baseFontSize = responsiveFontSize(16);
-  const smallFontSize = responsiveFontSize(14);
-  const extraSmallFontSize = responsiveFontSize(12);
-  
-  const iconSize = responsiveSpacing(80);
-  const iconInnerSize = responsiveSpacing(40);
-  
-  const marginBottom = responsiveSpacing(32);
-  const spacing = responsiveSpacing(16);
-  const smallSpacing = responsiveSpacing(8);
-  
-  // Layout responsive pour tablettes
-  const formMaxWidth = responsiveBreakpoints({
-    lg: 500,
-    xl: 600,
-    default: 100,
-  });
 
   const styles = useMemo(() => ({
     titleColor: { color: isDark ? '#ffffff' : '#1a1a1a' },
@@ -153,23 +125,18 @@ export const LoginScreen: React.FC = () => {
 
   return (
     <AuthContainer>
-      <View style={[tw`w-full`, { maxWidth: formMaxWidth }]}>
-        <View style={[tw`items-center`, { marginBottom }]}>
+      <View style={tw`w-full max-w-md mx-auto px-6`}>
+        <View style={tw`items-center mb-8`}>
           {/* Logo ou icône */}
           <View
             style={[
-              tw`rounded-full items-center justify-center mb-4`,
+              tw`w-20 h-20 rounded-full items-center justify-center mb-4`,
               styles.badgeBackground,
-              {
-                width: iconSize,
-                height: iconSize,
-                marginBottom: spacing,
-              }
             ]}
           >
             <MaterialCommunityIcons
               name="account-circle"
-              size={iconInnerSize}
+              size={40}
               color={currentTheme.colors.primary}
             />
           </View>
@@ -177,12 +144,8 @@ export const LoginScreen: React.FC = () => {
           {/* Titre */}
           <Text
             style={[
-              tw`font-bold mb-2`,
+              tw`text-2xl font-bold text-center mb-2`,
               styles.titleColor,
-              {
-                fontSize: titleFontSize,
-                marginBottom: smallSpacing,
-              }
             ]}
           >
             Bon retour !
@@ -190,9 +153,8 @@ export const LoginScreen: React.FC = () => {
           
           <Text
             style={[
-              tw`text-center`,
+              tw`text-center text-base`,
               styles.subtitleColor,
-              { fontSize: subtitleFontSize }
             ]}
           >
             Connectez-vous à votre compte
@@ -200,7 +162,7 @@ export const LoginScreen: React.FC = () => {
         </View>
 
         {/* Formulaire */}
-        <View style={[tw`mb-6`, { marginBottom: responsiveSpacing(24) }]}>
+        <View style={tw`mb-6`}>
           <AuthInput
             label="Email"
             icon="email"
@@ -229,16 +191,14 @@ export const LoginScreen: React.FC = () => {
           {/* Mot de passe oublié */}
           <TouchableOpacity
             onPress={() => {
-              // TODO: Implémenter l'écran de mot de passe oublié
               Alert.alert('Non disponible', 'La réinitialisation de mot de passe sera disponible bientôt');
             }}
-            style={[tw`self-end mb-4`, { marginBottom: spacing }]}
+            style={tw`self-end mb-4`}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text style={[
-              tw`font-medium`,
+              tw`text-sm font-medium`,
               styles.linkColor,
-              { fontSize: smallFontSize }
             ]}>
               Mot de passe oublié ?
             </Text>
@@ -247,23 +207,15 @@ export const LoginScreen: React.FC = () => {
           {/* Erreur générale */}
           {errors.general && (
             <View style={[
-              tw`rounded-lg mb-4 flex-row items-center`,
-              styles.dangerBox,
-              {
-                padding: responsiveSpacing(12),
-                marginBottom: spacing,
-              }
+              tw`rounded-lg mb-4 p-3 flex-row items-start bg-red-50 border border-red-200`,
             ]}>
               <MaterialCommunityIcons
                 name="alert-circle"
-                size={responsiveFontSize(16)}
+                size={16}
                 color="#ef4444"
-                style={[tw`mr-2`, { marginRight: smallSpacing }]}
+                style={tw`mr-2 mt-0.5`}
               />
-              <Text style={[
-                tw`text-red-700 flex-1`,
-                { fontSize: smallFontSize }
-              ]}>
+              <Text style={tw`text-red-700 text-sm flex-1`}>
                 {errors.general}
               </Text>
             </View>
@@ -276,7 +228,7 @@ export const LoginScreen: React.FC = () => {
             isLoading={isLoading}
             variant="primary"
             icon="login"
-            style={[tw`w-full`, { marginTop: smallSpacing }]}
+            style={tw`w-full mt-2`}
           />
         </View>
 
@@ -287,18 +239,14 @@ export const LoginScreen: React.FC = () => {
         />
 
         {/* Lien vers l'inscription */}
-        <View style={[
-          tw`flex-row justify-center items-center`,
-          { marginTop: marginBottom }
-        ]}>
-          <Text style={[styles.subtitleColor, { fontSize: baseFontSize }]}>
+        <View style={tw`flex-row justify-center items-center mt-8`}>
+          <Text style={[tw`text-base`, styles.subtitleColor]}>
             Pas encore de compte ?{' '}
           </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
             <Text style={[
-              tw`font-semibold`,
+              tw`font-semibold text-base`,
               styles.linkColor,
-              { fontSize: baseFontSize }
             ]}>
               S'inscrire
             </Text>

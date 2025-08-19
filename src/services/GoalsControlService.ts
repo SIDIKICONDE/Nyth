@@ -1,4 +1,4 @@
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 import PushNotification from "react-native-push-notification";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Goal } from "../types/planning";

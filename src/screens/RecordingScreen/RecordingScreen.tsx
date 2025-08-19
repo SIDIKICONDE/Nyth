@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { View, Alert, StatusBar, BackHandler, Text } from "react-native";
+import { View, Alert, StatusBar, BackHandler, Text, Platform } from "react-native";
 import {
   RouteProp,
   useRoute,
@@ -562,7 +562,21 @@ export default function RecordingScreen({}: RecordingScreenProps) {
           onRecordingStop={handleRecordingStop}
           onRecordingComplete={async (video: VideoFile) => {
             try {
-              logger.info("Enregistrement terminé", { videoPath: video.path });
+              logger.info("Enregistrement terminé - Détails du fichier vidéo", { 
+                videoPath: video.path,
+                videoFile: video,
+                duration: video.duration,
+                codec: settings?.videoSettings?.codec || "h264",
+              });
+              
+              // Vérifier si le fichier existe
+              const { exists } = await import('react-native-fs');
+              const fileExists = await exists(video.path);
+              logger.info("Vérification de l'existence du fichier", {
+                path: video.path,
+                exists: fileExists,
+              });
+              
               await hybridStorageService.initializeLocalStorage();
               const userId = user?.uid || "guest";
               const recordingId = await hybridStorageService.saveRecording(
@@ -575,6 +589,40 @@ export default function RecordingScreen({}: RecordingScreenProps) {
 
               // Le chemin final de la vidéo après déplacement par hybridStorageService
               const savedVideoPath = `${VIDEO_DIR}${recordingId}.mp4`;
+              logger.info("Chemin de sauvegarde calculé", { 
+                VIDEO_DIR, 
+                recordingId, 
+                savedVideoPath 
+              });
+              
+              // Vérifier que le fichier existe bien à cet emplacement
+              const RNFS = require("react-native-fs");
+              const fileExists = await RNFS.exists(savedVideoPath);
+              
+              // Sur iOS, obtenir plus d'informations sur le fichier
+              let fileInfo = null;
+              if (fileExists) {
+                try {
+                  fileInfo = await RNFS.stat(savedVideoPath);
+                  logger.info("Informations du fichier sur iOS", {
+                    path: fileInfo.path,
+                    size: fileInfo.size,
+                    isFile: fileInfo.isFile(),
+                    ctime: fileInfo.ctime,
+                    mtime: fileInfo.mtime
+                  });
+                } catch (statError) {
+                  logger.error("Erreur lors de stat() du fichier", statError);
+                }
+              }
+              
+              logger.info("Vérification de l'existence du fichier", { 
+                savedVideoPath, 
+                fileExists,
+                platform: Platform.OS,
+                fileInfo: fileInfo ? { size: fileInfo.size, isFile: fileInfo.isFile() } : null
+              });
+              
               // Ajouter le préfixe file:// si nécessaire pour la lecture vidéo
               const videoUriWithPrefix = savedVideoPath.startsWith("file://")
                 ? savedVideoPath
@@ -608,8 +656,20 @@ export default function RecordingScreen({}: RecordingScreenProps) {
               });
 
               // Sauvegarder directement dans la galerie
-              logger.info("Sauvegarde dans la galerie", { videoUri: videoUriWithPrefix });
-              const savedToGallery = await FileManager.saveToGallery(videoUriWithPrefix);
+              logger.info("Tentative de sauvegarde dans la galerie", { 
+                videoUri: videoUriWithPrefix,
+                savedVideoPath,
+                fileExists 
+              });
+              
+              let savedToGallery = false;
+              try {
+                savedToGallery = await FileManager.saveToGallery(videoUriWithPrefix);
+                logger.info("Résultat de la sauvegarde dans la galerie", { savedToGallery });
+              } catch (galleryError) {
+                logger.error("Erreur lors de la sauvegarde dans la galerie", galleryError);
+                savedToGallery = false;
+              }
               
               if (savedToGallery) {
                 logger.info("Vidéo sauvegardée dans la galerie avec succès");

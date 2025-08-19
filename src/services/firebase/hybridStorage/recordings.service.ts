@@ -43,9 +43,26 @@ export class RecordingsService {
       const videoPath = VIDEO_DIR + videoFileName;
       const sourcePath = this.toLocalPath(videoUri);
       
+      logger.info("Début du déplacement/copie du fichier vidéo", {
+        source: sourcePath,
+        destination: videoPath,
+        VIDEO_DIR
+      });
+      
+      // Vérifier que le fichier source existe
+      const sourceExists = await RNFS.exists(sourcePath);
+      if (!sourceExists) {
+        logger.error("Le fichier source n'existe pas", { sourcePath });
+        throw new Error(`Le fichier vidéo source n'existe pas: ${sourcePath}`);
+      }
+      
+      // Créer le répertoire de destination s'il n'existe pas
+      await RNFS.mkdir(VIDEO_DIR, { intermediates: true });
+      
       // Utiliser moveFile au lieu de copyFile pour éviter la duplication
       try {
         await RNFS.moveFile(sourcePath, videoPath);
+        logger.info("Fichier déplacé avec succès", { videoPath });
       } catch (moveError) {
         logger.error("moveFile a échoué, tentative de copyFile", {
           source: sourcePath,
@@ -55,6 +72,7 @@ export class RecordingsService {
         // Si moveFile échoue (ex: cross-device), utiliser copyFile
         try {
           await RNFS.copyFile(sourcePath, videoPath);
+          logger.info("Fichier copié avec succès", { videoPath });
         } catch (copyError) {
           logger.error("copyFile a également échoué", {
             source: sourcePath,
@@ -66,10 +84,20 @@ export class RecordingsService {
         // Supprimer l'original après la copie
         try {
           await RNFS.unlink(sourcePath);
+          logger.info("Fichier source supprimé", { sourcePath });
         } catch (unlinkError) {
           logger.debug("Impossible de supprimer le fichier source", unlinkError);
         }
       }
+      
+      // Vérifier que le fichier de destination existe bien
+      const destExists = await RNFS.exists(videoPath);
+      if (!destExists) {
+        logger.error("Le fichier de destination n'existe pas après le déplacement/copie", { videoPath });
+        throw new Error("Le fichier vidéo n'a pas pu être sauvegardé correctement");
+      }
+      
+      logger.info("Fichier vidéo sauvegardé avec succès", { videoPath });
 
       // 2. Sauvegarder le thumbnail localement (si fourni)
       if (thumbnailUri && thumbnailFileName) {

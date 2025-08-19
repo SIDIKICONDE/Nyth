@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CustomTheme } from '../types/theme';
 import { createLogger } from './optimizedLogger';
-import i18n from '../locales/i18n';
 
 const logger = createLogger('ThemeStorage');
 const THEME_STORAGE_KEY = 'selectedTheme';
@@ -12,9 +11,9 @@ export const themeStorage = {
   async saveSelectedTheme(themeId: string): Promise<void> {
     try {
       await AsyncStorage.setItem(THEME_STORAGE_KEY, themeId);
-      logger.info(i18n.t('themeStorage.selectedTheme.saved', 'Selected theme saved: {{themeId}}', { themeId }));
+      logger.info(`Selected theme saved: ${themeId}`);
     } catch (error) {
-      const errorMessage = i18n.t('themeStorage.selectedTheme.saveError', 'Error saving selected theme');
+      const errorMessage = 'Error saving selected theme';
       logger.error(errorMessage, error);
       throw error;
     }
@@ -25,11 +24,11 @@ export const themeStorage = {
     try {
       const themeId = await AsyncStorage.getItem(THEME_STORAGE_KEY);
       if (themeId) {
-        logger.info(i18n.t('themeStorage.selectedTheme.loaded', 'Selected theme loaded: {{themeId}}', { themeId }));
+        logger.info(`Selected theme loaded: ${themeId}`);
       }
       return themeId;
     } catch (error) {
-      const errorMessage = i18n.t('themeStorage.selectedTheme.loadError', 'Error loading selected theme');
+      const errorMessage = 'Error loading selected theme';
       logger.error(errorMessage, error);
       return null;
     }
@@ -39,9 +38,9 @@ export const themeStorage = {
   async saveCustomThemes(themes: CustomTheme[]): Promise<void> {
     try {
       await AsyncStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(themes));
-      logger.info(i18n.t('themeStorage.customThemes.saved', 'Custom themes saved: {{count}} themes', { count: themes.length }));
+      logger.info(`Custom themes saved: ${themes.length} themes`);
     } catch (error) {
-      const errorMessage = i18n.t('themeStorage.customThemes.saveError', 'Error saving custom themes');
+      const errorMessage = 'Error saving custom themes';
       logger.error(errorMessage, error);
       throw error;
     }
@@ -52,10 +51,10 @@ export const themeStorage = {
     try {
       const savedThemes = await AsyncStorage.getItem(CUSTOM_THEMES_KEY);
       const themes = savedThemes ? JSON.parse(savedThemes) : [];
-      logger.info(i18n.t('themeStorage.customThemes.loaded', 'Custom themes loaded: {{count}} themes', { count: themes.length }));
+      logger.info(`Custom themes loaded: ${themes.length} themes`);
       return themes;
     } catch (error) {
-      const errorMessage = i18n.t('themeStorage.customThemes.loadError', 'Error loading custom themes');
+      const errorMessage = 'Error loading custom themes';
       logger.error(errorMessage, error);
       return [];
     }
@@ -65,9 +64,9 @@ export const themeStorage = {
   async clearThemeData(): Promise<void> {
     try {
       await AsyncStorage.multiRemove([THEME_STORAGE_KEY, CUSTOM_THEMES_KEY]);
-      logger.info(i18n.t('themeStorage.clear.success', 'Theme data cleared successfully'));
+      logger.info('Theme data cleared successfully');
     } catch (error) {
-      const errorMessage = i18n.t('themeStorage.clear.error', 'Error clearing theme data');
+      const errorMessage = 'Error clearing theme data';
       logger.error(errorMessage, error);
       throw error;
     }
