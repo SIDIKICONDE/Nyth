@@ -15,6 +15,12 @@ export function VideoPlayerSection({
   isGeneratingPreview,
   videoSize,
 }: VideoPlayerSectionProps) {
+  const normalizeUri = (uri: string): string => {
+    if (!uri) return uri as unknown as string;
+    if (uri.startsWith('http') || uri.startsWith('file://')) return uri;
+    if (uri.startsWith('/')) return `file://${uri}`;
+    return uri;
+  };
 
   if (isGeneratingPreview) {
     return (
@@ -44,7 +50,7 @@ export function VideoPlayerSection({
     <Animated.View entering={FadeIn.duration(500)} style={tw`items-center`}>
       <View style={tw`rounded-2xl overflow-hidden bg-black`}>
         <Video
-          source={{ uri: previewVideoUri }}
+          source={{ uri: normalizeUri(previewVideoUri) }}
           style={{
             width: SCREEN_WIDTH - 32,
             height: VIDEO_HEIGHT,
@@ -52,7 +58,7 @@ export function VideoPlayerSection({
           controls={true}
           resizeMode="contain"
           repeat={false}
-          paused={true}
+          paused={false}
         />
       </View>
       
