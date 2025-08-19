@@ -43,33 +43,20 @@ export class RecordingsService {
       const videoPath = VIDEO_DIR + videoFileName;
       const sourcePath = this.toLocalPath(videoUri);
       
-      // Utiliser moveFile au lieu de copyFile pour éviter la duplication
+      // Utiliser copyFile pour conserver l'original (pour la galerie)
       try {
-        await RNFS.moveFile(sourcePath, videoPath);
-      } catch (moveError) {
-        logger.error("moveFile a échoué, tentative de copyFile", {
+        await RNFS.copyFile(sourcePath, videoPath);
+      } catch (copyError) {
+        logger.error("copyFile a échoué", {
           source: sourcePath,
           destination: videoPath,
-          error: moveError,
+          error: copyError,
         });
-        // Si moveFile échoue (ex: cross-device), utiliser copyFile
-        try {
-          await RNFS.copyFile(sourcePath, videoPath);
-        } catch (copyError) {
-          logger.error("copyFile a également échoué", {
-            source: sourcePath,
-            destination: videoPath,
-            error: copyError,
-          });
-          throw new Error("Impossible de sauvegarder le fichier vidéo.");
-        }
-        // Supprimer l'original après la copie
-        try {
-          await RNFS.unlink(sourcePath);
-        } catch (unlinkError) {
-          logger.debug("Impossible de supprimer le fichier source", unlinkError);
-        }
+        throw new Error("Impossible de sauvegarder le fichier vidéo.");
       }
+      
+      // Supprimer l'original après la copie ET après l'export galerie
+      // Note: L'original sera supprimé par le système après l'export galerie
 
       // 2. Sauvegarder le thumbnail localement (si fourni)
       if (thumbnailUri && thumbnailFileName) {

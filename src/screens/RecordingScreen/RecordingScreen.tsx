@@ -563,6 +563,12 @@ export default function RecordingScreen({}: RecordingScreenProps) {
           onRecordingComplete={async (video: VideoFile) => {
             try {
               logger.info("Enregistrement terminé", { videoPath: video.path });
+              
+              // 1. D'abord sauvegarder dans la galerie AVANT de déplacer le fichier
+              logger.info("Sauvegarde dans la galerie", { videoUri: video.path });
+              const savedToGallery = await FileManager.saveToGallery(video.path);
+              
+              // 2. Ensuite sauvegarder localement avec hybridStorage
               await hybridStorageService.initializeLocalStorage();
               const userId = user?.uid || "guest";
               const recordingId = await hybridStorageService.saveRecording(
@@ -606,10 +612,6 @@ export default function RecordingScreen({}: RecordingScreenProps) {
                 recordingId,
                 videoUri: videoUriWithPrefix,
               });
-
-              // Sauvegarder directement dans la galerie
-              logger.info("Sauvegarde dans la galerie", { videoUri: videoUriWithPrefix });
-              const savedToGallery = await FileManager.saveToGallery(videoUriWithPrefix);
               
               if (savedToGallery) {
                 logger.info("Vidéo sauvegardée dans la galerie avec succès");
@@ -626,7 +628,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
                     {
                       text: "Réessayer",
                       onPress: async () => {
-                        await FileManager.saveToGallery(videoUriWithPrefix);
+                        await FileManager.saveToGallery(savedVideoPath);
                         navigation.navigate("Home" as never);
                       },
                     },
@@ -669,7 +671,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
                 });
                 
                 // Essayer de sauvegarder dans la galerie même en cas d'erreur
-                const savedToGallery = await FileManager.saveToGallery(fallbackVideoUri);
+                const savedToGallery = await FileManager.saveToGallery(video.path);
                 if (savedToGallery) {
                   navigation.navigate("Home" as never);
                 } else {

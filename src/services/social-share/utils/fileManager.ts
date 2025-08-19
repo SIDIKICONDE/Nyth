@@ -14,10 +14,14 @@ export class FileManager {
    * Vérifie qu'un fichier vidéo existe
    */
   public static async validateVideoFile(videoUri: string): Promise<void> {
-    const localPath = this.toLocalPath(videoUri);
-    const fileInfo = await RNFS.stat(localPath);
-    if (!fileInfo.isFile()) {
-      throw new Error("Fichier vidéo introuvable");
+    try {
+      const localPath = this.toLocalPath(videoUri);
+      const fileInfo = await RNFS.stat(localPath);
+      if (!fileInfo.isFile()) {
+        throw new Error("Fichier vidéo introuvable");
+      }
+    } catch (error) {
+      throw new Error(`Le fichier vidéo est introuvable: ${videoUri}`);
     }
   }
 
@@ -146,7 +150,7 @@ export class FileManager {
         if (error.message.includes("Permission")) {
           errorMessage =
             "Permissions insuffisantes pour sauvegarder dans la galerie.";
-        } else if (error.message.includes("file")) {
+        } else if (error.message.includes("introuvable") || error.message.includes("file")) {
           errorMessage = "Le fichier vidéo est introuvable ou corrompu.";
         } else {
           errorMessage = error.message;
