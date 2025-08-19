@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useRef } from "react";
+import React, { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { View } from "react-native";
 import tw from "twrnc";
 import { VideoFile } from "react-native-vision-camera";
@@ -58,16 +58,25 @@ export const CameraRecorder = forwardRef<CameraRecorderRef, CameraRecorderProps>
       },
     }));
 
-    const fromTeleprompterSettings =
-      teleprompterSettings?.teleprompterEnabled ?? true;
-    const teleprompterVisible =
-      Boolean(script) &&
-      Boolean(settings) &&
-      teleprompterEnabled &&
-      fromTeleprompterSettings;
-    const mergedSettings = settings
-      ? { ...settings, ...teleprompterSettings }
-      : undefined;
+    const fromTeleprompterSettings = useMemo(
+      () => teleprompterSettings?.teleprompterEnabled ?? true,
+      [teleprompterSettings?.teleprompterEnabled]
+    );
+
+    const teleprompterVisible = useMemo(
+      () =>
+        Boolean(script) &&
+        Boolean(settings) &&
+        teleprompterEnabled &&
+        fromTeleprompterSettings,
+      [script, settings, teleprompterEnabled, fromTeleprompterSettings]
+    );
+
+    const mergedSettings = useMemo(
+      () => (settings ? { ...settings, ...teleprompterSettings } : undefined),
+      [settings, teleprompterSettings]
+    );
+
     return (
       <View style={tw`flex-1`}>
         <CameraModule

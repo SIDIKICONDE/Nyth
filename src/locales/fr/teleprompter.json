@@ -141,6 +141,8 @@
     }
   },
   "teleprompter": {
+    "settings": "Réglages",
+    "edit_text": "Éditer le texte",
     "basic": {
       "animation": {
         "duration": "Vitesse : {{speed}}%, Durée : {{duration}}s",

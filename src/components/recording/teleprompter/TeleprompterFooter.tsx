@@ -47,8 +47,6 @@ export function TeleprompterFooter({
               left: 150,
               bottom: -20,
               marginBottom: 10,
-             
-              
             },
           }}>
             <View style={tw`bg-black/50 rounded-full p-2`}>
@@ -89,8 +87,8 @@ export function TeleprompterFooter({
                 optionWrapper: {
                   flexDirection: 'row',
                   alignItems: 'center',
-                  paddingVertical: 0,
-                  paddingHorizontal: 0,
+                  paddingVertical: 10,
+                  paddingHorizontal: 15,
                 },
               }}>
                 <MaterialCommunityIcons name="pencil" size={20} color={currentTheme.colors.text} />

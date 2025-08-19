@@ -72,13 +72,15 @@ export function TeleprompterContainer({
     settings?.horizontalMargin,
   ]);
 
-  // Log du mode miroir pour diagnostic
-  logger.debug("🪞 TeleprompterContainer - Mode miroir:", {
-    isMirrored: settings?.isMirrored,
-    transform: settings?.isMirrored ? "scaleX(-1)" : "scaleX(1)",
-    allSettings: Object.keys(settings || {}),
-    settingsType: typeof settings,
-  });
+  // Log du mode miroir pour diagnostic (réduit pour éviter le spam)
+  useEffect(() => {
+    logger.debug("🪞 TeleprompterContainer - Mode miroir:", {
+      isMirrored: settings?.isMirrored,
+      transform: settings?.isMirrored ? "scaleX(-1)" : "scaleX(1)",
+      allSettings: Object.keys(settings || {}),
+      settingsType: typeof settings,
+    });
+  }, [settings?.isMirrored]);
 
   // État centralisé
   const {

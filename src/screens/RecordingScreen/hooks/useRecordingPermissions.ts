@@ -170,8 +170,18 @@ export function useRecordingPermissions() {
 
   // Check permissions on mount
   useEffect(() => {
-    checkAllPermissions();
-  }, [checkAllPermissions]);
+    let mounted = true;
+    (async () => {
+      try {
+        await checkAllPermissions();
+      } finally {
+        if (!mounted) return;
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []); // exécuter une seule fois au montage
 
   return {
     permissions,

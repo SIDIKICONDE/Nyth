@@ -30,6 +30,20 @@ export function useRecordingData({
   const { t } = useTranslation();
   const { preferences: globalPreferences } = useGlobalPreferences();
   
+  // Stabiliser les callbacks fournis par le parent pour éviter les recréations
+  const onDataLoadedRef = useRef(onDataLoaded);
+  const onErrorRef = useRef(onError);
+  const onTeleprompterSettingsLoadedRef = useRef(onTeleprompterSettingsLoaded);
+  useEffect(() => {
+    onDataLoadedRef.current = onDataLoaded;
+  }, [onDataLoaded]);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+  useEffect(() => {
+    onTeleprompterSettingsLoadedRef.current = onTeleprompterSettingsLoaded;
+  }, [onTeleprompterSettingsLoaded]);
+  
   // Use ref to avoid re-renders when routeSettings changes
   const routeSettingsRef = useRef(routeSettings);
   useEffect(() => {
@@ -82,12 +96,11 @@ export function useRecordingData({
         settingsKeys: Object.keys(settings),
       });
 
-      onDataLoaded(script, settings);
+      onDataLoadedRef.current?.(script, settings);
     } catch (err) {
       const error = err instanceof Error ? err : new Error("Unknown error");
       logger.error("Error loading data", error);
-      
-      onError(error);
+      onErrorRef.current?.(error);
 
       // Show alert only if it's not a recoverable error
       if (!error.message.includes("permission") && !error.message.includes("camera")) {
@@ -98,17 +111,17 @@ export function useRecordingData({
         );
       }
     }
-  }, [scriptId, loadScript, loadSettings, onDataLoaded, onError, t]);
+  }, [scriptId, loadScript, loadSettings, t]);
 
   // Load teleprompter settings from global preferences
   useEffect(() => {
-    if (globalPreferences?.teleprompterSettings && onTeleprompterSettingsLoaded) {
+    if (globalPreferences?.teleprompterSettings) {
       const saved = globalPreferences.teleprompterSettings as Partial<TeleprompterSettings>;
       if (saved && Object.keys(saved).length > 0) {
-        onTeleprompterSettingsLoaded(saved);
+        onTeleprompterSettingsLoadedRef.current?.(saved);
       }
     }
-  }, [globalPreferences?.teleprompterSettings, onTeleprompterSettingsLoaded]);
+  }, [globalPreferences?.teleprompterSettings]);
 
   // Update script when scripts context changes
   const updateScript = useCallback(() => {
@@ -117,12 +130,12 @@ export function useRecordingData({
     try {
       const updatedScript = scripts.find((s) => s.id === scriptId);
       if (updatedScript) {
-        onDataLoaded(updatedScript, routeSettingsRef.current || DEFAULT_RECORDING_SETTINGS);
+        onDataLoadedRef.current?.(updatedScript, routeSettingsRef.current || DEFAULT_RECORDING_SETTINGS);
       }
     } catch (error) {
       logger.error("Error updating script", error);
     }
-  }, [scriptId, scripts, onDataLoaded]);
+  }, [scriptId, scripts]);
 
   return {
     loadData,
