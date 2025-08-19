@@ -61,75 +61,15 @@ export default function AISettingsScreen() {
     value: string,
     storageKey?: string
   ) => {
-    // Mettre à jour l'état local
+    // Mettre à jour l'état local UNIQUEMENT
+    // Ne pas supprimer les clés immédiatement - attendre la sauvegarde explicite
     updateSetting(settingKey, value);
-
-    // Si la valeur est vide, supprimer immédiatement de AsyncStorage
-    if (!value || value.trim() === "") {
-      try {
-        switch (settingKey) {
-          case "apiKey":
-            try {
-              const { SecureApiKeyManager } = await import(
-                "../services/ai/SecureApiKeyManager"
-              );
-              await SecureApiKeyManager.deleteApiKey("openai");
-            } catch {}
-            logger.debug("🗑️ Clé OpenAI supprimée (sécurisé)");
-            break;
-          case "geminiKey":
-            try {
-              const { SecureApiKeyManager } = await import(
-                "../services/ai/SecureApiKeyManager"
-              );
-              await SecureApiKeyManager.deleteApiKey("gemini");
-            } catch {}
-            logger.debug("🗑️ Clé Gemini supprimée (sécurisé)");
-            break;
-          case "mistralKey":
-            try {
-              const { SecureApiKeyManager } = await import(
-                "../services/ai/SecureApiKeyManager"
-              );
-              await SecureApiKeyManager.deleteApiKey("mistral");
-            } catch {}
-            logger.debug("🗑️ Clé Mistral supprimée (sécurisé)");
-            break;
-          case "cohereKey":
-            try {
-              const { SecureApiKeyManager } = await import(
-                "../services/ai/SecureApiKeyManager"
-              );
-              await SecureApiKeyManager.deleteApiKey("cohere");
-            } catch {}
-            logger.debug("🗑️ Clé Cohere supprimée (sécurisé)");
-            break;
-          // Nouveaux services premium
-          case "claudeKey":
-            await AsyncStorage.removeItem("claude_api_key");
-            logger.debug("🗑️ Clé Claude supprimée instantanément");
-            break;
-          case "perplexityKey":
-            await AsyncStorage.removeItem("perplexity_api_key");
-            logger.debug("🗑️ Clé Perplexity supprimée instantanément");
-            break;
-          case "togetherKey":
-            await AsyncStorage.removeItem("together_api_key");
-            logger.debug("🗑️ Clé Together supprimée instantanément");
-            break;
-          case "groqKey":
-            await AsyncStorage.removeItem("groq_api_key");
-            logger.debug("🗑️ Clé Groq supprimée instantanément");
-            break;
-          case "fireworksKey":
-            await AsyncStorage.removeItem("fireworks_api_key");
-            logger.debug("🗑️ Clé Fireworks supprimée instantanément");
-            break;
-        }
-      } catch (error) {
-        logger.error("Erreur lors de la suppression de la clé:", error);
-      }
-    }
+    
+    // Log pour debug
+    logger.debug(`📝 Clé ${settingKey} modifiée dans l'état local`);
+    
+    // NOTE: La suppression des clés vides sera gérée lors de la sauvegarde
+    // Cela évite de supprimer accidentellement des clés pendant la saisie
   };
 
   // Vérifier s'il y a des clés API au montage

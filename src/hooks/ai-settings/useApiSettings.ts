@@ -112,21 +112,45 @@ export function useApiSettings() {
       logger.info("Sauvegarde des paramètres AI...");
       try {
         const promises: Promise<void>[] = [];
+        
+        // Pour chaque clé API, soit la sauvegarder, soit la supprimer
+        // OpenAI
         if (newSettings.apiKey && newSettings.apiKey.trim() !== "") {
           promises.push(ApiKeyManager.setOpenAIKey(newSettings.apiKey));
+        } else {
+          // Supprimer la clé seulement lors de la sauvegarde explicite
+          promises.push(ApiKeyManager.deleteOpenAIKey());
         }
+        
+        // Gemini
         if (newSettings.geminiKey && newSettings.geminiKey.trim() !== "") {
           promises.push(ApiKeyManager.setGeminiKey(newSettings.geminiKey));
+        } else {
+          promises.push(ApiKeyManager.deleteGeminiKey());
         }
+        
+        // Mistral
         if (newSettings.mistralKey && newSettings.mistralKey.trim() !== "") {
           promises.push(ApiKeyManager.setMistralKey(newSettings.mistralKey));
+        } else {
+          promises.push(ApiKeyManager.deleteMistralKey());
         }
+        
+        // Cohere
         if (newSettings.cohereKey && newSettings.cohereKey.trim() !== "") {
           promises.push(ApiKeyManager.setCohereKey(newSettings.cohereKey));
+        } else {
+          promises.push(ApiKeyManager.deleteCohereKey());
         }
+        
+        // Claude
         if (newSettings.claudeKey && newSettings.claudeKey.trim() !== "") {
           promises.push(ApiKeyManager.setClaudeKey(newSettings.claudeKey));
+        } else {
+          promises.push(ApiKeyManager.deleteClaudeKey());
         }
+        
+        // Perplexity
         if (
           newSettings.perplexityKey &&
           newSettings.perplexityKey.trim() !== ""
@@ -134,13 +158,25 @@ export function useApiSettings() {
           promises.push(
             ApiKeyManager.setPerplexityKey(newSettings.perplexityKey)
           );
+        } else {
+          promises.push(ApiKeyManager.deletePerplexityKey());
         }
+        
+        // Together
         if (newSettings.togetherKey && newSettings.togetherKey.trim() !== "") {
           promises.push(ApiKeyManager.setTogetherKey(newSettings.togetherKey));
+        } else {
+          promises.push(ApiKeyManager.deleteTogetherKey());
         }
+        
+        // Groq
         if (newSettings.groqKey && newSettings.groqKey.trim() !== "") {
           promises.push(ApiKeyManager.setGroqKey(newSettings.groqKey));
+        } else {
+          promises.push(ApiKeyManager.deleteGroqKey());
         }
+        
+        // Fireworks
         if (
           newSettings.fireworksKey &&
           newSettings.fireworksKey.trim() !== ""
@@ -148,6 +184,8 @@ export function useApiSettings() {
           promises.push(
             ApiKeyManager.setFireworksKey(newSettings.fireworksKey)
           );
+        } else {
+          promises.push(ApiKeyManager.deleteFireworksKey());
         }
 
         // Sauvegarder les clés pour les nouveaux providers (via SecureApiKeyManager)
