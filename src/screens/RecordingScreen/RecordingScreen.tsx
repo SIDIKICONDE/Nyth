@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { View, Alert, StatusBar, BackHandler, Text } from "react-native";
+import { View, Alert, StatusBar, BackHandler, Text, Platform } from "react-native";
 import {
   RouteProp,
   useRoute,
@@ -584,9 +584,29 @@ export default function RecordingScreen({}: RecordingScreenProps) {
               // Vérifier que le fichier existe bien à cet emplacement
               const RNFS = require("react-native-fs");
               const fileExists = await RNFS.exists(savedVideoPath);
+              
+              // Sur iOS, obtenir plus d'informations sur le fichier
+              let fileInfo = null;
+              if (fileExists) {
+                try {
+                  fileInfo = await RNFS.stat(savedVideoPath);
+                  logger.info("Informations du fichier sur iOS", {
+                    path: fileInfo.path,
+                    size: fileInfo.size,
+                    isFile: fileInfo.isFile(),
+                    ctime: fileInfo.ctime,
+                    mtime: fileInfo.mtime
+                  });
+                } catch (statError) {
+                  logger.error("Erreur lors de stat() du fichier", statError);
+                }
+              }
+              
               logger.info("Vérification de l'existence du fichier", { 
                 savedVideoPath, 
-                fileExists 
+                fileExists,
+                platform: Platform.OS,
+                fileInfo: fileInfo ? { size: fileInfo.size, isFile: fileInfo.isFile() } : null
               });
               
               // Ajouter le préfixe file:// si nécessaire pour la lecture vidéo
