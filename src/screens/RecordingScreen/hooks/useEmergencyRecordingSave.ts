@@ -39,108 +39,6 @@ export function useEmergencyRecordingSave(
   const savingInProgressRef = useRef(false);
   const lastSaveAttemptRef = useRef<number>(0);
 
-  // Sauvegarder d'urgence l'enregistrement en cours
-  const performEmergencySave = useCallback(
-    async (
-      scriptTitle: string,
-      recordingDuration: number,
-      memoryUsage?: number,
-      reason:
-        | "memory_critical"
-        | "system_error"
-        | "manual_stop" = "memory_critical"
-    ): Promise<EmergencyRecordingData | null> => {
-      // Éviter les sauvegardes multiples simultanées
-      if (savingInProgressRef.current) {
-        logger.warn("Sauvegarde d'urgence déjà en cours, ignorée");
-        return null;
-      }
-
-      // Éviter les sauvegardes trop fréquentes (minimum 5 secondes d'intervalle)
-      const now = Date.now();
-      if (now - lastSaveAttemptRef.current < 5000) {
-        logger.warn("Sauvegarde d'urgence trop fréquente, ignorée");
-        return null;
-      }
-
-      savingInProgressRef.current = true;
-      lastSaveAttemptRef.current = now;
-      onSaveStarted?.();
-
-      logger.info("Démarrage sauvegarde d'urgence", {
-        scriptTitle,
-        recordingDuration,
-        memoryUsage,
-        reason,
-      });
-
-      try {
-        // Générer un ID unique pour cette sauvegarde d'urgence
-        const emergencyId = `emergency_${Date.now()}_${Math.random()
-          .toString(36)
-          .substr(2, 9)}`;
-
-        // Préparer les données de sauvegarde
-        const emergencyData: EmergencyRecordingData = {
-          id: emergencyId,
-          timestamp: now,
-          scriptTitle,
-          recordingDuration,
-          metadata: {
-            reason,
-            memoryUsage,
-            partialSave: true,
-          },
-        };
-
-        // 1. Arrêter l'enregistrement en cours et récupérer le fichier
-        logger.info("Arrêt d'urgence de l'enregistrement en cours...");
-        const savedVideoPath =
-          (await stopActiveRecordingAndGetPath?.()) ?? (await stopRecordingAndGetPath());
-
-        if (savedVideoPath) {
-          emergencyData.videoPath = savedVideoPath;
-          logger.info("Fichier vidéo sauvegardé:", savedVideoPath);
-        }
-
-        // 2. Sauvegarder les métadonnées dans AsyncStorage
-        await saveEmergencyMetadata(emergencyData);
-
-        // 3. Ajouter à la liste des enregistrements d'urgence
-        await addToEmergencyList(emergencyData);
-
-        // 4. Créer un fichier de récupération pour la session
-        await createRecoveryFile(emergencyData);
-
-        logger.info("Sauvegarde d'urgence terminée avec succès", emergencyData);
-        onSaveCompleted?.(emergencyData);
-
-        // Afficher une notification à l'utilisateur
-        showEmergencySaveNotification(emergencyData);
-
-        return emergencyData;
-      } catch (error) {
-        logger.error("Erreur lors de la sauvegarde d'urgence", error);
-        onSaveFailed?.(error as Error);
-
-        // Afficher une alerte d'erreur
-        Alert.alert(
-          t("recording.emergency.save_failed.title", "Erreur de Sauvegarde"),
-          t(
-            "recording.emergency.save_failed.message",
-            "Impossible de sauvegarder l'enregistrement. Les données pourraient être perdues."
-          ),
-          [{ text: "OK", style: "default" }]
-        );
-
-        return null;
-      } finally {
-        savingInProgressRef.current = false;
-      }
-    },
-    [t, onSaveStarted, onSaveCompleted, onSaveFailed]
-  );
-
   // Arrêter l'enregistrement et récupérer le chemin du fichier
   const stopRecordingAndGetPath = useCallback(async (): Promise<string | null> => {
     try {
@@ -254,6 +152,119 @@ export function useEmergencyRecordingSave(
       );
     },
     [t]
+  );
+
+  // Sauvegarder d'urgence l'enregistrement en cours
+  const performEmergencySave = useCallback(
+    async (
+      scriptTitle: string,
+      recordingDuration: number,
+      memoryUsage?: number,
+      reason:
+        | "memory_critical"
+        | "system_error"
+        | "manual_stop" = "memory_critical"
+    ): Promise<EmergencyRecordingData | null> => {
+      // Éviter les sauvegardes multiples simultanées
+      if (savingInProgressRef.current) {
+        logger.warn("Sauvegarde d'urgence déjà en cours, ignorée");
+        return null;
+      }
+
+      // Éviter les sauvegardes trop fréquentes (minimum 5 secondes d'intervalle)
+      const now = Date.now();
+      if (now - lastSaveAttemptRef.current < 5000) {
+        logger.warn("Sauvegarde d'urgence trop fréquente, ignorée");
+        return null;
+      }
+
+      savingInProgressRef.current = true;
+      lastSaveAttemptRef.current = now;
+      onSaveStarted?.();
+
+      logger.info("Démarrage sauvegarde d'urgence", {
+        scriptTitle,
+        recordingDuration,
+        memoryUsage,
+        reason,
+      });
+
+      try {
+        // Générer un ID unique pour cette sauvegarde d'urgence
+        const emergencyId = `emergency_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+
+        // Préparer les données de sauvegarde
+        const emergencyData: EmergencyRecordingData = {
+          id: emergencyId,
+          timestamp: now,
+          scriptTitle,
+          recordingDuration,
+          metadata: {
+            reason,
+            memoryUsage,
+            partialSave: true,
+          },
+        };
+
+        // 1. Arrêter l'enregistrement en cours et récupérer le fichier
+        logger.info("Arrêt d'urgence de l'enregistrement en cours...");
+        const savedVideoPath =
+          (await stopActiveRecordingAndGetPath?.()) ?? (await stopRecordingAndGetPath());
+
+        if (savedVideoPath) {
+          emergencyData.videoPath = savedVideoPath;
+          logger.info("Fichier vidéo sauvegardé:", savedVideoPath);
+        }
+
+        // 2. Sauvegarder les métadonnées dans AsyncStorage
+        await saveEmergencyMetadata(emergencyData);
+
+        // 3. Ajouter à la liste des enregistrements d'urgence
+        await addToEmergencyList(emergencyData);
+
+        // 4. Créer un fichier de récupération pour la session
+        await createRecoveryFile(emergencyData);
+
+        logger.info("Sauvegarde d'urgence terminée avec succès", emergencyData);
+        onSaveCompleted?.(emergencyData);
+
+        // Afficher une notification à l'utilisateur
+        showEmergencySaveNotification(emergencyData);
+
+        return emergencyData;
+      } catch (error) {
+        logger.error("Erreur lors de la sauvegarde d'urgence", error);
+        onSaveFailed?.(error as Error);
+
+        // Afficher une alerte d'erreur
+        Alert.alert(
+          t("recording.emergency.save_failed.title", "Erreur de Sauvegarde"),
+          t(
+            "recording.emergency.save_failed.message",
+            "Impossible de sauvegarder l'enregistrement. Les données pourraient être perdues."
+          ),
+          [{ text: "OK", style: "default" }]
+        );
+
+        return null;
+      } finally {
+        savingInProgressRef.current = false;
+      }
+    },
+    [
+      t,
+      onSaveStarted,
+      onSaveCompleted,
+      onSaveFailed,
+      stopActiveRecordingAndGetPath,
+      stopRecordingAndGetPath,
+      saveEmergencyMetadata,
+      addToEmergencyList,
+      createRecoveryFile,
+      showEmergencySaveNotification,
+    ]
   );
 
   // Récupérer la liste des enregistrements d'urgence

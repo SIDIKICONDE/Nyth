@@ -103,6 +103,74 @@ export function useErrorRecovery(options: ErrorRecoveryOptions = {}) {
     return { severity: "low", recoverable: true };
   }, []);
 
+  // Afficher une alerte pour les erreurs critiques
+  const showCriticalErrorAlert = useCallback(
+    (_error: Error) => {
+      Alert.alert(
+        t("recording.error.critical.title", "Erreur Critique"),
+        t(
+          "recording.error.critical.message",
+          "Une erreur critique s'est produite. L'application doit être redémarrée."
+        ),
+        [
+          {
+            text: t("common.ok", "OK"),
+            style: "default",
+          },
+        ]
+      );
+    },
+    [t]
+  );
+
+  // Tentative de récupération automatique
+  const attemptRecovery = useCallback(
+    (error: Error, analysis: { severity: string; recoverable: boolean }) => {
+      if (state.isRecovering) return;
+
+      setState((prevState) => ({
+        ...prevState,
+        isRecovering: true,
+      }));
+
+      logger.info(
+        `Tentative de récupération automatique (${
+          state.retryCount + 1
+        }/${maxRetries})`,
+        {
+          error: error.message,
+          severity: analysis.severity,
+        }
+      );
+
+      // Nettoyer le timeout précédent
+      if (recoveryTimeoutRef.current) {
+        clearTimeout(recoveryTimeoutRef.current);
+      }
+
+      // Calculer le délai de récupération (backoff exponentiel)
+      const delay = retryDelay * Math.pow(2, state.retryCount);
+
+      recoveryTimeoutRef.current = setTimeout(() => {
+        setState((prevState) => ({
+          ...prevState,
+          error: null,
+          isRecovering: false,
+          retryCount: prevState.retryCount + 1,
+          errorHistory: prevState.errorHistory.map((entry, index) =>
+            index === prevState.errorHistory.length - 1
+              ? { ...entry, recovered: true }
+              : entry
+          ),
+        }));
+
+        logger.info("Récupération automatique effectuée");
+        onRecovered?.();
+      }, delay);
+    },
+    [state.isRecovering, state.retryCount, maxRetries, retryDelay, onRecovered]
+  );
+
   // Capturer et traiter une erreur
   const captureError = useCallback(
     (error: Error, context?: string) => {
@@ -154,55 +222,9 @@ export function useErrorRecovery(options: ErrorRecoveryOptions = {}) {
       autoRecovery,
       analyzeError,
       onError,
+      attemptRecovery,
+      showCriticalErrorAlert,
     ]
-  );
-
-  // Tentative de récupération automatique
-  const attemptRecovery = useCallback(
-    (error: Error, analysis: { severity: string; recoverable: boolean }) => {
-      if (state.isRecovering) return;
-
-      setState((prevState) => ({
-        ...prevState,
-        isRecovering: true,
-      }));
-
-      logger.info(
-        `Tentative de récupération automatique (${
-          state.retryCount + 1
-        }/${maxRetries})`,
-        {
-          error: error.message,
-          severity: analysis.severity,
-        }
-      );
-
-      // Nettoyer le timeout précédent
-      if (recoveryTimeoutRef.current) {
-        clearTimeout(recoveryTimeoutRef.current);
-      }
-
-      // Calculer le délai de récupération (backoff exponentiel)
-      const delay = retryDelay * Math.pow(2, state.retryCount);
-
-      recoveryTimeoutRef.current = setTimeout(() => {
-        setState((prevState) => ({
-          ...prevState,
-          error: null,
-          isRecovering: false,
-          retryCount: prevState.retryCount + 1,
-          errorHistory: prevState.errorHistory.map((entry, index) =>
-            index === prevState.errorHistory.length - 1
-              ? { ...entry, recovered: true }
-              : entry
-          ),
-        }));
-
-        logger.info("Récupération automatique effectuée");
-        onRecovered?.();
-      }, delay);
-    },
-    [state.isRecovering, state.retryCount, maxRetries, retryDelay, onRecovered]
   );
 
   // Récupération manuelle
@@ -245,26 +267,6 @@ export function useErrorRecovery(options: ErrorRecoveryOptions = {}) {
       errorHistory: [],
     });
   }, []);
-
-  // Afficher une alerte pour les erreurs critiques
-  const showCriticalErrorAlert = useCallback(
-    (error: Error) => {
-      Alert.alert(
-        t("recording.error.critical.title", "Erreur Critique"),
-        t(
-          "recording.error.critical.message",
-          "Une erreur critique s'est produite. L'application doit être redémarrée."
-        ),
-        [
-          {
-            text: t("common.ok", "OK"),
-            style: "default",
-          },
-        ]
-      );
-    },
-    [t]
-  );
 
   // Wrapper pour les fonctions async avec gestion d'erreurs
   const safeExecute = useCallback(
