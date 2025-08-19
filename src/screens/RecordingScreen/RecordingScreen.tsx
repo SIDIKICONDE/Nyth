@@ -575,6 +575,20 @@ export default function RecordingScreen({}: RecordingScreenProps) {
 
               // Le chemin final de la vidéo après déplacement par hybridStorageService
               const savedVideoPath = `${VIDEO_DIR}${recordingId}.mp4`;
+              logger.info("Chemin de sauvegarde calculé", { 
+                VIDEO_DIR, 
+                recordingId, 
+                savedVideoPath 
+              });
+              
+              // Vérifier que le fichier existe bien à cet emplacement
+              const RNFS = require("react-native-fs");
+              const fileExists = await RNFS.exists(savedVideoPath);
+              logger.info("Vérification de l'existence du fichier", { 
+                savedVideoPath, 
+                fileExists 
+              });
+              
               // Ajouter le préfixe file:// si nécessaire pour la lecture vidéo
               const videoUriWithPrefix = savedVideoPath.startsWith("file://")
                 ? savedVideoPath
@@ -608,8 +622,20 @@ export default function RecordingScreen({}: RecordingScreenProps) {
               });
 
               // Sauvegarder directement dans la galerie
-              logger.info("Sauvegarde dans la galerie", { videoUri: videoUriWithPrefix });
-              const savedToGallery = await FileManager.saveToGallery(videoUriWithPrefix);
+              logger.info("Tentative de sauvegarde dans la galerie", { 
+                videoUri: videoUriWithPrefix,
+                savedVideoPath,
+                fileExists 
+              });
+              
+              let savedToGallery = false;
+              try {
+                savedToGallery = await FileManager.saveToGallery(videoUriWithPrefix);
+                logger.info("Résultat de la sauvegarde dans la galerie", { savedToGallery });
+              } catch (galleryError) {
+                logger.error("Erreur lors de la sauvegarde dans la galerie", galleryError);
+                savedToGallery = false;
+              }
               
               if (savedToGallery) {
                 logger.info("Vidéo sauvegardée dans la galerie avec succès");

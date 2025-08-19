@@ -15,9 +15,33 @@ export class FileManager {
    */
   public static async validateVideoFile(videoUri: string): Promise<void> {
     const localPath = this.toLocalPath(videoUri);
-    const fileInfo = await RNFS.stat(localPath);
-    if (!fileInfo.isFile()) {
-      throw new Error("Fichier vidéo introuvable");
+    
+    // Vérifier d'abord si le fichier existe
+    const fileExists = await RNFS.exists(localPath);
+    if (!fileExists) {
+      console.error(`[FileManager] Le fichier n'existe pas : ${localPath}`);
+      console.error(`[FileManager] URI original : ${videoUri}`);
+      throw new Error(`Fichier vidéo introuvable: ${localPath}`);
+    }
+    
+    // Vérifier ensuite que c'est bien un fichier
+    try {
+      const fileInfo = await RNFS.stat(localPath);
+      if (!fileInfo.isFile()) {
+        console.error(`[FileManager] Le chemin n'est pas un fichier : ${localPath}`);
+        throw new Error("Le chemin ne pointe pas vers un fichier vidéo valide");
+      }
+      
+      // Vérifier que le fichier n'est pas vide
+      if (fileInfo.size === 0) {
+        console.error(`[FileManager] Le fichier est vide : ${localPath}`);
+        throw new Error("Le fichier vidéo est vide");
+      }
+      
+      console.log(`[FileManager] Fichier validé avec succès : ${localPath}, taille: ${fileInfo.size} octets`);
+    } catch (error) {
+      console.error(`[FileManager] Erreur lors de la validation du fichier :`, error);
+      throw error;
     }
   }
 
@@ -27,6 +51,9 @@ export class FileManager {
   private static async requestGalleryPermissions(): Promise<boolean> {
     if (Platform.OS === "android") {
       try {
+        const androidVersion = Platform.Version;
+        console.log(`[FileManager] Android version: ${androidVersion}`);
+        
         // Android 13+ (API 33+) utilise des permissions granulaires
         if (Platform.Version >= 33) {
           const permissions = [
@@ -86,6 +113,8 @@ export class FileManager {
    */
   public static async saveToGallery(videoUri: string): Promise<boolean> {
     try {
+      console.log(`[FileManager] Début de la sauvegarde dans la galerie : ${videoUri}`);
+      
       // Vérifier que le fichier existe avant de continuer
       await this.validateVideoFile(videoUri);
 
@@ -143,11 +172,15 @@ export class FileManager {
         "Une erreur inconnue est survenue lors de la sauvegarde.";
 
       if (error instanceof Error) {
+        console.error(`[FileManager] Erreur lors de la sauvegarde dans la galerie :`, error);
+        
         if (error.message.includes("Permission")) {
           errorMessage =
             "Permissions insuffisantes pour sauvegarder dans la galerie.";
-        } else if (error.message.includes("file")) {
+        } else if (error.message.includes("Fichier vidéo introuvable")) {
           errorMessage = "Le fichier vidéo est introuvable ou corrompu.";
+        } else if (error.message.includes("vide")) {
+          errorMessage = "Le fichier vidéo est vide ou corrompu.";
         } else {
           errorMessage = error.message;
         }
