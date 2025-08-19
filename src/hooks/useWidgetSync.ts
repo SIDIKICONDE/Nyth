@@ -1,39 +1,52 @@
 import { useCallback, useEffect } from "react";
-import { AppState, AppStateStatus } from "react-native";
+import { AppState, AppStateStatus, Linking } from "react-native";
 import { widgetService } from "../services/ios/WidgetService";
-import { Goal } from "../types/planning";
+import { Goal, PlanningEvent, Task } from "../types/planning";
 import { createLogger } from "../utils/optimizedLogger";
 
 const logger = createLogger("useWidgetSync");
 
-export const useWidgetSync = (goals: Goal[]) => {
-  // Synchroniser les données avec le widget quand les objectifs changent
+interface UseWidgetSyncProps {
+  goals: Goal[];
+  events: PlanningEvent[];
+  tasks: Task[];
+  onWidgetAction?: (action: {
+    action: string;
+    itemId?: string;
+    itemType?: "goal" | "event" | "task";
+  }) => void;
+}
+
+export const useWidgetSync = ({
+  goals,
+  events,
+  tasks,
+  onWidgetAction,
+}: UseWidgetSyncProps) => {
+  // Synchroniser les données avec le widget quand elles changent
   useEffect(() => {
-    if (goals.length > 0) {
-      widgetService.updateWidgetData(goals);
-    }
-  }, [goals]);
+    widgetService.updatePlanningData(goals, events, tasks);
+  }, [goals, events, tasks]);
 
   // Vérifier les actions du widget quand l'app devient active
   const handleAppStateChange = useCallback(
     async (nextAppState: AppStateStatus) => {
       if (nextAppState === "active") {
         try {
-          const widgetUpdate = await widgetService.checkForWidgetUpdates();
-          if (widgetUpdate) {
-            logger.info("Action du widget détectée", widgetUpdate);
-            // Ici vous pouvez déclencher une action pour mettre à jour l'objectif
-            // Par exemple, appeler une fonction de callback passée en paramètre
+          const widgetAction = await widgetService.checkForWidgetActions();
+          if (widgetAction && onWidgetAction) {
+            logger.info("Action du widget détectée", widgetAction);
+            onWidgetAction(widgetAction);
           }
         } catch (error) {
           logger.error(
-            "Erreur lors de la vérification des mises à jour du widget:",
+            "Erreur lors de la vérification des actions du widget:",
             error
           );
         }
       }
     },
-    []
+    [onWidgetAction]
   );
 
   // Écouter les changements d'état de l'app

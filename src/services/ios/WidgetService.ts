@@ -1,6 +1,6 @@
 import { NativeModules, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Goal } from "../../types/planning";
+import { Goal, PlanningEvent, Task } from "../../types/planning";
 import { createLogger } from "../../utils/optimizedLogger";
 
 const logger = createLogger("WidgetService");
@@ -15,10 +15,33 @@ interface WidgetGoalData {
   status: string;
   priority: string;
   unit: string;
+  deadline?: string;
+}
+
+interface WidgetEventData {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate?: string;
+  location: string;
+  type: string;
+  priority: string;
+  isCompleted: boolean;
+}
+
+interface WidgetTaskData {
+  id: string;
+  title: string;
+  project: string;
+  status: string;
+  dueDate?: string;
+  isCompleted: boolean;
 }
 
 interface WidgetData {
   goals: WidgetGoalData[];
+  events: WidgetEventData[];
+  tasks: WidgetTaskData[];
   lastUpdate: string;
 }
 
@@ -57,6 +80,7 @@ class WidgetService {
       status: goal.status,
       priority: goal.priority,
       unit: goal.unit,
+      deadline: goal.deadline?.toISOString(),
     };
   }
 
@@ -187,6 +211,192 @@ class WidgetService {
   }
 
   /**
+   * Convertir un événement vers WidgetEventData
+   */
+  private convertEventToWidgetData(event: PlanningEvent): WidgetEventData {
+    return {
+      id: event.id,
+      title: event.title,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      location: event.location || "",
+      type: event.type,
+      priority: event.priority,
+      isCompleted: event.status === "completed",
+    };
+  }
+
+  /**
+   * Convertir une tâche vers WidgetTaskData
+   */
+  private convertTaskToWidgetData(task: Task): WidgetTaskData {
+    return {
+      id: task.id,
+      title: task.title,
+      project: task.project || "",
+      status: task.status,
+      dueDate: task.dueDate,
+      isCompleted: task.status === "done",
+    };
+  }
+
+  /**
+   * Mettre à jour toutes les données du planning pour le widget
+   */
+  async updatePlanningData(
+    goals: Goal[],
+    events: PlanningEvent[],
+    tasks: Task[]
+  ): Promise<void> {
+    if (Platform.OS !== "ios") {
+      logger.info("Widget service uniquement disponible sur iOS");
+      return;
+    }
+
+    try {
+      // Filtrer et convertir les données
+      const activeGoals = goals
+        .filter(
+          (goal) => goal.status === "active" || goal.status === "completed"
+        )
+        .slice(0, 5)
+        .map((goal) => this.convertGoalToWidgetData(goal));
+
+      const todayEvents = events
+        .filter((event) => {
+          const eventDate = new Date(event.startDate);
+          const today = new Date();
+          return (
+            eventDate.getDate() === today.getDate() &&
+            eventDate.getMonth() === today.getMonth() &&
+            eventDate.getFullYear() === today.getFullYear()
+          );
+        })
+        .slice(0, 5)
+        .map((event) => this.convertEventToWidgetData(event));
+
+      const activeTasks = tasks
+        .filter((task) => task.status !== "done" && task.status !== "cancelled")
+        .slice(0, 5)
+        .map((task) => this.convertTaskToWidgetData(task));
+
+      const widgetData: WidgetData = {
+        goals: activeGoals,
+        events: todayEvents,
+        tasks: activeTasks,
+        lastUpdate: new Date().toISOString(),
+      };
+
+      // Sauvegarder dans UserDefaults partagés
+      const appGroupID = "group.com.nyth.planning";
+      if (this.sharedUserDefaults) {
+        const jsonData = JSON.stringify(widgetData);
+        await this.sharedUserDefaults.setString(
+          "widget_planning_data",
+          jsonData,
+          appGroupID
+        );
+        logger.info("Données du planning mises à jour pour le widget", {
+          goalsCount: activeGoals.length,
+          eventsCount: todayEvents.length,
+          tasksCount: activeTasks.length,
+        });
+      } else {
+        // Fallback: sauvegarder dans AsyncStorage
+        await AsyncStorage.setItem(
+          "widget_planning_data",
+          JSON.stringify(widgetData)
+        );
+        logger.info("Données du planning sauvegardées en fallback");
+      }
+
+      // Forcer la mise à jour du widget
+      await this.reloadWidget();
+    } catch (error) {
+      logger.error(
+        "Erreur lors de la mise à jour des données du planning:",
+        error
+      );
+    }
+  }
+
+  /**
+   * Vérifier les actions du widget (mise à jour)
+   */
+  async checkForWidgetActions(): Promise<{
+    action: string;
+    itemId?: string;
+    itemType?: "goal" | "event" | "task";
+  } | null> {
+    if (Platform.OS !== "ios") return null;
+
+    try {
+      let lastAction: string | null = null;
+      let actionItemId: string | null = null;
+
+      if (this.sharedUserDefaults) {
+        lastAction = await this.sharedUserDefaults.getString(
+          "widget_last_action"
+        );
+        actionItemId = await this.sharedUserDefaults.getString(
+          "widget_action_item_id"
+        );
+      } else {
+        // Fallback
+        lastAction = await AsyncStorage.getItem("widget_last_action");
+        actionItemId = await AsyncStorage.getItem("widget_action_item_id");
+      }
+
+      if (lastAction) {
+        // Nettoyer les clés après lecture
+        if (this.sharedUserDefaults) {
+          await this.sharedUserDefaults.removeKey("widget_last_action");
+          await this.sharedUserDefaults.removeKey("widget_action_item_id");
+        } else {
+          await AsyncStorage.removeItem("widget_last_action");
+          await AsyncStorage.removeItem("widget_action_item_id");
+        }
+
+        logger.info("Action du widget détectée", {
+          action: lastAction,
+          itemId: actionItemId,
+        });
+
+        // Déterminer le type d'action
+        if (lastAction.startsWith("goal_")) {
+          return {
+            action: lastAction.replace("goal_", ""),
+            itemId: actionItemId || undefined,
+            itemType: "goal",
+          };
+        } else if (lastAction.startsWith("event_")) {
+          return {
+            action: lastAction.replace("event_", ""),
+            itemId: actionItemId || undefined,
+            itemType: "event",
+          };
+        } else if (lastAction.startsWith("task_")) {
+          return {
+            action: lastAction.replace("task_", ""),
+            itemId: actionItemId || undefined,
+            itemType: "task",
+          };
+        } else {
+          return { action: lastAction };
+        }
+      }
+
+      return null;
+    } catch (error) {
+      logger.error(
+        "Erreur lors de la vérification des actions du widget:",
+        error
+      );
+      return null;
+    }
+  }
+
+  /**
    * Nettoyer les données du widget
    */
   async clearWidgetData(): Promise<void> {
@@ -194,12 +404,16 @@ class WidgetService {
 
     try {
       if (this.sharedUserDefaults) {
+        await this.sharedUserDefaults.removeKey("widget_planning_data");
         await this.sharedUserDefaults.removeKey("widget_goals_data");
         await this.sharedUserDefaults.removeKey("widget_last_action");
+        await this.sharedUserDefaults.removeKey("widget_action_item_id");
         await this.sharedUserDefaults.removeKey("widget_updated_goal_id");
       } else {
+        await AsyncStorage.removeItem("widget_planning_data");
         await AsyncStorage.removeItem("widget_goals_data");
         await AsyncStorage.removeItem("widget_last_action");
+        await AsyncStorage.removeItem("widget_action_item_id");
         await AsyncStorage.removeItem("widget_updated_goal_id");
       }
 
