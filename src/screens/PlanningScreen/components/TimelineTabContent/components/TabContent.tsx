@@ -50,6 +50,7 @@ export const TabContent: React.FC<TabContentProps> = ({
                 onGoalProgressUpdate={goalHandlers.onGoalProgressUpdate}
                 onGoalComplete={goalHandlers.onGoalComplete}
                 onGoalReactivate={goalHandlers.onGoalReactivate}
+                onCancelReminders={goalHandlers.onCancelReminders}
               />
             </ScrollView>
 

@@ -29,7 +29,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
           tabConfig.events.translationKey,
           tabConfig.events.defaultLabel
         )}
-        count={0}
+        count={eventsCount}
         isActive={activeTab === tabConfig.events.key}
         onPress={onTabChange}
       />
@@ -38,7 +38,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
         tab={tabConfig.goals.key}
         icon={tabConfig.goals.icon}
         label={t(tabConfig.goals.translationKey, tabConfig.goals.defaultLabel)}
-        count={0}
+        count={goalsCount}
         isActive={activeTab === tabConfig.goals.key}
         onPress={onTabChange}
       />
