@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { View, Alert, StatusBar, BackHandler, Text, Platform } from "react-native";
+import { View, Alert, StatusBar, BackHandler, Text, Platform, PermissionsAndroid, Linking } from "react-native";
 import {
   RouteProp,
   useRoute,
@@ -31,10 +31,10 @@ import { RecordingBackupManager } from "@/services/autoSave";
 import { Recording } from "@/types";
 import { VideoFile } from "react-native-vision-camera";
 import { createLogger } from "@/utils/optimizedLogger";
+import RNFS from "react-native-fs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGlobalPreferences } from "@/hooks/useGlobalPreferences";
 import { FileManager } from "@/services/social-share/utils/fileManager";
-import { PermissionsAndroid, Platform, Linking } from "react-native";
 import { CameraRecorderRef } from "./components/CameraRecorder";
 
 const logger = createLogger("RecordingScreen");
@@ -155,7 +155,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
   const [backgroundOpacity, setBackgroundOpacity] = useState(80);
 
   // Timer pour suivre la durée d'enregistrement
-  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Ref pour accéder au CameraRecorder et arrêter l'enregistrement en urgence
   const cameraRecorderRef = useRef<CameraRecorderRef>(null);
 
@@ -569,12 +569,11 @@ export default function RecordingScreen({}: RecordingScreenProps) {
                 codec: settings?.videoSettings?.codec || "h264",
               });
               
-              // Vérifier si le fichier existe
-              const { exists } = await import('react-native-fs');
-              const fileExists = await exists(video.path);
-              logger.info("Vérification de l'existence du fichier", {
+              // Vérifier si le fichier source existe
+              const sourceFileExists = await RNFS.exists(video.path);
+              logger.info("Vérification de l'existence du fichier source", {
                 path: video.path,
-                exists: fileExists,
+                exists: sourceFileExists,
               });
               
               await hybridStorageService.initializeLocalStorage();
@@ -595,13 +594,12 @@ export default function RecordingScreen({}: RecordingScreenProps) {
                 savedVideoPath 
               });
               
-              // Vérifier que le fichier existe bien à cet emplacement
-              const RNFS = require("react-native-fs");
-              const fileExists = await RNFS.exists(savedVideoPath);
+              // Vérifier que le fichier existe bien à l'emplacement final
+              const savedFileExists = await RNFS.exists(savedVideoPath);
               
               // Sur iOS, obtenir plus d'informations sur le fichier
               let fileInfo = null;
-              if (fileExists) {
+              if (savedFileExists) {
                 try {
                   fileInfo = await RNFS.stat(savedVideoPath);
                   logger.info("Informations du fichier sur iOS", {
@@ -616,9 +614,9 @@ export default function RecordingScreen({}: RecordingScreenProps) {
                 }
               }
               
-              logger.info("Vérification de l'existence du fichier", { 
+              logger.info("Vérification de l'existence du fichier final", { 
                 savedVideoPath, 
-                fileExists,
+                exists: savedFileExists,
                 platform: Platform.OS,
                 fileInfo: fileInfo ? { size: fileInfo.size, isFile: fileInfo.isFile() } : null
               });
@@ -641,10 +639,10 @@ export default function RecordingScreen({}: RecordingScreenProps) {
               };
 
               if (settings?.videoSettings) {
-                (newRecording as any).videoSettings = {
-                  codec: settings.videoSettings.codec || "h264",
-                  stabilization:
-                    settings.videoSettings.stabilization || "auto",
+                const s = settings.videoSettings;
+                newRecording.videoSettings = {
+                  codec: s.codec ?? VideoCodec.H264,
+                  stabilization: s.stabilization ?? VideoStabilization.auto,
                 };
               }
 
@@ -659,7 +657,7 @@ export default function RecordingScreen({}: RecordingScreenProps) {
               logger.info("Tentative de sauvegarde dans la galerie", { 
                 videoUri: videoUriWithPrefix,
                 savedVideoPath,
-                fileExists 
+                savedFileExists 
               });
               
               let savedToGallery = false;
@@ -715,10 +713,10 @@ export default function RecordingScreen({}: RecordingScreenProps) {
               };
 
               if (settings?.videoSettings) {
-                (fallbackRecording as any).videoSettings = {
-                  codec: settings.videoSettings.codec || "h264",
-                  stabilization:
-                    settings.videoSettings.stabilization || "auto",
+                const s = settings.videoSettings;
+                fallbackRecording.videoSettings = {
+                  codec: s.codec ?? VideoCodec.H264,
+                  stabilization: s.stabilization ?? VideoStabilization.auto,
                 };
               }
 
