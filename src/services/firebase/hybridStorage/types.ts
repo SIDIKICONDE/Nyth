@@ -12,6 +12,7 @@ export interface RecordingMetadata {
   createdAt: any;
   updatedAt?: any;
   // Pas d'URL vidéo - seulement les métadonnées
+  iosPhotoLibraryUri?: string; // URI de la vidéo dans la photothèque iOS
 }
 
 // Interface pour les données de script dans Firestore

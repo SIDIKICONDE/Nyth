@@ -562,7 +562,22 @@ export default function RecordingScreen({}: RecordingScreenProps) {
           onRecordingStop={handleRecordingStop}
           onRecordingComplete={async (video: VideoFile) => {
             try {
-              logger.info("Enregistrement terminé", { videoPath: video.path });
+              logger.info("Enregistrement terminé - Détails du fichier vidéo", { 
+                videoPath: video.path,
+                videoFile: video,
+                duration: video.duration,
+                size: video.size,
+                codec: video.codec,
+              });
+              
+              // Vérifier si le fichier existe
+              const { exists } = await import('react-native-fs');
+              const fileExists = await exists(video.path);
+              logger.info("Vérification de l'existence du fichier", {
+                path: video.path,
+                exists: fileExists,
+              });
+              
               await hybridStorageService.initializeLocalStorage();
               const userId = user?.uid || "guest";
               const recordingId = await hybridStorageService.saveRecording(
