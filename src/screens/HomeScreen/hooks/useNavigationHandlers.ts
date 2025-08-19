@@ -42,25 +42,8 @@ export function useNavigationHandlers(
   const handleRecordingPress = async (recordingId: string) => {
     // Ne pas naviguer si en mode sélection
     if (!selectionMode) {
-      try {
-        // Charger l'enregistrement depuis AsyncStorage
-        const recordingsData = await AsyncStorage.getItem("recordings");
-        if (recordingsData) {
-          const recordings: Recording[] = JSON.parse(recordingsData);
-          const recording = recordings.find((r) => r.id === recordingId);
-
-          if (recording) {
-            navigation.navigate("Preview", {
-              videoUri: recording.videoUri || recording.uri || "",
-              duration: recording.duration || 0,
-              scriptId: recording.scriptId,
-              scriptTitle: recording.scriptTitle,
-              thumbnailUri: recording.thumbnailUri,
-              recordingId: recordingId,
-            });
-          } else {}
-        }
-      } catch (error) {}
+      // Les enregistrements sont maintenant sauvegardés directement dans la galerie
+      // Aucune navigation n'est nécessaire
     }
   };
 
@@ -143,48 +126,8 @@ export function useNavigationHandlers(
   };
 
   const handlePreview = async () => {
-    try {
-      // Créer un enregistrement de démonstration
-      const demoRecording = {
-        id: "demo-preview",
-        scriptId: "demo",
-        scriptTitle: "Démo Prévisualisation",
-        videoUri:
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-        duration: 60,
-        createdAt: new Date().toISOString(),
-      };
-
-      // Sauvegarder dans AsyncStorage
-      const savedRecordings = await AsyncStorage.getItem("recordings");
-      const recordings = savedRecordings ? JSON.parse(savedRecordings) : [];
-      const exists = recordings.find((r: any) => r.id === demoRecording.id);
-
-      if (!exists) {
-        recordings.push(demoRecording);
-        await AsyncStorage.setItem("recordings", JSON.stringify(recordings));
-      }
-
-      // Naviguer vers l'écran Preview
-      navigation.navigate("Preview", {
-        recordingId: "demo-preview",
-        videoUri:
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-        duration: 60,
-        scriptTitle: "Démo Prévisualisation",
-        scriptId: "demo",
-      });
-    } catch (error) {
-      // Naviguer quand même vers Preview
-      navigation.navigate("Preview", {
-        recordingId: "demo-preview",
-        videoUri:
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-        duration: 60,
-        scriptTitle: "Démo Prévisualisation",
-        scriptId: "demo",
-      });
-    }
+    // La fonctionnalité de prévisualisation n'est plus disponible
+    // Les vidéos sont directement sauvegardées dans la galerie
   };
 
   // Node Editor supprimé

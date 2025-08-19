@@ -25,7 +25,7 @@ import WelcomeScreen from "../screens/WelcomeScreen";
 
 // import OnboardingScreen from "../screens/OnboardingScreen"; // Onboarding supprimé
 import { PlanningScreen } from "../screens/PlanningScreen";
-import { PreviewScreen } from "../features/preview";
+
 import PrivacyPolicyScreen from "../screens/PrivacyPolicyScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 
@@ -92,11 +92,7 @@ const MainNavigator = () => {
         component={RecordingScreen}
         options={getScreenTransitionOptions()}
       />
-      <Stack.Screen
-        name="Preview"
-        component={PreviewScreen}
-        options={getScreenTransitionOptions()}
-      />
+
       <Stack.Screen
         name="Theme"
         component={ThemeScreen}

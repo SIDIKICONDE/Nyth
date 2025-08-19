@@ -14,7 +14,6 @@ import enForms from "./en/forms.json";
 import enHelp from "./en/help.json";
 import enHome from "./en/home.json";
 import enPlanning from "./en/planning.json";
-import enPreview from "./en/preview.json";
 import enSecurity from "./en/security.json";
 import enSettings from "./en/settings.json";
 import enSocial from "./en/social.json";
@@ -37,7 +36,6 @@ import frHelp from "./fr/help.json";
 import frHome from "./fr/home.json";
 import frPermissions from "./fr/permissions.json";
 import frPlanning from "./fr/planning.json";
-import frPreview from "./fr/preview.json";
 import frRecording from "./fr/recording.json";
 import frSecurity from "./fr/security.json";
 import frSettings from "./fr/settings.json";
@@ -64,7 +62,6 @@ export const translations = {
     help: enHelp,
     home: enHome,
     planning: enPlanning,
-    preview: enPreview,
     recording: enRecording,
     security: enSecurity,
     settings: enSettings,
@@ -89,7 +86,6 @@ export const translations = {
     home: frHome,
     permissions: frPermissions,
     planning: frPlanning,
-    preview: frPreview,
     recording: frRecording,
     security: frSecurity,
     settings: frSettings,
