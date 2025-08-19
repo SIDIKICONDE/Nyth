@@ -1,12 +1,6 @@
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { Platform, View } from "react-native";
-import {
-  useAnimatedStyle,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
 import tw from "twrnc";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "../../../hooks/useTranslation";
@@ -37,17 +31,6 @@ export const BiometricHeader: React.FC<BiometricHeaderProps> = ({
     Platform.OS === "ios" ? "Face ID" : "Empreinte digitale";
   const biometricIcon =
     Platform.OS === "ios" ? "face-recognition" : "fingerprint";
-
-  // Animation du point clignotant - toujours appelé
-  const pulseAnimation = useAnimatedStyle(() => ({
-    opacity: withRepeat(
-      withSequence(
-        withTiming(0.3, { duration: 500 }),
-        withTiming(1, { duration: 500 })
-      ),
-      -1
-    ),
-  }));
 
   return (
     <Card>

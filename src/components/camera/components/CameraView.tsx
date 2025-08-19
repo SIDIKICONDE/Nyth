@@ -4,7 +4,6 @@ import {
   StyleSheet,
   Text,
   ActivityIndicator,
-  Dimensions,
 } from "react-native";
 import { Camera } from "react-native-vision-camera";
 import { useCamera } from "../hooks/useCamera";
@@ -15,23 +14,18 @@ interface CameraViewProps {
   initialPosition?: "front" | "back";
 }
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-
 export const CameraView: React.FC<CameraViewProps> = ({
   onRecordingComplete,
-  onError,
+  onError: _onError,
   initialPosition = "back",
 }) => {
   const {
     cameraRef,
     device,
-    position,
-    isFlashOn,
+    flash,
     recordingState,
     hasCameraPermission,
     hasMicrophonePermission,
-    requestPermissions,
-    controls,
   } = useCamera(initialPosition);
 
   // Les permissions sont désormais gérées par l'écran parent (RecordingScreen)
@@ -71,7 +65,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
         isActive={true}
         video={true}
         audio={true}
-        torch={isFlashOn ? "on" : "off"}
+        torch={flash}
         enableZoomGesture
         photo={true}
       />

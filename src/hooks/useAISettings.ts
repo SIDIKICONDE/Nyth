@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { Alert } from "react-native";
 import {
-  getApiPriorityOrder,
-  AI_PROVIDER_PRIORITY,
   AI_PROVIDERS,
 } from "../config/aiConfig";
 import { useTranslation } from "./useTranslation";
@@ -35,9 +33,6 @@ export const useAISettings = (): UseAISettingsReturn => {
   // Loading states
   const [isSaving, setIsSaving] = useState(false);
 
-  // Priority state
-  const [priorityOrder, setPriorityOrder] =
-    useState<string[]>(AI_PROVIDER_PRIORITY);
   const apiTesting = useAPITesting();
   const cacheManagement = useCacheManagement();
   const validation = useSettingsValidation();
@@ -72,14 +67,6 @@ export const useAISettings = (): UseAISettingsReturn => {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  // Load priority order
-  const loadPriorityOrder = async (): Promise<void> => {
-    try {
-      const order = await getApiPriorityOrder();
-      setPriorityOrder(order);
-    } catch (error) {}
   };
 
   // Handle service toggle with cache cleanup
@@ -148,7 +135,6 @@ export const useAISettings = (): UseAISettingsReturn => {
       await Promise.all([
         loadApiKeys(),
         cacheManagement.refreshCacheStats(),
-        loadPriorityOrder(),
       ]);
     };
 
@@ -167,8 +153,8 @@ export const useAISettings = (): UseAISettingsReturn => {
     clearingCache: cacheManagement.clearingCache,
 
     // Priority management
-    priorityOrder,
-    setPriorityOrder,
+    priorityOrder: [], // Removed priorityOrder state
+    setPriorityOrder: () => {}, // Removed setPriorityOrder function
 
     // Cache management
     cacheStats: cacheManagement.cacheStats,

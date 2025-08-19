@@ -29,8 +29,8 @@ export const VideoActionModal: React.FC<VideoActionModalProps> = ({
   visible,
   recording,
   onClose,
-  onPlayVideo,
-  onSendToPreview,
+  onPlayVideo: _onPlayVideo,
+  onSendToPreview: _onSendToPreview,
 }) => {
   const { currentTheme } = useTheme();
   const { t } = useTranslation();

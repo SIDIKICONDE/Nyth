@@ -45,6 +45,10 @@ export class OptimizedLogger {
    * Formatage du message avec contexte et timestamp
    */
   private formatMessage(level: LogLevel, message: string): string {
+    if (typeof message !== 'string') {
+      console.error("Logger received a non-string message:", message);
+      message = "Logger error: Invalid message type";
+    }
     if (!this.config.enabled) return message;
 
     let formatted = "";
@@ -153,7 +157,7 @@ export class OptimizedLogger {
   /**
    * Rapport d'erreur en production (à implémenter avec votre service)
    */
-  private reportError(error: Error, context: string): void {
+  private reportError(_error: Error, _context: string): void {
     // TODO: Implémenter l'envoi vers Sentry, Bugsnag, etc.
     // Par exemple:
     // Sentry.captureException(error, {

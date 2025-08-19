@@ -78,24 +78,6 @@ export const AI_PROVIDER_CONFIG = {
   },
 };
 
-// Ordre de priorité par défaut
-export const AI_PROVIDER_PRIORITY = [
-  AI_PROVIDERS.OPENAI,
-  AI_PROVIDERS.GEMINI,
-  AI_PROVIDERS.CLAUDE,
-  AI_PROVIDERS.MISTRAL,
-  AI_PROVIDERS.PERPLEXITY,
-  AI_PROVIDERS.COHERE,
-  AI_PROVIDERS.TOGETHER,
-  AI_PROVIDERS.GROQ,
-  AI_PROVIDERS.FIREWORKS,
-  AI_PROVIDERS.AZUREOPENAI,
-  AI_PROVIDERS.OPENROUTER,
-  AI_PROVIDERS.DEEPINFRA,
-  AI_PROVIDERS.XAI,
-  AI_PROVIDERS.DEEPSEEK,
-];
-
 // Options de génération par défaut
 export const DEFAULT_GENERATION_OPTIONS = {
   maxTokens: 1000,
@@ -207,19 +189,4 @@ export const getEnabledProviders = async (): Promise<string[]> => {
     providers.push(AI_PROVIDERS.DEEPSEEK);
 
   return providers;
-};
-
-/**
- * Sauvegarde l'ordre de priorité des API
- */
-export const saveApiPriorityOrder = async (
-  order: string[]
-): Promise<void> => {};
-
-/**
- * Récupère l'ordre de priorité des API
- */
-export const getApiPriorityOrder = async (): Promise<string[]> => {
-  // Retourner l'ordre par défaut pour l'instant
-  return AI_PROVIDER_PRIORITY;
 };

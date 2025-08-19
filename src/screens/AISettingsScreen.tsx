@@ -22,7 +22,6 @@ const logger = createOptimizedLogger("AISettingsScreen");
 // Composants refactorisés
 import ApiCard from "../components/ai/ApiCard";
 
-import PrioritySection from "../components/ai/PrioritySection";
 import SaveButton from "../components/ai/SaveButton";
 import SettingsSection from "../components/ai/SettingsSection";
 import { ApiSecurityStatus } from "../components/ai/api-security";
@@ -40,8 +39,6 @@ export default function AISettingsScreen() {
     updateSetting,
     isLoading,
     isSaving,
-    priorityOrder,
-    setPriorityOrder,
     saveSettings,
     handleServiceToggle,
     loadSettings,
@@ -59,7 +56,7 @@ export default function AISettingsScreen() {
   const handleApiKeyChange = async (
     settingKey: keyof typeof settings,
     value: string,
-    storageKey?: string
+    _storageKey?: string
   ) => {
     // Mettre à jour l'état local
     updateSetting(settingKey, value);
@@ -153,23 +150,7 @@ export default function AISettingsScreen() {
       "🔑 Mise à jour temps réel - Section sécurité:",
       hasKeys ? "affichée" : "masquée"
     );
-  }, [
-    settings.apiKey,
-    settings.geminiKey,
-    settings.mistralKey,
-    settings.cohereKey,
-    // Nouveaux services premium
-    settings.claudeKey,
-    settings.perplexityKey,
-    settings.togetherKey,
-    settings.groqKey,
-    settings.fireworksKey,
-    (settings as any).azureopenaiKey,
-    (settings as any).openrouterKey,
-    (settings as any).deepinfraKey,
-    (settings as any).xaiKey,
-    (settings as any).deepseekKey,
-  ]);
+  }, [settings]);
 
   const hasKeys = checkHasAnyApiKeyFromSettings(
     settings as unknown as Record<string, string | undefined>
@@ -491,44 +472,7 @@ export default function AISettingsScreen() {
           />
         </SettingsSection>
 
-        {/* Section de priorité des API - Affichée uniquement s'il y a des clés ET des services activés */}
-        {checkHasAnyApiKeyFromSettings(
-          settings as unknown as Record<string, string | undefined>
-        ) &&
-          (settings.useCustomAPI ||
-            settings.useGemini ||
-            settings.useMistral ||
-            settings.useCohere ||
-            settings.useClaude ||
-            settings.usePerplexity ||
-            settings.useTogether ||
-            settings.useGroq ||
-            settings.useFireworks ||
-            settings.useAzureOpenAI ||
-            settings.useOpenRouter ||
-            settings.useDeepInfra ||
-            settings.useXAI ||
-            settings.useDeepSeek) && (
-            <PrioritySection
-              priorityOrder={priorityOrder}
-              setPriorityOrder={setPriorityOrder}
-              useOpenAI={settings.useCustomAPI}
-              useGemini={settings.useGemini}
-              useMistral={settings.useMistral}
-              useCohere={settings.useCohere}
-              useClaude={settings.useClaude}
-              usePerplexity={settings.usePerplexity}
-              useTogether={settings.useTogether}
-              useGroq={settings.useGroq}
-              useFireworks={settings.useFireworks}
-              useAzureOpenAI={settings.useAzureOpenAI}
-              useOpenRouter={settings.useOpenRouter}
-              useDeepInfra={settings.useDeepInfra}
-              useXAI={settings.useXAI}
-              useDeepSeek={settings.useDeepSeek}
-            />
-          )}
-
+        {/* Section de priorité des API - Supprimée */}
         <Divider style={tw`my-3 bg-gray-200`} />
         <SettingsSection
           title={t("security.title", "Sécurité")}

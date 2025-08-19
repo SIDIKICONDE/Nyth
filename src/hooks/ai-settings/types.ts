@@ -62,10 +62,6 @@ export interface UseAISettingsReturn {
   testingApi: string;
   clearingCache: boolean;
 
-  // Priority management
-  priorityOrder: string[];
-  setPriorityOrder: (order: string[]) => void;
-
   // Cache management
   cacheStats: CacheStats;
   clearCache: () => Promise<void>;

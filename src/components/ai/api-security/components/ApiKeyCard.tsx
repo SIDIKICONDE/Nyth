@@ -1,15 +1,14 @@
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import LinearGradient from "react-native-linear-gradient";
 import React from "react";
 import { TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import tw from "twrnc";
+import { useTheme } from "../../../../contexts/ThemeContext";
 import { useTranslation } from "../../../../hooks/useTranslation";
 import { Caption, H5, UIText } from "../../../ui/Typography";
 import { ApiKey } from "../types";
 import {
   getExpiryStatus,
-  getProviderGradient,
   getProviderIcon,
 } from "../utils";
 
@@ -29,17 +28,17 @@ export const ApiKeyCard: React.FC<ApiKeyCardProps> = ({
   defaultGradient,
 }) => {
   const { t } = useTranslation();
+  const { currentTheme } = useTheme();
   const expiryStatus = getExpiryStatus(apiKey.daysUntilExpiry);
-  const gradient = getProviderGradient(apiKey.provider, defaultGradient);
   const icon = getProviderIcon(apiKey.provider);
 
   return (
     <TouchableOpacity onPress={onToggleExpand} activeOpacity={0.8}>
-      <LinearGradient
-        colors={[...gradient]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={tw`p-4 rounded-2xl`}
+      <View
+        style={[
+          tw`p-4 rounded-xl`,
+          { backgroundColor: currentTheme.colors.primary }
+        ]}
       >
         <View style={tw`flex-row items-center justify-between`}>
           <View style={tw`flex-row items-center flex-1`}>
@@ -108,7 +107,10 @@ export const ApiKeyCard: React.FC<ApiKeyCardProps> = ({
 
             <TouchableOpacity
               onPress={() => onDelete(apiKey.provider)}
-              style={tw`mt-3 bg-white/20 rounded-lg p-2 flex-row items-center justify-center`}
+              style={[
+                tw`mt-3 rounded-lg p-2 flex-row items-center justify-center`,
+                { backgroundColor: currentTheme.colors.error || '#ef4444' }
+              ]}
             >
               <MaterialCommunityIcons name="delete" size={16} color="white" />
               <UIText
@@ -121,7 +123,7 @@ export const ApiKeyCard: React.FC<ApiKeyCardProps> = ({
             </TouchableOpacity>
           </Animated.View>
         )}
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 };

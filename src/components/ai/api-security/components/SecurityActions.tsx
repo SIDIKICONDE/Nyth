@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import LinearGradient from 'react-native-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import tw from 'twrnc';
 import { useTheme } from '../../../../contexts/ThemeContext';
@@ -20,27 +19,23 @@ export const SecurityActions: React.FC<SecurityActionsProps> = ({ onMigrateKeys 
       entering={FadeInDown.delay(300).springify()}
       style={tw`mt-3`}
     >
-      {/* Bouton de migration avec gradient */}
+      {/* Bouton de migration simplifié */}
       <TouchableOpacity
         onPress={onMigrateKeys}
-        activeOpacity={0.8}
-        style={tw`mb-3`}
+        activeOpacity={0.7}
+        style={[
+          tw`p-4 rounded-xl flex-row items-center justify-center mb-3`,
+          { backgroundColor: currentTheme.colors.primary }
+        ]}
       >
-        <LinearGradient
-          colors={['#3b82f6', '#1d4ed8']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={tw`p-4 rounded-2xl flex-row items-center justify-center`}
-        >
-          <MaterialCommunityIcons
-            name="transfer"
-            size={20}
-            color="white"
-          />
-          <Text style={tw`ml-2 text-white font-bold`}>
-            {t('security.migrate.button', 'Migrer les clés existantes')}
-          </Text>
-        </LinearGradient>
+        <MaterialCommunityIcons
+          name="transfer"
+          size={20}
+          color="white"
+        />
+        <Text style={tw`ml-2 text-white font-bold`}>
+          {t('security.migrate.button', 'Migrer les clés existantes')}
+        </Text>
       </TouchableOpacity>
 
       {/* Info card avec style moderne */}

@@ -8,6 +8,9 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
+# Configuration des permissions React Native
+# setup_permissions!
+
 $RNFirebaseAnalyticsWithoutAdIdSupport = true
 
 # Forcer l'utilisation de frameworks statiques pour les pods Swift (Firebase 12)
