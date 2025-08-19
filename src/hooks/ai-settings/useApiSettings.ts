@@ -232,6 +232,7 @@ export function useApiSettings() {
 
   return {
     settings,
+    setSettings,
     isLoading,
     error,
     loadApiKeys,

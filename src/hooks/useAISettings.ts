@@ -19,18 +19,17 @@ export const useAISettings = (): UseAISettingsReturn => {
   const { t } = useTranslation();
 
   // Use modular hooks
+  const apiSettingsHook = useApiSettings();
   const {
     settings: apiSettings,
     loadApiKeys,
     saveApiKeys,
     isLoading: isLoadingSettings,
-  } = useApiSettings();
+  } = apiSettingsHook;
 
-  const [settings, setSettings] = useState<APISettings>(apiSettings);
-
-  useEffect(() => {
-    setSettings(apiSettings);
-  }, [apiSettings]);
+  // Utiliser directement apiSettings au lieu de maintenir une copie locale
+  // Cela évite les problèmes de synchronisation
+  const settings = apiSettings;
 
   // Loading states
   const [isSaving, setIsSaving] = useState(false);
@@ -43,11 +42,12 @@ export const useAISettings = (): UseAISettingsReturn => {
   const validation = useSettingsValidation();
 
   // Update a specific setting
+  // Utiliser setSettings du hook parent pour éviter la désynchronisation
   function updateSetting<K extends keyof APISettings>(
     key: K,
     value: APISettings[K]
   ) {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+    apiSettingsHook.setSettings((prev) => ({ ...prev, [key]: value }));
   }
 
   // Save all settings to AsyncStorage
