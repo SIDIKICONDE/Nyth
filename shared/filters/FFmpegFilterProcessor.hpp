@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../common/FilterTypes.hpp"
+#include "common/FilterTypes.hpp"
 #include <string>
 #include <vector>
 

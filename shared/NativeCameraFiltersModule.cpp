@@ -23,9 +23,9 @@ static NaayaAdvancedFilterParams g_naaya_filters_advanced_params = {
 };
 #ifdef __cplusplus
 #if __has_include(<NaayaJSI.h>)
-#include "Camera/filters/FilterManager.hpp"
-#include "Camera/filters/FilterFactory.hpp"
-#include "Camera/filters/FFmpegFilterProcessor.hpp"
+#include "filters/FilterManager.hpp"
+#include "filters/FilterFactory.hpp"
+#include "filters/FFmpegFilterProcessor.hpp"
 #include <iostream>
 
 namespace facebook::react {

@@ -1,5 +1,6 @@
 #include "FilterFactory.hpp"
 #include "FFmpegFilterProcessor.hpp"
+#include "vulkan/VulkanFilterProcessor.hpp"
 #include <iostream>
 
 namespace Camera {
@@ -17,6 +18,9 @@ std::shared_ptr<IFilterProcessor> FilterFactory::createProcessor(ProcessorType t
         
         case ProcessorType::OPENGL:
             return createOpenGLProcessor();
+        
+        case ProcessorType::VULKAN:
+            return createVulkanProcessor();
         
         case ProcessorType::CUSTOM:
             // Pour l'instant, retourner FFmpeg comme fallback
@@ -46,6 +50,11 @@ std::shared_ptr<IFilterProcessor> FilterFactory::createOpenGLProcessor() {
     return createFFmpegProcessor();
 }
 
+std::shared_ptr<IFilterProcessor> FilterFactory::createVulkanProcessor() {
+    std::cout << "[FilterFactory] Création du processeur Vulkan" << std::endl;
+    return std::make_shared<VulkanFilterProcessor>();
+}
+
 std::vector<std::string> FilterFactory::getAvailableProcessorTypes() {
     std::vector<std::string> types;
     
@@ -59,6 +68,11 @@ std::vector<std::string> FilterFactory::getAvailableProcessorTypes() {
     
     // OpenGL disponible partout
     types.push_back("OPENGL");
+    
+    // Vulkan disponible sur Android
+    #ifdef __ANDROID__
+    types.push_back("VULKAN");
+    #endif
     
     return types;
 }
@@ -77,6 +91,13 @@ bool FilterFactory::isProcessorTypeAvailable(ProcessorType type) {
         
         case ProcessorType::OPENGL:
             return true; // OpenGL disponible partout
+        
+        case ProcessorType::VULKAN:
+            #ifdef __ANDROID__
+            return true;
+            #else
+            return false;
+            #endif
         
         case ProcessorType::CUSTOM:
             return false; // Pas encore implémenté

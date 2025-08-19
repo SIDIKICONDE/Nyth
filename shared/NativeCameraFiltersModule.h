@@ -22,7 +22,7 @@
   #include <vector>
   #include <mutex>
   #include <optional>
-  #include "Camera/filters/FilterManager.hpp"
+  #include "filters/FilterManager.hpp"
 
   // Définir FFMPEG_AVAILABLE pour iOS maintenant
   #ifdef __APPLE__

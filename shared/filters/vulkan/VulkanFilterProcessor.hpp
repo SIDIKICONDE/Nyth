@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../common/FilterTypes.hpp"
+#include "../common/FilterTypes.hpp"
 #include <cstdint>
 #include <memory>
 #include <string>
