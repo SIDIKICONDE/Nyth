@@ -53,3 +53,16 @@ export const useRecordings = () => {
     deleteRecording,
   };
 };
+
+export const getRecordings = async (): Promise<Recording[]> => {
+  try {
+    const recordingsData = await AsyncStorage.getItem("recordings");
+    if (recordingsData) {
+      return JSON.parse(recordingsData);
+    }
+    return [];
+  } catch (error) {
+    console.error("Failed to get recordings from storage", error);
+    return [];
+  }
+};

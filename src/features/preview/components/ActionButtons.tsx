@@ -1,7 +1,6 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import Animated, { FadeInUp, FadeInRight } from 'react-native-reanimated';
+import Animated, { FadeInUp,  } from 'react-native-reanimated';
 import tw from 'twrnc';
 import { UIText } from '@/components/ui/Typography';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -19,58 +18,9 @@ export function ActionButtons({
   const exportColor = currentTheme.colors.primary;
 
   return (
-    <View style={tw`space-y-4`}>
-      {/* Bouton d'export principal */}
-      <Animated.View entering={FadeInUp.duration(500).delay(200)}>
-        <Pressable
-          onPress={onExport}
-          disabled={isExporting}
-          style={({ pressed }) => [
-            tw`rounded-2xl overflow-hidden`,
-            {
-              opacity: pressed ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.98 : 1 }],
-              shadowColor: exportColor,
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.3,
-              shadowRadius: 12,
-              elevation: 8,
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={
-              isExporting
-                ? [`${exportColor}80`, `${exportColor}60`]
-                : [exportColor, `${exportColor}E0`]
-            }
-            style={tw`p-4 flex-row items-center justify-center`}
-          >
-            <UIText size="lg" weight="bold" style={tw`text-white`}>
-              {isExporting
-                ? t('preview.actions.exporting', 'Export en cours...')
-                : t('preview.actions.exportAndShare', 'Exporter et Partager')}
-            </UIText>
-
-            {isExporting && (
-              <View style={tw`ml-3`}>
-                <Animated.View
-                  entering={FadeInRight.duration(300)}
-                  style={[
-                    tw`w-5 h-5 rounded-full border-2 border-white border-t-transparent`,
-                    {
-                      transform: [{ rotate: '45deg' }],
-                    },
-                  ]}
-                />
-              </View>
-            )}
-          </LinearGradient>
-        </Pressable>
-      </Animated.View>
-
+    <View style={tw`flex-row justify-between items-center`}>
       {/* Bouton de partage basique */}
-      <Animated.View entering={FadeInUp.duration(500).delay(400)}>
+      <Animated.View style={tw`flex-1 mr-2`} entering={FadeInUp.duration(500).delay(400)}>
         <Pressable
           onPress={onBasicShare}
           disabled={isExporting}
@@ -83,7 +33,29 @@ export function ActionButtons({
           ]}
         >
           <UIText size="base" weight="medium" style={tw`text-gray-700 dark:text-gray-300`}>
-            {t('preview.actions.basicShare', 'Partage Rapide')}
+            {t('preview.actions.basicShare', 'Partager')}
+          </UIText>
+        </Pressable>
+      </Animated.View>
+
+      {/* Bouton d'export principal */}
+      <Animated.View style={tw`flex-1 ml-2`} entering={FadeInUp.duration(500).delay(200)}>
+        <Pressable
+          onPress={onExport}
+          disabled={isExporting}
+          style={({ pressed }) => [
+            tw`rounded-2xl p-4 flex-row items-center justify-center`,
+            {
+              backgroundColor: isExporting ? `${exportColor}80` : exportColor,
+              opacity: pressed ? 0.9 : 1,
+              transform: [{ scale: pressed ? 0.98 : 1 }],
+            },
+          ]}
+        >
+          <UIText size="lg" weight="bold" style={tw`text-white`}>
+            {isExporting
+              ? t('preview.actions.exporting', 'Export en cours...')
+              : t('preview.actions.export', 'Exporter')}
           </UIText>
         </Pressable>
       </Animated.View>

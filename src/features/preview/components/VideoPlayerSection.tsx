@@ -1,22 +1,20 @@
 import React from 'react';
 import { View, Dimensions } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import Video from 'react-native-video';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import tw from 'twrnc';
 import { UIText } from '@/components/ui/Typography';
-import { useTheme } from '@/contexts/ThemeContext';
 import { VideoPlayerSectionProps } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const VIDEO_HEIGHT = (SCREEN_WIDTH * 9) / 16;
 
 export function VideoPlayerSection({
-  recording,
+  recording: _recording,
   previewVideoUri,
   isGeneratingPreview,
   videoSize,
 }: VideoPlayerSectionProps) {
-  const { currentTheme } = useTheme();
 
   if (isGeneratingPreview) {
     return (
@@ -51,10 +49,10 @@ export function VideoPlayerSection({
             width: SCREEN_WIDTH - 32,
             height: VIDEO_HEIGHT,
           }}
-          useNativeControls
-          resizeMode={ResizeMode.CONTAIN}
-          isLooping={false}
-          shouldPlay={false}
+          controls={true}
+          resizeMode="contain"
+          repeat={false}
+          paused={true}
         />
       </View>
       

@@ -1,7 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useState } from 'react';
-import { useRoute } from '@react-navigation/native';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useCallback } from 'react';
+import { useRoute, RouteProp } from '@react-navigation/native';
+import { getRecordings } from '@/hooks/useRecordings';
 import { RootStackParamList } from '@/types';
 import { LOADING_DELAY } from '../constants';
 import { usePreviewState } from './usePreviewState';
@@ -12,8 +12,6 @@ type PreviewScreenRouteProp = RouteProp<RootStackParamList, 'Preview'>;
 
 export function usePreviewData(): UsePreviewDataReturn {
   const route = useRoute<PreviewScreenRouteProp>();
-  const { t } = useTranslation();
-  const [isInitialized, setIsInitialized] = useState(false);
 
   const previewState = usePreviewState();
   const {
@@ -47,6 +45,12 @@ export function usePreviewData(): UsePreviewDataReturn {
   });
 
   const loadRecording = useCallback(async () => {
+    if (!route.params?.recordingId) {
+      setRecording(null);
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       await new Promise(resolve => setTimeout(resolve, LOADING_DELAY));
@@ -56,36 +60,54 @@ export function usePreviewData(): UsePreviewDataReturn {
         return;
       }
 
-      // Simulation du chargement d'un enregistrement
-      const mockRecording = {
-        id: route.params.recordingId,
-        scriptId: route.params.scriptId || 'demo',
-        scriptTitle: route.params.scriptTitle || 'Démo Prévisualisation',
-        videoUri: route.params.videoUri || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        duration: route.params.duration || 60,
-        createdAt: new Date().toISOString(),
-        thumbnailUri: route.params.thumbnailUri || null,
-      };
-
-      setRecording(mockRecording);
-      setPreviewVideoUri(mockRecording.videoUri);
-      setVideoSize('15.2 MB');
-      setIsGeneratingPreview(false);
+      // Charger les enregistrements depuis AsyncStorage
+      const allRecordings = await getRecordings();
+      
+      // Trouver l'enregistrement spécifique par ID
+      const foundRecording = allRecordings.find(rec => rec.id === route.params.recordingId);
+      
+      if (foundRecording) {
+        setRecording(foundRecording);
+        setPreviewVideoUri(foundRecording.videoUri || foundRecording.uri || '');
+        
+        // Calculer la taille approximative de la vidéo (en MB)
+        const videoSizeInMB = foundRecording.duration ? 
+          (foundRecording.duration * 0.25).toFixed(1) : '0';
+        setVideoSize(`${videoSizeInMB} MB`);
+        setIsGeneratingPreview(false);
+      } else {
+        // Si l'enregistrement n'est pas trouvé, utiliser les données passées en paramètres
+        // ou afficher une erreur
+        if (route.params?.videoUri) {
+          const fallbackRecording = {
+            id: route.params.recordingId,
+            scriptId: route.params.scriptId,
+            scriptTitle: route.params.scriptTitle || 'Sans titre',
+            videoUri: route.params.videoUri,
+            duration: route.params.duration || 0,
+            createdAt: new Date().toISOString(),
+            thumbnailUri: route.params.thumbnailUri || null,
+          };
+          setRecording(fallbackRecording);
+          setPreviewVideoUri(fallbackRecording.videoUri);
+          setVideoSize('N/A');
+          setIsGeneratingPreview(false);
+        } else {
+          setRecording(null);
+        }
+      }
     } catch (error) {
       console.error('Erreur lors du chargement:', error);
       setRecording(null);
     } finally {
       setTimeout(() => setLoading(false), 500);
     }
-  }, [route.params, setRecording, setLoading, setPreviewVideoUri, setVideoSize, setIsGeneratingPreview]);
+  }, [route.params?.recordingId, route.params?.videoUri, route.params?.scriptId, route.params?.scriptTitle, route.params?.duration, route.params?.thumbnailUri, setRecording, setLoading, setPreviewVideoUri, setVideoSize, setIsGeneratingPreview]);
 
   useFocusEffect(
     useCallback(() => {
-      if (!isInitialized) {
-        loadRecording();
-        setIsInitialized(true);
-      }
-    }, [isInitialized, loadRecording, setIsInitialized])
+      loadRecording();
+    }, [loadRecording])
   );
 
   return {
@@ -103,5 +125,6 @@ export function usePreviewData(): UsePreviewDataReturn {
     handleShare: actions.handleShare,
     handleBasicShare: actions.handleBasicShare,
     handleDelete: actions.handleDelete,
+    loadRecording,
   };
 }

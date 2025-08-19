@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { PreviewState } from '../types';
 
 export function usePreviewState() {
@@ -14,32 +14,32 @@ export function usePreviewState() {
     showSocialShare: false,
   });
 
-  const setRecording = (recording: PreviewState['recording']) => 
-    setState(prev => ({ ...prev, recording }));
+  const setRecording = useCallback((recording: PreviewState['recording']) => 
+    setState(prev => ({ ...prev, recording })), []);
   
-  const setLoading = (loading: boolean) => 
-    setState(prev => ({ ...prev, loading }));
+  const setLoading = useCallback((loading: boolean) => 
+    setState(prev => ({ ...prev, loading })), []);
   
-  const setIsExporting = (isExporting: boolean) => 
-    setState(prev => ({ ...prev, isExporting }));
+  const setIsExporting = useCallback((isExporting: boolean) => 
+    setState(prev => ({ ...prev, isExporting })), []);
   
-  const setExportProgress = (exportProgress: number) => 
-    setState(prev => ({ ...prev, exportProgress }));
+  const setExportProgress = useCallback((exportProgress: number) => 
+    setState(prev => ({ ...prev, exportProgress })), []);
   
-  const setCurrentStep = (currentStep: string) => 
-    setState(prev => ({ ...prev, currentStep }));
+  const setCurrentStep = useCallback((currentStep: string) => 
+    setState(prev => ({ ...prev, currentStep })), []);
   
-  const setVideoSize = (videoSize: string) => 
-    setState(prev => ({ ...prev, videoSize }));
+  const setVideoSize = useCallback((videoSize: string) => 
+    setState(prev => ({ ...prev, videoSize })), []);
   
-  const setPreviewVideoUri = (previewVideoUri: string | null) => 
-    setState(prev => ({ ...prev, previewVideoUri }));
+  const setPreviewVideoUri = useCallback((previewVideoUri: string | null) => 
+    setState(prev => ({ ...prev, previewVideoUri })), []);
   
-  const setIsGeneratingPreview = (isGeneratingPreview: boolean) => 
-    setState(prev => ({ ...prev, isGeneratingPreview }));
+  const setIsGeneratingPreview = useCallback((isGeneratingPreview: boolean) => 
+    setState(prev => ({ ...prev, isGeneratingPreview })), []);
   
-  const setShowSocialShare = (showSocialShare: boolean) => 
-    setState(prev => ({ ...prev, showSocialShare }));
+  const setShowSocialShare = useCallback((showSocialShare: boolean) => 
+    setState(prev => ({ ...prev, showSocialShare })), []);
 
   return {
     ...state,
