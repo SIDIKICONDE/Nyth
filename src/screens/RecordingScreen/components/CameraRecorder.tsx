@@ -20,6 +20,7 @@ interface CameraRecorderProps {
   teleprompterSettings?: Partial<TeleprompterSettings>;
   scrollSpeed?: number;
   backgroundOpacity?: number;
+  onProvideEmergencyStop?: (fn: () => Promise<string | null>) => void;
 }
 
 export function CameraRecorder({
@@ -35,6 +36,7 @@ export function CameraRecorder({
   teleprompterSettings,
   scrollSpeed = 50,
   backgroundOpacity = 80,
+  onProvideEmergencyStop,
 }: CameraRecorderProps) {
   const [isPaused, setIsPaused] = React.useState(false);
   const [teleprompterEnabled, setTeleprompterEnabled] = React.useState(true);
@@ -60,6 +62,7 @@ export function CameraRecorder({
         onRecordingStop={onRecordingStop}
         onTeleprompterToggle={setTeleprompterEnabled}
         onRecordingStateChange={(state) => setIsPaused(state.isPaused)}
+        onProvideEmergencyStop={onProvideEmergencyStop}
       />
 
       {teleprompterVisible && mergedSettings && (

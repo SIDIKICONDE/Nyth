@@ -80,6 +80,8 @@ export default function RecordingScreen({}: RecordingScreenProps) {
   });
 
   // Sauvegarde d'urgence
+  const emergencyStopRef = useRef<() => Promise<string | null> | null>(null);
+
   useEmergencyRecordingSave({
     onSaveStarted: () => {
       logger.info("Sauvegarde d'urgence démarrée");
@@ -98,9 +100,16 @@ export default function RecordingScreen({}: RecordingScreenProps) {
       setIsLoading(false);
       captureError(error, "sauvegarde_urgence");
     },
-    // Implémentation de l'arrêt d'urgence: on ne peut pas stopper depuis ici
-    // mais on peut signaler l'absence et laisser le hook tomber sur son fallback
-    stopActiveRecordingAndGetPath: async () => null,
+    stopActiveRecordingAndGetPath: async () => {
+      try {
+        const fn = emergencyStopRef.current;
+        if (fn) {
+          const path = await fn();
+          return path;
+        }
+      } catch (e) {}
+      return null;
+    },
   });
 
   // Paramètres de l'écran
@@ -620,6 +629,9 @@ export default function RecordingScreen({}: RecordingScreenProps) {
           }}
           onEditText={() => {
             navigation.navigate("Editor", { scriptId: script?.id });
+          }}
+          onProvideEmergencyStop={(fn) => {
+            emergencyStopRef.current = fn;
           }}
         />
 

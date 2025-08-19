@@ -26,6 +26,7 @@ interface CameraModuleProps {
   onRecordingStop?: () => void;
   onTeleprompterToggle?: (enabled: boolean) => void;
   onRecordingStateChange?: (state: RecordingState) => void;
+  onProvideEmergencyStop?: (fn: () => Promise<string | null>) => void;
 }
 
 export const CameraModule: React.FC<CameraModuleProps> = ({
@@ -37,6 +38,7 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
   onRecordingStop,
   onTeleprompterToggle,
   onRecordingStateChange,
+  onProvideEmergencyStop,
 }) => {
   const {
     cameraRef,
@@ -46,6 +48,7 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
     recordingState,
     controls,
     setStartRecordingOptions,
+    stopRecordingAndGetFile,
   } = useCamera(initialPosition);
 
   // Hook pour les options avancées
@@ -84,6 +87,16 @@ export const CameraModule: React.FC<CameraModuleProps> = ({
   useEffect(() => {
     onRecordingStateChange?.(recordingState);
   }, [recordingState, onRecordingStateChange]);
+
+  // Exposer une fonction d'arrêt d'urgence qui retourne le chemin du fichier
+  useEffect(() => {
+    if (!onProvideEmergencyStop) return;
+    const provider = async () => {
+      const file = await stopRecordingAndGetFile();
+      return file?.path ?? null;
+    };
+    onProvideEmergencyStop(provider);
+  }, [onProvideEmergencyStop, stopRecordingAndGetFile]);
 
   // Mettre à jour les options d'enregistrement lorsque la config avancée change
   useEffect(() => {
