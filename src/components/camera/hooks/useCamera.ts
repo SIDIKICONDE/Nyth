@@ -165,12 +165,8 @@ export const useCamera = (initialPosition: CameraPosition = "back") => {
   }, []);
 
   const toggleFlash = useCallback(() => {
-    if (device?.hasTorch) {
-      setFlash((prev) => (prev === "off" ? "on" : "off"));
-    } else {
-      console.log("Flash not available on this device");
-    }
-  }, [device]);
+    setFlash((prev) => (prev === "off" ? "on" : "off"));
+  }, []);
 
   const controls: CameraControls = {
     startRecording,

@@ -26,7 +26,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
     cameraRef,
     device,
     position,
-    isFlashOn,
+    flash,
     recordingState,
     hasCameraPermission,
     hasMicrophonePermission,
@@ -71,7 +71,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
         isActive={true}
         video={true}
         audio={true}
-        torch={isFlashOn ? "on" : "off"}
+        torch={flash}
         enableZoomGesture
         photo={true}
       />
