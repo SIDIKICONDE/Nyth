@@ -8,13 +8,23 @@ import RNFS from "react-native-fs";
  */
 export class FileManager {
   private static toLocalPath(uri: string): string {
-    return uri.startsWith("file://") ? uri.replace("file://", "") : uri;
+    if (!uri) return uri;
+    if (uri.startsWith("file://")) return uri.replace("file://", "");
+    // Gérer les URI content:// en les copiant d'abord vers un chemin temporaire lisible par RNFS si besoin
+    if (uri.startsWith("content://")) {
+      // RNFS.stat échouera sur content://; laisser l'appelant gérer une copie si nécessaire
+      return uri;
+    }
+    return uri;
   }
   /**
    * Vérifie qu'un fichier vidéo existe
    */
   public static async validateVideoFile(videoUri: string): Promise<void> {
     const localPath = this.toLocalPath(videoUri);
+    if (localPath.startsWith("content://")) {
+      throw new Error("Chemin content:// non supporté pour la validation");
+    }
     const fileInfo = await RNFS.stat(localPath);
     if (!fileInfo.isFile()) {
       throw new Error("Fichier vidéo introuvable");
@@ -86,9 +96,6 @@ export class FileManager {
    */
   public static async saveToGallery(videoUri: string): Promise<boolean> {
     try {
-      // Vérifier que le fichier existe avant de continuer
-      await this.validateVideoFile(videoUri);
-
       // Demander les permissions nécessaires
       const hasPermission = await this.requestGalleryPermissions();
       if (!hasPermission) {
@@ -107,11 +114,41 @@ export class FileManager {
         return false;
       }
 
-      // Normaliser l'URI pour iOS
-      const normalizedUri =
-        Platform.OS === "ios" && !videoUri.startsWith("file://")
-          ? `file://${videoUri}`
-          : videoUri;
+      // Préparer une URI exploitable par RNFS et CameraRoll
+      let normalizedUri = videoUri || "";
+      const isContent = normalizedUri.startsWith("content://");
+      const isFile = normalizedUri.startsWith("file://");
+      const isHttp = normalizedUri.startsWith("http://") || normalizedUri.startsWith("https://");
+
+      if (!isHttp && !isFile && !isContent && normalizedUri.startsWith("/")) {
+        normalizedUri = `file://${normalizedUri}`;
+      }
+
+      if (isContent) {
+        const tmpPath = `${RNFS.CachesDirectoryPath}/export_${Date.now()}.mp4`;
+        try {
+          // Essayer une copie directe
+          await RNFS.copyFile(normalizedUri as any, tmpPath as any);
+          normalizedUri = `file://${tmpPath}`;
+        } catch (copyErr) {
+          try {
+            // Fallback: lire en base64 puis écrire
+            const base64 = await RNFS.readFile(normalizedUri as any, 'base64');
+            await RNFS.writeFile(tmpPath, base64, 'base64');
+            normalizedUri = `file://${tmpPath}`;
+          } catch (readErr) {
+            Alert.alert(
+              "Erreur de sauvegarde",
+              "Impossible d'accéder à la vidéo pour l'enregistrer dans la galerie.",
+              [{ text: "OK" }]
+            );
+            return false;
+          }
+        }
+      }
+
+      // Vérifier que le fichier existe avant de continuer (après éventuelle conversion)
+      await this.validateVideoFile(normalizedUri);
 
       // Sauvegarder la vidéo dans la galerie
       const result = await CameraRoll.save(normalizedUri, {

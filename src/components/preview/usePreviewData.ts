@@ -88,11 +88,18 @@ export function usePreviewData(): UsePreviewDataReturn {
 
       if (foundRecording) {
         setRecording(foundRecording);
-        setPreviewVideoUri(foundRecording.videoUri);
+        // Normaliser l'URI intelligemment
+        const uri = foundRecording.videoUri;
+        const isHttp = uri?.startsWith('http://') || uri?.startsWith('https://');
+        const isContent = uri?.startsWith('content://');
+        const isFile = uri?.startsWith('file://');
+        const isAbsolutePath = uri?.startsWith('/') && !isFile;
+        const normalized = isHttp || isContent || isFile ? uri : (isAbsolutePath ? `file://${uri}` : uri);
+        setPreviewVideoUri(normalized || '');
 
         // Calculer la taille du fichier vidéo de manière sécurisée
         try {
-          const size = await calculateVideoSize(foundRecording.videoUri, t);
+          const size = await calculateVideoSize(normalized || '', t);
           setVideoSize(size);
         } catch (sizeError) {
           setVideoSize("Taille inconnue");

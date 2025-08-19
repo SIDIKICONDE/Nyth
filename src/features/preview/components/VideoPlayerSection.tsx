@@ -52,7 +52,7 @@ export function VideoPlayerSection({
           controls={true}
           resizeMode="contain"
           repeat={false}
-          paused={true}
+          paused={false}
         />
       </View>
       

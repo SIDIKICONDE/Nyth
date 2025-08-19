@@ -68,12 +68,25 @@ export function usePreviewData(): UsePreviewDataReturn {
       
       if (foundRecording) {
         setRecording(foundRecording);
-        setPreviewVideoUri(foundRecording.videoUri || foundRecording.uri || '');
+        // Normaliser l'URI pour la lecture: conserver http(s) et content, ajouter file:// aux chemins absolus
+        const uri = foundRecording.videoUri || foundRecording.uri || '';
+        const isHttp = uri.startsWith('http://') || uri.startsWith('https://');
+        const isContent = uri.startsWith('content://');
+        const isFile = uri.startsWith('file://');
+        const isAbsolutePath = uri.startsWith('/') && !isFile;
+        const normalized = isHttp || isContent || isFile ? uri : (isAbsolutePath ? `file://${uri}` : uri);
+        setPreviewVideoUri(normalized);
         
-        // Calculer la taille approximative de la vidéo (en MB)
-        const videoSizeInMB = foundRecording.duration ? 
-          (foundRecording.duration * 0.25).toFixed(1) : '0';
-        setVideoSize(`${videoSizeInMB} MB`);
+        // Calculer la taille réelle du fichier
+        try {
+          const pathForStat = normalized.replace('file://', '');
+          const stat = await (await import('react-native-fs')).default.stat(pathForStat);
+          const sizeMB = stat.isFile() && 'size' in stat ? (stat.size / (1024 * 1024)).toFixed(1) : '0';
+          setVideoSize(`${sizeMB} MB`);
+        } catch (e) {
+          const videoSizeInMB = foundRecording.duration ? (foundRecording.duration * 0.25).toFixed(1) : '0';
+          setVideoSize(`${videoSizeInMB} MB`);
+        }
         setIsGeneratingPreview(false);
       } else {
         // Si l'enregistrement n'est pas trouvé, utiliser les données passées en paramètres
@@ -83,7 +96,15 @@ export function usePreviewData(): UsePreviewDataReturn {
             id: route.params.recordingId,
             scriptId: route.params.scriptId,
             scriptTitle: route.params.scriptTitle || 'Sans titre',
-            videoUri: route.params.videoUri,
+            videoUri: (() => {
+              const v = route.params.videoUri;
+              if (!v) return '';
+              const isHttp = v.startsWith('http://') || v.startsWith('https://');
+              const isContent = v.startsWith('content://');
+              const isFile = v.startsWith('file://');
+              const isAbsolutePath = v.startsWith('/') && !isFile;
+              return isHttp || isContent || isFile ? v : (isAbsolutePath ? `file://${v}` : v);
+            })(),
             duration: route.params.duration || 0,
             createdAt: new Date().toISOString(),
             thumbnailUri: route.params.thumbnailUri || null,

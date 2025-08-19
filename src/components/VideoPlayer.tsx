@@ -51,6 +51,9 @@ export default function VideoPlayer({
     videoId || `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   // Validation de l'URI vidéo
+  const toLocalPath = (uri: string): string =>
+    uri && uri.startsWith("file://") ? uri.replace("file://", "") : uri;
+
   const validateVideoUri = async (uri: string) => {
     try {
       if (!uri || uri.trim() === "") {
@@ -58,12 +61,12 @@ export default function VideoPlayer({
       }
 
       // Vérifier si le fichier existe
-      const fileExists = await RNFS.exists(uri);
+      const fileExists = await RNFS.exists(toLocalPath(uri));
       if (!fileExists) {
         throw new Error("Fichier vidéo introuvable");
       }
 
-      const fileInfo = await RNFS.stat(uri);
+      const fileInfo = await RNFS.stat(toLocalPath(uri));
       if (!fileInfo.isFile()) {
         throw new Error("Le chemin ne pointe pas vers un fichier valide");
       }
@@ -260,7 +263,7 @@ export default function VideoPlayer({
         setVideoFormat(t("videoPlayer.formats.hevc", "HEVC"));
       } else {
         // Utiliser RNFS pour obtenir les informations du fichier
-        const fileInfo = await RNFS.stat(uri);
+        const fileInfo = await RNFS.stat(toLocalPath(uri));
         if (fileInfo.isFile()) {
           if (uri.includes("mp4")) {
             setVideoFormat(t("videoPlayer.formats.mp4", "MP4"));

@@ -44,9 +44,13 @@ export const usePreviewActions = ({
     setCurrentStep(t("preview.export.steps.preparation"));
 
     try {
+      // Normaliser l'URI pour RNFS
+      const toLocalPath = (uri: string) =>
+        uri && uri.startsWith("file://") ? uri.replace("file://", "") : uri;
+
       const videoToExport = recording.videoUri;
 
-      const fileInfo = await RNFS.stat(videoToExport);
+      const fileInfo = await RNFS.stat(toLocalPath(videoToExport));
       const estimatedSize =
         fileInfo.isFile() && "size" in fileInfo ? fileInfo.size * 0.8 : 0;
 
