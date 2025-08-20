@@ -1,0 +1,247 @@
+{
+  "autoSave": {
+    "active": "Active",
+    "autoSave": "Auto-save",
+    "last": "Last",
+    "minutes": "m",
+    "now": "now",
+    "saved": "Saved",
+    "seconds": "s"
+  },
+  "cache": {
+    "daysAgo": "{{days}} days",
+    "noData": "No data",
+    "noDataDescription": "No data in cache.\nCache will be automatically created during usage.",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "cacheManager": {
+    "errors": {
+      "androidError": "An error occurred while clearing the cache.",
+      "androidResetError": "An error occurred while resetting the application.",
+      "androidSettingsResetError": "An error occurred while resetting the settings.",
+      "cacheClearError": "Error clearing cache:",
+      "cacheDirectoryNotFound": "Cache directory not found",
+      "cacheSizeError": "Error calculating cache size:",
+      "cannotAccessAppCache": "Cannot access app cache:",
+      "cannotAccessSystemDir": "Cannot access {{dir}}:",
+      "cannotAccessSystemDirs": "Cannot access system directories:",
+      "cannotCleanDirectory": "Cannot clean directory {{dir}}:",
+      "cannotDeleteAppCacheFile": "Cannot delete {{file}} in app cache:",
+      "cannotDeleteFile": "Cannot delete {{file}}:",
+      "cannotDeleteInDirectory": "Cannot delete {{file}} in {{dir}}:",
+      "cannotForceGC": "Cannot force garbage collection:",
+      "cannotReadFileSize": "Cannot read size of {{file}}:",
+      "iosError": "Cannot access app cache. Please try again or restart the application.",
+      "iosResetError": "Cannot fully reset the application. Please try again or reinstall the application.",
+      "iosSettingsResetError": "Cannot reset settings. Please try again.",
+      "resetError": "❌ Error during reset:",
+      "settingsResetError": "❌ Error during settings reset:"
+    },
+    "logs": {
+      "allDirectoriesCleaned": "✅ All directories cleaned",
+      "cachesCleaned": "✅ Caches cleaned",
+      "cleaningAllDirectories": "🗑️ Cleaning all directories...",
+      "cleaningCaches": "🗑️ Cleaning caches...",
+      "cleaningPersistentData": "🗑️ Cleaning persistent data...",
+      "cleaningSettings": "🗑️ Cleaning settings...",
+      "cleaningTempCaches": "🗑️ Cleaning temp caches...",
+      "persistentDataCleaned": "✅ Persistent data cleaned",
+      "preparingRestart": "🔄 Preparing restart...",
+      "resetComplete": "✨ Full reset complete!",
+      "restartWarning": "⚠️ To complete the reset, please manually restart the application.",
+      "restoringUserData": "📦 Restoring user data...",
+      "settingsCleaned": "✅ Settings cleaned",
+      "settingsResetComplete": "✨ Settings reset complete!",
+      "startingReset": "🔄 Starting full reset...",
+      "startingSettingsReset": "🔄 Starting settings reset...",
+      "tempCachesCleaned": "✅ Temp caches cleaned",
+      "userDataRestored": "✅ User data restored"
+    },
+    "sizes": {
+      "bytes": "B",
+      "gigabytes": "GB",
+      "kilobytes": "KB",
+      "megabytes": "MB"
+    }
+  },
+  "colorPicker": {
+    "accessibility": {
+      "collapseButton": "Collapse color palette",
+      "colorOption": "Color option {{color}}",
+      "colorPreview": "Color preview",
+      "expandButton": "Expand color palette",
+      "hexInput": "Hexadecimal color input",
+      "selectedColor": "Selected color: {{color}}"
+    },
+    "buttons": {
+      "collapse": "Show fewer colors",
+      "expand": "Show more colors",
+      "random": "Random color",
+      "reset": "Reset to default"
+    },
+    "categories": {
+      "extended": "Extended Palette",
+      "favorites": "Favorites",
+      "preset": "Preset Colors",
+      "recent": "Recently Used"
+    },
+    "contrast": {
+      "high": "High contrast",
+      "low": "Low contrast",
+      "medium": "Medium contrast",
+      "ratio": "Contrast ratio: {{ratio}}"
+    },
+    "labels": {
+      "accentColor": "Accent Color",
+      "backgroundColor": "Background Color",
+      "borderColor": "Border Color",
+      "color": "Color",
+      "primaryColor": "Primary Color",
+      "secondaryColor": "Secondary Color",
+      "shadowColor": "Shadow Color",
+      "textColor": "Text Color"
+    },
+    "placeholders": {
+      "enterHex": "Enter hexadecimal color",
+      "hexInput": "#RRGGBB"
+    },
+    "title": "Color",
+    "utils": {
+      "brighten": "Brighten by {{percent}}%",
+      "brightness": "Brightness: {{value}}",
+      "darken": "Darken by {{percent}}%",
+      "luminance": "Luminance: {{value}}"
+    },
+    "validation": {
+      "aaaRecommended": "AAA level recommended (current: {{current}})",
+      "addHashPrefix": "Add the # prefix to the color code",
+      "adjustBrightness": "Try adjusting the brightness",
+      "considerDifferentColors": "Consider using very different colors",
+      "correctLength": "The color code must be 7 characters long",
+      "emptyColor": "The color cannot be empty",
+      "extremeLuminance": "The color has extreme luminance values",
+      "insufficientContrast": "Insufficient contrast ({{current}}/{{required}})",
+      "invalidColors": "One or both colors are invalid",
+      "invalidHex": "Invalid hexadecimal color format",
+      "validHex": "Valid color format",
+      "veryDark": "This color is very dark and may be hard to see",
+      "veryLight": "This color is very light and may be hard to see"
+    }
+  },
+  "fabDesignSelector": {
+    "classicMenu": {
+      "quickActions": "Quick Actions",
+      "quickActionsSubtitle": "Quickly access features"
+    },
+    "description": "Choose the display style of the floating menu on the home page",
+    "designs": {
+      "classic": {
+        "description": "Traditional horizontal bar",
+        "name": "Classic"
+      },
+      "dock": {
+        "description": "macOS dock style with zoom",
+        "name": "Dock Style 🚀"
+      },
+      "orbital": {
+        "description": "Buttons that orbit around the center",
+        "name": "Orbital ✨"
+      },
+      "stacked": {
+        "description": "Cards that unfold with rotation",
+        "name": "Stacked Cards 🃏"
+      }
+    },
+    "note": "The style change will be applied immediately on the home page.",
+    "title": "Floating Menu Style"
+  },
+  "fonts": {
+    "categories": {
+      "content": "Content",
+      "heading": "Headings",
+      "ui": "User interface"
+    },
+    "condensed": "Condensed",
+    "customized": "Custom fonts",
+    "display": "Display",
+    "elegant": "Elegant",
+    "errors": {
+      "loadPreference": "Error loading font preference:",
+      "savePreference": "Error saving font preference:"
+    },
+    "handwriting": "Handwriting",
+    "modern": "Modern",
+    "monospace": "Monospace",
+    "preview": {
+      "description": "This font will be used to display all messages in the conversation.",
+      "quick": "Preview: ABC abc 123",
+      "title": "Font Preview"
+    },
+    "rounded": "Rounded",
+    "serif": "Serif",
+    "system": "System",
+    "tech": "Tech",
+    "title": "Font Family"
+  },
+  "loading": {
+    "default": "Loading...",
+    "initializing": "Initializing...",
+    "subtitle": "Your smart prompter"
+  },
+  "loadingSection": {
+    "appName": "Nyth",
+    "errors": {
+      "appStateCheck": "Error checking app state:"
+    },
+    "initializing": "Initializing...",
+    "subtitle": "Your smart prompter"
+  },
+  "menu": {
+    "ai": "AI",
+    "backToConversations": "Back to conversations",
+    "confirmDelete": "Are you sure you want to delete this conversation?",
+    "conversationCopied": "Conversation summary copied to clipboard",
+    "conversationDeleted": "Conversation deleted",
+    "conversations": "Conversations",
+    "copied": "Copied",
+    "copy": "Copy",
+    "creating": "Creating...",
+    "days": {
+      "fri": "Fri",
+      "mon": "Mon",
+      "sat": "Sat",
+      "sun": "Sun",
+      "thu": "Thu",
+      "tue": "Tue",
+      "wed": "Wed"
+    },
+    "delete": "Delete",
+    "deleteDescription": "This action is irreversible.",
+    "deleteError": "Unable to delete conversation",
+    "deleteSuccess": "Conversation deleted successfully",
+    "messages": "Messages",
+    "newConversation": "New conversation",
+    "noConversations": "No conversations",
+    "noConversationsSubtitle": "Start a new conversation with AI",
+    "noResults": "No results",
+    "noResultsDescription": "Try with different keywords",
+    "noResultsSubtitle": "No conversations match your search",
+    "older": "Older",
+    "rename": "Rename",
+    "renameError": "Unable to rename conversation",
+    "renamePrompt": "Enter a new title for this conversation",
+    "renameTitle": "Rename conversation",
+    "search": "Search...",
+    "searchPlaceholder": "Search in conversations...",
+    "settings": "Settings",
+    "share": "Share",
+    "shareConversation": "Conversation: {{title}}",
+    "shareError": "Unable to share conversation",
+    "startNewConversation": "Start a new conversation with AI",
+    "thisWeek": "This Week",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "you": "You"
+  }
+}

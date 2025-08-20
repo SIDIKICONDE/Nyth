@@ -1,0 +1,45 @@
+export const DROPDOWN_CONFIG = {
+  MAX_HEIGHT: 300,
+  BORDER_RADIUS: 8,
+  ELEVATION: 5,
+  SHADOW_OPACITY: 0.25,
+  SHADOW_RADIUS: 3.84,
+} as const;
+
+export const UI_CONFIG = {
+  MINIMUM_TOUCH_SIZE: 44,
+  ICON_SIZE: 18,
+  CHEVRON_SIZE: 12,
+  CHECK_ICON_SIZE: 16,
+  ADD_ICON_SIZE: 18,
+} as const;
+
+export const SPACING = {
+  CONTAINER_BOTTOM: 16,
+  LABEL_BOTTOM: 6,
+  PICKER_HORIZONTAL: 12,
+  PICKER_VERTICAL: 12,
+  DROPDOWN_TOP: 4,
+  CATEGORY_GAP: 8,
+  SEPARATOR_VERTICAL: 8,
+  SEPARATOR_HORIZONTAL: 12,
+  ADD_BUTTON_MARGIN: 8,
+} as const;
+
+export const Z_INDEX = {
+  OVERLAY: 999,
+  DROPDOWN: 1001,
+  CONTAINER: 1000,
+} as const;
+
+export const ANIMATION_CONFIG = {
+  CHEVRON_ROTATION_OPEN: "180deg",
+  CHEVRON_ROTATION_CLOSED: "0deg",
+} as const;
+
+export const CUSTOM_CATEGORY_LABELS = {
+  BADGE_TEXT: "Perso",
+  SEPARATOR_TITLE: "Catégories personnalisées",
+  ADD_BUTTON_TEXT: "Ajouter une catégorie",
+  PLACEHOLDER_TEXT: "Choisir une catégorie",
+} as const;

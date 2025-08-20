@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient principal Aurora -->
+    <linearGradient id="auroraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#a855f7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f472b6;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradient de fond -->
+    <radialGradient id="backgroundGradient" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f0f23;stop-opacity:1" />
+    </radialGradient>
+    
+    <!-- Gradient pour l'effet de lumière -->
+    <radialGradient id="glowGradient" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0" />
+    </radialGradient>
+    
+    <!-- Ombre portée -->
+    <filter id="dropShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+    
+    <!-- Effet de brillance -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Fond avec coins arrondis iOS -->
+  <rect width="1024" height="1024" rx="180" ry="180" fill="url(#backgroundGradient)"/>
+  
+  <!-- Effet de lumière d'ambiance -->
+  <ellipse cx="512" cy="400" rx="400" ry="300" fill="url(#glowGradient)"/>
+  
+  <!-- Conteneur principal centré -->
+  <g transform="translate(512, 512)">
+    
+    <!-- Icône de caméra stylisée -->
+    <g transform="translate(0, -40)">
+      <!-- Corps de la caméra -->
+      <rect x="-120" y="-60" width="240" height="160" rx="24" ry="24" 
+            fill="url(#auroraGradient)" filter="url(#dropShadow)"/>
+      
+      <!-- Objectif principal -->
+      <circle cx="0" cy="0" r="70" fill="#1a1a2e" opacity="0.8"/>
+      <circle cx="0" cy="0" r="60" fill="none" stroke="url(#auroraGradient)" stroke-width="4"/>
+      <circle cx="0" cy="0" r="45" fill="none" stroke="#e0e7ff" stroke-width="2" opacity="0.6"/>
+      
+      <!-- Reflet sur l'objectif -->
+      <ellipse cx="-20" cy="-20" rx="15" ry="25" fill="#ffffff" opacity="0.3"/>
+      
+      <!-- Viseur -->
+      <rect x="-40" y="-90" width="80" height="20" rx="10" ry="10" 
+            fill="url(#auroraGradient)" opacity="0.8"/>
+      
+      <!-- Bouton d'enregistrement -->
+      <circle cx="80" cy="-40" r="12" fill="#f87171"/>
+      <circle cx="80" cy="-40" r="8" fill="#ffffff" opacity="0.3"/>
+    </g>
+    
+    <!-- Icône IA/Brain stylisée -->
+    <g transform="translate(0, 80)">
+      <!-- Cerveau/réseau neural -->
+      <g fill="none" stroke="url(#auroraGradient)" stroke-width="3" opacity="0.8">
+        <!-- Connexions neurales -->
+        <path d="M-60,-20 Q-30,-40 0,-20 Q30,-40 60,-20"/>
+        <path d="M-60,0 Q-30,20 0,0 Q30,20 60,0"/>
+        <path d="M-60,20 Q-30,0 0,20 Q30,0 60,20"/>
+        
+        <!-- Lignes de connexion verticales -->
+        <line x1="-60" y1="-20" x2="-60" y2="20"/>
+        <line x1="-30" y1="-40" x2="-30" y2="20"/>
+        <line x1="0" y1="-20" x2="0" y2="20"/>
+        <line x1="30" y1="-40" x2="30" y2="20"/>
+        <line x1="60" y1="-20" x2="60" y2="20"/>
+      </g>
+      
+      <!-- Noeuds neuraux -->
+      <g fill="url(#auroraGradient)">
+        <circle cx="-60" cy="-20" r="4"/>
+        <circle cx="-30" cy="-40" r="4"/>
+        <circle cx="0" cy="-20" r="4"/>
+        <circle cx="30" cy="-40" r="4"/>
+        <circle cx="60" cy="-20" r="4"/>
+        
+        <circle cx="-60" cy="0" r="4"/>
+        <circle cx="-30" cy="20" r="4"/>
+        <circle cx="0" cy="0" r="4"/>
+        <circle cx="30" cy="20" r="4"/>
+        <circle cx="60" cy="0" r="4"/>
+        
+        <circle cx="-60" cy="20" r="4"/>
+        <circle cx="0" cy="20" r="4"/>
+        <circle cx="60" cy="20" r="4"/>
+      </g>
+    </g>
+    
+    <!-- Particules flottantes pour l'effet magique -->
+    <g fill="url(#auroraGradient)" opacity="0.6">
+      <circle cx="-200" cy="-150" r="3">
+        <animate attributeName="opacity" values="0.3;0.8;0.3" dur="3s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="180" cy="-180" r="2">
+        <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="-180" cy="160" r="2.5">
+        <animate attributeName="opacity" values="0.4;0.9;0.4" dur="2.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="200" cy="140" r="3">
+        <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3.5s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    
+    <!-- Texte élégant -->
+    <g transform="translate(0, 180)">
+      <text x="0" y="0" text-anchor="middle" 
+            font-family="SF Pro Display, -apple-system, system-ui, sans-serif" 
+            font-size="48" font-weight="600" 
+            fill="url(#auroraGradient)" filter="url(#glow)">
+        CamPrompt
+      </text>
+      <text x="0" y="50" text-anchor="middle" 
+            font-family="SF Pro Display, -apple-system, system-ui, sans-serif" 
+            font-size="32" font-weight="400" 
+            fill="#e0e7ff" opacity="0.8">
+        AI
+      </text>
+    </g>
+    
+    <!-- Accent décoratif en bas -->
+    <g transform="translate(0, 280)">
+      <rect x="-40" y="0" width="80" height="4" rx="2" ry="2" 
+            fill="url(#auroraGradient)" opacity="0.6"/>
+    </g>
+    
+  </g>
+  
+  <!-- Effet de bordure subtile -->
+  <rect width="1024" height="1024" rx="180" ry="180" 
+        fill="none" stroke="url(#auroraGradient)" stroke-width="2" opacity="0.3"/>
+        
+</svg> 

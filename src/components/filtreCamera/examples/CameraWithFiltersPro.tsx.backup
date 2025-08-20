@@ -1,0 +1,572 @@
+/**
+ * Exemple d'intégration de l'interface Filtres Pro avec une caméra
+ * Version améliorée avec toutes les fonctionnalités avancées
+ */
+
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  StatusBar,
+} from 'react-native';
+import { BlurView } from '@react-native-community/blur';
+import Icon from 'react-native-vector-icons/Ionicons';
+import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import CameraRoll from '@react-native-community/cameraroll';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// Import de l'interface Pro
+import { FilterCameraInterfacePro } from '../FilterCameraInterfacePro';
+import { cameraFiltersAPI } from '../../../services/camera/filters/CameraFiltersAPI';
+import type { AdvancedFilterParams } from '../../../../specs/NativeCameraFiltersModule';
+
+// Composant Camera placeholder (remplacer par react-native-vision-camera ou autre)
+const CameraPlaceholder: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <View style={styles.cameraPlaceholder}>
+    <Text style={styles.cameraPlaceholderText}>📷 Caméra Placeholder</Text>
+    <Text style={styles.cameraPlaceholderSubtext}>Remplacer par react-native-vision-camera</Text>
+    {children}
+  </View>
+);
+
+export default function CameraWithFiltersPro() {
+  const insets = useSafeAreaInsets();
+  const cameraRef = useRef<any>(null);
+
+  // États de la caméra
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [type, setType] = useState<'back' | 'front'>('back');
+  const [flash, setFlash] = useState<'off' | 'on' | 'auto'>('off');
+  const [isCapturing, setIsCapturing] = useState(false);
+
+  // États des filtres Pro
+  const [showFilters, setShowFilters] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<{
+    name: string;
+    intensity: number;
+    params?: AdvancedFilterParams;
+  } | null>(null);
+  const [filterCapabilities, setFilterCapabilities] = useState<any>(null);
+
+  // États Pro
+  const [expertMode, setExpertMode] = useState(false);
+  const [realtimeMode, setRealtimeMode] = useState(true);
+  const [performanceMetrics, setPerformanceMetrics] = useState<any>(null);
+
+  // État de preview
+  const [lastPhoto, setLastPhoto] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Demander les permissions et initialiser
+  useEffect(() => {
+    (async () => {
+      // Simuler la demande de permissions (remplacer par vraie logique)
+      try {
+        // Pour react-native-vision-camera :
+        // const cameraPermission = await Camera.requestCameraPermission();
+        // const microphonePermission = await Camera.requestMicrophonePermission();
+
+        // Pour @react-native-community/cameraroll :
+        // const mediaPermission = await CameraRoll.requestPermissions();
+
+        // Simulation pour l'exemple
+        setHasPermission(true); // Simuler permissions accordées
+
+        // Initialiser les capacités des filtres
+        const initFilters = async () => {
+          try {
+          const caps = await cameraFiltersAPI.getCapabilities();
+          setFilterCapabilities(caps);
+
+          // Configuration optimisée selon l'appareil
+          const threadCount = caps.availableProcessors.includes('VULKAN') ? 8 : 4;
+          await cameraFiltersAPI.setPerformanceConfig({
+            parallelProcessing: true,
+            threadPoolSize: threadCount,
+          });
+
+          // Configuration du format vidéo optimal
+          await cameraFiltersAPI.setVideoFormat({
+            width: 1920,
+            height: 1080,
+            pixelFormat: 'bgra',
+            frameRate: 30,
+          });
+
+          console.log('✅ Filtres Pro initialisés avec succès');
+        } catch (error) {
+          console.error('❌ Erreur initialisation filtres:', error);
+        }
+        };
+
+        // Exécuter l'initialisation
+        initFilters();
+  }, []);
+
+  // Prendre une photo avec filtres Pro
+  const takePicture = useCallback(async () => {
+    if (!cameraRef.current || isCapturing) return;
+
+    try {
+      setIsCapturing(true);
+      setIsProcessing(true);
+
+      // Simulation de capture photo (remplacer par vraie logique avec react-native-vision-camera)
+      const mockPhoto = {
+        uri: `file:///mock/photo_${Date.now()}.jpg`,
+        width: 1920,
+        height: 1080,
+      };
+
+      setLastPhoto(mockPhoto.uri);
+
+      // Appliquer le filtre actif si présent
+      if (activeFilter && activeFilter.name !== 'none') {
+        try {
+          await cameraFiltersAPI.setFilterWithParams(
+            activeFilter.name,
+            activeFilter.intensity,
+            activeFilter.params
+          );
+          console.log('✅ Filtre appliqué:', activeFilter.name);
+        } catch (filterError) {
+          console.error('❌ Erreur application filtre:', filterError);
+        }
+      }
+
+      // Sauvegarder dans la galerie (remplacer par vraie logique avec @react-native-community/cameraroll)
+      try {
+        // await CameraRoll.saveToCameraRoll(mockPhoto.uri, { type: 'photo' });
+        console.log('📸 Photo sauvegardée dans la galerie');
+      } catch (error) {
+        console.error('❌ Erreur sauvegarde galerie:', error);
+      }
+
+      // Feedback visuel amélioré
+      const filterText = activeFilter && activeFilter.name !== 'none'
+        ? `\n\n🎨 Filtre "${activeFilter.name}" appliqué avec succès !`
+        : '';
+
+      Alert.alert(
+        '📸 Photo Pro sauvegardée !',
+        `Votre photo a été enregistrée dans la galerie.${filterText}`,
+        [
+          { text: 'Super !', style: 'default' },
+          {
+            text: 'Voir',
+            onPress: () => {
+              // Ouvrir la galerie ou afficher la photo
+              console.log('Voir la photo:', photo.uri);
+            }
+          }
+        ]
+      );
+
+    } catch (error) {
+      console.error('❌ Erreur capture photo:', error);
+      Alert.alert('Erreur', 'Impossible de capturer la photo');
+    } finally {
+      setIsCapturing(false);
+      setIsProcessing(false);
+    }
+  }, [activeFilter, isCapturing]);
+
+  // Basculer la caméra
+  const toggleCameraType = useCallback(() => {
+    setType(current => current === 'back' ? 'front' : 'back');
+  }, []);
+
+  // Basculer le flash
+  const toggleFlash = useCallback(() => {
+    setFlash(current => {
+      switch (current) {
+        case 'off':
+          return 'on';
+        case 'on':
+          return 'auto';
+        default:
+          return 'off';
+      }
+    });
+  }, []);
+
+  // Callback quand un filtre est appliqué
+  const handleFilterApplied = useCallback((
+    filterName: string,
+    intensity: number,
+    params?: AdvancedFilterParams
+  ) => {
+    setActiveFilter(
+      filterName === 'none'
+        ? null
+        : { name: filterName, intensity, params }
+    );
+
+    // Feedback haptique selon le type de filtre
+    if (filterName !== 'none') {
+      console.log('🎯 Filtre Pro appliqué:', filterName, intensity);
+    }
+  }, []);
+
+  // Obtenir l'icône du flash
+  const getFlashIcon = () => {
+    switch (flash) {
+      case 'on':
+        return 'flash';
+      case 'auto':
+        return 'flash-outline';
+      default:
+        return 'flash-off';
+    }
+  };
+
+  // Toggle du mode expert
+  const toggleExpertMode = useCallback(() => {
+    setExpertMode(!expertMode);
+  }, [expertMode]);
+
+  // Toggle du mode temps réel
+  const toggleRealtimeMode = useCallback(() => {
+    setRealtimeMode(!realtimeMode);
+  }, [realtimeMode]);
+
+  if (hasPermission === null) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Initialisation de la caméra Pro...</Text>
+      </View>
+    );
+  }
+
+  if (hasPermission === false) {
+    return (
+      <View style={styles.container}>
+        <MaterialCommunityIcons name="camera-off" size={64} color="#666" />
+        <Text style={styles.noPermissionText}>
+          Accès à la caméra requis pour l'expérience Pro
+        </Text>
+        <TouchableOpacity
+          style={styles.permissionButton}
+          onPress={() => Camera.requestCameraPermissionsAsync()}
+        >
+          <Text style={styles.permissionButtonText}>
+            Autoriser l'accès
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+
+      <CameraPlaceholder>
+        {/* Contenu de la caméra simulé */}
+        {/* Header Pro avec contrôles avancés */}
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={toggleFlash}
+          >
+            <Ionicons name={getFlashIcon()} size={24} color="#fff" />
+          </TouchableOpacity>
+
+          {/* Indicateur de mode expert */}
+          {expertMode && (
+            <View style={styles.expertIndicator}>
+              <MaterialIcon name="professional-hexagon" size={16} color="#fff" />
+              <Text style={styles.expertText}>PRO</Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={toggleCameraType}
+          >
+            <Ionicons name="camera-reverse" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Contrôles du bas avec design Pro */}
+        <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 20 }]}>
+          {/* Bouton galerie Pro */}
+          <TouchableOpacity style={styles.sideButton}>
+            <Ionicons name="images" size={28} color="#fff" />
+            <Text style={styles.sideButtonText}>Galerie</Text>
+          </TouchableOpacity>
+
+          {/* Bouton capture Pro */}
+          <TouchableOpacity
+            style={[styles.captureButton, isCapturing && styles.captureButtonActive]}
+            onPress={takePicture}
+            disabled={isCapturing}
+          >
+            <View style={styles.captureButtonInner}>
+              {isCapturing && (
+                <ActivityIndicator
+                  size="large"
+                  color="#fff"
+                  style={StyleSheet.absoluteFillObject}
+                />
+              )}
+              {isProcessing && !isCapturing && (
+                <MaterialIcon name="filter" size={24} color="#007AFF" />
+              )}
+            </View>
+          </TouchableOpacity>
+
+          {/* Bouton filtres Pro */}
+          <TouchableOpacity
+            style={[styles.sideButton, activeFilter && styles.sideButtonActive]}
+            onPress={() => setShowFilters(true)}
+          >
+            <MaterialCommunityIcons name="filter-variant" size={28} color="#fff" />
+            <Text style={styles.sideButtonText}>Filtres Pro</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Indicateur de filtre actif Pro */}
+        {activeFilter && (
+          <View style={styles.activeFilterContainer}>
+            <BlurView
+              blurType="dark"
+              blurAmount={30}
+              style={styles.activeFilterBlur}
+            >
+              <MaterialIcon name="filter" size={16} color="#fff" />
+              <Text style={styles.activeFilterText}>
+                {activeFilter.name} • {Math.round(activeFilter.intensity * 100)}%
+              </Text>
+              {realtimeMode && (
+                <View style={styles.realtimeIndicator}>
+                  <MaterialIcon name="sync" size={12} color="#00FF88" />
+                </View>
+              )}
+            </BlurView>
+          </View>
+        )}
+
+        {/* Métriques de performance (mode expert) */}
+        {expertMode && performanceMetrics && (
+          <View style={styles.performanceContainer}>
+            <Text style={styles.performanceText}>
+              ⚡ {performanceMetrics.processingTime}ms •
+              💾 {performanceMetrics.memoryUsage}% •
+              🎬 {performanceMetrics.frameRate}fps
+            </Text>
+          </View>
+        )}
+      </CameraPlaceholder>
+
+      {/* Interface de filtres Pro */}
+      <FilterCameraInterfacePro
+        visible={showFilters}
+        onClose={() => setShowFilters(false)}
+        onFilterApplied={handleFilterApplied}
+        currentImage={lastPhoto || undefined}
+        previewMode={realtimeMode ? 'realtime' : 'static'}
+        enableExpertMode={expertMode}
+      />
+
+      {/* Overlay de chargement */}
+      {isProcessing && (
+        <View style={styles.processingOverlay}>
+          <BlurView blurType="dark" blurAmount={50} style={StyleSheet.absoluteFillObject} />
+          <View style={styles.processingContainer}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <Text style={styles.processingText}>Traitement Pro en cours...</Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraPlaceholder: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#111',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraPlaceholderText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  cameraPlaceholderSubtext: {
+    color: '#666',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expertIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 165, 0, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#FFA500',
+  },
+  expertText: {
+    color: '#FFA500',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  bottomControls: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  sideButton: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  sideButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    marginTop: 5,
+  },
+  sideButtonActive: {
+    backgroundColor: 'rgba(0, 122, 255, 0.3)',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+  },
+  captureButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    padding: 4,
+  },
+  captureButtonActive: {
+    transform: [{ scale: 0.9 }],
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  captureButtonInner: {
+    flex: 1,
+    borderRadius: 36,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeFilterContainer: {
+    position: 'absolute',
+    top: 100,
+    alignSelf: 'center',
+  },
+  activeFilterBlur: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 122, 255, 0.3)',
+  },
+  activeFilterText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+    marginRight: 10,
+  },
+  realtimeIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#00FF88',
+  },
+  performanceContainer: {
+    position: 'absolute',
+    top: 150,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  performanceText: {
+    color: '#00FF88',
+    fontSize: 11,
+    fontFamily: 'monospace',
+  },
+  loadingText: {
+    color: '#999',
+    marginTop: 10,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  noPermissionText: {
+    color: '#fff',
+    fontSize: 18,
+    textAlign: 'center',
+    marginHorizontal: 40,
+    marginBottom: 20,
+  },
+  permissionButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  permissionButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  processingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  processingContainer: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 30,
+    borderRadius: 20,
+  },
+  processingText: {
+    color: '#fff',
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});

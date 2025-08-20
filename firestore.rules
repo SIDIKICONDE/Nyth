@@ -1,0 +1,1197 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Fonction pour vérifier si l'utilisateur est authentifié
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Fonction pour vérifier si l'utilisateur est le propriétaire
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Fonction pour vérifier si l'utilisateur est admin
+    function isAdmin() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin'];
+    }
+    
+    // Fonction pour vérifier si l'utilisateur est super admin
+    function isSuperAdmin() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+    }
+      
+    // Fonction pour vérifier que createdAt n'est pas modifié
+    function createdAtNotModified() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdAt']);
+    }
+    
+    // Fonction pour vérifier que les timestamps sont valides
+    function hasValidTimestamps() {
+      return (request.resource.data.createdAt is timestamp && 
+             request.resource.data.updatedAt is timestamp) ||
+             (resource != null && request.resource.data.updatedAt is timestamp);
+    }
+    
+    // Fonction pour vérifier si le document est en lecture seule
+    function isReadOnly() {
+      return resource.data.get('readOnly', false) == true;
+    }
+    
+    // Fonction pour limiter le taux de messages (anti-spam)
+    function rateLimitMessages() {
+      // Vérifier que le dernier message n'a pas été envoyé il y a moins de 2 secondes
+      return request.time > resource.data.createdAt + duration.value(2, 's');
+    }
+    
+    // ========================================
+    // RÈGLES POUR LE SYSTÈME DE SUPPORT
+    // ========================================
+    
+    // Règles pour les threads de support
+    match /support_threads/{threadId} {
+      // Lecture : l'utilisateur peut lire son propre thread, les admins peuvent tout lire
+      allow read: if isOwner(threadId) || isAdmin();
+      
+      // Création : l'utilisateur peut créer son propre thread uniquement
+      allow create: if isAuthenticated() && 
+                      threadId == request.auth.uid &&
+                      request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.status == 'open' &&
+                      request.resource.data.unreadForUser == false &&
+                      request.resource.data.unreadForAdmin == true;
+      
+      // Mise à jour : l'utilisateur peut mettre à jour certains champs, l'admin peut tout mettre à jour
+      allow update: if (isOwner(threadId) && 
+                       request.resource.data.userId == resource.data.userId &&
+                       request.resource.data.status == resource.data.status) ||
+                      isAdmin();
+      
+      // Suppression : seulement les super admins
+      allow delete: if isSuperAdmin();
+      
+      // Règles pour les messages dans un thread
+      match /messages/{messageId} {
+        // Lecture : l'utilisateur peut lire les messages de son thread, les admins peuvent tout lire
+        allow read: if isOwner(threadId) || isAdmin();
+        
+        // Création : l'utilisateur peut créer des messages dans son thread, les admins partout
+        allow create: if (isOwner(threadId) && 
+                         request.resource.data.sender == 'user' &&
+                         request.resource.data.text is string &&
+                         request.resource.data.text.size() > 0 &&
+                         request.resource.data.text.size() <= 5000) ||
+                        (isAdmin() && 
+                         request.resource.data.sender == 'admin' &&
+                         request.resource.data.text is string &&
+                         request.resource.data.text.size() > 0 &&
+                         request.resource.data.text.size() <= 5000);
+        
+        // Mise à jour : seulement pour marquer comme lu
+        allow update: if (isOwner(threadId) || isAdmin()) &&
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+        
+        // Suppression : seulement les super admins
+        allow delete: if isSuperAdmin();
+      }
+    }
+    
+    // Règles pour les utilisateurs
+    match /users/{userId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      
+      // Les admins peuvent lister tous les utilisateurs
+      allow list: if isAdmin();
+      
+      // Création : l'utilisateur peut créer son propre profil
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Mise à jour : propriétaire peut tout modifier sauf role et createdAt
+      allow update: if request.auth != null && request.auth.uid == userId && 
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'createdAt']);
+      
+      // Super admin peut modifier le rôle
+      allow update: if isSuperAdmin();
+      
+      // Suppression : interdite
+      allow delete: if false;
+      
+      // Sous-collection settings pour les paramètres synchronisés
+      match /settings/{settingId} {
+        // Lecture/écriture complète pour le propriétaire
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        
+        // Les admins peuvent lire
+        allow read: if isAdmin();
+      }
+    }
+    
+    // Règles pour les scripts
+    match /scripts/{scriptId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Les admins peuvent lister tous les scripts
+      allow list: if isAdmin();
+      
+      // Création : utilisateur authentifié peut créer ses propres scripts
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      
+      // Mise à jour : propriétaire seulement
+      allow update: if request.auth != null && 
+        resource != null &&
+        resource.data.userId == request.auth.uid;
+      
+      // Suppression : propriétaire seulement avec vérification renforcée
+      allow delete: if request.auth != null && 
+        resource != null &&
+        resource.data != null &&
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // Règles pour les enregistrements
+    match /recordings/{recordingId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Les admins peuvent lister tous les enregistrements
+      allow list: if isAdmin();
+      
+      // Création : utilisateur authentifié peut créer ses propres enregistrements
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      
+      // Mise à jour : propriétaire seulement
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Suppression : propriétaire seulement
+      allow delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // Règles pour les statistiques utilisateur
+    match /userStats/{statId} {
+      allow read: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Les admins peuvent lire toutes les stats
+      allow read: if isAdmin();
+      
+      allow write: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Règles pour les achievements
+    match /achievements/{achievementId} {
+      // Lecture : propriétaire peut lire ses achievements (ou ceux qui n'existent pas encore)
+      allow read: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid);
+      
+      // Création : utilisateur authentifié peut créer ses propres achievements
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid &&
+        hasValidTimestamps();
+      
+      // Mise à jour : propriétaire seulement, certains champs protégés
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt', 'achievementId']);
+      
+      // Suppression : interdite (les achievements doivent être persistants)
+      allow delete: if false;
+    }
+    
+    // Règles pour les métadonnées des achievements
+    match /userAchievementsMeta/{userId} {
+      // Lecture : propriétaire seulement
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Les admins peuvent lire pour support
+      allow read: if isAdmin();
+      
+      // Création : utilisateur peut créer ses propres métadonnées
+      allow create: if request.auth != null && 
+        request.auth.uid == userId &&
+        request.resource.data.userId == userId;
+      
+      // Mise à jour : propriétaire seulement, userId protégé
+      allow update: if request.auth != null && 
+        request.auth.uid == userId &&
+        resource.data.userId == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt']);
+      
+      // Suppression : interdite (les métadonnées doivent être persistantes)
+      allow delete: if false;
+    }
+    
+    // Règles pour les thèmes personnalisés (ancienne collection)
+    match /themes/{themeId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.isPublic == true || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid &&
+        hasValidTimestamps();
+      allow update: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid &&
+        createdAtNotModified() &&
+        !isReadOnly() &&
+        hasValidTimestamps();
+      allow delete: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid &&
+        !isReadOnly();
+    }
+    
+    // Règles pour les nouveaux thèmes personnalisés synchronisés
+    match /customThemes/{themeId} {
+      // Lecture : propriétaire seulement
+      allow read: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid);
+      
+      // Les admins peuvent lire tous les thèmes (pour support)
+      allow read: if isAdmin();
+      
+      // Création : utilisateur authentifié avec timestamps
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid &&
+        hasValidTimestamps();
+      
+      // Mise à jour : propriétaire seulement, createdAt protégé, pas readOnly
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        createdAtNotModified() &&
+        !isReadOnly() &&
+        hasValidTimestamps();
+      
+      // Suppression : propriétaire seulement, pas readOnly
+      allow delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        !isReadOnly();
+    }
+    
+    // Règles pour les préférences utilisateur
+    match /userPreferences/{docId} {
+      // Lecture : propriétaire seulement (docId doit être l'userId)
+      allow read: if request.auth != null && request.auth.uid == docId;
+      
+      // Création : utilisateur peut créer ses propres préférences
+      allow create: if request.auth != null && 
+        request.auth.uid == docId &&
+        request.resource.data.updatedAt is string;
+      
+      // Mise à jour : propriétaire seulement
+      allow update: if request.auth != null && 
+        request.auth.uid == docId &&
+        request.resource.data.updatedAt is string;
+      
+      // Suppression : propriétaire seulement
+      allow delete: if request.auth != null && request.auth.uid == docId;
+      
+      // Les admins peuvent lire les préférences (pour support)
+      allow read: if isAdmin();
+    }
+    
+    // Règles pour les paramètres AI
+    match /aiSettings/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) &&
+        (resource == null || createdAtNotModified()) &&
+        hasValidTimestamps();
+    }
+    
+    // Règles pour les analytics utilisateur
+    match /userAnalytics/{userId} {
+      // Lecture : propriétaire seulement
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Les admins peuvent lire pour support
+      allow read: if isAdmin();
+      
+      // Création : utilisateur peut créer ses propres analytics
+      allow create: if request.auth != null && 
+        request.auth.uid == userId &&
+        request.resource.data.userId == userId;
+      
+      // Mise à jour : propriétaire seulement, certains champs protégés
+      allow update: if request.auth != null && 
+        request.auth.uid == userId &&
+        resource.data.userId == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt']) &&
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalScripts', 'totalRecordings', 'updatedAt']) ||
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt']));
+      
+      // Suppression : interdite (les analytics doivent être persistantes)
+      allow delete: if false;
+    }
+    
+    // Collection de test (pour le bouton de test Firebase)
+    match /test_connection/{document} {
+      // Restreindre aux utilisateurs authentifiés uniquement en dev, sinon désactiver
+      allow read, write: if request.auth != null && request.time < timestamp.date(2025, 1, 1);
+    }
+    
+    // Collection pour les statistiques globales (admin uniquement)
+    match /adminStats/{statId} {
+      // Les admins peuvent lire les stats globales
+      allow read: if isAdmin();
+      
+      // Seul le système peut écrire (via Cloud Functions ou admin SDK)
+      allow write: if false;
+    }
+    
+    // Subscriptions collection
+    match /subscriptions/{userId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      
+      // Les admins peuvent lister toutes les souscriptions
+      allow list: if isAdmin();
+      
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['planId', 'status', 'startDate'])
+        && request.resource.data.planId in ['free', 'starter', 'pro', 'enterprise']
+        && request.resource.data.status in ['active', 'cancelled', 'expired', 'trial'];
+    }
+    
+    // Usage stats collection
+    match /usage_stats/{userId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      
+      // Les admins peuvent lister toutes les stats d'usage
+      allow list: if isAdmin();
+      
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['generations', 'resetDate'])
+        && request.resource.data.generations.keys().hasAll(['today', 'thisMonth', 'total']);
+    }
+    
+    // Règles pour les événements de planification
+    match /planningEvents/{eventId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Les admins peuvent lister tous les événements
+      allow list: if isAdmin();
+      
+      // Création : utilisateur authentifié peut créer ses propres événements
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['title', 'startDate', 'endDate', 'createdAt', 'updatedAt', 'userId']) &&
+        request.resource.data.title is string &&
+        request.resource.data.startDate is timestamp &&
+        request.resource.data.endDate is timestamp &&
+        hasValidTimestamps();
+      
+      // Mise à jour : propriétaire seulement, userId et createdAt protégés
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt']) &&
+        hasValidTimestamps();
+      
+      // Suppression : propriétaire seulement
+      allow delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // Règles pour les objectifs de planification
+    match /planningGoals/{goalId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Les admins peuvent lister tous les objectifs
+      allow list: if isAdmin();
+      
+      // Création : utilisateur authentifié peut créer ses propres objectifs
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['title', 'type', 'status', 'priority', 'target', 'current', 'period']) &&
+        request.resource.data.type in ['scripts', 'recordings', 'duration', 'quality', 'consistency', 'collaboration'] &&
+        request.resource.data.status in ['active', 'completed', 'paused', 'cancelled', 'overdue'] &&
+        request.resource.data.priority in ['low', 'medium', 'high'] &&
+        request.resource.data.period in ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'] &&
+        request.resource.data.target is number &&
+        request.resource.data.current is number;
+      
+      // Mise à jour : propriétaire seulement, userId et createdAt protégés
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt']);
+      
+      // Suppression : propriétaire seulement
+      allow delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // Règles pour les équipes
+    match /teams/{teamId} {
+      // Lecture : membre de l'équipe ou admin
+      allow read: if request.auth != null && 
+        (resource == null || 
+         (resource.data.memberIds != null && request.auth.uid in resource.data.memberIds) ||
+         (resource.data.ownerId == request.auth.uid) ||
+         isAdmin());
+      
+      // Les admins peuvent lister toutes les équipes
+      allow list: if isAdmin();
+      
+      // Création : utilisateur authentifié peut créer ses propres équipes
+      allow create: if request.auth != null && 
+        request.resource.data.ownerId == request.auth.uid &&
+        hasValidTimestamps();
+      
+      // Mise à jour : propriétaire ou admin de l'équipe
+      allow update: if request.auth != null && 
+        (resource.data.ownerId == request.auth.uid || isAdmin()) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['ownerId', 'createdAt']) &&
+        hasValidTimestamps();
+      
+      // Suppression : propriétaire seulement
+      allow delete: if request.auth != null && 
+        resource.data.ownerId == request.auth.uid;
+    }
+    
+    // Règles pour les projets
+    match /projects/{projectId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Les admins peuvent lister tous les projets
+      allow list: if isAdmin();
+      
+      // Création : utilisateur authentifié peut créer ses propres projets
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['title', 'status', 'priority', 'startDate', 'endDate']) &&
+        request.resource.data.status in ['planning', 'in_progress', 'completed', 'cancelled', 'on_hold'] &&
+        request.resource.data.priority in ['low', 'medium', 'high', 'urgent'] &&
+        hasValidTimestamps();
+      
+      // Mise à jour : propriétaire seulement, userId et createdAt protégés
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt']) &&
+        hasValidTimestamps();
+      
+      // Suppression : propriétaire seulement
+      allow delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // Règles pour les analytics de planification
+    match /planningAnalytics/{userId} {
+      // Lecture : propriétaire seulement
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Les admins peuvent lire pour support
+      allow read: if isAdmin();
+      
+      // Création : utilisateur peut créer ses propres analytics
+      allow create: if request.auth != null && 
+        request.auth.uid == userId &&
+        request.resource.data.userId == userId &&
+        hasValidTimestamps();
+      
+      // Mise à jour : propriétaire seulement, certains champs protégés
+      allow update: if request.auth != null && 
+        request.auth.uid == userId &&
+        resource.data.userId == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt']) &&
+        hasValidTimestamps();
+      
+      // Suppression : interdite (les analytics doivent être persistantes)
+      allow delete: if false;
+    }
+    
+    // Règles pour les paramètres de planification
+    match /planningSettings/{userId} {
+      // Lecture : propriétaire seulement
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Les admins peuvent lire pour support
+      allow read: if isAdmin();
+      
+      // Création : utilisateur peut créer ses propres paramètres
+      allow create: if request.auth != null && 
+        request.auth.uid == userId &&
+        request.resource.data.userId == userId &&
+        hasValidTimestamps();
+      
+      // Mise à jour : propriétaire seulement, certains champs protégés
+      allow update: if request.auth != null && 
+        request.auth.uid == userId &&
+        resource.data.userId == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt']) &&
+        hasValidTimestamps();
+      
+      // Suppression : propriétaire seulement
+      allow delete: if request.auth != null && 
+        request.auth.uid == userId;
+    }
+
+    match /planningPreferences/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow read: if isAdmin();
+      allow create: if request.auth != null && 
+        request.auth.uid == userId &&
+        request.resource.data.userId == userId &&
+        request.resource.data.updatedAt is string;
+      allow update: if request.auth != null && 
+        request.auth.uid == userId &&
+        (resource == null || resource.data.userId == userId) &&
+        request.resource.data.userId == userId &&
+        request.resource.data.updatedAt is string;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Règles pour les tâches
+    match /tasks/{taskId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null;
+      
+      // Les admins peuvent lister toutes les tâches
+      allow list: if isAdmin();
+      
+      // Création : utilisateur authentifié peut créer ses propres tâches (règle simplifiée temporairement)
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      
+      // Mise à jour : propriétaire seulement, userId et createdAt protégés
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt']);
+      
+      // Suppression : propriétaire seulement
+      allow delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+
+    // Règles pour les événements (legacy)
+    match /events/{eventId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null &&
+        (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Les admins peuvent lister tous les événements
+      allow list: if isAdmin();
+
+      // Création : utilisateur authentifié peut créer ses propres événements
+      allow create: if request.auth != null &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasAll([
+          'title', 'startDate', 'endDate', 'createdAt', 'updatedAt', 'userId'
+        ]) &&
+        request.resource.data.title is string &&
+        request.resource.data.startDate is timestamp &&
+        request.resource.data.endDate is timestamp &&
+        hasValidTimestamps();
+
+      // Mise à jour : propriétaire seulement, userId et createdAt protégés
+      allow update: if request.auth != null &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt']) &&
+        hasValidTimestamps();
+
+      // Suppression : propriétaire seulement
+      allow delete: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // Règles pour les objectifs (legacy)
+    match /goals/{goalId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null &&
+        (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+
+      // Les admins peuvent lister tous les objectifs
+      allow list: if isAdmin();
+
+      // Création : utilisateur authentifié peut créer ses propres objectifs
+      allow create: if request.auth != null &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasAll([
+          'title', 'target', 'unit', 'current', 'createdAt', 'updatedAt', 'userId'
+        ]) &&
+        request.resource.data.title is string &&
+        request.resource.data.target is number &&
+        request.resource.data.unit is string &&
+        request.resource.data.current is number &&
+        hasValidTimestamps();
+
+      // Mise à jour : propriétaire seulement, userId et createdAt protégés
+      allow update: if request.auth != null &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'createdAt']);
+
+      // Suppression : propriétaire seulement
+      allow delete: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // Règles pour les activités utilisateur (tracking app opens/logins)
+    match /user_activities/{activityId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Les admins peuvent lister toutes les activités
+      allow list: if isAdmin();
+      
+      // Création : utilisateur authentifié peut créer ses propres activités
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['userId', 'type', 'timestamp', 'date']) &&
+        request.resource.data.type in ['app_open', 'user_login'] &&
+        request.resource.data.timestamp is timestamp &&
+        request.resource.data.date is string;
+      
+      // Mise à jour : interdite (les activités sont immutables)
+      allow update: if false;
+      
+      // Suppression : interdite (conservation des données)
+      allow delete: if false;
+    }
+
+    // Règles pour les statistiques utilisateur (tracking)
+    match /user_stats/{userId} {
+      // Lecture : propriétaire ou admin
+      allow read: if request.auth != null && 
+        (request.auth.uid == userId || isAdmin());
+      
+      // Les admins peuvent lister toutes les stats
+      allow list: if isAdmin();
+      
+      // Création : utilisateur peut créer ses propres stats
+      allow create: if request.auth != null && 
+        request.auth.uid == userId &&
+        request.resource.data.userId == userId &&
+        request.resource.data.keys().hasAll(['userId', 'totalAppOpens', 'totalLogins', 'lastActive']);
+      
+      // Mise à jour : utilisateur peut mettre à jour ses propres stats
+      allow update: if request.auth != null && 
+        request.auth.uid == userId &&
+        resource.data.userId == userId &&
+        request.resource.data.userId == userId;
+      
+      // Suppression : interdite (conservation des données)
+      allow delete: if false;
+    }
+
+    // Règles pour les statistiques quotidiennes globales
+    match /daily_stats/{date} {
+      // Lecture : admins seulement pour l'interface d'administration
+      // Mais autorise la lecture lors des transactions pour les utilisateurs authentifiés
+      allow read: if isAdmin() || (isAuthenticated() && request.auth != null);
+      
+      // Les admins peuvent lister toutes les stats quotidiennes
+      allow list: if isAdmin();
+      
+      // Création : système seulement (via les fonctions de tracking)
+      allow create: if request.auth != null &&
+        request.resource.data.keys().hasAll(['date', 'appOpens', 'logins', 'uniqueUsers', 'uniqueUsersCount']);
+      
+      // Mise à jour : système seulement (via les fonctions de tracking)
+      allow update: if request.auth != null;
+      
+          // Suppression : interdite (conservation des données)
+    allow delete: if false;
+  }
+
+  // Règles pour la mémoire IA unifiée
+  match /user_memories/{userId} {
+    // Lecture : propriétaire seulement
+    allow read: if request.auth != null && request.auth.uid == userId;
+    
+    // Les admins peuvent lire pour support
+    allow read: if isAdmin();
+    
+    // Création : utilisateur peut créer ses propres données de mémoire
+    allow create: if request.auth != null && 
+      request.auth.uid == userId &&
+      request.resource.data.userId == userId;
+    
+    // Mise à jour : propriétaire seulement, userId protégé
+    allow update: if request.auth != null && 
+      request.auth.uid == userId &&
+      !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId']);
+    
+    // Suppression : propriétaire seulement
+    allow delete: if request.auth != null && request.auth.uid == userId;
+    
+    // Sous-collection entries pour les entrées de mémoire
+    match /entries/{entryId} {
+      // Lecture : propriétaire seulement
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Les admins peuvent lire pour support
+      allow read: if isAdmin();
+      
+      // Création : utilisateur peut créer ses propres entrées de mémoire
+      allow create: if request.auth != null && 
+        request.auth.uid == userId &&
+        request.resource.data.userId == userId &&
+        request.resource.data.keys().hasAll(['title', 'content', 'category', 'importance', 'timestamp', 'userId', 'citationRequired']) &&
+        request.resource.data.category in ['preference', 'rule', 'context', 'correction', 'fact'] &&
+        request.resource.data.importance in ['high', 'medium', 'low'] &&
+        request.resource.data.title is string &&
+        request.resource.data.content is string &&
+        request.resource.data.timestamp is string &&
+        request.resource.data.citationRequired is bool;
+      
+      // Mise à jour : propriétaire seulement, userId protégé
+      allow update: if request.auth != null && 
+        request.auth.uid == userId &&
+        resource.data.userId == userId &&
+        request.resource.data.userId == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId']);
+      
+      // Suppression : propriétaire seulement
+      allow delete: if request.auth != null && 
+        request.auth.uid == userId &&
+        resource.data.userId == userId;
+    }
+  }
+
+  // ====================================
+  // RÈGLES POUR LES PLANS D'ABONNEMENT
+  // ====================================
+  match /subscription_plans/{planId} {
+    // Lecture : tous les utilisateurs peuvent voir les plans actifs
+    allow read: if isAuthenticated() && 
+      (resource == null || resource.data.isActive == true || isAdmin());
+    
+    // Liste : tous peuvent lister les plans actifs, admins voient tout
+    allow list: if isAuthenticated();
+    
+    // Création : super admins seulement
+    allow create: if isSuperAdmin() &&
+      request.resource.data.keys().hasAll(['name', 'description', 'price', 'currency', 'interval']) &&
+      request.resource.data.price >= 0 &&
+      request.resource.data.interval in ['monthly', 'yearly', 'lifetime'];
+    
+    // Mise à jour : super admins seulement
+    allow update: if isSuperAdmin();
+    
+    // Suppression : super admins seulement
+    allow delete: if isSuperAdmin();
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES ABONNEMENTS UTILISATEURS
+  // ====================================
+  match /user_subscriptions/{subscriptionId} {
+    // Lecture : propriétaire ou admin
+    allow read: if isAuthenticated() && 
+      (resource.data.userId == request.auth.uid || isAdmin());
+    
+    // Liste : admins seulement
+    allow list: if isAdmin();
+    
+    // Création : système ou admin (via Stripe webhook ou admin panel)
+    allow create: if isAdmin() ||
+      (isAuthenticated() && 
+       request.resource.data.userId == request.auth.uid &&
+       request.resource.data.keys().hasAll(['userId', 'planId', 'status', 'startDate']));
+    
+    // Mise à jour : admin ou propriétaire pour certains champs
+    allow update: if isAdmin() ||
+      (isAuthenticated() && 
+       resource.data.userId == request.auth.uid &&
+       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['autoRenew', 'paymentMethod']));
+    
+    // Suppression : super admin seulement
+    allow delete: if isSuperAdmin();
+  }
+  
+  // ====================================
+  // RÈGLES POUR L'HISTORIQUE DES PAIEMENTS
+  // ====================================
+  match /payment_history/{paymentId} {
+    // Lecture : propriétaire ou admin
+    allow read: if isAuthenticated() && 
+      (resource.data.userId == request.auth.uid || isAdmin());
+    
+    // Liste : propriétaire voit les siens, admin voit tout
+    allow list: if isAuthenticated() && 
+      (request.auth.uid == resource.data.userId || isAdmin());
+    
+    // Création : système seulement (via Stripe webhook)
+    allow create: if isAdmin();
+    
+    // Mise à jour : interdite (historique immuable)
+    allow update: if false;
+    
+    // Suppression : interdite
+    allow delete: if false;
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES COUPONS ET PROMOTIONS
+  // ====================================
+  match /promo_codes/{promoId} {
+    // Lecture : tous les utilisateurs authentifiés
+    allow read: if isAuthenticated() && 
+      (resource.data.isActive == true || isAdmin());
+    
+    // Liste : admins seulement
+    allow list: if isAdmin();
+    
+    // Création : super admins seulement
+    allow create: if isSuperAdmin() &&
+      request.resource.data.keys().hasAll(['code', 'discount', 'type']) &&
+      request.resource.data.discount > 0 &&
+      request.resource.data.type in ['percentage', 'fixed'];
+    
+    // Mise à jour : super admins seulement
+    allow update: if isSuperAdmin();
+    
+    // Suppression : super admins seulement
+    allow delete: if isSuperAdmin();
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES FACTURES
+  // ====================================
+  match /invoices/{invoiceId} {
+    // Lecture : propriétaire ou admin
+    allow read: if isAuthenticated() && 
+      (resource.data.userId == request.auth.uid || isAdmin());
+    
+    // Liste : propriétaire voit les siennes, admin voit tout
+    allow list: if isAuthenticated() && 
+      (request.auth.uid == resource.data.userId || isAdmin());
+    
+    // Création : système ou admin
+    allow create: if isAdmin();
+    
+    // Mise à jour : admin seulement pour le statut
+    allow update: if isAdmin() &&
+      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paidAt']);
+    
+    // Suppression : interdite
+    allow delete: if false;
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES PARAMÈTRES D'ABONNEMENT
+  // ====================================
+  match /system/subscription_settings {
+    // Lecture : admins seulement
+    allow read: if isAdmin();
+    
+    // Écriture : super admins seulement
+    allow write: if isSuperAdmin();
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES WEBHOOKS STRIPE
+  // ====================================
+  match /stripe_webhooks/{webhookId} {
+    // Lecture : super admins seulement (pour debug)
+    allow read: if isSuperAdmin();
+    
+    // Liste : super admins seulement
+    allow list: if isSuperAdmin();
+    
+    // Création : interdite depuis le client (seulement via Cloud Functions)
+    allow create: if false;
+    
+    // Mise à jour et suppression : interdites
+    allow update, delete: if false;
+  }
+
+  // ====================================
+  // RÈGLES POUR LES DEVICES BANNIS
+  // ====================================
+  match /banned_devices/{banId} {
+    // Lecture : admins seulement
+    allow read: if isAdmin();
+    
+    // Liste : admins seulement
+    allow list: if isAdmin();
+    
+    // Création : admins seulement avec validation
+    allow create: if isAdmin() &&
+      request.resource.data.keys().hasAll(['deviceId', 'reason', 'severity', 'bannedAt', 'bannedBy']) &&
+      request.resource.data.severity in ['warning', 'temporary', 'permanent'] &&
+      request.resource.data.bannedBy == request.auth.uid;
+    
+    // Mise à jour : admins pour gérer les appels
+    allow update: if isAdmin() ||
+      (isAuthenticated() && 
+       resource.data.deviceId == request.auth.token.deviceId &&
+       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['appealStatus', 'appealMessage', 'appealDate']));
+    
+    // Suppression : super admins seulement
+    allow delete: if isSuperAdmin();
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES DEVICES UTILISATEURS
+  // ====================================
+  match /user_devices/{deviceId} {
+    // Lecture : propriétaire ou admin
+    allow read: if isAuthenticated() && 
+      (resource.data.userId == request.auth.uid || isAdmin());
+    
+    // Liste : propriétaire voit les siens, admin voit tout
+    allow list: if isAuthenticated() && 
+      (request.auth.uid == resource.data.userId || isAdmin());
+    
+    // Création : utilisateur pour son propre device
+    allow create: if isAuthenticated() && 
+      request.resource.data.userId == request.auth.uid &&
+      request.resource.data.keys().hasAll(['userId', 'deviceId', 'deviceFingerprint', 'platform']);
+    
+    // Mise à jour : propriétaire pour lastSeen
+    allow update: if isAuthenticated() && 
+      resource.data.userId == request.auth.uid &&
+      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen']);
+    
+    // Suppression : propriétaire ou admin
+    allow delete: if isAuthenticated() && 
+      (resource.data.userId == request.auth.uid || isAdmin());
+  }
+  
+  // ====================================
+  // RÈGLES POUR L'HISTORIQUE DES VIOLATIONS
+  // ====================================
+  match /violation_history/{violationId} {
+    // Lecture : admins seulement
+    allow read, list: if isAdmin();
+    
+    // Création : admins seulement
+    allow create: if isAdmin() &&
+      request.resource.data.keys().hasAll(['userId', 'reason', 'timestamp', 'adminId']);
+    
+    // Mise à jour et suppression : interdites (historique immuable)
+    allow update, delete: if false;
+  }
+
+  // ====================================
+  // RÈGLES POUR LA CONFIGURATION SYSTÈME
+  // ====================================
+  match /system/config {
+    // Lecture : tous les utilisateurs authentifiés peuvent lire la config
+    // (nécessaire pour appliquer les restrictions)
+    allow read: if isAuthenticated();
+    
+    // Écriture : seulement les super admins
+    allow write: if isSuperAdmin();
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES LOGS SYSTÈME
+  // ====================================
+  match /system_logs/{logId} {
+    // Lecture : seulement les admins et super admins
+    allow read: if isAdmin();
+    
+    // Liste : seulement les admins et super admins
+    allow list: if isAdmin();
+    
+    // Création : tous les utilisateurs authentifiés peuvent créer des logs
+    // (nécessaire pour logger les actions utilisateur)
+    allow create: if isAuthenticated() && 
+      request.resource.data.keys().hasAll(['timestamp', 'level', 'category', 'message']) &&
+      request.resource.data.level in ['info', 'warning', 'error', 'critical'] &&
+      request.resource.data.category in ['auth', 'admin', 'user', 'system', 'security', 'performance', 'subscription', 'recording'] &&
+      (request.resource.data.userId == null || request.resource.data.userId == request.auth.uid);
+    
+    // Mise à jour : interdite (les logs sont immuables)
+    allow update: if false;
+    
+    // Suppression : seulement les super admins (pour le nettoyage)
+    allow delete: if isSuperAdmin();
+  }
+  
+  // ====================================
+  // RÈGLES POUR L'AUDIT TRAIL
+  // ====================================
+  match /audit_trail/{auditId} {
+    // Lecture : seulement les super admins
+    allow read: if isSuperAdmin();
+    
+    // Liste : seulement les super admins
+    allow list: if isSuperAdmin();
+    
+    // Création : système seulement (via Cloud Functions ou SDK Admin)
+    allow create: if isAuthenticated() && 
+      request.resource.data.keys().hasAll(['timestamp', 'action', 'userId', 'targetId']) &&
+      request.resource.data.userId == request.auth.uid;
+    
+    // Mise à jour et suppression : interdites (audit trail immuable)
+    allow update, delete: if false;
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES BACKUPS
+  // ====================================
+  match /backups/{backupId} {
+    // Lecture : seulement les super admins
+    allow read, list: if isSuperAdmin();
+    
+    // Écriture : seulement les super admins
+    allow write: if isSuperAdmin();
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES SESSIONS ACTIVES
+  // ====================================
+  match /active_sessions/{sessionId} {
+    // Lecture : propriétaire ou admin
+    allow read: if isAuthenticated() && 
+      (resource.data.userId == request.auth.uid || isAdmin());
+    
+    // Liste : admins seulement
+    allow list: if isAdmin();
+    
+    // Création : utilisateur authentifié pour sa propre session
+    allow create: if isAuthenticated() && 
+      request.resource.data.userId == request.auth.uid &&
+      request.resource.data.keys().hasAll(['userId', 'startTime', 'lastActivity']);
+    
+    // Mise à jour : propriétaire pour mettre à jour lastActivity
+    allow update: if isAuthenticated() && 
+      resource.data.userId == request.auth.uid &&
+      request.resource.data.userId == request.auth.uid;
+    
+    // Suppression : propriétaire ou admin (pour forcer la déconnexion)
+    allow delete: if isAuthenticated() && 
+      (resource.data.userId == request.auth.uid || isAdmin());
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES RATE LIMITS
+  // ====================================
+  match /rate_limits/{userId} {
+    // Lecture : propriétaire ou admin
+    allow read: if isOwner(userId) || isAdmin();
+    
+    // Création et mise à jour : système seulement
+    allow create, update: if isAuthenticated() && 
+      request.resource.data.userId == request.auth.uid &&
+      request.resource.data.keys().hasAll(['userId', 'requests', 'resetTime']);
+    
+    // Suppression : admin seulement
+    allow delete: if isAdmin();
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES NOTIFICATIONS ADMIN
+  // ====================================
+  match /admin_notifications/{notificationId} {
+    // Lecture : admins seulement
+    allow read, list: if isAdmin();
+    
+    // Création : admins seulement
+    allow create: if isAdmin() && 
+      request.resource.data.keys().hasAll(['title', 'message', 'timestamp', 'createdBy']) &&
+      request.resource.data.createdBy == request.auth.uid;
+    
+    // Mise à jour : admin pour marquer comme lu
+    allow update: if isAdmin() && 
+      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt', 'readBy']);
+    
+    // Suppression : super admin seulement
+    allow delete: if isSuperAdmin();
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES TEMPLATES D'EMAIL
+  // ====================================
+  match /email_templates/{templateId} {
+    // Lecture : admins seulement
+    allow read, list: if isAdmin();
+    
+    // Écriture : super admins seulement
+    allow write: if isSuperAdmin();
+  }
+  
+  // ====================================
+  // RÈGLES POUR LES MÉTRIQUES DE PERFORMANCE
+  // ====================================
+  match /performance_metrics/{metricId} {
+    // Lecture : admins seulement
+    allow read, list: if isAdmin();
+    
+    // Création : tous les utilisateurs authentifiés (pour collecter les métriques)
+    allow create: if isAuthenticated() && 
+      request.resource.data.keys().hasAll(['timestamp', 'metric', 'value', 'userId']) &&
+      request.resource.data.userId == request.auth.uid;
+    
+    // Mise à jour : interdite
+    allow update: if false;
+    
+    // Suppression : super admin seulement (nettoyage)
+    allow delete: if isSuperAdmin();
+  }
+  
+  // ============================================
+  // VERROUILLAGE D'APPLICATION ET NOTIFICATIONS
+  // ============================================
+  
+  // Verrouillage d'application
+  match /system/app_lock {
+    allow read: if request.auth != null;
+    allow write: if request.auth != null && isAdmin();
+  }
+  
+  // Tokens FCM pour notifications push
+  match /fcm_tokens/{tokenId} {
+    allow read: if request.auth != null && 
+      (tokenId == request.auth.uid + '_' + 'ios' || 
+       tokenId == request.auth.uid + '_' + 'android' || 
+       isAdmin());
+    allow create, update: if request.auth != null && 
+      (tokenId == request.auth.uid + '_' + 'ios' || 
+       tokenId == request.auth.uid + '_' + 'android');
+    allow delete: if request.auth != null && 
+      (tokenId == request.auth.uid + '_' + 'ios' || 
+       tokenId == request.auth.uid + '_' + 'android' || 
+       isAdmin());
+  }
+  
+  // File de notifications
+  match /notification_queue/{notificationId} {
+    allow read, list: if request.auth != null && isAdmin();
+    allow create: if request.auth != null && isAdmin();
+    allow update, delete: if false;
+  }
+  
+  // Campagnes de notifications
+  match /notification_campaigns/{campaignId} {
+    allow read, list: if request.auth != null && isAdmin();
+    allow create: if request.auth != null && isAdmin();
+    allow update: if request.auth != null && isAdmin() && 
+      resource.data.createdBy == request.auth.uid;
+    allow delete: if request.auth != null && isSuperAdmin();
+  }
+  
+  // Analytics des notifications
+  match /notification_analytics/{analyticsId} {
+    allow read, list: if request.auth != null && isAdmin();
+    allow create: if request.auth != null;
+    allow update, delete: if false;
+  }
+
+}
+} 

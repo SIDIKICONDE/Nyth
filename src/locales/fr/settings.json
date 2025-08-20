@@ -1,0 +1,541 @@
+{
+  "exportOptions": {
+    "audio": {
+      "advanced": {
+        "bassBoost": "Boost des Basses",
+        "title": "Options Avancées",
+        "trebleBoost": "Boost des Aigus",
+        "voiceEnhancement": "Amélioration de la Voix"
+      },
+      "disabled": "Vidéo Seule",
+      "enabled": "Inclure l'Audio",
+      "header": {
+        "native": "Natif",
+        "simulated": "Simulé",
+        "title": "Optimisation Audio"
+      },
+      "info": {
+        "currentProfile": "Profil actuel : {{profile}}",
+        "nativeModuleUnavailable": "Module audio natif non disponible",
+        "simulatedEffects": "Les effets audio sont simulés. Pour des effets réels, compilez l'application avec le module natif."
+      },
+      "mainSettings": {
+        "basic": "(basique)",
+        "intelligentNormalization": "Normalisation Intelligente",
+        "title": "Paramètres Principaux"
+      },
+      "noiseReduction": {
+        "light": "Léger",
+        "medium": "Moyen",
+        "none": "Aucun",
+        "simulated": "(simulé)",
+        "strong": "Fort",
+        "title": "Réduction du Bruit"
+      },
+      "profiles": {
+        "custom": "Personnalisé",
+        "title": "Profils Préréglés"
+      },
+      "title": "Audio"
+    },
+    "autoDetected": "Auto-détecté",
+    "format": {
+      "mov": "MOV",
+      "mp4": "MP4",
+      "recommendation": "Recommandation : Utilisez H264 ou HEVC dans les paramètres vidéo",
+      "title": "Format",
+      "understood": "Compris"
+    },
+    "quality": {
+      "high": "Élevée (1080p)",
+      "low": "Basse (480p)",
+      "medium": "Moyenne (720p)",
+      "optimizedForDevice": "Optimisée pour votre appareil",
+      "qualityDetected": {
+        "message": "Votre vidéo a été enregistrée en {{quality}}. La qualité d'exportation a été automatiquement ajustée pour éviter un redimensionnement inutile.",
+        "title": "📊 Qualité Détectée",
+        "understood": "Compris"
+      },
+      "title": "Qualité",
+      "ultra": "Ultra (4K)",
+      "upscalingWarning": {
+        "cancel": "Annuler",
+        "continue": "Continuer quand même",
+        "title": "⚠️ Avertissement de Qualité"
+      }
+    },
+    "storage": {
+      "recording": {
+        "loadError": "❌ Erreur lors du chargement de l'enregistrement :",
+        "settingsError": "❌ Erreur lors de la récupération des paramètres :"
+      }
+    },
+    "sync": {
+      "autoDetection": "🤖 Détection automatique des paramètres optimaux...",
+      "autoDetectionError": "❌ Erreur de détection automatique :",
+      "autoDetectionSuccess": "✅ Paramètres auto-détectés :",
+      "detectedQuality": "📝 Qualité vidéo détectée dans les paramètres : {{quality}}",
+      "qualityAutoAdjusted": "⚠️ Ajustement automatique de la qualité d'exportation",
+      "syncError": "❌ Erreur de synchronisation des paramètres :",
+      "syncSuccess": "✅ Paramètres vidéo synchronisés :",
+      "videoMetadataDetected": "📊 Qualité vidéo détectée : {{quality}}",
+      "videoSettings": "🔄 Synchronisation avec les paramètres vidéo configurés..."
+    },
+    "title": "Options d'Exportation"
+  },
+  "settings": {
+    "account": {
+      "guestMode": "Mode Invité"
+    },
+    "actions": {
+      "resetToDefaults": "Réinitialiser par Défaut",
+      "saveAndContinue": "Sauvegarder et Continuer",
+      "saving": "Sauvegarde..."
+    },
+    "alerts": {
+      "disableAll": {
+        "subtitle": "Désactive toutes les pop-ups de confirmation",
+        "title": "Masquer toutes les alertes"
+      },
+      "disableError": {
+        "subtitle": "Affiche les erreurs dans la console uniquement",
+        "title": "Masquer alertes d'erreur"
+      },
+      "disableReset": {
+        "subtitle": "Réinitialise sans demander confirmation",
+        "title": "Masquer confirmations de réinitialisation"
+      },
+      "disableSave": {
+        "subtitle": "Plus de \"Paramètres enregistrés\"",
+        "title": "Masquer alertes de sauvegarde"
+      },
+      "title": "Notifications"
+    },
+    "cache": {
+      "size": "Taille du cache"
+    },
+    "clearCache": {
+      "complete": {
+        "message": "Le cache a été vidé avec succès. L'application va redémarrer.",
+        "restart": "Redémarrer",
+        "title": "Cache vidé"
+      },
+      "confirmation": {
+        "message": "Êtes-vous sûr de vouloir vider le cache ? Cela libérera de l'espace de stockage mais peut ralentir temporairement l'application.",
+        "reset": "Vider",
+        "title": "Vider le Cache"
+      },
+      "title": "Vider le Cache"
+    },
+    "deviceInfo": {
+      "applyOptimalSettings": "Appliquer les Paramètres Optimaux",
+      "codecs": {
+        "h264": {
+          "description": "Codec vidéo standard, largement supporté"
+        },
+        "hevc": {
+          "ios": "HEVC/H.265 (optimisé iOS)"
+        },
+        "jpeg": {
+          "description": "Compression JPEG"
+        },
+        "prores422": {
+          "description": "Non supporté"
+        },
+        "prores4444": {
+          "description": "Non supporté"
+        },
+        "title": "Codecs Disponibles"
+      },
+      "environment": {
+        "development": "Développement",
+        "preview": "Aperçu",
+        "production": "Production"
+      },
+      "features": {
+        "autoFocus": "Mise au Point Auto",
+        "camera": "Caméra",
+        "cloudBackup": "Sauvegarde Cloud",
+        "customThemes": "Thèmes Personnalisés",
+        "faceDetection": "Détection de Visage",
+        "flash": "Flash",
+        "microphone": "Microphone",
+        "socialSharing": "Partage Social",
+        "textScrolling": "Défilement de Texte",
+        "title": "Fonctionnalités"
+      },
+      "optimizationNote": "Configurer pour de meilleures performances",
+      "storage": {
+        "duration": {
+          "hoursMinutes": "{{hours}}h {{minutes}}min"
+        },
+        "estimatedDuration": "Temps d'Enregistrement Estimé",
+        "estimationNote": "Basé sur la qualité 720p",
+        "freeSpace": "Espace Libre",
+        "title": "Stockage",
+        "totalSpace": "Espace Total",
+        "units": {
+          "bytes": "octets",
+          "gb": "Go",
+          "kb": "Ko",
+          "mb": "Mo",
+          "tb": "To"
+        }
+      },
+      "system": {
+        "environment": "Environnement",
+        "model": "Modèle",
+        "osVersion": "Version OS",
+        "physicalDevice": "Appareil Physique",
+        "platform": "Plateforme",
+        "title": "Informations Système",
+        "type": "Type d'Appareil"
+      },
+      "title": "Informations de l'Appareil",
+      "video": {
+        "available": "Disponible",
+        "camera": "Caméra",
+        "maxQuality": "Qualité Max",
+        "optimal": "Optimale",
+        "recording": "Enregistrement",
+        "title": "Capacités Vidéo"
+      }
+    },
+    "display": {
+      "mirrorMode": {
+        "title": "Mode miroir"
+      },
+      "scriptStyle": {
+        "library": "Bibliothèque",
+        "list": "Liste",
+        "stack": "Cartes",
+        "title": "Affichage des scripts"
+      },
+      "teleprompter": {
+        "title": "Téléprompter"
+      },
+      "textShadow": {
+        "subtitle": "Ajoute une ombre pour améliorer la lisibilité",
+        "title": "Ombre du texte"
+      },
+      "themes": {
+        "title": "Thèmes"
+      },
+      "title": "Affichage"
+    },
+    "equalizer": {
+      "advanced": "Mode avancé",
+      "advancedDesc": "Contrôles fins et analyse spectrale",
+      "footer": "Module d'égaliseur natif C++ • Haute performance",
+      "openEqualizer": "Ouvrir l'égaliseur",
+      "openEqualizerDesc": "Interface moderne avec 5 bandes et 8 presets",
+      "presets": "Presets audio",
+      "presetsDesc": "Rock, Jazz, Pop, Classique, Vocal...",
+      "subtitle": "Améliorez la qualité audio de vos enregistrements",
+      "title": "Égaliseur Audio"
+    },
+    "fonts": {
+      "applyToAll": "Appliquer partout",
+      "categories": {
+        "code": "Code",
+        "codeDesc": "Code et texte technique",
+        "content": "Contenu",
+        "contentDesc": "Textes longs, descriptions, paragraphes",
+        "heading": "Titres",
+        "headingDesc": "Titres et en-têtes",
+        "ui": "Interface",
+        "uiDesc": "Boutons, menus, navigation"
+      },
+      "condensed": "Condensée",
+      "customize": "Personnaliser les polices",
+      "customized": "Polices personnalisées",
+      "descriptions": {
+        "condensed": "Compacte et moderne",
+        "display": "Impact visuel fort",
+        "elegant": "Raffinée et sophistiquée",
+        "handwriting": "Style écriture à la main",
+        "modern": "Contemporaine et épurée",
+        "monospace": "Idéale pour le code et les données",
+        "rounded": "Douce et amicale",
+        "serif": "Classique avec empattements",
+        "system": "Police par défaut du système",
+        "tech": "Futuriste et technique"
+      },
+      "display": "Affichage",
+      "elegant": "Élégante",
+      "errors": {
+        "loadPreference": "Erreur lors du chargement des préférences de police :",
+        "resetPreferences": "Erreur lors de la réinitialisation des préférences de police :",
+        "savePreference": "Erreur lors de la sauvegarde des préférences de police :"
+      },
+      "handwriting": "Manuscrite",
+      "info": {
+        "content": "Les polices système offrent les meilleures performances et sont optimisées pour chaque plateforme.",
+        "title": "Bon à savoir"
+      },
+      "modern": "Moderne",
+      "monospace": "Monospace",
+      "preview": {
+        "content": "Voici comment le texte apparaît avec vos paramètres actuels. Les changements sont appliqués immédiatement.",
+        "heading": "Titres",
+        "info": "Les changements sont appliqués immédiatement",
+        "quick": "Aperçu rapide :",
+        "sample": {
+          "code": "console.log(\"Hello World\");",
+          "greeting": "Bonjour ! Comment allez-vous aujourd'hui ? 🌟",
+          "heading": "Titre Principal",
+          "text": "Cette police sera utilisée dans les conversations.",
+          "ui": "Interface • Boutons • Menus"
+        },
+        "title": "Aperçu en temps réel",
+        "ui": "Texte d'interface (boutons, menus)"
+      },
+      "reset": {
+        "message": "Les polices ont été réinitialisées aux valeurs par défaut.",
+        "success": "Réinitialisation réussie"
+      },
+      "rounded": "Arrondie",
+      "serif": "Serif",
+      "system": "Système",
+      "tech": "Technique",
+      "title": "Polices",
+      "unified": {
+        "description": "Utiliser la même police pour toute l'application",
+        "preview": "Police unifiée : {{font}}",
+        "selector": "Police de l'application",
+        "selectorDesc": "Cette police sera utilisée partout dans l'application",
+        "title": "Police unifiée"
+      }
+    },
+    "footer": "Nyth • Version 1.0",
+    "footerSubtitle": "Conçu avec ♥ pour les créateurs",
+    "homePage": {
+      "title": "Page d'accueil",
+      "default": "Accueil par défaut",
+      "defaultDesc": "Page d'accueil classique avec toutes les fonctionnalités",
+      "planning": "Planning",
+      "planningDesc": "Accédez directement à votre planning et vos tâches",
+      "aiChat": "AI Discussion",
+      "aiChatDesc": "Commencez directement avec l'assistant IA",
+      "note": "Cette préférence sera appliquée lors de votre prochaine connexion à l'application."
+    },
+    "groups": {
+      "account": "Compte & Abonnement",
+      "ai": "Intelligence Artificielle",
+      "interface": "Interface & Affichage",
+      "localization": "Langue & Région",
+      "production": "Production & Enregistrement",
+      "system": "Système & Sécurité"
+    },
+    "language": {
+      "current": "Langue actuelle",
+      "selectLanguage": "Sélectionner une langue",
+      "selectLanguageSubtitle": "Choisissez votre langue préférée",
+      "subtitle": "Choisissez votre langue préférée",
+      "title": "Langue"
+    },
+    "loading": {
+      "subtitle": "Veuillez patienter",
+      "title": "Chargement des réglages..."
+    },
+    "maintenance": {
+      "collapse": "Appuyez pour réduire",
+      "expand": "Appuyez pour développer",
+      "expanded": {
+        "subtitle": "La section fonctionne correctement.",
+        "title": "✅ Section étendue !"
+      },
+      "test": {
+        "button": "Bouton de test",
+        "message": "Bouton de test cliqué !",
+        "title": "Test"
+      },
+      "title": "Maintenance"
+    },
+    "optimization": {
+      "success": {
+        "message": "Les paramètres ont été optimisés avec succès pour votre appareil.",
+        "title": "Optimisation Réussie"
+      }
+    },
+    "recording": {
+      "codec": {
+        "h264": {
+          "description": "Standard"
+        },
+        "hevc": {
+          "description": "Efficace"
+        },
+        "prores": {
+          "description": "Pro"
+        },
+        "title": "Codec"
+      },
+      "countdown": {
+        "enabled": "Afficher le compte à rebours avant l'enregistrement",
+        "title": "Compte à Rebours"
+      },
+      "microphone": {
+        "title": "Microphone"
+      },
+      "quality": {
+        "1080p": {
+          "description": "FHD"
+        },
+        "480p": {
+          "description": "SD"
+        },
+        "4k": {
+          "description": "4K"
+        },
+        "720p": {
+          "description": "HD"
+        },
+        "square": {
+          "description": "Carré"
+        },
+        "title": "Qualité Vidéo"
+      },
+      "recordWithAudio": "Enregistrer avec Audio",
+      "stabilization": {
+        "auto": {
+          "description": "Automatique",
+          "label": "Auto"
+        },
+        "cinematic": {
+          "description": "Fluide",
+          "label": "Cinématique"
+        },
+        "off": {
+          "description": "Désactivé",
+          "label": "Désactivé"
+        },
+        "standard": {
+          "description": "Basique",
+          "label": "Standard"
+        },
+        "title": "Stabilisation"
+      },
+      "tabs": {
+        "advanced": "Avancé",
+        "general": "Général",
+        "quality": "Qualité"
+      },
+      "title": "Paramètres d'Enregistrement",
+      "video": {
+        "enabled": "Activer l'Enregistrement Vidéo",
+        "title": "Paramètres Vidéo"
+      },
+      "videoSettings": {
+        "title": "Paramètres Vidéo"
+      }
+    },
+    "reset": {
+      "confirmation": {
+        "message": "Êtes-vous sûr de vouloir réinitialiser tous les paramètres aux valeurs par défaut ? Cette action ne peut pas être annulée.",
+        "reset": "Réinitialiser",
+        "title": "Réinitialiser les Paramètres"
+      },
+      "description": "Restaurer tous les paramètres à leurs valeurs par défaut",
+      "title": "Réinitialiser les Paramètres"
+    },
+    "security": {
+      "bypassProtection": {
+        "description": "Permet une communication directe sans proxy (non recommandé)",
+        "label": "Contourner la Protection API",
+        "warning": {
+          "confirm": "Oui, je comprends les risques",
+          "message": "La désactivation de la protection API expose vos clés API et peut compromettre la sécurité de vos données. Êtes-vous sûr de vouloir continuer ?",
+          "title": "⚠️ Avertissement de Sécurité"
+        },
+        "warningText": "La protection API est désactivée. Vos communications ne sont pas sécurisées."
+      },
+      "enhancedMode": {
+        "description": "Bloque les communications API sur les réseaux non sécurisés",
+        "enabled": {
+          "message": "Les communications API seront bloquées sur les réseaux non sécurisés. Cela peut empêcher l'application de fonctionner sur certains réseaux Wi-Fi publics.",
+          "title": "Sécurité Renforcée Activée"
+        },
+        "label": "Mode de Sécurité Renforcée"
+      },
+      "error": {
+        "save": "Impossible d'enregistrer les paramètres de sécurité"
+      },
+      "privacyPolicy": "Politique de confidentialité",
+      "privacyPolicyDesc": "Consulter notre politique de protection des données",
+      "title": "Sécurité"
+    },
+    "signOut": {
+      "signOut": "Se déconnecter"
+    },
+    "subscription": {
+      "generationsPerDay": "générations/jour",
+      "generationsPerMonth": "générations/mois",
+      "locked": "Verrouillé",
+      "maintenanceMode": "Fonctionnalité en cours de maintenance.",
+      "managePlan": "Gérer mon plan",
+      "manageSubscription": "Gérer l'abonnement",
+      "managedMode": "Mode managé - Clés API fournies",
+      "ownKeysMode": "Vous utilisez vos propres clés API",
+      "sectionLocked": "Section verrouillée",
+      "temporarilyLocked": "Cette section est temporairement verrouillée.",
+      "title": "Abonnement",
+      "trialEndsIn": "Période d'essai se termine dans",
+      "viewPlans": "Voir les plans",
+      "xDays": "X jours"
+    },
+    "subtitle": "Personnalisez votre expérience",
+    "syncing": "Synchronisation...",
+    "tasks": {
+      "deleteDemo": {
+        "button": "Supprimer les tâches d'exemple",
+        "confirm": "Supprimer",
+        "error": "Erreur lors de la suppression des tâches d'exemple",
+        "message": "Êtes-vous sûr de vouloir supprimer toutes les tâches d'exemple ? Cette action est irréversible.",
+        "title": "Supprimer les tâches d'exemple"
+      },
+      "demoTasksCount": "{{count}} tâches d'exemple",
+      "info": "Les tâches d'exemple vous permettent de découvrir toutes les fonctionnalités de l'application. Vous pouvez les supprimer ou les recréer à tout moment.",
+      "noDemoTasks": "Aucune tâche d'exemple",
+      "recreateDemo": {
+        "button": "Recréer les tâches d'exemple",
+        "confirm": "Recréer",
+        "error": "Erreur lors de la recréation des tâches d'exemple",
+        "message": "Voulez-vous recréer les tâches d'exemple ? Cela remplacera les tâches d'exemple existantes.",
+        "title": "Recréer les tâches d'exemple"
+      },
+      "title": "Gestion des Tâches"
+    },
+    "title": "Réglages",
+    "welcomeBubble": {
+      "disabled": {
+        "description": "Les messages de bienvenue sont désactivés",
+        "title": "Bulle de Bienvenue Désactivée"
+      },
+      "enabled": {
+        "description": "Afficher les messages de bienvenue et conseils",
+        "title": "Afficher la Bulle de Bienvenue"
+      },
+      "frequency": {
+        "title": "Fréquence"
+      },
+      "header": {
+        "disabled": "Masquer l'en-tête dans la bulle",
+        "enabled": "Afficher l'en-tête dans la bulle",
+        "title": "Paramètres d'En-tête"
+      },
+      "reset": {
+        "button": "Réinitialiser la Bulle de Bienvenue",
+        "message": "Voulez-vous réinitialiser les paramètres des messages de bienvenue ?",
+        "title": "Réinitialiser"
+      },
+      "stats": {
+        "lastShown": "Dernière fois affiché : {{date}}",
+        "showCount_one": "Affiché {{count}} fois",
+        "showCount_other": "Affiché {{count}} fois",
+        "title": "Statistiques"
+      },
+      "title": "Bulle de Bienvenue"
+    }
+  }
+}

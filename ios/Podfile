@@ -1,0 +1,90 @@
+# Resolve react_native_pods.rb with node to allow for hoisting
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native/scripts/react_native_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
+platform :ios, min_ios_version_supported
+prepare_react_native_project!
+
+# Configuration des permissions React Native
+# setup_permissions!
+
+$RNFirebaseAnalyticsWithoutAdIdSupport = true
+
+# Forcer l'utilisation de frameworks statiques pour les pods Swift (Firebase 12)
+use_frameworks! :linkage => :static
+
+# Ancienne logique par variable d'env supprimée
+
+# use_modular_headers! (désactivé globalement)
+
+target 'Nyth' do
+  config = use_native_modules!
+
+  # Modular headers sélectifs pour résoudre l’intégration Swift
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'FirebaseCore', :modular_headers => true
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  pod 'FirebaseCoreExtension', :modular_headers => true
+  pod 'FirebaseAppCheckInterop', :modular_headers => true
+  pod 'FirebaseAuthInterop', :modular_headers => true
+  pod 'FirebaseFirestoreInternal', :modular_headers => true
+  pod 'RecaptchaInterop', :modular_headers => true
+  # Pods principaux Firebase en Swift
+  pod 'FirebaseAuth', :modular_headers => true
+  pod 'FirebaseFirestore', :modular_headers => true
+  pod 'FirebaseStorage', :modular_headers => true
+  pod 'FirebaseMessaging', :modular_headers => true
+  pod 'FirebaseAnalytics', :modular_headers => true
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  post_install do |installer|
+    # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
+    )
+
+    # Corriger la résolution des en-têtes pour RNWorklets et RNReanimated
+    installer.pods_project.targets.each do |t|
+      next unless ['RNWorklets', 'RNReanimated'].include?(t.name)
+
+      t.build_configurations.each do |config|
+        existing = config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
+        # Crée un shim d'en-têtes ReactCommon -> React_runtimeexecutor
+        shim_root = File.join(Pod::Config.instance.installation_root, 'PodsHeadersShim')
+        shim_rc_dir = File.join(shim_root, 'ReactCommon')
+        FileUtils.mkdir_p(shim_rc_dir)
+        shim_header = File.join(shim_rc_dir, 'RuntimeExecutor.h')
+        File.write(shim_header, %(#include <React_runtimeexecutor/ReactCommon/RuntimeExecutor.h>)) unless File.exist?(shim_header)
+
+        extra_paths = [
+          '"' + shim_root + '"',
+          '"$(CONFIGURATION_BUILD_DIR)/React-runtimeexecutor/React_runtimeexecutor.framework/Headers"',
+          '"$(PODS_CONFIGURATION_BUILD_DIR)/React-runtimeexecutor/React_runtimeexecutor.framework/Headers"',
+          '"$(PODS_ROOT)/../../node_modules/react-native/ReactCommon"'
+        ]
+        config.build_settings['HEADER_SEARCH_PATHS'] = ([existing].flatten + extra_paths).join(' ')
+
+        existing_fw = config.build_settings['FRAMEWORK_SEARCH_PATHS'] || '$(inherited)'
+        extra_fw_paths = [
+          '"$(CONFIGURATION_BUILD_DIR)/React-runtimeexecutor"',
+          '"$(PODS_CONFIGURATION_BUILD_DIR)/React-runtimeexecutor"'
+        ]
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] = ([existing_fw].flatten + extra_fw_paths).join(' ')
+
+        # Réactiver les modules Clang pour permettre la résolution via les modulemaps
+        config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+      end
+    end
+  end
+end

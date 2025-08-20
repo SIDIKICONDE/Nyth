@@ -1,0 +1,149 @@
+{
+  "achievements": {
+    "challenges": {
+      "daily_user_30": {
+        "description": "Utiliser l'app 30 jours consécutifs",
+        "name": "Fidèle"
+      },
+      "daily_user_7": {
+        "description": "Utiliser l'app 7 jours consécutifs",
+        "name": "Habitué"
+      },
+      "first_recording": {
+        "description": "Faire votre premier enregistrement",
+        "name": "Action!"
+      },
+      "first_script": {
+        "description": "Créer votre premier script",
+        "name": "Premier Pas"
+      },
+      "holiday_creator": {
+        "description": "Créer du contenu pendant les fêtes",
+        "name": "Créateur Festif"
+      },
+      "new_year_2024": {
+        "description": "Faire un enregistrement le jour de l'an",
+        "name": "Nouvelle Année"
+      },
+      "profile_complete": {
+        "description": "Compléter toutes les sections du profil",
+        "name": "Profil Complet"
+      },
+      "recording_pro_25": {
+        "description": "Faire 25 enregistrements",
+        "name": "Vidéaste Pro"
+      },
+      "recording_streak_5": {
+        "description": "Faire 5 enregistrements",
+        "name": "En Série"
+      },
+      "script_creator_10": {
+        "description": "Créer 10 scripts",
+        "name": "Créateur Actif"
+      },
+      "script_master_50": {
+        "description": "Créer 50 scripts",
+        "name": "Maître Scripteur"
+      },
+      "time_100hours": {
+        "description": "Enregistrer 100 heures au total",
+        "name": "Légende"
+      },
+      "time_10hours": {
+        "description": "Enregistrer 10 heures au total",
+        "name": "Marathon"
+      },
+      "time_1hour": {
+        "description": "Enregistrer 1 heure au total",
+        "name": "Une Heure"
+      },
+      "winter_2024": {
+        "description": "Créer 5 scripts pendant l'hiver 2024",
+        "name": "Esprit d'Hiver"
+      }
+    },
+    "levels": {
+      "apprentice": "Apprenti",
+      "beginner": "Débutant",
+      "confirmed": "Confirmé",
+      "expert": "Expert",
+      "grandmaster": "Grand Maître",
+      "legend": "Légende",
+      "master": "Maître"
+    },
+    "share": {
+      "button": "Partager",
+      "error": {
+        "message": "Impossible de partager pour le moment",
+        "title": "Erreur"
+      },
+      "profile": "🏆 Mon profil Naya\n\n📊 Niveau {{level}} - {{title}}\n✨ {{unlocked}}/{{total}} badges débloqués\n📈 Progression: {{percentage}}%\n\nBadges par catégorie:\n📝 Scripts: {{scripts}}\n🎬 Enregistrements: {{recordings}}\n💪 Engagement: {{engagement}}\n\n#Naya #Achievements #Gaming",
+      "specific": "🎉 J'ai débloqué le badge \"{{name}}\" dans Naya!\n\n📝 {{description}}\n\n🏆 Niveau {{level}} - {{title}}\n✨ {{unlocked}}/{{total}} badges débloqués ({{percentage}}%)\n\n#Naya #Achievement #Badge",
+      "title": "Mes succès Naya"
+    },
+    "unlocked": "NOUVEAU BADGE DÉBLOQUÉ!"
+  },
+  "socialShare": {
+    "alerts": {
+      "appNotInstalled": {
+        "install": "Installer {{platformName}}",
+        "message": "L'application {{platformName}} n'est pas installée sur votre appareil.\n\nVotre vidéo a été enregistrée dans votre galerie.",
+        "title": "{{platformName}} non installé",
+        "tryAnyway": "Essayer quand même"
+      },
+      "cannotOpen": "Impossible d'ouvrir {{platformName}}"
+    },
+    "change": "Changer",
+    "choosePlatform": "Choisir une Plateforme",
+    "form": {
+      "customize": "Personnaliser",
+      "description": "Description",
+      "descriptionPlaceholder": "Décrivez votre vidéo...",
+      "hashtags": "Hashtags",
+      "hashtagsPlaceholder": "#hashtag1 #hashtag2",
+      "preview": "Aperçu",
+      "title": "Titre",
+      "titlePlaceholder": "Le titre de votre vidéo..."
+    },
+    "hashtags": {
+      "generating": "Génération de hashtags pour"
+    },
+    "install": "Installer",
+    "installPrompt": "Souhaitez-vous installer {{platform}} ?",
+    "notInstalled": "{{platform}} n'est pas installé",
+    "platforms": {
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "telegram": "Telegram",
+      "tiktok": "TikTok",
+      "twitter": "Twitter",
+      "whatsapp": "WhatsApp",
+      "youtube": "YouTube"
+    },
+    "selectedPlatform": "Plateforme Sélectionnée",
+    "share": "Partager",
+    "shareError": "Impossible de partager sur {{platform}}",
+    "sharing": {
+      "error": "Erreur de partage :",
+      "starting": "Début du partage vers",
+      "success": "Partagé avec succès vers"
+    },
+    "status": {
+      "installed": "INSTALLÉ",
+      "notInstalled": "NON INSTALLÉ"
+    },
+    "tips": {
+      "appOpens": "L'application s'ouvre automatiquement",
+      "followInstructions": "Suivez les instructions",
+      "title": "Conseils",
+      "videoSaved": "Vidéo enregistrée dans la galerie"
+    },
+    "title": "Partager la Vidéo",
+    "validation": {
+      "descriptionTooLong": "La description est trop longue (max 500 caractères)",
+      "titleRequired": "Le titre est requis",
+      "titleTooLong": "Le titre est trop long (max 100 caractères)",
+      "tooManyHashtags": "Trop de hashtags (max 10)"
+    }
+  }
+}

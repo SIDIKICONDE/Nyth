@@ -1,0 +1,62 @@
+{
+  "context": {
+    "basic": {
+      "existingUser": "existing",
+      "level": "Level",
+      "newUser": "new",
+      "scriptsCreated": "scripts created",
+      "time": "Time",
+      "user": "User",
+      "planning": "Planning",
+      "events": "events",
+      "goals": "goals"
+    },
+    "comprehensive": {
+      "averagePerScript": "Average per script",
+      "consecutiveDays": "Consecutive days",
+      "contentQuality": "Content quality",
+      "day": "Day",
+      "daysAgo": "days ago",
+      "device": "Device",
+      "engagement": "Engagement",
+      "existingUser": "Existing user",
+      "firstLogin": "First login",
+      "frequency": "Frequency",
+      "holiday": "(holiday)",
+      "lastLogin": "Last login",
+      "level": "Level",
+      "name": "Name",
+      "none": "none",
+      "preferredFeatures": "Preferred features",
+      "preferredTone": "Preferred tone",
+      "preferredTopics": "Preferred topics",
+      "productivityTrend": "Productivity trend",
+      "scriptsCreated": "Scripts created",
+      "season": "Season",
+      "status": "Status",
+      "time": "Time",
+      "wordsWritten": "Words written",
+      "planningUpcoming": "Upcoming events",
+      "planningOverdue": "Overdue events",
+      "planningGoals": "Active goals"
+    },
+    "detailed": {
+      "activeDays": "Active days",
+      "consecutive": "consecutive",
+      "engagement": "Engagement",
+      "level": "Level",
+      "name": "Name",
+      "new": "New",
+      "no": "No",
+      "preferredTone": "Preferred tone",
+      "scripts": "Scripts",
+      "time": "Time",
+      "totalWords": "Total words",
+      "yes": "Yes",
+      "planning": "Planning",
+      "events": "events",
+      "overdue": "overdue",
+      "goals": "goals"
+    }
+  }
+}

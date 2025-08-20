@@ -1,0 +1,35 @@
+{
+  "welcomeBubble": {
+    "assistantTitle": "AI Assistant",
+    "chatWithMe": "💬 Chat with me",
+    "disabled": {
+      "description": "No messages will be displayed"
+    },
+    "enabled": {
+      "description": "Smart contextual messages enabled",
+      "title": "Enable messages"
+    },
+    "features": {
+      "contextual": "Smart context",
+      "contextualDesc": "Messages tailored to your activity",
+      "multilingual": "Multilingual support",
+      "multilingualDesc": "Messages in your system language"
+    },
+    "frequency": {
+      "title": "Frequency"
+    },
+    "generatingMessage": "I'm preparing a personalized message...",
+    "reset": {
+      "button": "Reset settings",
+      "message": "Do you want to reset the welcome message settings?",
+      "title": "Reset"
+    },
+    "stats": {
+      "lastShown": "Last message: {{date}}",
+      "showCount": "Messages shown: {{count}}",
+      "title": "Statistics"
+    },
+    "subtitle": "AI-generated contextual messages",
+    "title": "Smart Welcome Messages"
+  }
+}

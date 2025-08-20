@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "camera": {
+      "deny": "Refuser",
+      "grant": "Accorder l'accès",
+      "message": "Cette application a besoin d'accéder à la caméra pour enregistrer des vidéos",
+      "title": "Permission Caméra"
+    },
+    "location": {
+      "deny": "Refuser",
+      "grant": "Accorder l'accès",
+      "message": "Cette application a besoin d'accéder à la localisation pour certaines fonctionnalités",
+      "title": "Permission Localisation"
+    },
+    "microphone": {
+      "deny": "Refuser",
+      "grant": "Accorder l'accès",
+      "message": "Cette application a besoin d'accéder au microphone pour enregistrer l'audio",
+      "title": "Permission Microphone"
+    },
+    "storage": {
+      "deny": "Refuser",
+      "grant": "Accorder l'accès",
+      "message": "Cette application a besoin d'accéder au stockage pour sauvegarder des fichiers",
+      "title": "Permission Stockage"
+    }
+  }
+}

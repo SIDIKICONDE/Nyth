@@ -1,0 +1,117 @@
+{
+  "common": {
+    "about": "About",
+    "account": "Account",
+    "add": "Add",
+    "advanced": "Advanced",
+    "apply": "Apply",
+    "back": "Back",
+    "cancel": "Cancel",
+    "close": "Close",
+    "configured": "Configured",
+    "confirm": "Confirm",
+    "contactUs": "Contact Us",
+    "continue": "Continue",
+    "copy": "Copy",
+    "create": "Create",
+    "darkMode": "Dark Mode",
+    "delete": "Delete",
+    "done": "Done",
+    "download": "Download",
+    "edit": "Edit",
+    "error": "Error",
+    "export": "Export",
+    "featured": "Featured",
+    "filter": "Filter",
+    "general": "General",
+    "guides": "Guides",
+    "help": "Help",
+    "import": "Import",
+    "language": "Language",
+    "less": "Less",
+    "library": "Library",
+    "lightMode": "Light Mode",
+    "loading": "Loading...",
+    "login": "Login",
+    "logout": "Logout",
+    "more": "More",
+    "new": "New",
+    "next": "Next",
+    "no": "No",
+    "noData": "No Data",
+    "noResults": "No Results",
+    "notSet": "Not Set",
+    "notifications": "Notifications",
+    "ok": "OK",
+    "old": "Old",
+    "or": "or",
+    "overdue": "Overdue",
+    "popular": "Popular",
+    "privacy": "Privacy",
+    "privacyPolicy": "Privacy Policy",
+    "profile": "Profile",
+    "recent": "Recent",
+    "recommended": "Recommended",
+    "refresh": "Refresh",
+    "remove": "Remove",
+    "reset": "Reset",
+    "save": "Save",
+    "search": "Search",
+    "seconds": "seconds",
+    "security": "Security",
+    "settings": "Settings",
+    "share": "Share",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "skip": "Skip",
+    "sort": "Sort",
+    "submit": "Submit",
+    "success": "Success",
+    "systemDefault": "System Default",
+    "termsOfService": "Terms of Service",
+    "theme": "Theme",
+    "trending": "Trending",
+    "tryAgain": "Try Again",
+    "undo": "Undo",
+    "update": "Update",
+    "upload": "Upload",
+    "version": "Version",
+    "viewAll": "View All",
+    "viewLess": "View Less",
+    "words": "words",
+    "yes": "Yes"
+  },
+  "navigation": {
+    "privacy": {
+      "declined": {
+        "message": "Without accepting the privacy policy, we cannot allow you to use Nyth.\n\nWhat would you like to do?",
+        "quit": "🚪 Quit Application",
+        "reread": "📖 Reread",
+        "title": "🚫 Policy Declined"
+      },
+      "goodbye": {
+        "close": "Close",
+        "message": "Thank you for trying Nyth. You can come back anytime!",
+        "title": "👋 Goodbye"
+      },
+      "iosInfo": {
+        "message": "On iOS, applications cannot close automatically. You can manually close the application by pressing the home button.",
+        "ok": "OK",
+        "title": "ℹ️ Information"
+      }
+    },
+    "script": {
+      "service": {
+        "logs": {
+          "saveError": "Error saving script:"
+        },
+        "saveConfirmation": {
+          "message": "Do you want to open it in the editor?",
+          "no": "No",
+          "title": "Script Saved",
+          "yes": "Yes"
+        }
+      }
+    }
+  }
+}

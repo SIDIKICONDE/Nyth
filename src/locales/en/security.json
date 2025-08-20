@@ -1,0 +1,110 @@
+{
+  "permissions": {
+    "android": {
+      "askLater": "Ask Later",
+      "camera": {
+        "message": "This app needs camera access to record videos",
+        "title": "Camera Permission"
+      },
+      "cancel": "Cancel",
+      "microphone": {
+        "message": "This app needs microphone access to record audio",
+        "title": "Microphone Permission"
+      },
+      "ok": "OK"
+    },
+    "authorizeAll": "Authorize all permissions",
+    "card": {
+      "authorize": "Authorize",
+      "retry": "Retry"
+    },
+    "continue": "Continue",
+    "continueWithout": "Continue without permissions",
+    "description": "We will request access to your camera, microphone, and storage for an optimal experience.",
+    "error": {
+      "continueLater": "You can continue and grant permissions later in the app settings.",
+      "message": "A problem occurred while checking permissions.",
+      "note": "You can still use the app with limited features.",
+      "refreshMessage": "Unable to check permissions. You can continue and grant them later.",
+      "title": "Permission Error"
+    },
+    "fallback": {
+      "continue": "Continue",
+      "grantLater": "You can continue and grant them later in the settings.",
+      "needPermissions": "The app needs permissions to function properly."
+    },
+    "header": {
+      "recheck": "Recheck permissions",
+      "subtitle": "To use all features of Nyth",
+      "title": "Required Permissions"
+    },
+    "info": {
+      "dataStaysLocal": "✅ All data stays on your device",
+      "needAccess": "📱 Nyth needs access to certain features of your device to function properly.",
+      "requiredNote": "* Required permissions for basic features",
+      "troubleTip": "💡 If you encounter issues, you can always grant permissions later in your phone's Settings"
+    },
+    "logs": {
+      "cameraPermissionUpdate": "📹 Camera permission update:",
+      "cameraStateBeforeRefresh": "📹 Camera state before refresh:",
+      "cameraUpdateError": "❌ Error updating camera permission:",
+      "checkingPermissionsError": "❌ Error checking permissions:",
+      "fallbackContinue": "🚨 Fallback interface - Continue",
+      "forceRefreshPermissions": "🔄 Forcing refresh of permissions...",
+      "initializationError": "❌ Initialization error:",
+      "initializingPermissions": "🔄 Initializing permissions...",
+      "refreshError": "❌ Error during refresh:",
+      "requestingAllError": "❌ Error requesting all permissions:",
+      "savingPermissionsError": "❌ Error saving permissions state:",
+      "userClickedContinue": "✅ User clicked Continue"
+    },
+    "requesting": "Requesting...",
+    "required": {
+      "message": "Access to {{permission}} is required to use the app.",
+      "title": "Required Permission"
+    },
+    "retry": "Retry",
+    "success": {
+      "continue": "You can now continue.",
+      "message": "✅ All permissions granted!"
+    },
+    "types": {
+      "camera": {
+        "description": "To record videos with the prompter",
+        "title": "Camera"
+      },
+      "microphone": {
+        "description": "To record audio for your videos",
+        "title": "Microphone"
+      },
+      "storage": {
+        "description": "To save your videos to the gallery",
+        "title": "Storage"
+      }
+    }
+  },
+  "security": {
+    "created": "Created on",
+    "delete": {
+      "confirm": "Delete",
+      "error": "Error during deletion",
+      "message": "Are you sure you want to delete the {{provider}} key? This action is irreversible.",
+      "success": "{{provider}} key deleted successfully",
+      "title": "🗑️ Delete Key"
+    },
+    "deleteButton": "Delete",
+    "encryption": "Encryption",
+    "info": "Keys are encrypted with AES-256 and stored securely.",
+    "infoExpiry": "Automatic expiration after 90 days",
+    "keys": {
+      "count": "secured keys",
+      "expired": "Expired",
+      "expiresIn": "Expires in {{days}} days",
+      "none": "No secured keys",
+      "noneDesc": "Add API keys to get started",
+      "secured": "Secured keys:"
+    },
+    "loading": "Checking security...",
+    "title": "API Key Security"
+  }
+}

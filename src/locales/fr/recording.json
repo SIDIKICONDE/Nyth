@@ -1,0 +1,113 @@
+{
+  "emergency": {
+    "save_failed": {
+      "message": "Impossible de sauvegarder l'enregistrement. Les données pourraient être perdues.",
+      "title": "Erreur de Sauvegarde"
+    },
+    "saved": {
+      "message": "Votre enregistrement de {duration} a été sauvegardé automatiquement avant l'arrêt d'urgence. Vous pourrez le récupérer depuis l'écran de récupération.",
+      "recover_now": "Récupérer Maintenant",
+      "title": "Enregistrement Sauvegardé",
+      "view_later": "Voir Plus Tard"
+    },
+    "view_saved": "Voir Enregistrements"
+  },
+  "error": {
+    "cameraInit": "Impossible d'initialiser la caméra",
+    "dataNotFound": "Script ou paramètres introuvables",
+    "loadError": "Erreur de chargement",
+    "permissionsRequired": "Permissions caméra et microphone requises",
+    "scriptNotFound": "Script non trouvé",
+    "title": "Erreur d'enregistrement"
+  },
+  "exitWarning": {
+    "message": "Voulez-vous vraiment arrêter l'enregistrement et quitter ?",
+    "stop": "Arrêter et quitter",
+    "title": "Enregistrement en cours"
+  },
+  "loading": {
+    "camera": "Initialisation de la caméra...",
+    "data": "Chargement du script et des paramètres...",
+    "permissions": "Vérification des permissions...",
+    "script": "Chargement du script...",
+    "title": "Préparation de l'enregistrement"
+  },
+  "memory": {
+    "critical": {
+      "continue": "Continuer avec Risque",
+      "message": "La mémoire disponible est très faible. L'enregistrement pourrait être interrompu pour éviter un crash.",
+      "optimize": "Optimiser et Continuer",
+      "stop": "Arrêter l'Enregistrement",
+      "title": "Mémoire Insuffisante"
+    },
+    "forced_stop": {
+      "message": "L'enregistrement a été arrêté automatiquement pour éviter un crash dû à la mémoire insuffisante.",
+      "message_with_save": "L'enregistrement a été sauvegardé automatiquement et arrêté pour éviter un crash. Vous pourrez récupérer votre vidéo depuis l'écran de récupération.",
+      "save_failed": "L'enregistrement a été arrêté pour éviter un crash, mais la sauvegarde automatique a échoué. Les données pourraient être perdues.",
+      "title": "Enregistrement Sauvegardé"
+    },
+    "optimize": "Optimiser",
+    "optimizeNow": "Optimiser Maintenant",
+    "recommendations": {
+      "closeApps": "Fermez les autres applications",
+      "freeSpace": "Libérez de l'espace de stockage",
+      "rebootDevice": "Redémarrez votre appareil",
+      "reduceQuality": "Réduisez la qualité d'enregistrement",
+      "restartApp": "Redémarrez l'application"
+    },
+    "status": {
+      "critical": "Mémoire critique",
+      "good": "Mémoire OK",
+      "unknown": "État inconnu",
+      "warning": "Mémoire faible"
+    },
+    "title": "Mémoire"
+  },
+  "status": {
+    "initializing": "Initialisation...",
+    "paused": "En pause",
+    "processing": "Traitement de la vidéo...",
+    "ready": "Prêt à enregistrer",
+    "recording": "Enregistrement en cours",
+    "stopping": "Arrêt en cours..."
+  },
+  "teleprompter": {
+    "containerMounted": "Conteneur téléprompter monté",
+    "containerUnmounted": "Conteneur téléprompter démonté",
+    "currentStateBeforeReset": "État actuel avant reset",
+    "doubleTapReceived": "Double tap reçu",
+    "enteringPause": "Entrée en pause",
+    "exitingPause": "Sortie de pause",
+    "forcingAnimationStop": "Forçage de l'arrêt d'animation",
+    "forcingResetMultipleMethods": "Forçage du reset par plusieurs méthodes",
+    "initialStopOnMount": "Arrêt initial au montage",
+    "pauseConditionsMet": "Conditions de pause remplies",
+    "pauseConditionsNotMet": "Conditions de pause non remplies",
+    "pauseScrollRequested": "Pause du défilement demandée",
+    "pauseStateChanged": "État de pause modifié",
+    "positionForcedToZero": "Position forcée à zéro",
+    "positionReset": "Position remise à zéro",
+    "recordingStateChanged": "État d'enregistrement modifié",
+    "resetError": "Erreur de reset",
+    "resizingEndedRecalculate": "Redimensionnement terminé, recalcul",
+    "restartingAfterRecalculation": "Redémarrage après recalcul",
+    "restartingScrollAfterReset": "Redémarrage du défilement après reset",
+    "resumeCancelledDueToReset": "Reprise annulée à cause du reset",
+    "resumeConditionsMet": "Conditions de reprise remplies",
+    "resumeConditionsNotMet": "Conditions de reprise non remplies",
+    "resumeScrollRequested": "Reprise du défilement demandée",
+    "resumingAfterPause": "Reprise après pause",
+    "schedulingResumeIn50ms": "Programmation de la reprise dans 50ms",
+    "screenNotFocused": "Écran non focalisé",
+    "scriptChanged": "Script modifié",
+    "scrollConditionsMet": "Conditions de défilement remplies",
+    "scrollEvaluation": "Évaluation du défilement",
+    "startingRecording": "Début d'enregistrement",
+    "startingScrollViaHandler": "Début du défilement via gestionnaire",
+    "stopConditionsDetected": "Conditions d'arrêt détectées",
+    "stoppingForRecalculation": "Arrêt pour recalcul",
+    "stoppingRecording": "Arrêt d'enregistrement",
+    "stoppingScrollViaHandler": "Arrêt du défilement via gestionnaire"
+  },
+  "title": "Enregistrement"
+}

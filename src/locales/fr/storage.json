@@ -1,0 +1,43 @@
+{
+  "firestore": {
+    "errors": {
+      "aborted": "L'opération a été interrompue.",
+      "alreadyExists": "Ce document existe déjà.",
+      "cancelled": "L'opération a été annulée.",
+      "createTitle": "Erreur de création",
+      "dataLoss": "Perte de données détectée.",
+      "deadlineExceeded": "L'opération a pris trop de temps.",
+      "deleteTitle": "Erreur de suppression",
+      "failedPrecondition": "Les conditions requises ne sont pas remplies.",
+      "internal": "Une erreur interne s'est produite.",
+      "notFound": "Le document demandé n'existe pas.",
+      "outOfRange": "Valeur hors limites.",
+      "permissionDenied": "Vous n'avez pas les droits pour effectuer cette action.",
+      "readOnlyDocument": "Ce document ne peut pas être modifié ou supprimé.",
+      "resourceExhausted": "Quota dépassé. Veuillez réessayer plus tard.",
+      "unauthenticated": "Vous devez être connecté pour effectuer cette action.",
+      "unavailable": "Le service est temporairement indisponible. Veuillez réessayer.",
+      "unimplemented": "Cette fonctionnalité n'est pas encore disponible.",
+      "unknown": "Une erreur inconnue s'est produite : {{message}}",
+      "updateTitle": "Erreur de modification"
+    }
+  },
+  "themeStorage": {
+    "clear": {
+      "error": "Erreur lors de l'effacement des données des thèmes",
+      "success": "Données des thèmes effacées avec succès"
+    },
+    "customThemes": {
+      "loadError": "Erreur lors du chargement des thèmes personnalisés",
+      "loaded": "Thèmes personnalisés chargés : {{count}} thèmes",
+      "saveError": "Erreur lors de l'enregistrement des thèmes personnalisés",
+      "saved": "Thèmes personnalisés enregistrés : {{count}} thèmes"
+    },
+    "selectedTheme": {
+      "loadError": "Erreur lors du chargement du thème sélectionné",
+      "loaded": "Thème sélectionné chargé : {{themeId}}",
+      "saveError": "Erreur lors de l'enregistrement du thème sélectionné",
+      "saved": "Thème sélectionné enregistré : {{themeId}}"
+    }
+  }
+}

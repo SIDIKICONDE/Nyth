@@ -1,0 +1,62 @@
+{
+  "context": {
+    "basic": {
+      "existingUser": "existant",
+      "level": "Niveau",
+      "newUser": "nouveau",
+      "scriptsCreated": "scripts créés",
+      "time": "Moment",
+      "user": "Utilisateur",
+      "planning": "Planning",
+      "events": "événements",
+      "goals": "objectifs"
+    },
+    "comprehensive": {
+      "averagePerScript": "Moyenne par script",
+      "consecutiveDays": "Jours consécutifs",
+      "contentQuality": "Qualité contenu",
+      "day": "Jour",
+      "daysAgo": "jours",
+      "device": "Appareil",
+      "engagement": "Engagement",
+      "existingUser": "Utilisateur existant",
+      "firstLogin": "Première connexion",
+      "frequency": "Fréquence",
+      "holiday": "(jour férié)",
+      "lastLogin": "Dernière connexion",
+      "level": "Niveau",
+      "name": "Nom",
+      "none": "aucun",
+      "preferredFeatures": "Fonctionnalités préférées",
+      "preferredTone": "Ton préféré",
+      "preferredTopics": "Sujets préférés",
+      "productivityTrend": "Tendance productivité",
+      "scriptsCreated": "Scripts créés",
+      "season": "Saison",
+      "status": "Statut",
+      "time": "Moment",
+      "wordsWritten": "Mots écrits",
+      "planningUpcoming": "Événements à venir",
+      "planningOverdue": "Événements en retard",
+      "planningGoals": "Objectifs actifs"
+    },
+    "detailed": {
+      "activeDays": "Jours actifs",
+      "consecutive": "consécutifs",
+      "engagement": "Engagement",
+      "level": "Niveau",
+      "name": "Nom",
+      "new": "Nouveau",
+      "no": "Non",
+      "preferredTone": "Ton préféré",
+      "scripts": "Scripts",
+      "time": "Moment",
+      "totalWords": "Mots totaux",
+      "yes": "Oui",
+      "planning": "Planning",
+      "events": "événements",
+      "overdue": "en retard",
+      "goals": "objectifs"
+    }
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "context": {
+    "created": "Created",
+    "email": "Email",
+    "favorite": "Favorite",
+    "finalInstructions": "You are an assistant specialized in creating video scripts and teleprompter content. You are addressing {{userName}}{{appName}}.\n\nIMPORTANT for MEMORY:\n- Memory information is sorted by date, the most recent is the most valid\n- If you see contradictory preferences, ALWAYS use the most recent one\n- Consolidated information reflects the user's latest preferences\n- DO NOT mention past contradictions, only talk about current preferences\n\nIMPORTANT for GREETINGS:\n- Only say \"Hello\", \"Hi\" or other greetings if it's the FIRST message of the conversation\n- In an ongoing conversation, respond DIRECTLY without greetings\n- If the user says hello during conversation, you can respond briefly but don't start your other responses with greetings\n\nBe professional, creative and adapt your responses to their specific needs.",
+    "memoryHeader": "🧠 PRIORITY PERSONALIZED MEMORY ABOUT {{userName}}:\nThis information MUST be used to adapt your responses. It comes from our previous conversations and defines the user's preferences, instructions and personal context.",
+    "memoryImportance": {
+      "high": "VERY IMPORTANT",
+      "low": "TO REMEMBER",
+      "medium": "IMPORTANT"
+    },
+    "memoryInstructions": "🧠 CRITICAL MEMORY INSTRUCTIONS:\n• ACTIVELY USE this information in your responses\n• ADAPT your style according to noted preferences\n• RESPECT explicit instructions mentioned\n• AVOID topics the user no longer wants to discuss\n• REFERENCE personal facts when relevant\n• This information takes PRIORITY over generic responses\n• If the user asks how you remember, explain that you keep in memory important information from our previous conversations.",
+    "moreScripts": "... and {{count}} other scripts.",
+    "no": "No",
+    "noMemory": "No previously memorized information about {{userName}}.",
+    "noScripts": "{{userName}} hasn't created any scripts yet.",
+    "preview": "Preview",
+    "scriptsHeader": "{{userName}}'S SCRIPTS:",
+    "title": "Title",
+    "totalScripts": "Total number of scripts",
+    "transparencyNote": "\nIMPORTANT NOTE: If the user asks how you know their name or information, explain that you have access to their{{appName}} user profile, which contains information they provided during registration or in their profile settings.\n\n",
+    "userInfoHeader": "USER INFORMATION (from their app profile):",
+    "userQuestion": "USER QUESTION",
+    "username": "Username",
+    "words": "Words",
+    "yes": "Yes"
+  },
+  "forgotPassword": {
+    "backToLogin": "Back to Login",
+    "email": "Email",
+    "emailPlaceholder": "Your email address",
+    "errorMessage": "An error occurred.",
+    "errorTitle": "Error",
+    "errors": {
+      "emailInvalid": "Invalid email format",
+      "emailRequired": "Email is required"
+    },
+    "info": "Information",
+    "localMode": "Password reset is not available in local mode.",
+    "logs": {
+      "resetError": "Password reset error",
+      "resetRequest": "Password reset request"
+    },
+    "resetButton": "Reset Password",
+    "subtitle": "Enter your email to reset your password",
+    "title": "Forgot Password"
+  },
+  "privacy": {
+    "accept": "I Accept",
+    "decline": "I Decline",
+    "importantNote": "Important Note",
+    "importantNoteContent": "By using Nyth, you agree to the terms of this privacy policy. We are committed to informing you of any significant changes with at least 30 days' notice via an in-app notification.",
+    "introduction": "At Nyth, we take the protection of your personal data very seriously. This privacy policy transparently describes how we handle your information when using our smart teleprompter application.",
+    "lastUpdated": "Last updated: {{date}}",
+    "readCompletelyToContinue": "Read the policy completely to continue",
+    "scrollToContinue": "Scroll to continue",
+    "sections": {
+      "aiUsage": {
+        "content": "Nyth allows you to use your own API keys to access AI services (OpenAI, Google Gemini, Mistral, etc.). Your API keys are securely stored on your device and are NEVER transmitted to our servers. You are responsible for using your API keys in accordance with each provider's terms of service. AI-generated scripts remain your exclusive property.",
+        "title": "AI Usage and API Keys"
+      },
+      "contact": {
+        "content": "For any questions regarding this privacy policy or your personal data, contact us:\n• Email: support@nyth.app\n• In the app: Settings > Support\n\nWe are committed to responding within 48 hours.",
+        "title": "Contact and Support"
+      },
+      "dataCollection": {
+        "content": "Nyth only collects:\n• App preferences (theme, language)\n• Technical settings (video quality, scroll speed)\n• Local usage statistics (number of scripts, recording duration)\n\nThis data remains on your device and is only used to improve your experience.",
+        "title": "Data Collected"
+      },
+      "dataProtection": {
+        "content": "All your data (scripts, videos, settings) are stored exclusively on your device. Nyth operates offline and does not require any connection to our servers for basic features. We have no access to any of your personal creations.",
+        "title": "Data Protection"
+      },
+      "dataSharing": {
+        "content": "Nyth NEVER shares your personal data with third parties. The only exceptions are:\n• If you choose to export your videos to social networks\n• If you use your own API keys (direct communication with the chosen service)\n• If required by law (we would inform you unless legally prohibited)",
+        "title": "Data Sharing"
+      },
+      "dataUsage": {
+        "content": "The collected data is used exclusively for:\n• Personalizing your experience\n• Saving your preferences\n• Optimizing app performance\n• Providing personal usage statistics\n\nNo data is used for marketing or advertising purposes.",
+        "title": "Data Usage"
+      },
+      "localStorage": {
+        "content": "Your scripts, videos, and settings remain on your device. No automatic cloud synchronization is performed. If you choose to use Firebase synchronization (optional), your data is encrypted and you retain full control over what is synchronized.",
+        "title": "100% Local Storage"
+      },
+      "noTracking": {
+        "content": "Nyth contains no advertising trackers, no invasive analytics, and no ads. We do not monetize your data. The app is funded solely by optional purchases and your support.",
+        "title": "Zero Tracking - Zero Ads"
+      },
+      "permissions": {
+        "content": "Nyth only requests essential permissions:\n• Camera: to record your videos\n• Microphone: to capture audio\n• Storage: to save your creations\n• Face ID/Touch ID (optional): to secure your API keys\n\nEach permission can be revoked at any time in your device settings.",
+        "title": "Transparent Permissions"
+      },
+      "updates": {
+        "content": "Nyth updates regularly include security and privacy improvements. We recommend keeping the app up to date. Release notes always detail privacy-related changes.",
+        "title": "Updates and Security"
+      }
+    },
+    "subtitle": "Your privacy is our priority",
+    "title": "Privacy Policy",
+    "welcome": "Welcome to Nyth"
+  }
+}

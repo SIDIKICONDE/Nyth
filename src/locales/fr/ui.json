@@ -1,0 +1,247 @@
+{
+  "autoSave": {
+    "active": "Actif",
+    "autoSave": "Auto-enregistrement",
+    "last": "Dernier",
+    "minutes": "m",
+    "now": "maintenant",
+    "saved": "Enregistré",
+    "seconds": "s"
+  },
+  "cache": {
+    "daysAgo": "{{days}} jours",
+    "noData": "Aucune donnée",
+    "noDataDescription": "Aucune donnée en cache.\nLe cache sera automatiquement créé lors de l'utilisation.",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier"
+  },
+  "cacheManager": {
+    "errors": {
+      "androidError": "Une erreur est survenue lors de l'effacement du cache.",
+      "androidResetError": "Une erreur est survenue lors de la réinitialisation de l'application.",
+      "androidSettingsResetError": "Une erreur est survenue lors de la réinitialisation des paramètres.",
+      "cacheClearError": "Erreur lors de l'effacement du cache :",
+      "cacheDirectoryNotFound": "Répertoire de cache non trouvé",
+      "cacheSizeError": "Erreur lors du calcul de la taille du cache :",
+      "cannotAccessAppCache": "Impossible d'accéder au cache de l'application :",
+      "cannotAccessSystemDir": "Impossible d'accéder à {{dir}} :",
+      "cannotAccessSystemDirs": "Impossible d'accéder aux répertoires système :",
+      "cannotCleanDirectory": "Impossible de nettoyer le répertoire {{dir}} :",
+      "cannotDeleteAppCacheFile": "Impossible de supprimer {{file}} dans le cache de l'application :",
+      "cannotDeleteFile": "Impossible de supprimer {{file}} :",
+      "cannotDeleteInDirectory": "Impossible de supprimer {{file}} dans {{dir}} :",
+      "cannotForceGC": "Impossible de forcer le garbage collection :",
+      "cannotReadFileSize": "Impossible de lire la taille de {{file}} :",
+      "iosError": "Impossible d'accéder au cache de l'application. Veuillez réessayer ou redémarrer l'application.",
+      "iosResetError": "Impossible de réinitialiser complètement l'application. Veuillez réessayer ou réinstaller l'application.",
+      "iosSettingsResetError": "Impossible de réinitialiser les paramètres. Veuillez réessayer.",
+      "resetError": "❌ Erreur lors de la réinitialisation :",
+      "settingsResetError": "❌ Erreur lors de la réinitialisation des paramètres :"
+    },
+    "logs": {
+      "allDirectoriesCleaned": "✅ Tous les répertoires nettoyés",
+      "cachesCleaned": "✅ Caches nettoyés",
+      "cleaningAllDirectories": "🗑️ Nettoyage de tous les répertoires...",
+      "cleaningCaches": "🗑️ Nettoyage des caches...",
+      "cleaningPersistentData": "🗑️ Nettoyage des données persistantes...",
+      "cleaningSettings": "🗑️ Nettoyage des paramètres...",
+      "cleaningTempCaches": "🗑️ Nettoyage des caches temporaires...",
+      "persistentDataCleaned": "✅ Données persistantes nettoyées",
+      "preparingRestart": "🔄 Préparation du redémarrage...",
+      "resetComplete": "✨ Réinitialisation complète terminée !",
+      "restartWarning": "⚠️ Pour terminer la réinitialisation, veuillez redémarrer l'application manuellement.",
+      "restoringUserData": "📦 Restauration des données utilisateur...",
+      "settingsCleaned": "✅ Paramètres nettoyés",
+      "settingsResetComplete": "✨ Réinitialisation des paramètres terminée !",
+      "startingReset": "🔄 Début de la réinitialisation complète...",
+      "startingSettingsReset": "🔄 Début de la réinitialisation des paramètres...",
+      "tempCachesCleaned": "✅ Caches temporaires nettoyés",
+      "userDataRestored": "✅ Données utilisateur restaurées"
+    },
+    "sizes": {
+      "bytes": "O",
+      "gigabytes": "Go",
+      "kilobytes": "Ko",
+      "megabytes": "Mo"
+    }
+  },
+  "colorPicker": {
+    "accessibility": {
+      "collapseButton": "Réduire la palette de couleurs",
+      "colorOption": "Option de couleur {{color}}",
+      "colorPreview": "Aperçu de la couleur",
+      "expandButton": "Étendre la palette de couleurs",
+      "hexInput": "Entrée de couleur hexadécimale",
+      "selectedColor": "Couleur sélectionnée : {{color}}"
+    },
+    "buttons": {
+      "collapse": "Afficher moins de couleurs",
+      "expand": "Afficher plus de couleurs",
+      "random": "Couleur aléatoire",
+      "reset": "Réinitialiser à la valeur par défaut"
+    },
+    "categories": {
+      "extended": "Palette Étendue",
+      "favorites": "Favorites",
+      "preset": "Couleurs Préréglées",
+      "recent": "Récemment Utilisées"
+    },
+    "contrast": {
+      "high": "Contraste élevé",
+      "low": "Contraste faible",
+      "medium": "Contraste moyen",
+      "ratio": "Ratio de contraste : {{ratio}}"
+    },
+    "labels": {
+      "accentColor": "Couleur d'Accent",
+      "backgroundColor": "Couleur de Fond",
+      "borderColor": "Couleur de la Bordure",
+      "color": "Couleur",
+      "primaryColor": "Couleur Primaire",
+      "secondaryColor": "Couleur Secondaire",
+      "shadowColor": "Couleur de l'Ombre",
+      "textColor": "Couleur du Texte"
+    },
+    "placeholders": {
+      "enterHex": "Entrez la couleur hexadécimale",
+      "hexInput": "#RRVVB"
+    },
+    "title": "Couleur",
+    "utils": {
+      "brighten": "Éclaircir de {{percent}}%",
+      "brightness": "Luminosité : {{value}}",
+      "darken": "Assombrir de {{percent}}%",
+      "luminance": "Luminance : {{value}}"
+    },
+    "validation": {
+      "aaaRecommended": "Niveau AAA recommandé (actuel : {{current}})",
+      "addHashPrefix": "Ajoutez le préfixe # au code couleur",
+      "adjustBrightness": "Essayez d'ajuster la luminosité",
+      "considerDifferentColors": "Envisagez d'utiliser des couleurs très différentes",
+      "correctLength": "Le code couleur doit comporter 7 caractères",
+      "emptyColor": "La couleur ne peut pas être vide",
+      "extremeLuminance": "La couleur a des valeurs de luminance extrêmes",
+      "insufficientContrast": "Contraste insuffisant ({{current}}/{{required}})",
+      "invalidColors": "Une ou les deux couleurs sont invalides",
+      "invalidHex": "Format de couleur hexadécimale invalide",
+      "validHex": "Format de couleur valide",
+      "veryDark": "Cette couleur est très sombre et peut être difficile à voir",
+      "veryLight": "Cette couleur est très claire et peut être difficile à voir"
+    }
+  },
+  "fabDesignSelector": {
+    "classicMenu": {
+      "quickActions": "Actions rapides",
+      "quickActionsSubtitle": "Accédez rapidement aux fonctionnalités"
+    },
+    "description": "Choisissez le style d'affichage du menu flottant sur la page d'accueil",
+    "designs": {
+      "classic": {
+        "description": "Barre horizontale traditionnelle",
+        "name": "Classique"
+      },
+      "dock": {
+        "description": "Style dock macOS avec zoom",
+        "name": "Dock Style 🚀"
+      },
+      "orbital": {
+        "description": "Boutons qui orbitent autour du centre",
+        "name": "Orbital ✨"
+      },
+      "stacked": {
+        "description": "Cartes qui se déploient avec rotation",
+        "name": "Cartes Empilées 🃏"
+      }
+    },
+    "note": "Le changement de style sera appliqué immédiatement sur la page d'accueil.",
+    "title": "Style du Menu Flottant"
+  },
+  "fonts": {
+    "categories": {
+      "content": "Contenu",
+      "heading": "Titres",
+      "ui": "Interface"
+    },
+    "condensed": "Condensé",
+    "customized": "Polices personnalisées",
+    "display": "Affichage",
+    "elegant": "Élégant",
+    "errors": {
+      "loadPreference": "Erreur lors du chargement de la préférence de police :",
+      "savePreference": "Erreur lors de l'enregistrement de la préférence de police :"
+    },
+    "handwriting": "Manuscrit",
+    "modern": "Moderne",
+    "monospace": "Monospace",
+    "preview": {
+      "description": "Cette police sera utilisée pour afficher tous les messages dans la conversation.",
+      "quick": "Aperçu rapide : ABC abc 123",
+      "title": "Aperçu de la police"
+    },
+    "rounded": "Arrondi",
+    "serif": "Serif",
+    "system": "Système",
+    "tech": "Tech",
+    "title": "Famille de Polices"
+  },
+  "loading": {
+    "default": "Chargement...",
+    "initializing": "Initialisation...",
+    "subtitle": "Votre prompteur intelligent"
+  },
+  "loadingSection": {
+    "appName": "Nyth",
+    "errors": {
+      "appStateCheck": "Erreur lors de la vérification de l'état de l'application :"
+    },
+    "initializing": "Initialisation...",
+    "subtitle": "Votre prompteur intelligent"
+  },
+  "menu": {
+    "ai": "IA",
+    "backToConversations": "Retour aux conversations",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette conversation ?",
+    "conversationCopied": "Résumé de la conversation copié dans le presse-papiers",
+    "conversationDeleted": "Conversation supprimée",
+    "conversations": "Conversations",
+    "copied": "Copié",
+    "copy": "Copier",
+    "creating": "Création...",
+    "days": {
+      "fri": "Ven",
+      "mon": "Lun",
+      "sat": "Sam",
+      "sun": "Dim",
+      "thu": "Jeu",
+      "tue": "Mar",
+      "wed": "Mer"
+    },
+    "delete": "Supprimer",
+    "deleteDescription": "Cette action est irréversible.",
+    "deleteError": "Impossible de supprimer la conversation",
+    "deleteSuccess": "Conversation supprimée avec succès",
+    "messages": "Messages",
+    "newConversation": "Nouvelle conversation",
+    "noConversations": "Aucune conversation",
+    "noConversationsSubtitle": "Commencez une nouvelle conversation avec l'IA",
+    "noResults": "Aucun résultat",
+    "noResultsDescription": "Essayez avec d'autres mots-clés",
+    "noResultsSubtitle": "Aucune conversation ne correspond à votre recherche",
+    "older": "Plus Ancien",
+    "rename": "Renommer",
+    "renameError": "Impossible de renommer la conversation",
+    "renamePrompt": "Entrez un nouveau titre pour cette conversation",
+    "renameTitle": "Renommer la conversation",
+    "search": "Rechercher...",
+    "searchPlaceholder": "Rechercher dans les conversations...",
+    "settings": "Paramètres",
+    "share": "Partager",
+    "shareConversation": "Conversation : {{title}}",
+    "shareError": "Impossible de partager la conversation",
+    "startNewConversation": "Commencez une nouvelle conversation avec l'IA",
+    "thisWeek": "Cette Semaine",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "you": "Vous"
+  }
+}

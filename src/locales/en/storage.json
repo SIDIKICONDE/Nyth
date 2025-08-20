@@ -1,0 +1,43 @@
+{
+  "firestore": {
+    "errors": {
+      "aborted": "The operation was aborted.",
+      "alreadyExists": "This document already exists.",
+      "cancelled": "The operation was cancelled.",
+      "createTitle": "Creation Error",
+      "dataLoss": "Data loss detected.",
+      "deadlineExceeded": "The operation took too long.",
+      "deleteTitle": "Deletion Error",
+      "failedPrecondition": "The required conditions are not met.",
+      "internal": "An internal error occurred.",
+      "notFound": "The requested document does not exist.",
+      "outOfRange": "Value out of bounds.",
+      "permissionDenied": "You do not have the rights to perform this action.",
+      "readOnlyDocument": "This document cannot be modified or deleted.",
+      "resourceExhausted": "Quota exceeded. Please try again later.",
+      "unauthenticated": "You must be logged in to perform this action.",
+      "unavailable": "The service is temporarily unavailable. Please try again.",
+      "unimplemented": "This feature is not yet available.",
+      "unknown": "An unknown error occurred: {{message}}",
+      "updateTitle": "Modification Error"
+    }
+  },
+  "themeStorage": {
+    "clear": {
+      "error": "Error clearing theme data",
+      "success": "Theme data cleared successfully"
+    },
+    "customThemes": {
+      "loadError": "Error loading custom themes",
+      "loaded": "Custom themes loaded: {{count}} themes",
+      "saveError": "Error saving custom themes",
+      "saved": "Custom themes saved: {{count}} themes"
+    },
+    "selectedTheme": {
+      "loadError": "Error loading selected theme",
+      "loaded": "Selected theme loaded: {{themeId}}",
+      "saveError": "Error saving selected theme",
+      "saved": "Selected theme saved: {{themeId}}"
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "admin": {
+    "accessDenied": {
+      "message": "Vous n'avez pas les permissions nécessaires",
+      "title": "Accès refusé"
+    },
+    "error": {
+      "loadMessage": "Impossible de charger les données",
+      "loadTitle": "Erreur"
+    },
+    "permission": {
+      "superAdminOnly": "Seuls les super admins peuvent modifier les rôles",
+      "title": "Permission refusée"
+    },
+    "resetPassword": {
+      "error": "Impossible d'envoyer l'email",
+      "message": "Envoyer un email de réinitialisation à {{name}} ?",
+      "success": "Email de réinitialisation envoyé",
+      "title": "Réinitialiser le mot de passe"
+    },
+    "role": {
+      "admin": "Admin",
+      "cantModifySuperAdmin": "Impossible de modifier le rôle d'un super admin",
+      "confirmMessage": "Êtes-vous sûr de vouloir modifier le rôle de cet utilisateur ?",
+      "confirmTitle": "Confirmer le changement",
+      "errorTitle": "Action impossible",
+      "superAdmin": "Super Admin",
+      "updateSuccess": "Rôle mis à jour avec succès",
+      "user": "Utilisateur"
+    },
+    "stats": {
+      "activeToday": "Actifs aujourd'hui",
+      "admins": "Admins",
+      "recordings": "Enregistrements",
+      "scripts": "Scripts créés",
+      "users": "Utilisateurs"
+    },
+    "sync": {
+      "error": "Erreur lors de la synchronisation",
+      "message": "Voulez-vous synchroniser tous les enregistrements locaux avec Firestore ?",
+      "success": "Synchronisation terminée",
+      "title": "Synchroniser les enregistrements"
+    },
+    "tabs": {
+      "stats": "Statistiques",
+      "users": "Utilisateurs"
+    },
+    "title": "Administration",
+    "user": {
+      "anonymous": "Utilisateur anonyme",
+      "lastLogin": "Dernière connexion",
+      "noEmail": "Pas d'email",
+      "registeredOn": "Inscrit le"
+    }
+  }
+}

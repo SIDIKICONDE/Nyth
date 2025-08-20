@@ -1,0 +1,162 @@
+{
+  "categories": {
+    "business": "Entreprise",
+    "creative": "Créatif",
+    "lifestyle": "Mode de Vie",
+    "tech": "Technologie"
+  },
+  "categoryShort": {
+    "business": "Entreprise",
+    "creative": "Créatif",
+    "lifestyle": "Mode de Vie",
+    "tech": "Tech"
+  },
+  "theme": {
+    "alerts": {
+      "deleteTheme": {
+        "cancel": "Annuler",
+        "delete": "Supprimer",
+        "message": "Êtes-vous sûr de vouloir supprimer ce thème personnalisé ? Cette action est irréversible.",
+        "title": "🗑️ Supprimer le Thème"
+      },
+      "error": {
+        "button": "OK",
+        "message": "Une erreur est survenue lors de la création du thème.",
+        "title": "❌ Erreur"
+      },
+      "themeCreated": {
+        "button": "Super !",
+        "message": "Votre nouveau thème a été créé avec succès !",
+        "title": "✅ Thème Créé"
+      }
+    },
+    "card": {
+      "customTheme": "Thème Personnalisé",
+      "presetTheme": "Thème Préréglé"
+    },
+    "creation": {
+      "accentColor": "Couleur d'Accent",
+      "accentDescription": "Mise en valeur et éléments spéciaux",
+      "background": "Arrière-Plan",
+      "backgroundDescription": "Couleur de fond principal",
+      "cancel": "Annuler",
+      "colorPresets": "Palettes Prédéfinies",
+      "colors": "Couleurs",
+      "compactModeDescription": "Passez en mode \"Cartes\" pour éditer les couleurs",
+      "compactModeInfo": "Mode Compact",
+      "create": "Créer",
+      "customColors": "Couleurs Personnalisées",
+      "customizeDescription": "Personnalisez chaque couleur pour créer votre thème unique",
+      "dark": "Sombre",
+      "light": "Clair",
+      "mainText": "Texte Principal",
+      "mode": "Mode",
+      "previewAccent": "Accent",
+      "previewExample": "Exemple de Texte",
+      "previewPrimary": "Primaire",
+      "previewSecondary": "Texte secondaire avec votre nouveau thème",
+      "previewSecondaryBtn": "Secondaire",
+      "primaryColor": "Couleur Primaire",
+      "primaryDescription": "Couleur principale de l'interface",
+      "secondaryColor": "Couleur Secondaire",
+      "secondaryDescription": "Couleur d'accent et d'interaction",
+      "subtitle": "Créez votre thème personnalisé",
+      "surface": "Surface",
+      "surfaceDescription": "Cartes et conteneurs élevés",
+      "textDescription": "Couleur du texte principal",
+      "themeName": "Nom du Thème",
+      "themeNamePlaceholder": "Mon thème personnalisé",
+      "themePreview": "Aperçu du Thème",
+      "title": "Nouveau Thème"
+    },
+    "management": {
+      "error": {
+        "nameRequired": "Veuillez entrer un nom pour votre thème",
+        "title": "Erreur"
+      }
+    },
+    "presets": {
+      "amberGold": "🌞 Ambre Doré",
+      "appleCosmic": "🍎 Apple Cosmic",
+      "appleStudioLight": "🍎 Apple Studio Light",
+      "appleVisionPro": "🍎 Apple Vision Pro",
+      "arcticFrost": "🌨 Givre Arctique",
+      "auroraDark": "💼 Exécutif Sombre",
+      "auroraLight": "🏢 Corporate Clair",
+      "cherryBlossom": "🌸 Fleur de Cerisier",
+      "coffeeDark": "☕ Café Intense",
+      "coralReef": "🐠 Récif Corallien",
+      "cosmicAurora": "🌌 Aurore Cosmique",
+      "cosmicPurple": "🌌 Pourpre Cosmique",
+      "cyberpunk": "🌆 Cyberpunk",
+      "cyberpunkNeon": "🌈 Cyberpunk Néon",
+      "darkAmber": "🌙 Ambre Sombre",
+      "darkDefault": "🌙 Classique Sombre",
+      "darkForest": "🌲 Forêt Sombre",
+      "darkRuby": "🔮 Rubis Sombre",
+      "deepOcean": "🌊 Océan Profond",
+      "deepTeal": "🌊 Bleu Vert Profond",
+      "dracula": "🧛 Dracula",
+      "emerald": "Émeraude",
+      "emeraldDark": "🌙 Émeraude Sombre",
+      "emeraldNature": "🌿 Nature Émeraude",
+      "energy": "⚡ Énergie",
+      "forestGreen": "🌲 Vert Forêt",
+      "githubLight": "🐙 GitHub Clair",
+      "goldenHour": "🌞 Heure Dorée",
+      "holographic": "🌌 Holographique",
+      "indigoNight": "🌃 Nuit Indigo",
+      "ivoryExecutive": "🤍 Exécutif Ivoire",
+      "lavenderDark": "💜 Lavande Sombre",
+      "lavenderLight": "💜 Lavande Douce",
+      "lgbtqiaPride": "🏳️‍🌈 LGBTQIA+ Pride",
+      "lgbtqiaPrideDark": "🏳️‍🌈 LGBTQIA+ Pride Sombre",
+      "lightDefault": "☀️ Classique Clair",
+      "lightTheme": "☀️ Light Theme",
+      "liquidGlassDark": "💎 Liquid Glass Sombre",
+      "liquidGlassFrost": "❄️ Liquid Glass Givré",
+      "liquidGlassLight": "💎 Liquid Glass Clair",
+      "liquidGlassNeon": "✨ Liquid Glass Néon",
+      "matrixGreen": "🌱 Vert Matrix",
+      "midnightBlue": "🌃 Bleu Minuit",
+      "midnightOrange": "🌅 Orange Minuit",
+      "mintGreen": "🍃 Fraîcheur Menthe",
+      "monochromePureDark": "⚫ Monochrome Pur Sombre",
+      "monochromePureLight": "⚪ Monochrome Pur Clair",
+      "neonDreams": "🌈 Rêves Néon",
+      "neonNights": "🌌 Nuits Néon",
+      "neonPink": "💖 Rose Néon",
+      "ocean": "Océan",
+      "oceanBlue": "🌊 Bleu Océan",
+      "orange": "Orange",
+      "pastelDream": "🌸 Rêve Pastel",
+      "peachLight": "🍑 Pêche Pastel",
+      "platinumPro": "💎 Platine Pro",
+      "purpleGalaxy": "🌌 Galaxie Pourpre",
+      "rgbPlus": "🌈 RGB+",
+      "rgbPlusDark": "🌈 RGB+ Sombre",
+      "rose": "Rose",
+      "rubyRed": "💎 Rouge Rubis",
+      "spaceExplorer": "🚀 Explorateur Spatial",
+      "steelProfessional": "⚡ Acier Professionnel",
+      "sunsetGradient": "🌅 Dégradé Couchant",
+      "sunsetOrange": "🌅 Couchant",
+      "systemAuto": "🔄 Automatique (Système)",
+      "tealBreeze": "🏝️ Brise Bleu Vert",
+      "title": "Préréglages de Couleurs",
+      "turquoise": "Turquoise",
+      "violet": "Violet",
+      "volcanicAsh": "🌋 Cendre Volcanique"
+    },
+    "screen": {
+      "createNewTheme": "Créer un nouveau thème",
+      "subtitle": "Choisissez ou créez votre style",
+      "title": "🎨 Thèmes"
+    },
+    "systemTheme": {
+      "activeDescription": "Suit le système (actuellement {{mode}})",
+      "inactiveDescription": "Suivre les réglages système",
+      "title": "Thème automatique"
+    }
+  }
+}

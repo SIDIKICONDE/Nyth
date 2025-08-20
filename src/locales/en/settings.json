@@ -1,0 +1,541 @@
+{
+  "exportOptions": {
+    "audio": {
+      "advanced": {
+        "bassBoost": "Bass Boost",
+        "title": "Advanced Options",
+        "trebleBoost": "Treble Boost",
+        "voiceEnhancement": "Voice Enhancement"
+      },
+      "disabled": "Video Only",
+      "enabled": "Include Audio",
+      "header": {
+        "native": "Native",
+        "simulated": "Simulated",
+        "title": "Audio Optimization"
+      },
+      "info": {
+        "currentProfile": "Current Profile: {{profile}}",
+        "nativeModuleUnavailable": "Native audio module not available",
+        "simulatedEffects": "Audio effects are simulated. For real effects, compile the application with the native module."
+      },
+      "mainSettings": {
+        "basic": "(basic)",
+        "intelligentNormalization": "Intelligent Normalization",
+        "title": "Main Settings"
+      },
+      "noiseReduction": {
+        "light": "Light",
+        "medium": "Medium",
+        "none": "None",
+        "simulated": "(simulated)",
+        "strong": "Strong",
+        "title": "Noise Reduction"
+      },
+      "profiles": {
+        "custom": "Custom",
+        "title": "Preset Profiles"
+      },
+      "title": "Audio"
+    },
+    "autoDetected": "Auto-detected",
+    "format": {
+      "mov": "MOV",
+      "mp4": "MP4",
+      "recommendation": "Recommendation: Use H264 or HEVC in video settings",
+      "title": "Format",
+      "understood": "Understood"
+    },
+    "quality": {
+      "high": "High (1080p)",
+      "low": "Low (480p)",
+      "medium": "Medium (720p)",
+      "optimizedForDevice": "Optimized for your device",
+      "qualityDetected": {
+        "message": "Your video was recorded in {{quality}}. The export quality has been automatically adjusted to avoid unnecessary resizing.",
+        "title": "📊 Detected Quality",
+        "understood": "Understood"
+      },
+      "title": "Quality",
+      "ultra": "Ultra (4K)",
+      "upscalingWarning": {
+        "cancel": "Cancel",
+        "continue": "Continue Anyway",
+        "title": "⚠️ Quality Warning"
+      }
+    },
+    "storage": {
+      "recording": {
+        "loadError": "❌ Error loading recording:",
+        "settingsError": "❌ Error retrieving settings:"
+      }
+    },
+    "sync": {
+      "autoDetection": "🤖 Auto-detecting optimal settings...",
+      "autoDetectionError": "❌ Auto-detection error:",
+      "autoDetectionSuccess": "✅ Auto-detected settings:",
+      "detectedQuality": "📝 Detected video quality in settings: {{quality}}",
+      "qualityAutoAdjusted": "⚠️ Automatic adjustment of export quality",
+      "syncError": "❌ Error synchronizing settings:",
+      "syncSuccess": "✅ Video settings synchronized:",
+      "videoMetadataDetected": "📊 Detected video quality: {{quality}}",
+      "videoSettings": "🔄 Syncing with configured video settings..."
+    },
+    "title": "Export Options"
+  },
+  "settings": {
+    "account": {
+      "guestMode": "Guest Mode"
+    },
+    "actions": {
+      "resetToDefaults": "Reset to Default",
+      "saveAndContinue": "Save and Continue",
+      "saving": "Saving..."
+    },
+    "alerts": {
+      "disableAll": {
+        "subtitle": "Disable all confirmation pop-ups",
+        "title": "Hide All Alerts"
+      },
+      "disableError": {
+        "subtitle": "Show errors in the console only",
+        "title": "Hide Error Alerts"
+      },
+      "disableReset": {
+        "subtitle": "Reset without asking for confirmation",
+        "title": "Hide Reset Confirmations"
+      },
+      "disableSave": {
+        "subtitle": "No more 'Settings saved'",
+        "title": "Hide Save Alerts"
+      },
+      "title": "Notifications"
+    },
+    "cache": {
+      "size": "Cache Size"
+    },
+    "clearCache": {
+      "complete": {
+        "message": "The cache has been successfully cleared. The application will restart.",
+        "restart": "Restart",
+        "title": "Cache Cleared"
+      },
+      "confirmation": {
+        "message": "Are you sure you want to clear the cache? This will free up storage space but may temporarily slow down the application.",
+        "reset": "Clear",
+        "title": "Clear Cache"
+      },
+      "title": "Clear Cache"
+    },
+    "deviceInfo": {
+      "applyOptimalSettings": "Apply Optimal Settings",
+      "codecs": {
+        "h264": {
+          "description": "Standard video codec, widely supported"
+        },
+        "hevc": {
+          "ios": "HEVC/H.265 (iOS optimized)"
+        },
+        "jpeg": {
+          "description": "JPEG compression"
+        },
+        "prores422": {
+          "description": "Apple Non supporté"
+        },
+        "prores4444": {
+          "description": "Apple Non supporté"
+        },
+        "title": "Available Codecs"
+      },
+      "environment": {
+        "development": "Development",
+        "preview": "Preview",
+        "production": "Production"
+      },
+      "features": {
+        "autoFocus": "Auto Focus",
+        "camera": "Camera",
+        "cloudBackup": "Cloud Backup",
+        "customThemes": "Custom Themes",
+        "faceDetection": "Face Detection",
+        "flash": "Flash",
+        "microphone": "Microphone",
+        "socialSharing": "Social Sharing",
+        "textScrolling": "Text Scrolling",
+        "title": "Features"
+      },
+      "optimizationNote": "Configure for better performance",
+      "storage": {
+        "duration": {
+          "hoursMinutes": "{{hours}}h {{minutes}}min"
+        },
+        "estimatedDuration": "Estimated Recording Time",
+        "estimationNote": "Based on 720p quality",
+        "freeSpace": "Free Space",
+        "title": "Storage",
+        "totalSpace": "Total Space",
+        "units": {
+          "bytes": "bytes",
+          "gb": "GB",
+          "kb": "KB",
+          "mb": "MB",
+          "tb": "TB"
+        }
+      },
+      "system": {
+        "environment": "Environment",
+        "model": "Model",
+        "osVersion": "OS Version",
+        "physicalDevice": "Physical Device",
+        "platform": "Platform",
+        "title": "System Information",
+        "type": "Device Type"
+      },
+      "title": "Device Information",
+      "video": {
+        "available": "Available",
+        "camera": "Camera",
+        "maxQuality": "Max Quality",
+        "optimal": "Optimal",
+        "recording": "Recording",
+        "title": "Video Capabilities"
+      }
+    },
+    "display": {
+      "mirrorMode": {
+        "title": "Mirror Mode"
+      },
+      "scriptStyle": {
+        "library": "Library",
+        "list": "List",
+        "stack": "Cards",
+        "title": ""
+      },
+      "teleprompter": {
+        "title": "Teleprompter"
+      },
+      "textShadow": {
+        "subtitle": "Adds a shadow to improve readability",
+        "title": "Text Shadow"
+      },
+      "themes": {
+        "title": "Themes"
+      },
+      "title": "Display"
+    },
+    "equalizer": {
+      "advanced": "Advanced",
+      "advancedDesc": "Fine-tune individual frequency bands",
+      "footer": "Equalizer settings affect audio playback quality",
+      "openEqualizer": "Open Equalizer",
+      "openEqualizerDesc": "Access advanced audio controls",
+      "presets": "Presets",
+      "presetsDesc": "Choose from predefined audio profiles",
+      "subtitle": "Adjust audio frequencies",
+      "title": "Equalizer"
+    },
+    "fonts": {
+      "applyToAll": "Apply everywhere",
+      "categories": {
+        "code": "Code",
+        "codeDesc": "Code and technical text",
+        "content": "Content",
+        "contentDesc": "Long texts, descriptions, paragraphs",
+        "heading": "Headings",
+        "headingDesc": "Titles and headers",
+        "ui": "User interface",
+        "uiDesc": "Buttons, menus, navigation"
+      },
+      "condensed": "Condensed",
+      "customize": "Customize fonts",
+      "customized": "Custom fonts",
+      "descriptions": {
+        "condensed": "Compact and modern",
+        "display": "Strong visual impact",
+        "elegant": "Refined and sophisticated",
+        "handwriting": "Handwritten style",
+        "modern": "Contemporary and clean",
+        "monospace": "Ideal for code and data",
+        "rounded": "Soft and friendly",
+        "serif": "Classic with serifs",
+        "system": "Default system font",
+        "tech": "Futuristic and technical"
+      },
+      "display": "Display",
+      "elegant": "Elegant",
+      "errors": {
+        "loadPreference": "Error loading font preferences:",
+        "resetPreferences": "Error resetting font preferences:",
+        "savePreference": "Error saving font preferences:"
+      },
+      "handwriting": "Handwriting",
+      "info": {
+        "content": "System fonts offer the best performance and are optimized for each platform.",
+        "title": "Good to know"
+      },
+      "modern": "Modern",
+      "monospace": "Monospace",
+      "preview": {
+        "content": "Here's how text appears with your current settings. Changes are applied immediately.",
+        "heading": "Headings",
+        "info": "Changes are applied immediately",
+        "quick": "Preview: ABC abc 123",
+        "sample": {
+          "code": "console.log(\"Hello World\");",
+          "greeting": "Hello! How are you doing today? 🌟",
+          "heading": "Main Title",
+          "text": "This font will be used in conversations.",
+          "ui": "Interface • Buttons • Menus"
+        },
+        "title": "Real-time preview",
+        "ui": "Interface text (buttons, menus)"
+      },
+      "reset": {
+        "message": "Fonts have been reset to default values.",
+        "success": "Reset successful"
+      },
+      "rounded": "Rounded",
+      "serif": "Serif",
+      "system": "System",
+      "tech": "Tech",
+      "title": "Fonts",
+      "unified": {
+        "description": "Use the same font for the entire application",
+        "preview": "Unified font: {{font}}",
+        "selector": "Application font",
+        "selectorDesc": "This font will be used throughout the application",
+        "title": "Unified font"
+      }
+    },
+    "footer": "Nyth • Version 1.0",
+    "footerSubtitle": "Designed with ♥ for creators",
+    "homePage": {
+      "title": "Home Page",
+      "default": "Default Home",
+      "defaultDesc": "Classic home page with all features",
+      "planning": "Planning",
+      "planningDesc": "Go directly to your planning and tasks",
+      "aiChat": "AI Discussion",
+      "aiChatDesc": "Start directly with the AI assistant",
+      "note": "This preference will be applied when you next log into the app."
+    },
+    "groups": {
+      "account": "Account & Subscription",
+      "ai": "Artificial Intelligence",
+      "interface": "Interface & Display",
+      "localization": "Language & Region",
+      "production": "Production & Recording",
+      "system": "System & Security"
+    },
+    "language": {
+      "current": "Current Language",
+      "selectLanguage": "Select a Language",
+      "selectLanguageSubtitle": "Choose your preferred language",
+      "subtitle": "Choose your preferred language",
+      "title": "Language"
+    },
+    "loading": {
+      "subtitle": "Please wait",
+      "title": "Loading settings..."
+    },
+    "maintenance": {
+      "collapse": "Tap to collapse",
+      "expand": "Tap to expand",
+      "expanded": {
+        "subtitle": "The section is working correctly.",
+        "title": "✅ Section expanded!"
+      },
+      "test": {
+        "button": "Test button",
+        "message": "Test button clicked!",
+        "title": "Test"
+      },
+      "title": "Maintenance"
+    },
+    "optimization": {
+      "success": {
+        "message": "Settings have been successfully optimized for your device.",
+        "title": "Optimization Successful"
+      }
+    },
+    "recording": {
+      "codec": {
+        "h264": {
+          "description": "Standard codec, widely compatible"
+        },
+        "hevc": {
+          "description": "High efficiency, smaller files"
+        },
+        "prores": {
+          "description": "Professional quality, large files"
+        },
+        "title": "Codec"
+      },
+      "countdown": {
+        "enabled": "Show countdown before recording",
+        "title": "Countdown"
+      },
+      "microphone": {
+        "title": "Microphone"
+      },
+      "quality": {
+        "1080p": {
+          "description": "Full HD (1080p)"
+        },
+        "480p": {
+          "description": "Standard Definition (480p)"
+        },
+        "4k": {
+          "description": "Ultra HD (4K)"
+        },
+        "720p": {
+          "description": "High Definition (720p)"
+        },
+        "square": {
+          "description": "Square format (1:1)"
+        },
+        "title": "Video Quality"
+      },
+      "recordWithAudio": "Record with Audio",
+      "stabilization": {
+        "auto": {
+          "description": "Automatic stabilization based on conditions",
+          "label": "Auto"
+        },
+        "cinematic": {
+          "description": "Enhanced stabilization for smooth footage",
+          "label": "Cinematic"
+        },
+        "off": {
+          "description": "No stabilization applied",
+          "label": "Off"
+        },
+        "standard": {
+          "description": "Basic image stabilization",
+          "label": "Standard"
+        },
+        "title": "Stabilization"
+      },
+      "tabs": {
+        "advanced": "Advanced",
+        "general": "General",
+        "quality": "Quality"
+      },
+      "title": "Recording Settings",
+      "video": {
+        "enabled": "Enable Video Recording",
+        "title": "Video Settings"
+      },
+      "videoSettings": {
+        "title": "Video Settings"
+      }
+    },
+    "reset": {
+      "confirmation": {
+        "message": "Are you sure you want to reset all settings to default values? This action cannot be undone.",
+        "reset": "Reset",
+        "title": "Reset Settings"
+      },
+      "description": "Restore all settings to their default values",
+      "title": "Reset Settings"
+    },
+    "security": {
+      "bypassProtection": {
+        "description": "Allows direct communication without proxy (not recommended)",
+        "label": "Bypass API Protection",
+        "warning": {
+          "confirm": "Yes, I understand the risks",
+          "message": "Disabling API protection exposes your API keys and may compromise your data security. Are you sure you want to continue?",
+          "title": "⚠️ Security Warning"
+        },
+        "warningText": "API protection is disabled. Your communications are not secure."
+      },
+      "enhancedMode": {
+        "description": "Blocks API communications on unsecured networks",
+        "enabled": {
+          "message": "API communications will be blocked on unsecured networks. This may prevent the application from working on some public Wi-Fi networks.",
+          "title": "Enhanced Security Enabled"
+        },
+        "label": "Enhanced Security Mode"
+      },
+      "error": {
+        "save": "Unable to save security settings"
+      },
+      "privacyPolicy": "Privacy Policy",
+      "privacyPolicyDesc": "View our data protection policy",
+      "title": "Security"
+    },
+    "signOut": {
+      "signOut": "Sign Out"
+    },
+    "subscription": {
+      "generationsPerDay": "generations/day",
+      "generationsPerMonth": "generations/month",
+      "locked": "Locked",
+      "maintenanceMode": "Feature under maintenance.",
+      "managePlan": "Manage my plan",
+      "manageSubscription": "Manage subscription",
+      "managedMode": "Managed mode - API keys provided",
+      "ownKeysMode": "You are using your own API keys",
+      "sectionLocked": "Section locked",
+      "temporarilyLocked": "This section is temporarily locked.",
+      "title": "Subscription",
+      "trialEndsIn": "Trial ends in",
+      "viewPlans": "View plans",
+      "xDays": "X days"
+    },
+    "subtitle": "Customize your experience",
+    "syncing": "Syncing...",
+    "tasks": {
+      "deleteDemo": {
+        "button": "Delete Demo Tasks",
+        "confirm": "Delete",
+        "error": "Error deleting demo tasks",
+        "message": "Are you sure you want to delete all demo tasks? This action is irreversible.",
+        "title": "Delete Demo Tasks"
+      },
+      "demoTasksCount": "{{count}} demo tasks",
+      "info": "Demo tasks help you discover all the features of the application. You can delete or recreate them at any time.",
+      "noDemoTasks": "No demo tasks",
+      "recreateDemo": {
+        "button": "Recreate Demo Tasks",
+        "confirm": "Recreate",
+        "error": "Error recreating demo tasks",
+        "message": "Do you want to recreate the demo tasks? This will replace existing demo tasks.",
+        "title": "Recreate Demo Tasks"
+      },
+      "title": "Task Management"
+    },
+    "title": "Settings",
+    "welcomeBubble": {
+      "disabled": {
+        "description": "Welcome messages are disabled",
+        "title": "Welcome Bubble Disabled"
+      },
+      "enabled": {
+        "description": "Show welcome messages and tips",
+        "title": "Show Welcome Bubble"
+      },
+      "frequency": {
+        "title": "Frequency"
+      },
+      "header": {
+        "disabled": "Hide header in the bubble",
+        "enabled": "Show header in the bubble",
+        "title": "Header Settings"
+      },
+      "reset": {
+        "button": "Reset Welcome Bubble",
+        "message": "Are you sure you want to reset the welcome bubble settings?",
+        "title": "Reset Welcome Bubble"
+      },
+      "stats": {
+        "lastShown": "Last shown: {{date}}",
+        "showCount_one": "Shown {{count}} time",
+        "showCount_other": "Shown {{count}} times",
+        "title": "Statistics"
+      },
+      "title": "Welcome Bubble"
+    }
+  }
+}

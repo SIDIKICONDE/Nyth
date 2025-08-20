@@ -1,0 +1,52 @@
+{
+  "fallback": {
+    "achievement": {
+      "message": "Félicitations pour votre accomplissement ! Votre créativité ne connaît pas de limites.",
+      "title": "Bravo !"
+    },
+    "celebration": {
+      "message": "C'est le moment de célébrer vos succès ! Vous avez accompli quelque chose de spécial.",
+      "title": "Célébration !"
+    },
+    "educational": {
+      "message": "Le téléprompteur peut améliorer votre présentation de 40%. Essayez-le !",
+      "title": "Le saviez-vous ?"
+    },
+    "feature_discovery": {
+      "message": "Avez-vous essayé notre nouvelle fonctionnalité ? Elle pourrait transformer votre workflow.",
+      "title": "Découverte"
+    },
+    "feedback_request": {
+      "message": "Comment trouvez-vous Naya ? Votre feedback nous aide à nous améliorer.",
+      "title": "Votre avis compte"
+    },
+    "milestone": {
+      "message": "Vous approchez d'un objectif important. Encore un petit effort !",
+      "title": "Étape franchie !"
+    },
+    "motivation": {
+      "message": "Chaque script est un pas vers votre objectif. Vous progressez remarquablement !",
+      "title": "Continuez !"
+    },
+    "re_engagement": {
+      "message": "Content de vous revoir ! Reprenons là où vous vous étiez arrêté.",
+      "title": "Bon retour !"
+    },
+    "reminder": {
+      "message": "N'oubliez pas de sauvegarder vos scripts importants dans vos favoris.",
+      "title": "Rappel"
+    },
+    "seasonal": {
+      "message": "Profitez de cette période pour créer des contenus mémorables !",
+      "title": "Moment spécial"
+    },
+    "tip": {
+      "message": "Utilisez l'IA pour transformer vos idées en scripts structurés en quelques secondes.",
+      "title": "Astuce"
+    },
+    "welcome": {
+      "message": "Ravi de vous accueillir sur Naya ! Créons ensemble des scripts captivants.",
+      "title": "Bienvenue !"
+    }
+  }
+}

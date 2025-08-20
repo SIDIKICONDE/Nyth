@@ -1,0 +1,20 @@
+{
+  "subscription": {
+    "chooseYourPlan": "Choose Your Plan",
+    "current": "Current Plan",
+    "disclaimer": "Prices may vary by region. Subscriptions auto-renew unless cancelled.",
+    "free": "Free",
+    "generationsPerDay": "{{count}} generations per day",
+    "generationsPerMonth": "{{count}} generations per month",
+    "managePlan": "Manage Plan",
+    "ownKeysMode": "Own Keys Mode",
+    "period": {
+      "month": "/month"
+    },
+    "popular": "Most Popular",
+    "selectPlan": "Select Plan",
+    "subtitle": "Select the plan that best fits your needs",
+    "title": "Subscription Plans",
+    "unlimited": "Unlimited"
+  }
+}

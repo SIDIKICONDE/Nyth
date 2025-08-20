@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "717804580146",
+    "project_id": "nyth-2025",
+    "storage_bucket": "nyth-2025.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:717804580146:android:c1c5359d84bf78aebd3b2b",
+        "android_client_info": {
+          "package_name": "com.nyth.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "717804580146-b7lteo9d4ji9e9e0od1oc988j9q1hh3p.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARtRqGr30RkbPrNpBsiMUJ0Fk3TVAw7SM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "717804580146-b7lteo9d4ji9e9e0od1oc988j9q1hh3p.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "717804580146-i3kf3dj1t0l5dsoult7ffvn340n7445r.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.nyth.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

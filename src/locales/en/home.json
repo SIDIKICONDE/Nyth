@@ -1,0 +1,124 @@
+{
+  "home": {
+    "aiChat": "AI Assistant",
+    "emptyState": {
+      "scripts": {
+        "subtitle": "Create your first script to start using the prompter",
+        "title": "No scripts yet"
+      },
+      "videos": {
+        "subtitle": "Create a script and record your first video",
+        "title": "No videos recorded"
+      }
+    },
+    "greeting": {
+      "afternoon": "Good afternoon",
+      "evening": "Good evening",
+      "morning": "Good morning",
+      "night": "Good night"
+    },
+    "item": "{{count}} item",
+    "items": "{{count}} items",
+    "library": {
+      "subtitle": "{{count}} {{scripts}}",
+      "title": "My Library"
+    },
+    "newScript": "New Script",
+    "noScript": {
+      "createScript": "Create a Script",
+      "generateWithAI": "Generate with AI",
+      "message": "You need to create a script before recording a video. Do you want to create one now?",
+      "title": "No Script Available"
+    },
+    "record": "Record",
+    "recording": {
+      "at": "at",
+      "delete": {
+        "error": "Unable to delete the video",
+        "message": "Are you sure you want to delete this video?",
+        "title": "Delete Video"
+      },
+      "deleteSelected": "Delete {{count}} {{videos}}",
+      "deletedScript": "Deleted Script",
+      "fileNotFound": "❌ File Not Found",
+      "fileNotFoundMessage": "This video is no longer accessible. The file has been deleted or moved.",
+      "release": "Release",
+      "removeFromList": "Remove from list",
+      "swipe": "Swipe",
+      "untitled": "Untitled",
+      "video": "video",
+      "videos": "videos"
+    },
+    "script": {
+      "actions": "Teleprompter",
+      "at": "at",
+      "basicMode": "Basic mode",
+      "camera": "Camera",
+      "chooseAction": "What do you want to do?",
+      "delete": {
+        "message": "Are you sure you want to delete this script?",
+        "title": "Delete Script"
+      },
+      "deleteSelected": "Delete {{count}} {{scripts}}",
+      "duplicate": "Duplicate script",
+      "export": "Export script",
+      "favorite": "Favorite",
+      "modalTitle": "Choice modal",
+      "moreOptions": "More options",
+      "release": "Release",
+      "script": "script",
+      "scripts": "scripts",
+      "share": "Share",
+      "swipe": "Swipe"
+    },
+    "scriptCard": {
+      "deleteScript": "Delete this script",
+      "editScript": "Edit this script",
+      "moreOptions": "More options for this script"
+    },
+    "selection": {
+      "delete": {
+        "message": "Are you sure you want to delete {{count}} item(s)?",
+        "title": "Delete selected items"
+      }
+    },
+    "tabs": {
+      "scripts": "Scripts",
+      "videos": "Videos"
+    },
+    "title": "Nyth",
+    "videoLibrary": {
+      "subtitle": "{{count}} {{videos}}",
+      "title": "Video Collection"
+    }
+  },
+  "library": {
+    "generateAI": "Generate AI",
+    "newScript": "New Script",
+    "scripts": "Scripts",
+    "title": "My Library",
+    "videos": "Videos"
+  },
+  "scripts": {
+    "actions": {
+      "delete": "Delete",
+      "duplicate": "Duplicate",
+      "edit": "Edit",
+      "record": "Record",
+      "share": "Share"
+    },
+    "empty": {
+      "subtitle": "Create your first script to get started",
+      "title": "No scripts found"
+    },
+    "modal": {
+      "chooseAction": "What do you want to do with this script?"
+    },
+    "swipe": {
+      "choose": "Choose",
+      "delete": "Delete",
+      "edit": "Edit"
+    },
+    "title": "My Scripts"
+  }
+}
