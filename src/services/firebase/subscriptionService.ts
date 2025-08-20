@@ -18,6 +18,7 @@ import {
   UsageStats,
 } from "../../types/subscription";
 import { createLogger } from "../../utils/optimizedLogger";
+import subscriptionCacheService from "../subscription/SubscriptionCacheService";
 
 const logger = createLogger("SubscriptionService");
 
@@ -27,39 +28,63 @@ const USAGE_COLLECTION = "usage_stats";
 
 class SubscriptionService {
   /**
-   * Créer ou mettre à jour un abonnement
+   * Créer ou mettre à jour un abonnement avec cache et retry
    */
   async createOrUpdateSubscription(
     userId: string,
     subscription: Subscription
   ): Promise<void> {
-    try {
-      const db = getFirestore(getApp());
-      const subscriptionRef = doc(collection(db, COLLECTION_NAME), userId);
-      await setDoc(
-        subscriptionRef,
-        {
-          ...subscription,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-      logger.info("✅ Abonnement créé/mis à jour:", subscription.planId);
-    } catch (error) {
-      logger.error("❌ Erreur création abonnement:", error);
-      throw error;
-    }
+    return this.withRetry(
+      async () => {
+        const db = getFirestore(getApp());
+        const subscriptionRef = doc(collection(db, COLLECTION_NAME), userId);
+        await setDoc(
+          subscriptionRef,
+          {
+            ...subscription,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+
+        // Invalider et mettre à jour le cache
+        await subscriptionCacheService.updateCache(userId, subscription as any);
+
+        logger.info("✅ Abonnement créé/mis à jour:", subscription.planId);
+      },
+      `createOrUpdateSubscription_${userId}`,
+      "Erreur création abonnement"
+    );
   }
 
   /**
-   * Obtenir l'abonnement d'un utilisateur
+   * Obtenir l'abonnement d'un utilisateur avec cache intelligent
    */
   async getSubscription(userId: string): Promise<Subscription | null> {
     try {
-      const db = getFirestore(getApp());
-      const subscriptionRef = doc(collection(db, COLLECTION_NAME), userId);
-      const snap = await getDoc(subscriptionRef);
-      return snap.exists() ? (snap.data() as Subscription) : null;
+      // Utiliser le cache intelligent
+      const cachedSubscription = await subscriptionCacheService.getSubscription(userId);
+      if (cachedSubscription) {
+        return cachedSubscription as Subscription;
+      }
+
+      // Fallback vers Firestore avec retry
+      return await this.withRetry(
+        async () => {
+          const db = getFirestore(getApp());
+          const subscriptionRef = doc(collection(db, COLLECTION_NAME), userId);
+          const snap = await getDoc(subscriptionRef);
+
+          const subscription = snap.exists() ? (snap.data() as Subscription) : null;
+
+          // Mettre en cache même si null
+          await subscriptionCacheService.updateCache(userId, subscription as any);
+
+          return subscription;
+        },
+        `getSubscription_${userId}`,
+        "Erreur récupération abonnement"
+      );
     } catch (error) {
       logger.error("❌ Erreur récupération abonnement:", error);
       return null;
@@ -282,53 +307,70 @@ class SubscriptionService {
   }
 
   /**
-   * Obtenir les statistiques d'utilisation
+   * Obtenir les statistiques d'utilisation avec cache intelligent
    */
   async getUsageStats(userId: string): Promise<UsageStats | null> {
     try {
-      const db = getFirestore(getApp());
-      const usageRef = doc(collection(db, USAGE_COLLECTION), userId);
-      const snap = await getDoc(usageRef);
-
-      if (!snap.exists()) {
-        return null;
+      // Utiliser le cache intelligent
+      const cachedUsage = await subscriptionCacheService.getUsageStats(userId);
+      if (cachedUsage) {
+        return cachedUsage;
       }
 
-      const data = snap.data() as Record<string, unknown>;
+      // Fallback vers Firestore avec retry
+      return await this.withRetry(
+        async () => {
+          const db = getFirestore(getApp());
+          const usageRef = doc(collection(db, USAGE_COLLECTION), userId);
+          const snap = await getDoc(usageRef);
 
-      if (data.generations) {
-        const generations = data.generations as {
-          today?: number;
-          thisMonth?: number;
-          total?: number;
-        };
+          if (!snap.exists()) {
+            // Mettre en cache même si null
+            await subscriptionCacheService.updateCache(userId, undefined, null);
+            return null;
+          }
 
-        const usageStats: UsageStats = {
-          generations: {
-            today: generations.today ?? 0,
-            thisMonth: generations.thisMonth ?? 0,
-            total: generations.total ?? 0,
-          },
-          limits: (data.limits as { daily?: number; monthly?: number }) || {},
-          resetDate: (data.resetDate as string) || new Date().toISOString(),
-        };
+          const data = snap.data() as Record<string, unknown>;
+          let usageStats: UsageStats;
 
-        return usageStats;
-      }
+          if (data.generations) {
+            const generations = data.generations as {
+              today?: number;
+              thisMonth?: number;
+              total?: number;
+            };
 
-      // Fallback ancien schéma
-      const legacy = snap.data() as SubscriptionUsage;
-      const usageStats: UsageStats = {
-        generations: {
-          today: legacy?.usage?.generations || 0,
-          thisMonth: legacy?.usage?.generationsMonthly || 0,
-          total: legacy?.usage?.generationsTotal || 0,
+            usageStats = {
+              generations: {
+                today: generations.today ?? 0,
+                thisMonth: generations.thisMonth ?? 0,
+                total: generations.total ?? 0,
+              },
+              limits: (data.limits as { daily?: number; monthly?: number }) || {},
+              resetDate: (data.resetDate as string) || new Date().toISOString(),
+            };
+          } else {
+            // Fallback ancien schéma
+            const legacy = snap.data() as SubscriptionUsage;
+            usageStats = {
+              generations: {
+                today: legacy?.usage?.generations || 0,
+                thisMonth: legacy?.usage?.generationsMonthly || 0,
+                total: legacy?.usage?.generationsTotal || 0,
+              },
+              limits: {},
+              resetDate: new Date().toISOString(),
+            };
+          }
+
+          // Mettre en cache
+          await subscriptionCacheService.updateCache(userId, undefined, usageStats);
+
+          return usageStats;
         },
-        limits: {},
-        resetDate: new Date().toISOString(),
-      };
-
-      return usageStats;
+        `getUsageStats_${userId}`,
+        "Erreur récupération stats utilisation"
+      );
     } catch (error) {
       logger.error("❌ Erreur récupération stats utilisation:", error);
       return null;
@@ -336,18 +378,76 @@ class SubscriptionService {
   }
 
   /**
-   * Supprimer un abonnement
+   * Supprimer un abonnement avec cache et retry
    */
   async deleteSubscription(userId: string): Promise<void> {
-    try {
-      const db = getFirestore(getApp());
-      const subscriptionRef = doc(collection(db, COLLECTION_NAME), userId);
-      await deleteDoc(subscriptionRef);
-      logger.info("✅ Abonnement supprimé");
-    } catch (error) {
-      logger.error("❌ Erreur suppression abonnement:", error);
-      throw error;
+    return this.withRetry(
+      async () => {
+        const db = getFirestore(getApp());
+        const subscriptionRef = doc(collection(db, COLLECTION_NAME), userId);
+        await deleteDoc(subscriptionRef);
+
+        // Invalider le cache
+        await subscriptionCacheService.invalidateCache(userId);
+
+        logger.info("✅ Abonnement supprimé");
+      },
+      `deleteSubscription_${userId}`,
+      "Erreur suppression abonnement"
+    );
+  }
+
+  /**
+   * Wrapper avec retry automatique et backoff exponentiel
+   */
+  private async withRetry<T>(
+    operation: () => Promise<T>,
+    operationId: string,
+    errorMessage: string,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<T> {
+    let lastError: Error;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+
+        logger.warn(`⚠️ Tentative ${attempt}/${maxRetries} échouée pour ${operationId}:`, error);
+
+        if (attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt - 1);
+          logger.info(`⏳ Retry dans ${delay}ms pour ${operationId}`);
+
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
+
+    logger.error(`❌ ${errorMessage} après ${maxRetries} tentatives:`, lastError);
+    throw lastError;
+  }
+
+  /**
+   * Obtenir les statistiques de santé du service
+   */
+  getHealthStatus() {
+    return {
+      cacheStats: subscriptionCacheService.getCacheStats(),
+      isHealthy: true, // À améliorer avec des checks réels
+      lastError: null,
+      timestamp: Date.now(),
+    };
+  }
+
+  /**
+   * Forcer le refresh du cache pour un utilisateur
+   */
+  async refreshCache(userId: string): Promise<void> {
+    await subscriptionCacheService.invalidateCache(userId);
+    logger.info("🗑️ Cache forcé pour:", userId);
   }
 }
 

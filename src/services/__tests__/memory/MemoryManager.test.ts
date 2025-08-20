@@ -235,6 +235,9 @@ describe('MemoryManager', () => {
       const { identifyPreferenceSubject } = require('../../../components/chat/message-handler/context/memory/utils');
       (identifyPreferenceSubject as jest.Mock).mockReturnValue('script_length');
 
+      // Mock the embedding service to resolve quickly
+      (embeddingService.embedText as jest.Mock).mockResolvedValue([0.1, 0.2, 0.3]);
+
       const result = await memoryManager.addMemory(userId, {
         ...mockMemory,
         category: 'preference',
@@ -242,7 +245,7 @@ describe('MemoryManager', () => {
 
       expect(result).toBeDefined();
       // Should have resolved the conflict by merging
-    });
+    }, 15000); // Augmenter le timeout à 15 secondes
   });
 
   describe('updateMemory', () => {

@@ -10,6 +10,8 @@ import {
   Timestamp,
 } from "@react-native-firebase/firestore";
 import { createLogger } from "../../utils/optimizedLogger";
+import { adminRealtimeService } from "../realtime/adminRealtimeService";
+import { adminDataCompressor } from "../compression/adminDataCompressor";
 
 const logger = createLogger("AdminMonitoringService");
 
@@ -45,6 +47,7 @@ class AdminMonitoringService {
 
   constructor() {
     this.startPeriodicFlush();
+    this.initializeRealtime();
   }
 
   /**
@@ -123,7 +126,7 @@ class AdminMonitoringService {
   }
 
   /**
-   * Flush les métriques vers Firestore
+   * Flush les métriques vers Firestore et WebSocket
    */
   private async flushMetrics(): Promise<void> {
     if (this.metricsBuffer.length === 0) return;
@@ -132,19 +135,77 @@ class AdminMonitoringService {
       const db = getFirestore(getApp());
       const batch = this.metricsBuffer.splice(0, this.BATCH_SIZE);
 
-      // Insérer par lots pour optimiser les performances
-      await Promise.all(
+      // Envoyer vers Firestore (fallback)
+      const firestorePromise = Promise.all(
         batch.map(metric =>
           addDoc(collection(db, "adminMetrics"), metric)
         )
       );
 
-      logger.debug(`${batch.length} métriques flushées vers Firestore`);
+      // Envoyer vers WebSocket (temps réel)
+      const websocketPromise = this.sendMetricsViaWebSocket(batch);
+
+      // Attendre les deux méthodes
+      await Promise.allSettled([firestorePromise, websocketPromise]);
+
+      logger.debug(`${batch.length} métriques flushées vers Firestore et WebSocket`);
     } catch (error) {
       logger.error("Erreur lors du flush des métriques:", error);
       // Remettre les métriques dans le buffer en cas d'erreur
+      const batch = this.metricsBuffer.splice(0, this.BATCH_SIZE);
       this.metricsBuffer.unshift(...batch);
     }
+  }
+
+  /**
+   * Envoie les métriques via WebSocket avec compression
+   */
+  private async sendMetricsViaWebSocket(metrics: PerformanceMetric[]): Promise<void> {
+    try {
+      if (adminRealtimeService.getConnectionStatus().isConnected) {
+        // Compresser les métriques avant l'envoi
+        const compressedData = await adminDataCompressor.compressMetricsBatch(metrics);
+
+        // Calculer les économies de bande passante
+        const originalSize = JSON.stringify(metrics).length;
+        const compressedSize = compressedData.compressedSize;
+        const savings = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
+
+        await adminRealtimeService.sendRequest('admin_metrics_compressed', {
+          compressedData,
+          metricsCount: metrics.length,
+          bandwidthSavings: `${savings}%`,
+          timestamp: Date.now()
+        });
+
+        logger.debug(`${metrics.length} métriques compressées et envoyées via WebSocket (${savings}% d'économie)`);
+      } else {
+        logger.debug("WebSocket non connecté, métriques stockées pour plus tard");
+      }
+    } catch (error) {
+      logger.warn("Erreur lors de l'envoi compressé via WebSocket:", error);
+      // L'erreur est gérée silencieusement car Firestore fait office de fallback
+    }
+  }
+
+  /**
+   * Initialise la connexion temps réel
+   */
+  private initializeRealtime(): void {
+    // Écouter les événements temps réel
+    adminRealtimeService.onSpecificEvent('metric_update', (data) => {
+      logger.debug("Métriques reçues via WebSocket:", data);
+      // Traiter les métriques temps réel si nécessaire
+    });
+
+    // Écouter les changements de statut de connexion
+    adminRealtimeService.on('connected', () => {
+      logger.info("Connexion WebSocket établie pour le monitoring");
+    });
+
+    adminRealtimeService.on('disconnected', () => {
+      logger.warn("Connexion WebSocket perdue pour le monitoring");
+    });
   }
 
   /**

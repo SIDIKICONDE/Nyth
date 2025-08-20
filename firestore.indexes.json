@@ -1176,63 +1176,29 @@
       ],
       "queryScope": "COLLECTION"
     },
-
-    // ====================================
-    // INDEX POUR LES NOUVELLES COLLECTIONS
-    // ====================================
-
-    // Index pour la configuration IA admin
     {
-      "collectionGroup": "admin",
+      "collectionGroup": "adminCache",
       "fields": [
-        { "fieldPath": "type", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
       ],
       "queryScope": "COLLECTION"
     },
-
-    // Index pour les sessions actives
     {
-      "collectionGroup": "active_sessions",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "startTime", "order": "DESCENDING" }
-      ],
-      "queryScope": "COLLECTION"
-    },
-
-    // Index pour les limites de taux
-    {
-      "collectionGroup": "rate_limits",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "resetTime", "order": "DESCENDING" }
-      ],
-      "queryScope": "COLLECTION"
-    },
-
-    // Index pour les backups
-    {
-      "collectionGroup": "backups",
+      "collectionGroup": "adminMetrics",
       "fields": [
         { "fieldPath": "type", "order": "ASCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
       ],
       "queryScope": "COLLECTION"
     },
-
-    // Index pour les métriques de performance
     {
-      "collectionGroup": "performance_metrics",
+      "collectionGroup": "adminActivityLogs",
       "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "metric", "order": "ASCENDING" },
+        { "fieldPath": "adminId", "order": "ASCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
       ],
       "queryScope": "COLLECTION"
     },
-
-    // Index pour les notifications admin
     {
       "collectionGroup": "admin_notifications",
       "fields": [
@@ -1252,8 +1218,6 @@
       ],
       "queryScope": "COLLECTION"
     },
-
-    // Index pour l'audit trail par cible
     {
       "collectionGroup": "audit_trail",
       "fields": [

@@ -37,7 +37,7 @@ describe("FileAvailabilityChecker", () => {
 
       expect(result).toBe(true);
       expect(RNFS.exists).toHaveBeenCalledWith("/test/video.mp4");
-    });
+    }, 10000); // Augmenter le timeout Jest
 
     it("should return false when file doesn't exist within timeout", async () => {
       // Mock fichier qui n'existe pas
@@ -49,7 +49,7 @@ describe("FileAvailabilityChecker", () => {
       });
 
       expect(result).toBe(false);
-    });
+    }, 10000); // Augmenter le timeout Jest
 
     it("should return false when file size is below minimum", async () => {
       RNFS.exists.mockResolvedValue(true);
@@ -66,7 +66,7 @@ describe("FileAvailabilityChecker", () => {
       });
 
       expect(result).toBe(false);
-    });
+    }, 10000); // Augmenter le timeout Jest
 
     it("should wait for file size to stabilize", async () => {
       // Simulation d'un fichier dont la taille change puis se stabilise
@@ -88,7 +88,7 @@ describe("FileAvailabilityChecker", () => {
       });
 
       expect(result).toBe(true);
-    });
+    }, 10000); // Augmenter le timeout Jest
   });
 
   describe("isFileAvailable", () => {

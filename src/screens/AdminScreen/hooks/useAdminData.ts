@@ -13,6 +13,7 @@ import {
 import { UserProfile, UserRole } from "../../../types/user";
 import adminStatsService from "../../../services/firebase/adminStatsService";
 import { adminCacheService } from "../../../services/cache/adminCacheService";
+import { adminPreloadService } from "../../../services/cache/adminPreloadService";
 import {
   AdminStats,
   ActivityItem,
@@ -33,6 +34,8 @@ export const useAdminData = (isAdmin: boolean) => {
   useEffect(() => {
     if (isAdmin) {
       loadData();
+      // Lancer le préchargement intelligent
+      adminPreloadService.preloadOnAppStart('super_admin');
     }
   }, [isAdmin]);
 

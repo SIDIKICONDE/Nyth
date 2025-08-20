@@ -3,6 +3,7 @@ import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import crypto from "crypto";
 import { UserSubscription } from "../../src/types/subscription";
 import { assertSuperAdmin, serverLogAdminAccess } from "./utils/adminAuth";
+import { createLogger } from "../../src/utils/optimizedLogger";
 
 // Initialiser Firebase Admin si pas déjà fait
 if (!admin.apps.length) {
@@ -10,6 +11,7 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
+const logger = createLogger("SubscriptionFunctions");
 
 interface DBSubscription {
   planId?: string;
@@ -353,12 +355,254 @@ export const saveSubscription = onCall(async (request) => {
       throw error;
     }
 
+    logger.info("✅ Abonnement sauvegardé pour:", userId);
+    return { success: true };
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+
     throw new HttpsError(
       "internal",
       "Erreur lors de la sauvegarde de l'abonnement"
     );
   }
 });
+
+/**
+ * Webhook pour valider les événements RevenueCat
+ * Endpoint: /revenuecat-webhook
+ */
+export const revenuecatWebhook = onRequest(async (req, res) => {
+  try {
+    // Vérifier la méthode HTTP
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // Vérifier la signature RevenueCat (sécurité)
+    const signature = req.headers['x-revenuecat-signature'] as string;
+    if (!signature) {
+      logger.warn('⚠️ Webhook RevenueCat sans signature');
+      return res.status(401).json({ error: 'Missing signature' });
+    }
+
+    // Vérifier la signature (implémenter la logique selon la doc RevenueCat)
+    const isValidSignature = await validateRevenueCatSignature(req.body, signature);
+    if (!isValidSignature) {
+      logger.error('❌ Signature RevenueCat invalide');
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+
+    const event = req.body;
+    logger.info('📡 Webhook RevenueCat reçu:', event.type);
+
+    // Traiter différents types d'événements
+    switch (event.type) {
+      case 'INITIAL_PURCHASE':
+      case 'RENEWAL':
+        await handleSubscriptionActivated(event);
+        break;
+
+      case 'CANCELLATION':
+        await handleSubscriptionCancelled(event);
+        break;
+
+      case 'EXPIRATION':
+        await handleSubscriptionExpired(event);
+        break;
+
+      case 'BILLING_ISSUE':
+        await handleBillingIssue(event);
+        break;
+
+      default:
+        logger.info('ℹ️ Événement RevenueCat non traité:', event.type);
+    }
+
+    res.status(200).json({ success: true });
+
+  } catch (error) {
+    logger.error('❌ Erreur traitement webhook RevenueCat:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * Valider la signature RevenueCat
+ */
+async function validateRevenueCatSignature(body: any, signature: string): Promise<boolean> {
+  try {
+    // Implémenter la validation de signature selon la documentation RevenueCat
+    // Pour l'instant, on retourne true (à sécuriser en production)
+    const webhookSecret = process.env.REVENUECAT_WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+      logger.warn('⚠️ REVENUECAT_WEBHOOK_SECRET non configuré');
+      return false;
+    }
+
+    // Créer le hash attendu
+    const payload = JSON.stringify(body);
+    const expectedSignature = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(payload)
+      .digest('hex');
+
+    return signature === expectedSignature;
+  } catch (error) {
+    logger.error('❌ Erreur validation signature:', error);
+    return false;
+  }
+}
+
+/**
+ * Gérer l'activation d'un abonnement
+ */
+async function handleSubscriptionActivated(event: any): Promise<void> {
+  const { app_user_id, product_id, period_type, expiration_at_ms } = event;
+
+  if (!app_user_id) {
+    logger.warn('⚠️ Webhook sans app_user_id');
+    return;
+  }
+
+  try {
+    // Mapper le product_id au plan
+    const planMapping: Record<string, string> = {
+      'com.nyth.starter.monthly': 'starter',
+      'com.nyth.starter.yearly': 'starter',
+      'com.nyth.pro.monthly': 'pro',
+      'com.nyth.pro.yearly': 'pro',
+      'com.nyth.enterprise.monthly': 'enterprise',
+      'com.nyth.enterprise.yearly': 'enterprise',
+    };
+
+    const planId = planMapping[product_id] || 'free';
+    const isYearly = period_type === 'annual';
+    const endDate = expiration_at_ms ? new Date(expiration_at_ms).toISOString() : undefined;
+
+    // Mettre à jour l'abonnement
+    const subscriptionData = {
+      planId,
+      status: 'active',
+      startDate: new Date().toISOString(),
+      endDate,
+      paymentMethod: { type: 'apple', last4: '****' }, // À adapter selon la plateforme
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      serverValidated: true,
+      revenueCatId: event.original_transaction_id,
+    };
+
+    await db
+      .collection('subscriptions')
+      .doc(app_user_id)
+      .set(subscriptionData, { merge: true });
+
+    // Logger l'événement
+    await db.collection('subscription_events').add({
+      userId: app_user_id,
+      type: 'subscription_activated',
+      planId,
+      isYearly,
+      source: 'revenuecat_webhook',
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    logger.info('✅ Abonnement activé via webhook:', app_user_id, planId);
+
+  } catch (error) {
+    logger.error('❌ Erreur activation abonnement:', error);
+    throw error;
+  }
+}
+
+/**
+ * Gérer l'annulation d'un abonnement
+ */
+async function handleSubscriptionCancelled(event: any): Promise<void> {
+  const { app_user_id } = event;
+
+  if (!app_user_id) return;
+
+  try {
+    await db.collection('subscriptions').doc(app_user_id).update({
+      status: 'cancelled',
+      cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Logger l'événement
+    await db.collection('subscription_events').add({
+      userId: app_user_id,
+      type: 'subscription_cancelled',
+      source: 'revenuecat_webhook',
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    logger.info('✅ Abonnement annulé via webhook:', app_user_id);
+
+  } catch (error) {
+    logger.error('❌ Erreur annulation abonnement:', error);
+    throw error;
+  }
+}
+
+/**
+ * Gérer l'expiration d'un abonnement
+ */
+async function handleSubscriptionExpired(event: any): Promise<void> {
+  const { app_user_id } = event;
+
+  if (!app_user_id) return;
+
+  try {
+    await db.collection('subscriptions').doc(app_user_id).update({
+      status: 'expired',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Logger l'événement
+    await db.collection('subscription_events').add({
+      userId: app_user_id,
+      type: 'subscription_expired',
+      source: 'revenuecat_webhook',
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    logger.info('✅ Abonnement expiré via webhook:', app_user_id);
+
+  } catch (error) {
+    logger.error('❌ Erreur expiration abonnement:', error);
+    throw error;
+  }
+}
+
+/**
+ * Gérer les problèmes de facturation
+ */
+async function handleBillingIssue(event: any): Promise<void> {
+  const { app_user_id } = event;
+
+  if (!app_user_id) return;
+
+  try {
+    // Logger l'événement pour investigation
+    await db.collection('billing_issues').add({
+      userId: app_user_id,
+      issueType: 'billing_issue',
+      eventData: event,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      status: 'pending',
+    });
+
+    logger.warn('⚠️ Problème de facturation détecté:', app_user_id);
+
+  } catch (error) {
+    logger.error('❌ Erreur traitement problème facturation:', error);
+    throw error;
+  }
+}
 
 /**
  * Fonction pour récupérer un abonnement

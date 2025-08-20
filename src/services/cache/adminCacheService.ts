@@ -157,7 +157,7 @@ class AdminCacheService {
       async () => {
         // Cette fonction sera appelée par la Cloud Function
         const { httpsCallable } = await import("@react-native-firebase/functions");
-        const getAdminStatsFunction = httpsCallable("getAdminStats");
+        const getAdminStatsFunction = httpsCallable("getAdminStats", getApp());
         const result = await getAdminStatsFunction();
         return result.data;
       },

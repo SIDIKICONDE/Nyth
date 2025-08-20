@@ -5,11 +5,6 @@
 
 const baseConfig = require('../../jest.config.js');
 
-// Configuration Jest simplifiée pour les tests d'enregistrement vidéo
-// Utilise la configuration de base avec quelques ajustements
-
-const baseConfig = require('../../jest.config.js');
-
 module.exports = {
   ...baseConfig,
 

@@ -1233,5 +1233,60 @@ service cloud.firestore {
     }
   }
 
+  // ====================================
+  // COLLECTIONS SYSTÈME ADMINISTRATEUR
+  // ====================================
+
+  // Cache administrateur (pour optimisations)
+  match /adminCache/{cacheId} {
+    // Lecture : admins seulement (données sensibles)
+    allow read: if isAdmin();
+
+    // Écriture : système seulement (via Cloud Functions)
+    allow write: if false;
+  }
+
+  // Métriques de performance administrateur
+  match /adminMetrics/{metricId} {
+    // Lecture : admins seulement (pour monitoring)
+    allow read: if isAdmin();
+
+    // Liste : admins seulement
+    allow list: if isAdmin();
+
+    // Création : système seulement (via Cloud Functions)
+    allow create: if false;
+
+    // Mise à jour et suppression : interdites
+    allow update, delete: if false;
+  }
+
+  // Logs d'activité administrateur
+  match /adminActivityLogs/{logId} {
+    // Lecture : super admins seulement (logs sensibles)
+    allow read: if isSuperAdmin();
+
+    // Liste : super admins seulement
+    allow list: if isSuperAdmin();
+
+    // Création : système seulement (via Cloud Functions)
+    allow create: if false;
+
+    // Mise à jour et suppression : interdites
+    allow update, delete: if false;
+  }
+
+  // Statistiques administratives globales
+  match /adminStats/{statId} {
+    // Lecture : admins seulement
+    allow read: if isAdmin();
+
+    // Liste : admins seulement
+    allow list: if isAdmin();
+
+    // Écriture : système seulement (via Cloud Functions)
+    allow write: if false;
+  }
+
 }
 } 
