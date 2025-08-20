@@ -34,6 +34,12 @@ import { useAdminData } from "./hooks/useAdminData";
 import { AdminTab } from "./types";
 import { MessagingTab } from "./components/tabs/MessagingTab";
 import { SystemLogsTab } from "./components/tabs/SystemLogsTab";
+import { SessionManagementTab } from "./components/tabs/SessionManagementTab";
+import { AIControlTab } from "./components/tabs/AIControlTab";
+import { NetworkControlTab } from "./components/tabs/NetworkControlTab";
+import { FeatureControlTab } from "./components/tabs/FeatureControlTab";
+import { DataManagementTab } from "./components/tabs/DataManagementTab";
+import { ThemeControlTab } from "./components/tabs/ThemeControlTab";
 
 import { createOptimizedLogger } from "../../utils/optimizedLogger";
 const logger = createOptimizedLogger("AdminScreenV2");
@@ -270,6 +276,18 @@ export const AdminScreenV2: React.FC = () => {
         return <SystemLogsTab />;
       case "controls":
         return <ControlsTab adminId="super_admin" />;
+      case "session":
+        return <SessionManagementTab />;
+      case "aiControl":
+        return <AIControlTab />;
+      case "networkControl":
+        return <NetworkControlTab />;
+      case "featureControl":
+        return <FeatureControlTab />;
+      case "dataManagement":
+        return <DataManagementTab />;
+      case "themeControl":
+        return <ThemeControlTab />;
       default:
         return null;
     }

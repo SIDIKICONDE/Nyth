@@ -33,6 +33,12 @@ const tabs: {
   { key: "analytics", label: "Analytics", icon: "analytics" },
   { key: "controls", label: "Contrôles", icon: "settings" },
   { key: "messaging", label: "Messaging", icon: "send" },
+  { key: "session", label: "Session", icon: "time" },
+  { key: "aiControl", label: "IA", icon: "robot" },
+  { key: "networkControl", label: "Réseau", icon: "wifi" },
+  { key: "featureControl", label: "Fonctionnalités", icon: "toggle" },
+  { key: "dataManagement", label: "Données", icon: "server" },
+  { key: "themeControl", label: "Thèmes", icon: "color-palette" },
 ];
 
 const { width: screenWidth } = Dimensions.get("window");

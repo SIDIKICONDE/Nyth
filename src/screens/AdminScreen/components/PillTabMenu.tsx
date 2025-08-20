@@ -40,6 +40,12 @@ const tabs: {
   { key: "systemLogs", label: "Logs", icon: "document-text", color: "#7C3AED" },
   { key: "controls", label: "Controls", icon: "settings", color: "#6B7280" },
   { key: "messaging", label: "Messaging", icon: "send", color: "#2563EB" },
+  { key: "session", label: "Session", icon: "time", color: "#F97316" },
+  { key: "aiControl", label: "IA", icon: "robot", color: "#8B5CF6" },
+  { key: "networkControl", label: "Réseau", icon: "wifi", color: "#06B6D4" },
+  { key: "featureControl", label: "Fonctionnalités", icon: "toggle", color: "#10B981" },
+  { key: "dataManagement", label: "Données", icon: "server", color: "#6366F1" },
+  { key: "themeControl", label: "Thèmes", icon: "color-palette", color: "#8B5CF6" },
 ];
 
 export const PillTabMenu: React.FC<PillTabMenuProps> = ({

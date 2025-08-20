@@ -46,7 +46,13 @@ export type AdminTab =
   | "banManagement"
   | "appLock"
   | "messaging"
-  | "systemLogs";
+  | "systemLogs"
+  | "session"
+  | "aiControl"
+  | "networkControl"
+  | "featureControl"
+  | "dataManagement"
+  | "themeControl";
 
 export interface AdminDataState {
   users: UserProfile[];

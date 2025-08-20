@@ -1175,6 +1175,126 @@
         { "fieldPath": "read", "order": "ASCENDING" }
       ],
       "queryScope": "COLLECTION"
+    },
+
+    // ====================================
+    // INDEX POUR LES NOUVELLES COLLECTIONS
+    // ====================================
+
+    // Index pour la configuration IA admin
+    {
+      "collectionGroup": "admin",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ],
+      "queryScope": "COLLECTION"
+    },
+
+    // Index pour les sessions actives
+    {
+      "collectionGroup": "active_sessions",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "startTime", "order": "DESCENDING" }
+      ],
+      "queryScope": "COLLECTION"
+    },
+
+    // Index pour les limites de taux
+    {
+      "collectionGroup": "rate_limits",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "resetTime", "order": "DESCENDING" }
+      ],
+      "queryScope": "COLLECTION"
+    },
+
+    // Index pour les backups
+    {
+      "collectionGroup": "backups",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ],
+      "queryScope": "COLLECTION"
+    },
+
+    // Index pour les métriques de performance
+    {
+      "collectionGroup": "performance_metrics",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "metric", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ],
+      "queryScope": "COLLECTION"
+    },
+
+    // Index pour les notifications admin
+    {
+      "collectionGroup": "admin_notifications",
+      "fields": [
+        { "fieldPath": "read", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ],
+      "queryScope": "COLLECTION"
+    },
+
+    // Index pour l'audit trail
+    {
+      "collectionGroup": "audit_trail",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "action", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ],
+      "queryScope": "COLLECTION"
+    },
+
+    // Index pour l'audit trail par cible
+    {
+      "collectionGroup": "audit_trail",
+      "fields": [
+        { "fieldPath": "targetId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ],
+      "queryScope": "COLLECTION"
+    },
+
+    // ====================================
+    // INDEX POUR LES THÈMES GLOBAUX
+    // ====================================
+
+    // Index pour les thèmes globaux par nom
+    {
+      "collectionGroup": "global_themes",
+      "fields": [
+        { "fieldPath": "name", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ],
+      "queryScope": "COLLECTION"
+    },
+
+    // Index pour les thèmes actifs
+    {
+      "collectionGroup": "global_themes",
+      "fields": [
+        { "fieldPath": "isActive", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ],
+      "queryScope": "COLLECTION"
+    },
+
+    // Index pour les thèmes par défaut
+    {
+      "collectionGroup": "global_themes",
+      "fields": [
+        { "fieldPath": "isDefault", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ],
+      "queryScope": "COLLECTION"
     }
   ]
 }

@@ -1193,5 +1193,45 @@ service cloud.firestore {
     allow update, delete: if false;
   }
 
+  // ====================================
+  // CONFIGURATION ADMINISTRATEUR
+  // ====================================
+
+  // Configuration IA admin
+  match /admin/ai_config {
+    allow read: if isAdmin();
+    allow write: if isSuperAdmin();
+  }
+
+  // Configuration réseau admin
+  match /admin/network_config {
+    allow read: if isAdmin();
+    allow write: if isSuperAdmin();
+  }
+
+  // Configuration fonctionnalités admin
+  match /admin/feature_config {
+    allow read: if isAdmin();
+    allow write: if isSuperAdmin();
+  }
+
+  // Configuration système admin
+  match /admin_config {
+    allow read: if isAdmin();
+    allow write: if isSuperAdmin();
+  }
+
+  // Thèmes globaux
+  match /admin/themes {
+    // Sous-collection pour les thèmes globaux
+    match /global_themes/{themeId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+  }
+
 }
 } 
