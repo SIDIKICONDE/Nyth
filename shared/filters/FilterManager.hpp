@@ -12,18 +12,18 @@
 
 namespace Camera {
 
-// Thread pool for parallel processing
+    // Optimized Thread pool for parallel processing
 class ThreadPool {
 public:
     ThreadPool(size_t numThreads = std::thread::hardware_concurrency());
     ~ThreadPool();
-    
+
     template<typename F>
     auto enqueue(F&& f) -> std::future<decltype(f())> {
         auto task = std::make_shared<std::packaged_task<decltype(f())()>>(
             std::forward<F>(f)
         );
-        
+
         auto result = task->get_future();
         {
             std::unique_lock<std::mutex> lock(queueMutex_);
@@ -35,12 +35,31 @@ public:
         condition_.notify_one();
         return result;
     }
-    
+
+    // Get current queue size for monitoring
+    size_t getQueueSize() const {
+        std::unique_lock<std::mutex> lock(queueMutex_);
+        return tasks_.size();
+    }
+
+    // Check if all threads are busy
+    bool isBusy() const {
+        std::unique_lock<std::mutex> lock(queueMutex_);
+        return !tasks_.empty();
+    }
+
+    // Wait for all tasks to complete
+    void waitForCompletion() {
+        std::unique_lock<std::mutex> lock(queueMutex_);
+        conditionEmpty_.wait(lock, [this] { return tasks_.empty(); });
+    }
+
 private:
     std::vector<std::thread> workers_;
     std::queue<std::function<void()>> tasks_;
-    std::mutex queueMutex_;
+    mutable std::mutex queueMutex_;
     std::condition_variable condition_;
+    std::condition_variable conditionEmpty_;
     bool stop_{false};
 };
 
@@ -90,6 +109,20 @@ public:
     bool isInitialized() const;
     std::string getLastError() const;
     std::vector<FilterInfo> getAvailableFilters() const;
+
+    // Performance monitoring
+    struct PerformanceStats {
+        double averageProcessingTime{0.0};  // Temps moyen de traitement en ms
+        size_t totalFramesProcessed{0};      // Nombre total de frames traitées
+        double currentFPS{0.0};              // FPS actuel
+        size_t activeThreads{0};             // Nombre de threads actifs
+        size_t queueSize{0};                 // Taille de la file d'attente
+        size_t memoryUsage{0};               // Utilisation mémoire en bytes
+    };
+
+    PerformanceStats getPerformanceStats() const;
+    void resetPerformanceStats();
+    void enableProfiling(bool enabled);
     
     // Factory pour créer des filtres prédéfinis
     static FilterState createSepiaFilter(double intensity = 1.0);
@@ -132,11 +165,18 @@ private:
     
     // Buffers pour traitement parallèle
     mutable std::vector<std::vector<uint8_t>> parallelBuffers_;
-    
+
+    // Performance monitoring
+    mutable bool profilingEnabled_{false};
+    mutable std::chrono::time_point<std::chrono::high_resolution_clock> lastFrameTime_;
+    mutable std::vector<double> processingTimes_;
+    mutable PerformanceStats perfStats_;
+
     // Méthodes privées
     bool findBestProcessor(const FilterState& filter, std::shared_ptr<IFilterProcessor>& processor);
     void setLastError(const std::string& error);
     bool validateFilter(const FilterState& filter) const;
+    void updatePerformanceStats(double processingTime) const;
 };
 
 } // namespace Camera

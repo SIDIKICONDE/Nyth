@@ -4,6 +4,8 @@
 #include <cstring>
 #include <thread>
 #include <future>
+#include <chrono>
+#include <numeric>
 #if defined(__AVX2__)
 #include <immintrin.h>
 #elif defined(__SSE2__)
@@ -26,6 +28,11 @@ ThreadPool::ThreadPool(size_t numThreads) {
                     }
                     task = std::move(tasks_.front());
                     tasks_.pop();
+
+                    // Notify when queue becomes empty
+                    if (tasks_.empty()) {
+                        conditionEmpty_.notify_all();
+                    }
                 }
                 task();
             }
@@ -578,12 +585,69 @@ bool FilterManager::validateFilter(const FilterState& filter) const {
     if (!filter.isActive) {
         return false;
     }
-    
+
     if (filter.params.intensity < 0.0 || filter.params.intensity > 1.0) {
         return false;
     }
-    
+
     return true;
+}
+
+// Performance monitoring methods
+void FilterManager::updatePerformanceStats(double processingTime) const {
+    if (!profilingEnabled_) return;
+
+    processingTimes_.push_back(processingTime);
+
+    // Keep only last 100 measurements for average
+    if (processingTimes_.size() > 100) {
+        processingTimes_.erase(processingTimes_.begin());
+    }
+
+    // Update stats
+    perfStats_.totalFramesProcessed++;
+    perfStats_.averageProcessingTime = std::accumulate(processingTimes_.begin(), processingTimes_.end(), 0.0) / processingTimes_.size();
+
+    // Calculate FPS
+    auto now = std::chrono::high_resolution_clock::now();
+    if (perfStats_.totalFramesProcessed > 1) {
+        auto timeDiff = std::chrono::duration<double>(now - lastFrameTime_).count();
+        if (timeDiff > 0) {
+            perfStats_.currentFPS = 1.0 / timeDiff;
+        }
+    }
+    lastFrameTime_ = now;
+
+    // Update thread and memory stats
+    perfStats_.activeThreads = threadPool_ ? threadPool_->getQueueSize() : 0;
+    perfStats_.queueSize = threadPool_ ? threadPool_->getQueueSize() : 0;
+
+    // Calculate memory usage (approximation)
+    size_t bufferMemory = 0;
+    for (const auto& buffer : parallelBuffers_) {
+        bufferMemory += buffer.capacity();
+    }
+    perfStats_.memoryUsage = bufferMemory;
+}
+
+FilterManager::PerformanceStats FilterManager::getPerformanceStats() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return perfStats_;
+}
+
+void FilterManager::resetPerformanceStats() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    perfStats_ = PerformanceStats();
+    processingTimes_.clear();
+    lastFrameTime_ = std::chrono::high_resolution_clock::now();
+}
+
+void FilterManager::enableProfiling(bool enabled) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    profilingEnabled_ = enabled;
+    if (enabled) {
+        resetPerformanceStats();
+    }
 }
 
 } // namespace Camera

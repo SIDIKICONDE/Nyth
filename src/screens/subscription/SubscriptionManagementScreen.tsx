@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -6,9 +6,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Animated,
+  Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
+import LinearGradient from "react-native-linear-gradient";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import tw from "twrnc";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -27,18 +30,44 @@ const SubscriptionManagementScreen: React.FC = () => {
   const { currentTheme } = useTheme();
   const { t } = useTranslation();
   const { getOptimizedButtonColors } = useContrastOptimization();
-  const { 
-    currentPlan, 
-    subscription, 
-    cancelSubscription, 
+  const {
+    currentPlan,
+    subscription,
+    cancelSubscription,
     restoreSubscription,
     isLoading,
     getRealTimeQuotaStats,
   } = useSubscription();
 
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
   // Stripe portal removed
   const [quotaStats, setQuotaStats] = useState<any>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  // Animation d'entrée
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const loadQuotaStats = useCallback(async () => {
     setIsLoadingStats(true);
@@ -116,269 +145,443 @@ const SubscriptionManagementScreen: React.FC = () => {
   const renderSubscriptionInfo = () => {
     if (!subscription) {
       return (
-        <View style={[
-          tw`p-6 rounded-xl mb-6`,
-          { backgroundColor: currentTheme.colors.surface }
-        ]}>
-          <Text style={[
-            tw`text-lg font-bold mb-2`,
-            { color: currentTheme.colors.text }
-          ]}>
-            {t("subscription.noSubscription", "Aucun abonnement")}
-          </Text>
-          <Text style={[
-            tw`text-base mb-4`,
-            { color: currentTheme.colors.textSecondary }
-          ]}>
-            {t("subscription.noSubscriptionMessage", "Vous êtes actuellement sur le plan gratuit.")}
-          </Text>
-          <TouchableOpacity
-            style={[
-              tw`py-3 px-6 rounded-lg`,
-              { backgroundColor: currentTheme.colors.primary }
-            ]}
-            onPress={() => navigation.navigate("Pricing")}
+        <Animated.View
+          style={[
+            tw`rounded-3xl mb-6 overflow-hidden shadow-lg`,
+            {
+              opacity: fadeAnim,
+              transform: [
+                { translateY: slideAnim },
+                { scale: scaleAnim },
+              ],
+              shadowColor: currentTheme.colors.primary,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+              elevation: 6,
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={[currentTheme.colors.surface, `${currentTheme.colors.surface}80`]}
+            style={tw`p-8`}
           >
-            <Text style={[
-              tw`text-center font-semibold`,
-              { color: getOptimizedButtonColors().text }
-            ]}>
-              {t("subscription.upgrade", "Mettre à niveau")}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            <View style={tw`items-center mb-6`}>
+              <View
+                style={[
+                  tw`w-16 h-16 rounded-full items-center justify-center mb-4`,
+                  { backgroundColor: `${currentTheme.colors.primary}20` },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="crown-outline"
+                  size={32}
+                  color={currentTheme.colors.primary}
+                />
+              </View>
+              <Text style={[
+                tw`text-xl font-bold mb-2`,
+                { color: currentTheme.colors.text }
+              ]}>
+                {t("subscription.noSubscription", "Aucun abonnement")}
+              </Text>
+              <Text style={[
+                tw`text-base text-center leading-6`,
+                { color: currentTheme.colors.textSecondary }
+              ]}>
+                {t("subscription.noSubscriptionMessage", "Vous êtes actuellement sur le plan gratuit.")}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={tw`mb-2`}
+              onPress={() => navigation.navigate("Pricing")}
+            >
+              <LinearGradient
+                colors={[currentTheme.colors.primary, `${currentTheme.colors.primary}DD`]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={tw`py-4 px-8 rounded-2xl items-center shadow-md`}
+              >
+                <Text style={[
+                  tw`text-center font-bold text-lg`,
+                  { color: getOptimizedButtonColors().text }
+                ]}>
+                  {t("subscription.upgrade", "Mettre à niveau")}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </LinearGradient>
+        </Animated.View>
       );
     }
 
     return (
-      <View style={[
-        tw`p-6 rounded-xl mb-6`,
-        { backgroundColor: currentTheme.colors.surface }
-      ]}>
-        <View style={tw`flex-row items-center justify-between mb-4`}>
-          <Text style={[
-            tw`text-lg font-bold`,
-            { color: currentTheme.colors.text }
-          ]}>
-            {t("subscription.currentPlan", "Plan actuel")}
-          </Text>
-          <View style={[
-            tw`px-3 py-1 rounded-full`,
-            { backgroundColor: currentPlan.color + '20' }
-          ]}>
-            <Text style={[
-              tw`text-sm font-medium`,
-              { color: currentPlan.color }
+      <Animated.View
+        style={[
+          tw`rounded-3xl mb-6 overflow-hidden shadow-lg`,
+          {
+            opacity: fadeAnim,
+            transform: [
+              { translateY: slideAnim },
+              { scale: scaleAnim },
+            ],
+            shadowColor: currentPlan.color,
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.2,
+            shadowRadius: 16,
+            elevation: 8,
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={[currentPlan.color + '15', currentPlan.color + '08', 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={tw`p-8`}
+        >
+          <View style={tw`flex-row items-center justify-between mb-6`}>
+            <View style={tw`flex-row items-center`}>
+              <View
+                style={[
+                  tw`w-12 h-12 rounded-full items-center justify-center mr-3`,
+                  { backgroundColor: currentPlan.color + '30' },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="check-circle"
+                  size={24}
+                  color={currentPlan.color}
+                />
+              </View>
+              <Text style={[
+                tw`text-xl font-bold`,
+                { color: currentTheme.colors.text }
+              ]}>
+                {t("subscription.currentPlan", "Plan actuel")}
+              </Text>
+            </View>
+            <View style={[
+              tw`px-4 py-2 rounded-full border-2`,
+              {
+                backgroundColor: currentPlan.color + '20',
+                borderColor: currentPlan.color + '40',
+              }
             ]}>
-              {subscription.status.toUpperCase()}
-            </Text>
+              <Text style={[
+                tw`text-sm font-bold`,
+                { color: currentPlan.color }
+              ]}>
+                {subscription.status.toUpperCase()}
+              </Text>
+            </View>
           </View>
-        </View>
 
-        <Text style={[
-          tw`text-2xl font-bold mb-2`,
-          { color: currentTheme.colors.text }
-        ]}>
-          {currentPlan.displayName}
-        </Text>
-
-        <Text style={[
-          tw`text-base mb-4`,
-          { color: currentTheme.colors.textSecondary }
-        ]}>
-          {currentPlan.description}
-        </Text>
-
-        {subscription.endDate && (
-          <Text style={[
-            tw`text-sm mb-4`,
-            { color: currentTheme.colors.textSecondary }
-          ]}>
-            {subscription.status === "active" 
-              ? t("subscription.renewsOn", "Se renouvelle le")
-              : t("subscription.expiresOn", "Expire le")
-            }: {new Date(subscription.endDate).toLocaleDateString()}
-          </Text>
-        )}
-
-        <View style={tw`flex-row gap-3`}>
-          <TouchableOpacity
-            style={[
-              tw`flex-1 py-3 px-4 rounded-lg`,
-              { backgroundColor: currentTheme.colors.primary }
-            ]}
-            onPress={() => navigation.navigate("Pricing")}
-          >
+          <View style={tw`mb-6`}>
             <Text style={[
-              tw`text-center font-semibold`,
-              { color: getOptimizedButtonColors().text }
+              tw`text-3xl font-bold mb-3`,
+              { color: currentTheme.colors.text }
             ]}>
-              {t("subscription.changePlan", "Changer de plan")}
+              {currentPlan.displayName}
             </Text>
-          </TouchableOpacity>
 
-          {/* Stripe customer portal removed */}
-        </View>
-      </View>
+            <Text style={[
+              tw`text-lg leading-6 mb-4`,
+              { color: currentTheme.colors.textSecondary }
+            ]}>
+              {currentPlan.description}
+            </Text>
+
+            {subscription.endDate && (
+              <View style={tw`flex-row items-center`}>
+                <MaterialCommunityIcons
+                  name={subscription.status === "active" ? "calendar-refresh" : "calendar-remove"}
+                  size={18}
+                  color={currentTheme.colors.textSecondary}
+                />
+                <Text style={[
+                  tw`text-base ml-2`,
+                  { color: currentTheme.colors.textSecondary }
+                ]}>
+                  {subscription.status === "active"
+                    ? t("subscription.renewsOn", "Se renouvelle le")
+                    : t("subscription.expiresOn", "Expire le")
+                  }: {new Date(subscription.endDate).toLocaleDateString()}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View style={tw`flex-row gap-4`}>
+            <TouchableOpacity
+              style={tw`flex-1`}
+              onPress={() => navigation.navigate("Pricing")}
+            >
+              <LinearGradient
+                colors={[currentPlan.color, currentPlan.color + 'DD']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={tw`py-4 px-6 rounded-2xl items-center shadow-md`}
+              >
+                <Text style={[
+                  tw`text-center font-bold text-base`,
+                  { color: '#fff' }
+                ]}>
+                  {t("subscription.changePlan", "Changer de plan")}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Stripe customer portal removed */}
+          </View>
+        </LinearGradient>
+      </Animated.View>
     );
   };
 
   const renderUsageStats = () => {
     if (isLoadingStats) {
       return (
-        <View style={[
-          tw`p-6 rounded-xl mb-6 items-center`,
-          { backgroundColor: currentTheme.colors.surface }
-        ]}>
-          <ActivityIndicator color={currentTheme.colors.primary} />
-          <Text style={[
-            tw`mt-2 text-center`,
-            { color: currentTheme.colors.textSecondary }
-          ]}>
-            {t("subscription.loadingStats", "Chargement des statistiques...")}
-          </Text>
-        </View>
+        <Animated.View
+          style={[
+            tw`rounded-3xl mb-6 overflow-hidden shadow-lg`,
+            {
+              opacity: fadeAnim,
+              transform: [
+                { translateY: slideAnim },
+                { scale: scaleAnim },
+              ],
+              shadowColor: currentTheme.colors.text,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              elevation: 6,
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={[currentTheme.colors.surface, `${currentTheme.colors.surface}80`]}
+            style={tw`p-8 items-center`}
+          >
+            <ActivityIndicator size="large" color={currentTheme.colors.primary} />
+            <Text style={[
+              tw`mt-4 text-center text-base`,
+              { color: currentTheme.colors.textSecondary }
+            ]}>
+              {t("subscription.loadingStats", "Chargement des statistiques...")}
+            </Text>
+          </LinearGradient>
+        </Animated.View>
       );
     }
 
-    return (
-      <View style={[
-        tw`p-6 rounded-xl mb-6`,
-        { backgroundColor: currentTheme.colors.surface }
-      ]}>
-        <Text style={[
-          tw`text-lg font-bold mb-4`,
-          { color: currentTheme.colors.text }
-        ]}>
-          {t("subscription.usage", "Utilisation")}
-        </Text>
+    const renderProgressBar = (used: number, limit: number, color: string, title: string) => {
+      const percentage = Math.min(100, (used / limit) * 100);
+      const isNearLimit = percentage > 80;
 
-        {quotaStats && (
-          <View style={tw`gap-4`}>
-            {/* Usage journalier */}
-            <View>
-              <View style={tw`flex-row justify-between mb-2`}>
-                <Text style={[
-                  tw`text-sm font-medium`,
-                  { color: currentTheme.colors.text }
-                ]}>
-                  {t("subscription.dailyUsage", "Usage journalier")}
-                </Text>
-                <Text style={[
-                  tw`text-sm`,
-                  { color: currentTheme.colors.textSecondary }
-                ]}>
-                  {quotaStats.daily.used}
-                  {quotaStats.daily.limit && ` / ${quotaStats.daily.limit}`}
-                </Text>
-              </View>
-              {quotaStats.daily.limit && (
-                <View style={[
-                  tw`h-2 rounded-full`,
-                  { backgroundColor: currentTheme.colors.border }
-                ]}>
-                  <View style={[
-                    tw`h-2 rounded-full`,
-                    { 
-                      backgroundColor: currentTheme.colors.primary,
-                      width: `${Math.min(100, (quotaStats.daily.used / quotaStats.daily.limit) * 100)}%`
-                    }
-                  ]} />
-                </View>
-              )}
-            </View>
-
-            {/* Usage mensuel */}
-            <View>
-              <View style={tw`flex-row justify-between mb-2`}>
-                <Text style={[
-                  tw`text-sm font-medium`,
-                  { color: currentTheme.colors.text }
-                ]}>
-                  {t("subscription.monthlyUsage", "Usage mensuel")}
-                </Text>
-                <Text style={[
-                  tw`text-sm`,
-                  { color: currentTheme.colors.textSecondary }
-                ]}>
-                  {quotaStats.monthly.used}
-                  {quotaStats.monthly.limit && ` / ${quotaStats.monthly.limit}`}
-                </Text>
-              </View>
-              {quotaStats.monthly.limit && (
-                <View style={[
-                  tw`h-2 rounded-full`,
-                  { backgroundColor: currentTheme.colors.border }
-                ]}>
-                  <View style={[
-                    tw`h-2 rounded-full`,
-                    { 
-                      backgroundColor: currentTheme.colors.primary,
-                      width: `${Math.min(100, (quotaStats.monthly.used / quotaStats.monthly.limit) * 100)}%`
-                    }
-                  ]} />
-                </View>
-              )}
+      return (
+        <View style={tw`mb-6`}>
+          <View style={tw`flex-row justify-between items-center mb-3`}>
+            <Text style={[
+              tw`text-base font-semibold`,
+              { color: currentTheme.colors.text }
+            ]}>
+              {title}
+            </Text>
+            <View style={tw`flex-row items-center`}>
+              <Text style={[
+                tw`text-sm font-bold mr-2`,
+                { color: isNearLimit ? currentTheme.colors.error : color }
+              ]}>
+                {used}
+              </Text>
+              <Text style={[
+                tw`text-sm`,
+                { color: currentTheme.colors.textSecondary }
+              ]}>
+                / {limit}
+              </Text>
             </View>
           </View>
-        )}
-      </View>
+
+          <View style={[
+            tw`h-4 rounded-full overflow-hidden`,
+            { backgroundColor: currentTheme.colors.border + '40' }
+          ]}>
+            <LinearGradient
+              colors={[
+                isNearLimit ? currentTheme.colors.error : color,
+                isNearLimit ? `${currentTheme.colors.error}DD` : `${color}DD`
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[
+                tw`h-full rounded-full shadow-sm`,
+                { width: `${percentage}%` }
+              ]}
+            />
+          </View>
+
+          {isNearLimit && (
+            <View style={tw`flex-row items-center mt-2`}>
+              <MaterialCommunityIcons
+                name="alert-circle"
+                size={16}
+                color={currentTheme.colors.error}
+              />
+              <Text style={[
+                tw`text-sm ml-2`,
+                { color: currentTheme.colors.error }
+              ]}>
+                {t("subscription.nearLimit", "Limite bientôt atteinte")}
+              </Text>
+            </View>
+          )}
+        </View>
+      );
+    };
+
+    return (
+      <Animated.View
+        style={[
+          tw`rounded-3xl mb-6 overflow-hidden shadow-lg`,
+          {
+            opacity: fadeAnim,
+            transform: [
+              { translateY: slideAnim },
+              { scale: scaleAnim },
+            ],
+            shadowColor: currentTheme.colors.text,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 6,
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={[currentTheme.colors.surface, `${currentTheme.colors.surface}80`]}
+          style={tw`p-8`}
+        >
+          <View style={tw`flex-row items-center mb-6`}>
+            <MaterialCommunityIcons
+              name="chart-line"
+              size={24}
+              color={currentTheme.colors.primary}
+            />
+            <Text style={[
+              tw`text-xl font-bold ml-3`,
+              { color: currentTheme.colors.text }
+            ]}>
+              {t("subscription.usage", "Utilisation")}
+            </Text>
+          </View>
+
+          {quotaStats && (
+            <View>
+              {/* Usage journalier */}
+              {quotaStats.daily.limit && renderProgressBar(
+                quotaStats.daily.used,
+                quotaStats.daily.limit,
+                currentTheme.colors.primary,
+                t("subscription.dailyUsage", "Usage journalier")
+              )}
+
+              {/* Usage mensuel */}
+              {quotaStats.monthly.limit && renderProgressBar(
+                quotaStats.monthly.used,
+                quotaStats.monthly.limit,
+                currentPlan.color,
+                t("subscription.monthlyUsage", "Usage mensuel")
+              )}
+            </View>
+          )}
+        </LinearGradient>
+      </Animated.View>
     );
   };
 
   const renderActions = () => {
     return (
-      <View style={[
-        tw`p-6 rounded-xl mb-6`,
-        { backgroundColor: currentTheme.colors.surface }
-      ]}>
-        <Text style={[
-          tw`text-lg font-bold mb-4`,
-          { color: currentTheme.colors.text }
-        ]}>
-          {t("subscription.actions", "Actions")}
-        </Text>
-
-        <View style={tw`gap-3`}>
-          <TouchableOpacity
-            style={[
-              tw`py-3 px-4 rounded-lg border`,
-              { 
-                borderColor: currentTheme.colors.border,
-                backgroundColor: "transparent"
-              }
-            ]}
-            onPress={handleRestoreSubscription}
-          >
+      <Animated.View
+        style={[
+          tw`rounded-3xl mb-6 overflow-hidden shadow-lg`,
+          {
+            opacity: fadeAnim,
+            transform: [
+              { translateY: slideAnim },
+              { scale: scaleAnim },
+            ],
+            shadowColor: currentTheme.colors.text,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 6,
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={[currentTheme.colors.surface, `${currentTheme.colors.surface}80`]}
+          style={tw`p-8`}
+        >
+          <View style={tw`flex-row items-center mb-6`}>
+            <MaterialCommunityIcons
+              name="settings-outline"
+              size={24}
+              color={currentTheme.colors.primary}
+            />
             <Text style={[
-              tw`text-center font-semibold`,
-              { color: currentTheme.colors.primary }
+              tw`text-xl font-bold ml-3`,
+              { color: currentTheme.colors.text }
             ]}>
-              {t("subscription.restore", "Restaurer les achats")}
+              {t("subscription.actions", "Actions")}
             </Text>
-          </TouchableOpacity>
+          </View>
 
-          {subscription && subscription.status === "active" && (
+          <View style={tw`gap-4`}>
             <TouchableOpacity
-              style={[
-                tw`py-3 px-4 rounded-lg border`,
-                { 
-                  borderColor: currentTheme.colors.error,
-                  backgroundColor: "transparent"
-                }
-              ]}
-              onPress={handleCancelSubscription}
+              style={tw`overflow-hidden`}
+              onPress={handleRestoreSubscription}
+              activeOpacity={0.8}
             >
-              <Text style={[
-                tw`text-center font-semibold`,
-                { color: currentTheme.colors.error }
-              ]}>
-                {t("subscription.cancel", "Annuler l'abonnement")}
-              </Text>
+              <LinearGradient
+                colors={[`${currentTheme.colors.primary}20`, `${currentTheme.colors.primary}10`]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={tw`py-4 px-6 rounded-2xl border-2 items-center`}
+              >
+                <Text style={[
+                  tw`text-center font-bold text-base`,
+                  { color: currentTheme.colors.primary }
+                ]}>
+                  {t("subscription.restore", "Restaurer les achats")}
+                </Text>
+              </LinearGradient>
             </TouchableOpacity>
-          )}
-        </View>
-      </View>
+
+            {subscription && subscription.status === "active" && (
+              <TouchableOpacity
+                style={tw`overflow-hidden`}
+                onPress={handleCancelSubscription}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={[`${currentTheme.colors.error}20`, `${currentTheme.colors.error}10`]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={tw`py-4 px-6 rounded-2xl border-2 items-center`}
+                >
+                  <Text style={[
+                    tw`text-center font-bold text-base`,
+                    { color: currentTheme.colors.error }
+                  ]}>
+                    {t("subscription.cancel", "Annuler l'abonnement")}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+          </View>
+        </LinearGradient>
+      </Animated.View>
     );
   };
 

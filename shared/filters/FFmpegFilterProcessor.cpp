@@ -289,19 +289,80 @@ bool FFmpegFilterProcessor::applyFilterWithStride(const FilterState& filter,
         return false;
     }
     
-    // Utiliser copie SIMD si disponible
+    // Utiliser copie SIMD optimisée si disponible
     #ifdef __AVX2__
     if (rowBytes >= 32) {
+        // Traitement optimisé avec prefetching et alignement
         for (int y = 0; y < outputFrame_->height; ++y) {
             const uint8_t* srcRow = outputFrame_->data[0] + y * outLinesize;
             uint8_t* dstRow = outputData + y * outputStride;
-            
-            size_t simdBytes = rowBytes & ~31;
-            for (size_t x = 0; x < simdBytes; x += 32) {
+
+            size_t simdBytes = rowBytes & ~31;  // Aligner à 32 bytes (AVX2)
+            size_t x = 0;
+
+            // Boucle principale avec prefetching
+            for (; x + 128 <= simdBytes; x += 128) {
+                // Prefetch pour améliorer la localité cache
+                _mm_prefetch(srcRow + x + 128, _MM_HINT_T0);
+                _mm_prefetch(dstRow + x + 128, _MM_HINT_T0);
+
+                // Traiter 4 vecteurs AVX2 de 32 bytes chacun
+                __m256i data1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(srcRow + x));
+                __m256i data2 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(srcRow + x + 32));
+                __m256i data3 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(srcRow + x + 64));
+                __m256i data4 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(srcRow + x + 96));
+
+                _mm256_storeu_si256(reinterpret_cast<__m256i*>(dstRow + x), data1);
+                _mm256_storeu_si256(reinterpret_cast<__m256i*>(dstRow + x + 32), data2);
+                _mm256_storeu_si256(reinterpret_cast<__m256i*>(dstRow + x + 64), data3);
+                _mm256_storeu_si256(reinterpret_cast<__m256i*>(dstRow + x + 96), data4);
+            }
+
+            // Traiter les bytes restants par blocs de 32
+            for (; x < simdBytes; x += 32) {
                 __m256i data = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(srcRow + x));
                 _mm256_storeu_si256(reinterpret_cast<__m256i*>(dstRow + x), data);
             }
-            
+
+            // Copier les octets restants
+            if (simdBytes < rowBytes) {
+                std::memcpy(dstRow + simdBytes, srcRow + simdBytes, rowBytes - simdBytes);
+            }
+        }
+    } else
+    #elif defined(__SSE2__)
+    if (rowBytes >= 16) {
+        // Optimisation SSE2 avec prefetching
+        for (int y = 0; y < outputFrame_->height; ++y) {
+            const uint8_t* srcRow = outputFrame_->data[0] + y * outLinesize;
+            uint8_t* dstRow = outputData + y * outputStride;
+
+            size_t simdBytes = rowBytes & ~15;  // Aligner à 16 bytes (SSE2)
+            size_t x = 0;
+
+            // Boucle principale avec prefetching
+            for (; x + 64 <= simdBytes; x += 64) {
+                _mm_prefetch(srcRow + x + 64, _MM_HINT_T0);
+                _mm_prefetch(dstRow + x + 64, _MM_HINT_T0);
+
+                // Traiter 4 vecteurs SSE2 de 16 bytes chacun
+                __m128i data1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(srcRow + x));
+                __m128i data2 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(srcRow + x + 16));
+                __m128i data3 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(srcRow + x + 32));
+                __m128i data4 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(srcRow + x + 48));
+
+                _mm_storeu_si128(reinterpret_cast<__m128i*>(dstRow + x), data1);
+                _mm_storeu_si128(reinterpret_cast<__m128i*>(dstRow + x + 16), data2);
+                _mm_storeu_si128(reinterpret_cast<__m128i*>(dstRow + x + 32), data3);
+                _mm_storeu_si128(reinterpret_cast<__m128i*>(dstRow + x + 48), data4);
+            }
+
+            // Traiter les bytes restants par blocs de 16
+            for (; x < simdBytes; x += 16) {
+                __m128i data = _mm_loadu_si128(reinterpret_cast<const __m128i*>(srcRow + x));
+                _mm_storeu_si128(reinterpret_cast<__m128i*>(dstRow + x), data);
+            }
+
             // Copier les octets restants
             if (simdBytes < rowBytes) {
                 std::memcpy(dstRow + simdBytes, srcRow + simdBytes, rowBytes - simdBytes);
