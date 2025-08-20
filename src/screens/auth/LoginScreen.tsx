@@ -16,6 +16,7 @@ import {
   AuthInput,
   AuthButton,
   SocialAuthButtons,
+  RememberMeCheckbox,
 } from '../../components/auth';
 
 // Services et hooks
@@ -47,6 +48,7 @@ export const LoginScreen: React.FC = () => {
   });
   const [errors, setErrors] = useState<AuthValidationErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Validation du formulaire
   const validateForm = (): boolean => {
@@ -76,6 +78,27 @@ export const LoginScreen: React.FC = () => {
     try {
       await signIn(formData.email, formData.password);
       logger.info('Connexion réussie');
+
+      // Utiliser AsyncStorage directement (sans biométrie)
+      if (rememberMe) {
+        const credentialsData = {
+          email: formData.email,
+          timestamp: Date.now()
+        };
+
+        // Stocker directement dans AsyncStorage sans biométrie
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const secureKey = 'secure_user_credentials';
+        await AsyncStorage.setItem(secureKey, JSON.stringify(credentialsData));
+
+        logger.info('Identifiants stockés dans AsyncStorage (sans biométrie)');
+      } else {
+        // Supprimer les identifiants stockés
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const secureKey = 'secure_user_credentials';
+        await AsyncStorage.removeItem(secureKey);
+        logger.info('Identifiants supprimés');
+      }
     } catch (error) {
       logger.error('Erreur de connexion:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion';
@@ -188,21 +211,29 @@ export const LoginScreen: React.FC = () => {
             isRequired
           />
 
-          {/* Mot de passe oublié */}
-          <TouchableOpacity
-            onPress={() => {
-              Alert.alert('Non disponible', 'La réinitialisation de mot de passe sera disponible bientôt');
-            }}
-            style={tw`self-end mb-4`}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={[
-              tw`text-sm font-medium`,
-              styles.linkColor,
-            ]}>
-              Mot de passe oublié ?
-            </Text>
-          </TouchableOpacity>
+          {/* Options */}
+          <View style={tw`flex-row justify-between items-center mb-4`}>
+            {/* Se souvenir de moi */}
+            <RememberMeCheckbox
+              checked={rememberMe}
+              onToggle={() => setRememberMe(!rememberMe)}
+            />
+
+            {/* Mot de passe oublié */}
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert('Non disponible', 'La réinitialisation de mot de passe sera disponible bientôt');
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={[
+                tw`text-sm font-medium`,
+                styles.linkColor,
+              ]}>
+                Mot de passe oublié ?
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Erreur générale */}
           {errors.general && (
