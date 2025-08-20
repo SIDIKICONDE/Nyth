@@ -12,6 +12,7 @@ import {
 } from "@react-native-firebase/firestore";
 import { UserProfile, UserRole } from "../../../types/user";
 import adminStatsService from "../../../services/firebase/adminStatsService";
+import { adminCacheService } from "../../../services/cache/adminCacheService";
 import {
   AdminStats,
   ActivityItem,
@@ -39,42 +40,35 @@ export const useAdminData = (isAdmin: boolean) => {
     try {
       setState((prev) => ({ ...prev, loading: true }));
 
-      // Charger les utilisateurs
+      // Charger les utilisateurs avec cache
+      const usersData = await adminCacheService.getCachedUsers() as UserProfile[];
+
+      // Charger les souscriptions avec cache
       const db = getFirestore(getApp());
-      const usersQuery = query(
-        collection(db, "users"),
-        orderBy("createdAt", "desc"),
-        limit(50)
-      );
-      const usersSnapshot = await getDocs(usersQuery);
-      const usersData = usersSnapshot.docs.map(
-        (doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) =>
-          ({
-            uid: doc.id,
-            ...doc.data(),
-          } as UserProfile)
-      );
+      const subscriptionsData = await adminCacheService.getOrFetch(
+        "admin_subscriptions",
+        async () => {
+          const subscriptionsQuery = query(
+            collection(db, "subscriptions"),
+            orderBy("createdAt", "desc"),
+            limit(50)
+          );
+          const subscriptionsSnapshot = await getDocs(subscriptionsQuery);
+          return subscriptionsSnapshot.docs.map(
+            (doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => ({
+              id: doc.id,
+              userId: doc.data().userId || "",
+              plan: doc.data().plan || "free",
+              status: doc.data().status || "inactive",
+              endDate: doc.data().endDate || "",
+              ...doc.data(),
+            })
+          );
+        },
+        15 // 15 minutes TTL
+      ) as SubscriptionItem[];
 
-      // Charger les souscriptions
-      const subscriptionsQuery = query(
-        collection(db, "subscriptions"),
-        orderBy("createdAt", "desc"),
-        limit(50)
-      );
-      const subscriptionsSnapshot = await getDocs(subscriptionsQuery);
-      const subscriptionsData: SubscriptionItem[] =
-        subscriptionsSnapshot.docs.map(
-          (doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => ({
-            id: doc.id,
-            userId: doc.data().userId || "",
-            plan: doc.data().plan || "free",
-            status: doc.data().status || "inactive",
-            endDate: doc.data().endDate || "",
-            ...doc.data(),
-          })
-        );
-
-      // Charger l'activité récente
+      // Charger l'activité récente avec cache
       const scriptsQuery = query(
         collection(db, "scripts"),
         orderBy("createdAt", "desc"),
@@ -112,8 +106,12 @@ export const useAdminData = (isAdmin: boolean) => {
         })
         .slice(0, 30);
 
-      // Calculer les statistiques
-      const stats = await calculateStats(usersData, subscriptionsData);
+      // Calculer les statistiques avec cache
+      const stats = await adminCacheService.getOrFetch(
+        "admin_stats_calculated",
+        () => calculateStats(usersData, subscriptionsData),
+        10 // 10 minutes TTL
+      ) as AdminStats;
 
       setState({
         users: usersData,

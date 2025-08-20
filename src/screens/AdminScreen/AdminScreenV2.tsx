@@ -11,7 +11,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAdmin } from "../../hooks/useAdmin";
-import { useAdminFirestore } from "../../hooks/useAdminFirestore";
+import { adminCloudService } from "../../services/adminCloudService";
+import { adminMonitoringService } from "../../services/monitoring/adminMonitoringService";
 import { useTranslation } from "../../hooks/useTranslation";
 import { UserRole } from "../../types/user";
 import { syncAllUsersRecordings } from "../../utils/syncRecordings";
@@ -65,7 +66,19 @@ export const AdminScreenV2: React.FC = () => {
     setSyncing,
   } = useAdminData(isSuperAdmin);
 
-  const { loading: adminLoading, updateUserRole } = useAdminFirestore();
+  const [adminLoading, setAdminLoading] = useState(false);
+
+  useEffect(() => {
+    // Enregistrer le temps de chargement initial
+    const loadStartTime = Date.now();
+    adminMonitoringService.recordMetric("load_time", "admin_screen_initial_load", 0);
+
+    // Cleanup
+    return () => {
+      const loadTime = Date.now() - loadStartTime;
+      adminMonitoringService.recordLoadTime("AdminScreen", loadTime);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -82,13 +95,23 @@ export const AdminScreenV2: React.FC = () => {
 
   // Gérer le changement d'onglet
   const handleTabChange = (tab: AdminTab) => {
+    const previousTab = activeTab;
     setActiveTab(tab);
+
+    // Enregistrer l'action utilisateur
+    adminMonitoringService.recordUserAction("tab_change", {
+      from: previousTab,
+      to: tab,
+      timestamp: new Date().toISOString()
+    });
   };
 
   const handleToggleUserRole = async (
     userId: string,
     currentRole?: UserRole
   ) => {
+    const actionStartTime = Date.now();
+
     if (!isSuperAdmin) {
       Alert.alert(
         t("admin.permission.title", "Permission refusée"),
@@ -97,6 +120,10 @@ export const AdminScreenV2: React.FC = () => {
           "Seuls les super admins peuvent modifier les rôles"
         )
       );
+      adminMonitoringService.recordUserAction("role_change_denied", {
+        userId,
+        reason: "not_super_admin"
+      });
       return;
     }
 
@@ -130,14 +157,70 @@ export const AdminScreenV2: React.FC = () => {
               return;
             }
 
-            const success = await updateUserRole(userId, newRole);
+            setAdminLoading(true);
+            const actionStartTime = Date.now();
 
-            if (success) {
+            try {
+              const result = await adminCloudService.updateUserRole({
+                userId,
+                newRole,
+                adminId: "current_admin" // Sera remplacé par l'ID réel
+              });
+
+              const actionDuration = Date.now() - actionStartTime;
+
+              if (result.success) {
+                Alert.alert(
+                  t("common.success", "Succès"),
+                  result.message || t("admin.role.updateSuccess", "Rôle mis à jour avec succès")
+                );
+                loadData(); // Recharger les données
+
+                // Log de l'activité réussie
+                adminMonitoringService.logAdminActivity(
+                  "current_admin",
+                  "role_update",
+                  userId,
+                  { oldRole: currentRole, newRole },
+                  actionDuration,
+                  true
+                );
+
+                adminMonitoringService.recordUserAction("role_change_success", {
+                  userId,
+                  oldRole: currentRole,
+                  newRole
+                });
+              } else {
+                throw new Error(result.message || "Échec de la mise à jour");
+              }
+            } catch (error: any) {
+              const actionDuration = Date.now() - actionStartTime;
+
               Alert.alert(
-                t("common.success", "Succès"),
-                t("admin.role.updateSuccess", "Rôle mis à jour avec succès")
+                t("common.error", "Erreur"),
+                error.message || t("admin.role.updateError", "Erreur lors de la mise à jour du rôle")
               );
-              loadData(); // Recharger les données
+
+              // Log de l'erreur
+              adminMonitoringService.logAdminActivity(
+                "current_admin",
+                "role_update",
+                userId,
+                { oldRole: currentRole, newRole },
+                actionDuration,
+                false,
+                error.message
+              );
+
+              adminMonitoringService.recordError(error, {
+                context: "role_update",
+                userId,
+                oldRole: currentRole,
+                newRole
+              });
+            } finally {
+              setAdminLoading(false);
             }
           },
         },
@@ -206,19 +289,26 @@ export const AdminScreenV2: React.FC = () => {
             setSyncing(true);
 
             try {
-              await syncAllUsersRecordings();
+              const result = await adminCloudService.syncRecordings();
 
-              Alert.alert(
-                t("common.success", "Succès"),
-                t("admin.sync.success", "Synchronisation terminée")
-              );
-              await loadData();
-            } catch (error) {
+              if (result.success) {
+                Alert.alert(
+                  t("common.success", "Succès"),
+                  result.message || t("admin.sync.success", "Synchronisation terminée")
+                );
+                await loadData();
+              } else {
+                Alert.alert(
+                  t("common.error", "Erreur"),
+                  result.message || t("admin.sync.error", "Erreur lors de la synchronisation")
+                );
+              }
+            } catch (error: any) {
               logger.error("Erreur sync:", error);
 
               Alert.alert(
                 t("common.error", "Erreur"),
-                t("admin.sync.error", "Erreur lors de la synchronisation")
+                error.message || t("admin.sync.error", "Erreur lors de la synchronisation")
               );
             } finally {
               setSyncing(false);
