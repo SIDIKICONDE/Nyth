@@ -1,8 +1,5 @@
 #include "FilterFactory.hpp"
 #include "FFmpegFilterProcessor.hpp"
-#ifdef __ANDROID__
-#include "vulkan/VulkanFilterProcessor.hpp"
-#endif
 #include <iostream>
 
 namespace Camera {
@@ -14,23 +11,17 @@ std::shared_ptr<IFilterProcessor> FilterFactory::createProcessor(ProcessorType t
     switch (type) {
         case ProcessorType::FFMPEG:
             return createFFmpegProcessor();
-        
-        case ProcessorType::CORE_IMAGE:
-            return createCoreImageProcessor();
-        
+
         case ProcessorType::OPENGL:
             return createOpenGLProcessor();
-        
-        case ProcessorType::VULKAN:
-            return createVulkanProcessor();
-        
+
         case ProcessorType::CUSTOM:
-            // Pour l'instant, retourner FFmpeg comme fallback
-            std::cout << "[FilterFactory] Processeur CUSTOM non implémenté, fallback vers FFmpeg" << std::endl;
+            // FFmpeg obligatoire pour les processeurs personnalisés
+            std::cout << "[FilterFactory] Processeur CUSTOM - utilisation FFmpeg obligatoire" << std::endl;
             return createFFmpegProcessor();
-        
+
         default:
-            std::cout << "[FilterFactory] Type de processeur inconnu, fallback vers FFmpeg" << std::endl;
+            std::cout << "[FilterFactory] Type de processeur inconnu - utilisation FFmpeg obligatoire" << std::endl;
             return createFFmpegProcessor();
     }
 }
@@ -40,47 +31,24 @@ std::shared_ptr<IFilterProcessor> FilterFactory::createFFmpegProcessor() {
     return std::make_shared<FFmpegFilterProcessor>();
 }
 
-std::shared_ptr<IFilterProcessor> FilterFactory::createCoreImageProcessor() {
-    std::cout << "[FilterFactory] Processeur Core Image non implémenté, fallback vers FFmpeg" << std::endl;
-    // TODO: Implémenter CoreImageFilterProcessor pour iOS
-    return createFFmpegProcessor();
-}
+
 
 std::shared_ptr<IFilterProcessor> FilterFactory::createOpenGLProcessor() {
-    std::cout << "[FilterFactory] Processeur OpenGL non implémenté, fallback vers FFmpeg" << std::endl;
-    // TODO: Implémenter OpenGLFilterProcessor
+    std::cout << "[FilterFactory] Processeur OpenGL - utilisation FFmpeg obligatoire" << std::endl;
     return createFFmpegProcessor();
 }
 
-std::shared_ptr<IFilterProcessor> FilterFactory::createVulkanProcessor() {
-#ifdef __ANDROID__
-    std::cout << "[FilterFactory] Création du processeur Vulkan" << std::endl;
-    return std::make_shared<VulkanFilterProcessor>();
-#else
-    std::cout << "[FilterFactory] Processeur Vulkan indisponible sur iOS, fallback vers FFmpeg" << std::endl;
-    return createFFmpegProcessor();
-#endif
-}
+
 
 std::vector<std::string> FilterFactory::getAvailableProcessorTypes() {
     std::vector<std::string> types;
-    
+
     // FFmpeg est toujours disponible (avec fallback)
     types.push_back("FFMPEG");
-    
-    // Core Image disponible sur iOS
-    #ifdef __APPLE__
-    types.push_back("CORE_IMAGE");
-    #endif
-    
+
     // OpenGL disponible partout
     types.push_back("OPENGL");
-    
-    // Vulkan disponible sur Android
-    #ifdef __ANDROID__
-    types.push_back("VULKAN");
-    #endif
-    
+
     return types;
 }
 
@@ -88,27 +56,13 @@ bool FilterFactory::isProcessorTypeAvailable(ProcessorType type) {
     switch (type) {
         case ProcessorType::FFMPEG:
             return true; // Toujours disponible avec fallback
-        
-        case ProcessorType::CORE_IMAGE:
-            #ifdef __APPLE__
-            return true;
-            #else
-            return false;
-            #endif
-        
+
         case ProcessorType::OPENGL:
             return true; // OpenGL disponible partout
-        
-        case ProcessorType::VULKAN:
-            #ifdef __ANDROID__
-            return true;
-            #else
-            return false;
-            #endif
-        
+
         case ProcessorType::CUSTOM:
             return false; // Pas encore implémenté
-        
+
         default:
             return false;
     }

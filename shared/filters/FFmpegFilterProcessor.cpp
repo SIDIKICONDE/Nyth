@@ -13,8 +13,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-// Vérification de la disponibilité de FFmpeg
-#ifdef FFMPEG_AVAILABLE
+// Includes FFmpeg obligatoires
 extern "C" {
     #include <libavfilter/avfilter.h>
     #include <libavfilter/buffersink.h>
@@ -26,7 +25,6 @@ extern "C" {
     #include <libavutil/opt.h>
     #include <libavutil/pixdesc.h>
 }
-#endif
 
 namespace Camera {
 
@@ -43,19 +41,13 @@ bool FFmpegFilterProcessor::initialize() {
     if (initialized_) {
         return true;
     }
-    
+
     std::cout << "[FFmpegFilterProcessor] Initialisation..." << std::endl;
-    
-    #ifdef FFMPEG_AVAILABLE
-    // Initialisation moderne: aucune inscription explicite nécessaire avec FFmpeg récent
+
+    // Initialisation FFmpeg obligatoire
     initialized_ = true;
     std::cout << "[FFmpegFilterProcessor] Initialisation FFmpeg (sans register_all)" << std::endl;
-    #else
-    // Mode fallback sans FFmpeg
-    initialized_ = true;
-    std::cout << "[FFmpegFilterProcessor] Mode fallback (sans FFmpeg)" << std::endl;
-    #endif
-    
+
     return true;
 }
 
@@ -63,37 +55,33 @@ void FFmpegFilterProcessor::shutdown() {
     if (!initialized_) {
         return;
     }
-    
+
     std::cout << "[FFmpegFilterProcessor] Arrêt..." << std::endl;
-    
-    #ifdef FFMPEG_AVAILABLE
+
     destroyFilterGraph();
-    #endif
-    
+
     initialized_ = false;
     std::cout << "[FFmpegFilterProcessor] Arrêt terminé" << std::endl;
 }
 
-bool FFmpegFilterProcessor::applyFilter(const FilterState& filter, const void* inputData, 
+bool FFmpegFilterProcessor::applyFilter(const FilterState& filter, const void* inputData,
                                       size_t inputSize, void* outputData, size_t outputSize) {
     if (!initialized_) {
         setLastError("Processeur non initialisé");
         return false;
     }
-    
-    #ifdef FFMPEG_AVAILABLE
-    // Implémentation optimisée: supposer buffer packé et utiliser format courant
+
+    // Implémentation FFmpeg obligatoire
     if (width_ <= 0 || height_ <= 0) { setLastError("Format vidéo non défini"); return false; }
     const char* fmt = pixelFormat_.empty() ? "yuv420p" : pixelFormat_.c_str();
     int stride = 0;
-    // Estimer stride packé minimal lorsque inputSize est fourni (fallback)
+    // Estimer stride packé minimal
     if (std::strcmp(fmt, "bgra") == 0 || std::strcmp(fmt, "rgba") == 0 || std::strcmp(fmt, "rgb0") == 0) {
         stride = width_ * 4;
     } else if (std::strcmp(fmt, "rgb24") == 0 || std::strcmp(fmt, "bgr24") == 0) {
         stride = width_ * 3;
     }
     if (stride == 0) {
-        // Repli: tenter packé via imgutils
         stride = width_ * 4;
     }
     return applyFilterWithStride(filter,
@@ -102,44 +90,20 @@ bool FFmpegFilterProcessor::applyFilter(const FilterState& filter, const void* i
                                  width_, height_, fmt,
                                  reinterpret_cast<uint8_t*>(outputData),
                                  stride);
-    #else
-    // Mode fallback: copie directe avec log
-    std::cout << "[FFmpegFilterProcessor] Mode fallback - filtre: " 
-              << static_cast<int>(filter.type) << " (intensité: " << filter.params.intensity << ")" << std::endl;
-    
-    if (inputSize <= outputSize) {
-        std::memcpy(outputData, inputData, inputSize);
-        return true;
-    } else {
-        setLastError("Taille de sortie insuffisante");
-        return false;
-    }
-    #endif
 }
 
 bool FFmpegFilterProcessor::supportsFormat(const std::string& format) const {
-    #ifdef FFMPEG_AVAILABLE
     // Formats supportés par FFmpeg
     static const std::vector<std::string> supportedFormats = {
         "yuv420p", "yuv422p", "yuv444p", "rgb24", "bgr24", "rgba", "bgra"
     };
-    
+
     return std::find(supportedFormats.begin(), supportedFormats.end(), format) != supportedFormats.end();
-    #else
-    // Mode fallback: support limité
-    return format == "yuv420p" || format == "rgb24";
-    #endif
 }
 
 bool FFmpegFilterProcessor::supportsFilter(FilterType type) const {
-    #ifdef FFMPEG_AVAILABLE
     // Tous les filtres supportés avec FFmpeg
     return type != FilterType::NONE;
-    #else
-    // Mode fallback: filtres de base seulement
-    return type == FilterType::SEPIA || type == FilterType::NOIR || 
-           type == FilterType::MONOCHROME || type == FilterType::COLOR_CONTROLS;
-    #endif
 }
 
 std::string FFmpegFilterProcessor::getName() const {
@@ -148,8 +112,7 @@ std::string FFmpegFilterProcessor::getName() const {
 
 std::vector<FilterInfo> FFmpegFilterProcessor::getSupportedFilters() const {
     std::vector<FilterInfo> filters;
-    
-    #ifdef FFMPEG_AVAILABLE
+
     // Filtres FFmpeg complets
     filters.push_back({"sepia", "Sépia", FilterType::SEPIA, "Effet sépia vintage", false, {"yuv420p", "rgb24"}});
     filters.push_back({"noir", "Noir & Blanc", FilterType::NOIR, "Conversion noir et blanc", false, {"yuv420p", "rgb24"}});
@@ -160,14 +123,7 @@ std::vector<FilterInfo> FFmpegFilterProcessor::getSupportedFilters() const {
     filters.push_back({"warm", "Warm", FilterType::WARM, "Effet chaud orangé", false, {"yuv420p", "rgb24"}});
     // Filtre personnalisé LUT 3D (.cube). Usage: setFilter('lut3d:/abs/path.cube', intensity)
     filters.push_back({"lut3d", "LUT 3D (.cube)", FilterType::CUSTOM, "Applique une LUT 3D au format .cube (DaVinci, etc.)", true, {"yuv420p", "rgb24"}});
-    #else
-    // Filtres de base en mode fallback
-    filters.push_back({"sepia", "Sépia", FilterType::SEPIA, "Effet sépia (fallback)", false, {"yuv420p", "rgb24"}});
-    filters.push_back({"noir", "Noir & Blanc", FilterType::NOIR, "Conversion noir et blanc (fallback)", false, {"yuv420p", "rgb24"}});
-    filters.push_back({"monochrome", "Monochrome", FilterType::MONOCHROME, "Monochrome (fallback)", false, {"yuv420p", "rgb24"}});
-    filters.push_back({"color_controls", "Contrôles Couleur", FilterType::COLOR_CONTROLS, "Contrôles de base (fallback)", false, {"yuv420p", "rgb24"}});
-    #endif
-    
+
     return filters;
 }
 
@@ -188,7 +144,6 @@ bool FFmpegFilterProcessor::setFrameRate(int fps) {
 }
 
 // Méthodes privées
-#ifdef FFMPEG_AVAILABLE
 bool FFmpegFilterProcessor::ensureGraph(const FilterState& filter) {
     // Optimisation: cache le graphe et évite la reconstruction inutile
     std::string filterString = getFFmpegFilterString(filter);
@@ -619,32 +574,7 @@ std::string FFmpegFilterProcessor::getFFmpegFilterString(const FilterState& filt
     }
     return combined;
 }
-#else
-bool FFmpegFilterProcessor::createFilterGraph() {
-    // Mode fallback: pas de graphe FFmpeg
-    return true;
-}
 
-void FFmpegFilterProcessor::destroyFilterGraph() {
-    // Mode fallback: rien à détruire
-}
-
-bool FFmpegFilterProcessor::addFilterToGraph(const FilterState& filter) {
-    // Mode fallback: simulation
-    std::cout << "[FFmpegFilterProcessor] Simulation filtre: " << static_cast<int>(filter.type) << std::endl;
-    return true;
-}
-
-bool FFmpegFilterProcessor::configureFilter(const FilterState& filter, AVFilterContext* filterCtx) {
-    // Mode fallback: pas de configuration FFmpeg
-    return true;
-}
-
-std::string FFmpegFilterProcessor::getFFmpegFilterString(const FilterState& filter) const {
-    // Mode fallback: chaîne vide
-    return "";
-}
-#endif
 
 void FFmpegFilterProcessor::setLastError(const std::string& error) {
     lastError_ = error;
@@ -652,19 +582,11 @@ void FFmpegFilterProcessor::setLastError(const std::string& error) {
 }
 
 bool FFmpegFilterProcessor::isFFmpegAvailable() const {
-    #ifdef FFMPEG_AVAILABLE
     return true;
-    #else
-    return false;
-    #endif
 }
 
 std::string FFmpegFilterProcessor::getSupportedPixelFormats() const {
-    #ifdef FFMPEG_AVAILABLE
     return "yuv420p,yuv422p,yuv444p,rgb24,bgr24,rgba,bgra";
-    #else
-    return "yuv420p,rgb24";
-    #endif
 }
 
 } // namespace Camera

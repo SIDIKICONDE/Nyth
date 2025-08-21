@@ -16,7 +16,6 @@ public:
     // Types de processeurs disponibles
     enum class ProcessorType {
         FFMPEG,     // Processeur FFmpeg
-        CORE_IMAGE, // Processeur Core Image (iOS)
         OPENGL,     // Processeur OpenGL
         CUSTOM      // Processeur personnalisé
     };
@@ -24,7 +23,6 @@ public:
     // Création de processeurs
     static std::shared_ptr<IFilterProcessor> createProcessor(ProcessorType type);
     static std::shared_ptr<IFilterProcessor> createFFmpegProcessor();
-    static std::shared_ptr<IFilterProcessor> createCoreImageProcessor();
     static std::shared_ptr<IFilterProcessor> createOpenGLProcessor();
 
     
