@@ -1,7 +1,12 @@
 #pragma once
 
+#ifdef __cplusplus
+
 #include <string>
 #include <vector>
+#include <memory>
+#include <cstddef>
+#include <cstdint>
 
 namespace Camera {
 
@@ -115,3 +120,7 @@ public:
 };
 
 } // namespace Camera
+
+#else
+/* Ce header expose uniquement une API C++ (types et namespaces). */
+#endif

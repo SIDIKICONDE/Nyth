@@ -302,7 +302,7 @@ jsi::Object NativeCameraFiltersModule::getCapabilities(jsi::Runtime& rt) {
   // Processeur actuel
   std::string currentProc = 
     currentProcessor_ == Camera::FilterFactory::ProcessorType::FFMPEG ? "FFMPEG" :
-    currentProcessor_ == Camera::FilterFactory::ProcessorType::VULKAN ? "VULKAN" :
+
     currentProcessor_ == Camera::FilterFactory::ProcessorType::CORE_IMAGE ? "CORE_IMAGE" :
     currentProcessor_ == Camera::FilterFactory::ProcessorType::OPENGL ? "OPENGL" : "CUSTOM";
   caps.setProperty(rt, "currentProcessor", jsi::String::createFromUtf8(rt, currentProc));
@@ -323,8 +323,7 @@ bool NativeCameraFiltersModule::setProcessor(jsi::Runtime& rt, jsi::String type)
   Camera::FilterFactory::ProcessorType processorType;
   if (typeStr == "FFMPEG") {
     processorType = Camera::FilterFactory::ProcessorType::FFMPEG;
-  } else if (typeStr == "VULKAN") {
-    processorType = Camera::FilterFactory::ProcessorType::VULKAN;
+
   } else if (typeStr == "CORE_IMAGE") {
     processorType = Camera::FilterFactory::ProcessorType::CORE_IMAGE;
   } else if (typeStr == "OPENGL") {
@@ -355,7 +354,7 @@ bool NativeCameraFiltersModule::setProcessor(jsi::Runtime& rt, jsi::String type)
 jsi::String NativeCameraFiltersModule::getProcessor(jsi::Runtime& rt) {
   std::string proc = 
     currentProcessor_ == Camera::FilterFactory::ProcessorType::FFMPEG ? "FFMPEG" :
-    currentProcessor_ == Camera::FilterFactory::ProcessorType::VULKAN ? "VULKAN" :
+
     currentProcessor_ == Camera::FilterFactory::ProcessorType::CORE_IMAGE ? "CORE_IMAGE" :
     currentProcessor_ == Camera::FilterFactory::ProcessorType::OPENGL ? "OPENGL" : "CUSTOM";
   return jsi::String::createFromUtf8(rt, proc);

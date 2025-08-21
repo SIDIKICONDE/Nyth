@@ -1,6 +1,7 @@
 #include "NoiseReducer.h"
 #include <stdexcept>
 #include <cstring>
+#include <cmath>
 
 namespace AudioNR {
 

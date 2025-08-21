@@ -6,6 +6,20 @@ project(appmodules)
 # This file includes all the necessary to let you build your React Native application
 include(${REACT_ANDROID_DIR}/cmake-utils/ReactNative-application.cmake)
 
+# Ensure C++17 and proper standard library
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Link against libc++ for NDK
+find_library(CPP_SHARED_LIB c++_shared NAMES c++_shared)
+if (CPP_SHARED_LIB)
+  target_link_libraries(${CMAKE_PROJECT_NAME} ${CPP_SHARED_LIB})
+else()
+  # Fallback name
+  target_link_libraries(${CMAKE_PROJECT_NAME} c++_shared)
+endif()
+
 # Define where the additional source code lives. We need to crawl back the jni, main, src, app, android folders
 
 # Audio System C++ Sources
@@ -23,7 +37,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE ../../../../../shared/NativeCameraF
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE ../../../../../shared/filters/FFmpegFilterProcessor.cpp)
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE ../../../../../shared/filters/FilterFactory.cpp)
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE ../../../../../shared/filters/FilterManager.cpp)
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE ../../../../../shared/filters/vulkan/VulkanFilterProcessor.cpp)
+
 
 # Define where CMake can find the additional header files. We need to crawl back the jni, main, src, app, android folders
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ../../../../../shared)
@@ -35,4 +49,3 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ../../../../../shared/Au
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ../../../../../shared/Audio/effects)
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ../../../../../shared/filters)
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ../../../../../shared/filters/common)
-target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ../../../../../shared/filters/vulkan)

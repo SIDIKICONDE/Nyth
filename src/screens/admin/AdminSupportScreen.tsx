@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { useAdminSupport } from "../../hooks/useSupport";
 import { SupportThread, SupportMessage } from "../../types/support";
 import { Timestamp } from "firebase/firestore";
@@ -26,7 +25,6 @@ const AdminSupportScreen: React.FC = () => {
     selectedThread,
     messages,
     loading,
-    error,
     sending,
     filter,
     setFilter,

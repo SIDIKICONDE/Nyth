@@ -2,6 +2,9 @@
 #include <iostream>
 #include <cstring>
 #include <cmath>
+#include <algorithm>
+#include <vector>
+#include <string>
 #ifdef __AVX2__
 #include <immintrin.h>
 #endif
@@ -140,7 +143,7 @@ bool FFmpegFilterProcessor::supportsFilter(FilterType type) const {
 }
 
 std::string FFmpegFilterProcessor::getName() const {
-    return "FFmpegFilterProcessor";
+    return std::string("FFmpegFilterProcessor");
 }
 
 std::vector<FilterInfo> FFmpegFilterProcessor::getSupportedFilters() const {
@@ -202,7 +205,6 @@ bool FFmpegFilterProcessor::ensureGraph(const FilterState& filter) {
     
     // Utiliser un pool de frames pour éviter les allocations répétées
     static thread_local AVFrame* framePool[4] = {nullptr, nullptr, nullptr, nullptr};
-    static thread_local int poolIndex = 0;
     
     // (Re)créer graphe si nécessaire
     if (formatChanged || !filterGraph_) {

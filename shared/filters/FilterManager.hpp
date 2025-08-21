@@ -9,6 +9,11 @@
 #include <future>
 #include <queue>
 #include <condition_variable>
+#include <functional>
+#include <string>
+#include <chrono>
+#include <stdexcept>
+#include <cstdint>
 
 namespace Camera {
 
