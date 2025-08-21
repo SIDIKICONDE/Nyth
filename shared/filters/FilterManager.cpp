@@ -6,7 +6,9 @@
 #include <future>
 #include <chrono>
 #include <numeric>
-#if defined(__AVX2__)
+#include <functional>
+#include <string>
+#ifdef __AVX2__
 #include <immintrin.h>
 #elif defined(__SSE2__)
 #include <emmintrin.h>

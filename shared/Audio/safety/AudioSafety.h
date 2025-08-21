@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cmath>
 #include <algorithm>
+#include <stdexcept>
 
 namespace AudioSafety {
 

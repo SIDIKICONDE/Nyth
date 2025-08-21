@@ -51,8 +51,7 @@
 		/* Filter Manager */
 		SF2000032F5A6B8C0099AABB /* FilterManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000072F5A6B8C0099AABB /* FilterManager.cpp */; };
 
-		/* Vulkan Filter Processor */
-		SF2000042F5A6B8C0099AABB /* VulkanFilterProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000092F5A6B8C0099AABB /* VulkanFilterProcessor.cpp */; };
+
 
 		/* Turbo Camera Filters Module */
 		SF2000052F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000102F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp */; };
@@ -131,9 +130,7 @@
 		SF1000062F5A6B8C0099AABB /* FilterManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = FilterManager.hpp; path = ../../shared/filters/FilterManager.hpp; sourceTree = "<group>"; };
 		SF1000072F5A6B8C0099AABB /* FilterManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FilterManager.cpp; path = ../../shared/filters/FilterManager.cpp; sourceTree = "<group>"; };
 
-		/* Vulkan Filter Processor */
-		SF1000082F5A6B8C0099AABB /* VulkanFilterProcessor.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = VulkanFilterProcessor.hpp; path = ../../shared/filters/vulkan/VulkanFilterProcessor.hpp; sourceTree = "<group>"; };
-		SF1000092F5A6B8C0099AABB /* VulkanFilterProcessor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = VulkanFilterProcessor.cpp; path = ../../shared/filters/vulkan/VulkanFilterProcessor.cpp; sourceTree = "<group>"; };
+
 
 		/* Turbo Camera Filters Module */
 		SF1000102F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeCameraFiltersModule.cpp; path = ../../shared/NativeCameraFiltersModule.cpp; sourceTree = "<group>"; };
@@ -405,7 +402,7 @@
 				SF2000012F5A6B8C0099AABB /* FFmpegFilterProcessor.cpp in Sources */,
 				SF2000022F5A6B8C0099AABB /* FilterFactory.cpp in Sources */,
 				SF2000032F5A6B8C0099AABB /* FilterManager.cpp in Sources */,
-				SF2000042F5A6B8C0099AABB /* VulkanFilterProcessor.cpp in Sources */,
+
 				SF2000052F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

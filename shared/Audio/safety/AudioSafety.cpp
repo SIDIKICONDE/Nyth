@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
+#include <cmath>
+#include <algorithm>
 
 namespace AudioSafety {
 

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../common/FilterTypes.hpp"
+#include "common/FilterTypes.hpp"
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace Camera {
 
@@ -17,7 +18,6 @@ public:
         FFMPEG,     // Processeur FFmpeg
         CORE_IMAGE, // Processeur Core Image (iOS)
         OPENGL,     // Processeur OpenGL
-        VULKAN,     // Processeur Vulkan (Android)
         CUSTOM      // Processeur personnalisé
     };
     
@@ -26,7 +26,7 @@ public:
     static std::shared_ptr<IFilterProcessor> createFFmpegProcessor();
     static std::shared_ptr<IFilterProcessor> createCoreImageProcessor();
     static std::shared_ptr<IFilterProcessor> createOpenGLProcessor();
-    static std::shared_ptr<IFilterProcessor> createVulkanProcessor();
+
     
     // Informations sur les processeurs
     static std::vector<std::string> getAvailableProcessorTypes();

@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <stdexcept>
 #include <algorithm>
+#include <vector>
+#include <cmath>
 #ifdef NAAYA_RNNOISE
 extern "C" {
   #include "rnnoise.h"
