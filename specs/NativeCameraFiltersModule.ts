@@ -52,9 +52,7 @@ export enum FilterType {
 // Types de processeurs disponibles
 export enum ProcessorType {
   FFMPEG = 'FFMPEG',
-  CORE_IMAGE = 'CORE_IMAGE',
   OPENGL = 'OPENGL',
-  VULKAN = 'VULKAN',
   CUSTOM = 'CUSTOM'
 }
 
@@ -124,10 +122,10 @@ export interface Spec extends TurboModule {
   readonly setPerformanceConfig: (config: PerformanceConfig) => boolean;
   readonly getPerformanceConfig: () => PerformanceConfig;
   
-  // Traitement direct (avancé) - Note: ArrayBuffer not supported by codegen, using string instead
+  // Traitement direct (avancé) - Note: ArrayBuffer not supported by codegen
   readonly processFrame: (
-    inputDataPath: string,
-    outputDataPath: string,
+    inputData: Object, // Input buffer data
+    outputData: Object, // Output buffer data
     format: VideoFormat
   ) => boolean;
   

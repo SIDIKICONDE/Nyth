@@ -1,10 +1,10 @@
-#include <pthread.h>
 #include "NativeCameraFiltersModule.h"
 #include <cstdint>
 #include <mutex>
 #include <string>
 #include <chrono>
 #include <thread>
+#include <memory>
 
 // État global filtres accessible depuis ObjC/ObjC++ (toujours défini pour le lint)
 static std::mutex g_naaya_filters_mutex;
@@ -280,11 +280,8 @@ std::optional<jsi::String> NativeCameraFiltersModule::getLUT3DPath(jsi::Runtime&
 jsi::Object NativeCameraFiltersModule::getCapabilities(jsi::Runtime& rt) {
   jsi::Object caps(rt);
   
-  #ifdef FFMPEG_AVAILABLE
+  // FFmpeg toujours disponible maintenant
   caps.setProperty(rt, "ffmpegAvailable", jsi::Value(true));
-  #else
-  caps.setProperty(rt, "ffmpegAvailable", jsi::Value(false));
-  #endif
   
   // Processeurs disponibles
   auto availableProcessors = Camera::FilterFactory::getAvailableProcessorTypes();
@@ -303,10 +300,8 @@ jsi::Object NativeCameraFiltersModule::getCapabilities(jsi::Runtime& rt) {
   caps.setProperty(rt, "supportedPixelFormats", std::move(pixelFormats));
   
   // Processeur actuel
-  std::string currentProc = 
+  std::string currentProc =
     currentProcessor_ == Camera::FilterFactory::ProcessorType::FFMPEG ? "FFMPEG" :
-
-    currentProcessor_ == Camera::FilterFactory::ProcessorType::CORE_IMAGE ? "CORE_IMAGE" :
     currentProcessor_ == Camera::FilterFactory::ProcessorType::OPENGL ? "OPENGL" : "CUSTOM";
   caps.setProperty(rt, "currentProcessor", jsi::String::createFromUtf8(rt, currentProc));
   
@@ -326,9 +321,6 @@ bool NativeCameraFiltersModule::setProcessor(jsi::Runtime& rt, jsi::String type)
   Camera::FilterFactory::ProcessorType processorType;
   if (typeStr == "FFMPEG") {
     processorType = Camera::FilterFactory::ProcessorType::FFMPEG;
-
-  } else if (typeStr == "CORE_IMAGE") {
-    processorType = Camera::FilterFactory::ProcessorType::CORE_IMAGE;
   } else if (typeStr == "OPENGL") {
     processorType = Camera::FilterFactory::ProcessorType::OPENGL;
   } else {
@@ -355,10 +347,8 @@ bool NativeCameraFiltersModule::setProcessor(jsi::Runtime& rt, jsi::String type)
 }
 
 jsi::String NativeCameraFiltersModule::getProcessor(jsi::Runtime& rt) {
-  std::string proc = 
+  std::string proc =
     currentProcessor_ == Camera::FilterFactory::ProcessorType::FFMPEG ? "FFMPEG" :
-
-    currentProcessor_ == Camera::FilterFactory::ProcessorType::CORE_IMAGE ? "CORE_IMAGE" :
     currentProcessor_ == Camera::FilterFactory::ProcessorType::OPENGL ? "OPENGL" : "CUSTOM";
   return jsi::String::createFromUtf8(rt, proc);
 }
@@ -547,13 +537,7 @@ extern "C" bool NaayaFilters_ProcessBGRA(const uint8_t* inData,
                                          double fps,
                                          uint8_t* outData,
                                          int outStride) {
-#ifndef FFMPEG_AVAILABLE
-  // FFmpeg non disponible sur cette plateforme
-  (void)inData; (void)inStride; (void)width; (void)height;
-  (void)fps; (void)outData; (void)outStride;
-  return false;
-#else
-  // Implémentation FFmpeg
+  // Implémentation FFmpeg obligatoire
   if (!inData || !outData || width <= 0 || height <= 0) {
     return false;
   }
@@ -642,5 +626,4 @@ extern "C" bool NaayaFilters_ProcessBGRA(const uint8_t* inData,
                                               outData,
                                               outStride);
   return ok;
-#endif
 }
