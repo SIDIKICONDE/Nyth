@@ -1,7 +1,14 @@
-#include "AudioEqualizer.h"
+
+
+#include "AudioEqualizer.hpp" // keep name; will be renamed to .hpp logically via header guard
 #include <cmath>
 #include <algorithm>
-#include <cstring>
+#include <format>
+#include <ranges>
+#include <span>
+#include <source_location>
+#include <stdexcept>
+#include <iterator>
 
 namespace AudioEqualizer {
 
@@ -36,13 +43,14 @@ void AudioEqualizer::setupDefaultBands() {
     
     if (numBands == NUM_BANDS) {
         // Use predefined frequencies for 10-band EQ
-        for (size_t i = 0; i < numBands; ++i) {
-            m_bands[i].frequency = DEFAULT_FREQUENCIES[i];
-            m_bands[i].gain = 0.0;
-            m_bands[i].q = DEFAULT_Q;
-            m_bands[i].type = FilterType::PEAK;
-            m_bands[i].enabled = true;
-        }
+        std::ranges::for_each(std::views::iota(size_t{0}, numBands),
+                             [this](size_t i) {
+                                 m_bands[i].frequency = DEFAULT_FREQUENCIES[i];
+                                 m_bands[i].gain = 0.0;
+                                 m_bands[i].q = DEFAULT_Q;
+                                 m_bands[i].type = FilterType::PEAK;
+                                 m_bands[i].enabled = true;
+                             });
         
         // Set first and last bands as shelf filters
         m_bands[0].type = FilterType::LOWSHELF;
@@ -55,14 +63,15 @@ void AudioEqualizer::setupDefaultBands() {
         double logMax = std::log10(maxFreq);
         double logStep = (logMax - logMin) / (numBands - 1);
         
-        for (size_t i = 0; i < numBands; ++i) {
-            double logFreq = logMin + i * logStep;
-            m_bands[i].frequency = std::pow(10.0, logFreq);
-            m_bands[i].gain = 0.0;
-            m_bands[i].q = DEFAULT_Q;
-            m_bands[i].type = FilterType::PEAK;
-            m_bands[i].enabled = true;
-        }
+        std::ranges::for_each(std::views::iota(size_t{0}, numBands),
+                             [this, logMin, logStep](size_t i) {
+                                 double logFreq = logMin + i * logStep;
+                                 m_bands[i].frequency = std::pow(10.0, logFreq);
+                                 m_bands[i].gain = 0.0;
+                                 m_bands[i].q = DEFAULT_Q;
+                                 m_bands[i].type = FilterType::PEAK;
+                                 m_bands[i].enabled = true;
+                             });
         
         // Set first and last bands as shelf filters
         if (numBands > 0) {
@@ -75,9 +84,10 @@ void AudioEqualizer::setupDefaultBands() {
 }
 
 void AudioEqualizer::updateFilters() {
-    for (size_t i = 0; i < m_bands.size(); ++i) {
-        updateBandFilter(i);
-    }
+    std::ranges::for_each(std::views::iota(size_t{0}, m_bands.size()),
+                         [this](size_t i) {
+                             updateBandFilter(i);
+                         });
 }
 
 void AudioEqualizer::updateBandFilter(size_t bandIndex) {
@@ -113,235 +123,160 @@ void AudioEqualizer::updateBandFilter(size_t bandIndex) {
     }
 }
 
-void AudioEqualizer::process(const float* input, float* output, size_t numSamples) {
+void AudioEqualizer::process(std::span<const float> input, std::span<float> output) {
     if (m_bypass.load()) {
         // Bypass mode - just copy input to output
-        std::memcpy(output, input, numSamples * sizeof(float));
+        if (input.data() != output.data()) {
+            std::ranges::copy(input, output.begin());
+        }
         return;
     }
-    
+
     // Use optimized processing path
-    processOptimized(input, output, numSamples);
+    processOptimized(input, output);
 }
 
-void AudioEqualizer::processOptimized(const float* input, float* output, size_t numSamples) {
+void AudioEqualizer::processOptimized(std::span<const float> input, std::span<float> output) {
     // Check if parameters have changed
     if (m_parametersChanged.load()) {
         std::lock_guard<std::mutex> lock(m_parameterMutex);
         updateFilters();
         m_parametersChanged.store(false);
     }
-    
+
     // Optimisation: traiter par blocs plus grands pour améliorer la localité du cache
     constexpr size_t OPTIMAL_BLOCK_SIZE = 1024;  // Augmenté pour meilleure efficacité cache
-    size_t blockSize = std::min(numSamples, OPTIMAL_BLOCK_SIZE);
+    size_t numSamples = input.size();
     size_t processedSamples = 0;
-    
+
     // Pré-calculer les filtres actifs pour éviter les vérifications répétées
+    // Protéger l'accès à m_bands pour éviter les data races
     std::vector<const EQBand*> activeBands;
-    activeBands.reserve(m_bands.size());
-    for (const auto& band : m_bands) {
-        if (band.enabled && std::abs(band.gain) > 0.01) {
-            activeBands.push_back(&band);
-        }
+    {
+        std::lock_guard<std::mutex> lock(m_parameterMutex);
+        activeBands.reserve(m_bands.size());
+        std::ranges::copy_if(m_bands, std::back_inserter(activeBands),
+                            [](const EQBand& band) {
+                                return band.enabled && std::abs(band.gain) > 0.01;
+                            });
     }
-    
+
     // Si aucun filtre actif, appliquer seulement le gain master
     if (activeBands.empty()) {
         float masterGainLinear = static_cast<float>(dbToLinear(m_masterGain.load()));
         if (std::abs(masterGainLinear - 1.0f) < 0.001f) {
             // Pas de traitement nécessaire, copie directe
-            if (output != input) {
-                std::memcpy(output, input, numSamples * sizeof(float));
+            if (input.data() != output.data()) {
+                std::ranges::copy(input, output.begin());
             }
         } else {
-            // Appliquer seulement le gain master avec SIMD
-            #ifdef __AVX2__
-            const __m256 gain = _mm256_set1_ps(masterGainLinear);
-            size_t simdSamples = numSamples & ~7;
-            
-            for (size_t i = 0; i < simdSamples; i += 8) {
-                __m256 data = _mm256_loadu_ps(input + i);
-                data = _mm256_mul_ps(data, gain);
-                _mm256_storeu_ps(output + i, data);
-            }
-            
-            // Traiter les échantillons restants
-            for (size_t i = simdSamples; i < numSamples; ++i) {
-                output[i] = input[i] * masterGainLinear;
-            }
-            #elif defined(__SSE2__)
-            const __m128 gain = _mm_set1_ps(masterGainLinear);
-            size_t simdSamples = numSamples & ~3;
-            
-            for (size_t i = 0; i < simdSamples; i += 4) {
-                __m128 data = _mm_loadu_ps(input + i);
-                data = _mm_mul_ps(data, gain);
-                _mm_storeu_ps(output + i, data);
-            }
-            
-            // Traiter les échantillons restants
-            for (size_t i = simdSamples; i < numSamples; ++i) {
-                output[i] = input[i] * masterGainLinear;
-            }
-            #else
-            for (size_t i = 0; i < numSamples; ++i) {
-                output[i] = input[i] * masterGainLinear;
-            }
-            #endif
+            // C++20 pure implementation - no SIMD
+            std::ranges::transform(input, output.begin(),
+                                 [masterGainLinear](float sample) {
+                                     return sample * masterGainLinear;
+                                 });
         }
         return;
     }
-    
+
     while (processedSamples < numSamples) {
-        size_t samplesToProcess = std::min(blockSize, numSamples - processedSamples);
-        const float* blockInput = input + processedSamples;
-        float* blockOutput = output + processedSamples;
-        
+        size_t samplesToProcess = std::min(OPTIMAL_BLOCK_SIZE, numSamples - processedSamples);
+        auto blockInput = input.subspan(processedSamples, samplesToProcess);
+        auto blockOutput = output.subspan(processedSamples, samplesToProcess);
+
         // Copier l'entrée vers la sortie pour le premier filtre
-        if (blockOutput != blockInput) {
-            std::memcpy(blockOutput, blockInput, samplesToProcess * sizeof(float));
+        if (blockOutput.data() != blockInput.data()) {
+            std::ranges::copy(blockInput, blockOutput.begin());
         }
-        
+
         // Appliquer chaque bande de filtre active
-        for (const auto* band : activeBands) {
-            band->filter->process(blockOutput, blockOutput, samplesToProcess);
-        }
-        
-        // Appliquer le gain master avec SIMD
+        std::ranges::for_each(activeBands, [&](const EQBand* band) {
+            band->filter->process(std::span<float>(blockOutput.data(), samplesToProcess),
+                                std::span<float>(blockOutput.data(), samplesToProcess));
+        });
+
+        // Appliquer le gain master - C++20 pure
         float masterGainLinear = static_cast<float>(dbToLinear(m_masterGain.load()));
         if (std::abs(masterGainLinear - 1.0f) > 0.001f) {
-            #ifdef __AVX2__
-            const __m256 gain = _mm256_set1_ps(masterGainLinear);
-            size_t simdSamples = samplesToProcess & ~7;
-            
-            for (size_t i = 0; i < simdSamples; i += 8) {
-                __m256 data = _mm256_loadu_ps(blockOutput + i);
-                data = _mm256_mul_ps(data, gain);
-                _mm256_storeu_ps(blockOutput + i, data);
-            }
-            
-            for (size_t i = simdSamples; i < samplesToProcess; ++i) {
-                blockOutput[i] *= masterGainLinear;
-            }
-            #elif defined(__SSE2__)
-            const __m128 gain = _mm_set1_ps(masterGainLinear);
-            size_t simdSamples = samplesToProcess & ~3;
-            
-            for (size_t i = 0; i < simdSamples; i += 4) {
-                __m128 data = _mm_loadu_ps(blockOutput + i);
-                data = _mm_mul_ps(data, gain);
-                _mm_storeu_ps(blockOutput + i, data);
-            }
-            
-            for (size_t i = simdSamples; i < samplesToProcess; ++i) {
-                blockOutput[i] *= masterGainLinear;
-            }
-            #else
-            for (size_t i = 0; i < samplesToProcess; ++i) {
-                blockOutput[i] *= masterGainLinear;
-            }
-            #endif
+            std::ranges::transform(blockOutput, blockOutput.begin(),
+                                 [masterGainLinear](float sample) {
+                                     return sample * masterGainLinear;
+                                 });
         }
-        
+
         processedSamples += samplesToProcess;
     }
 }
 
-void AudioEqualizer::processStereo(const float* inputL, const float* inputR,
-                                  float* outputL, float* outputR, size_t numSamples) {
+void AudioEqualizer::processStereo(std::span<const float> inputL, std::span<const float> inputR,
+                                  std::span<float> outputL, std::span<float> outputR) {
     if (m_bypass.load()) {
-        // Bypass mode - copie SIMD optimisée
-        if (outputL != inputL || outputR != inputR) {
-            #ifdef __AVX2__
-            size_t simdSamples = numSamples & ~7;
-            for (size_t i = 0; i < simdSamples; i += 8) {
-                __m256 dataL = _mm256_loadu_ps(inputL + i);
-                __m256 dataR = _mm256_loadu_ps(inputR + i);
-                _mm256_storeu_ps(outputL + i, dataL);
-                _mm256_storeu_ps(outputR + i, dataR);
-            }
-            // Copier les échantillons restants
-            for (size_t i = simdSamples; i < numSamples; ++i) {
-                outputL[i] = inputL[i];
-                outputR[i] = inputR[i];
-            }
-            #else
-            std::memcpy(outputL, inputL, numSamples * sizeof(float));
-            std::memcpy(outputR, inputR, numSamples * sizeof(float));
-            #endif
+        // Bypass mode - C++20 pure
+        if (outputL.data() != inputL.data() || outputR.data() != inputR.data()) {
+            std::ranges::copy(inputL, outputL.begin());
+            std::ranges::copy(inputR, outputR.begin());
         }
         return;
     }
-    
+
     // Check if parameters have changed
     if (m_parametersChanged.load()) {
         std::lock_guard<std::mutex> lock(m_parameterMutex);
         updateFilters();
         m_parametersChanged.store(false);
     }
-    
+
     // Optimisation: traiter par blocs plus grands
     constexpr size_t OPTIMAL_BLOCK_SIZE = 1024;
-    size_t blockSize = std::min(numSamples, OPTIMAL_BLOCK_SIZE);
+    size_t numSamples = inputL.size();
     size_t processedSamples = 0;
-    
+
     // Pré-calculer les filtres actifs
+    // Protéger l'accès à m_bands pour éviter les data races
     std::vector<const EQBand*> activeBands;
-    activeBands.reserve(m_bands.size());
-    for (const auto& band : m_bands) {
-        if (band.enabled && std::abs(band.gain) > 0.01) {
-            activeBands.push_back(&band);
-        }
+    {
+        std::lock_guard<std::mutex> lock(m_parameterMutex);
+        activeBands.reserve(m_bands.size());
+        std::ranges::copy_if(m_bands, std::back_inserter(activeBands),
+                            [](const EQBand& band) {
+                                return band.enabled && std::abs(band.gain) > 0.01;
+                            });
     }
-    
+
     while (processedSamples < numSamples) {
-        size_t samplesToProcess = std::min(blockSize, numSamples - processedSamples);
-        const float* blockInputL = inputL + processedSamples;
-        const float* blockInputR = inputR + processedSamples;
-        float* blockOutputL = outputL + processedSamples;
-        float* blockOutputR = outputR + processedSamples;
-        
+        size_t samplesToProcess = std::min(OPTIMAL_BLOCK_SIZE, numSamples - processedSamples);
+        auto blockInputL = inputL.subspan(processedSamples, samplesToProcess);
+        auto blockInputR = inputR.subspan(processedSamples, samplesToProcess);
+        auto blockOutputL = outputL.subspan(processedSamples, samplesToProcess);
+        auto blockOutputR = outputR.subspan(processedSamples, samplesToProcess);
+
         // Copier l'entrée vers la sortie
-        if (blockOutputL != blockInputL || blockOutputR != blockInputR) {
-            std::memcpy(blockOutputL, blockInputL, samplesToProcess * sizeof(float));
-            std::memcpy(blockOutputR, blockInputR, samplesToProcess * sizeof(float));
+        if (blockOutputL.data() != blockInputL.data() || blockOutputR.data() != blockInputR.data()) {
+            std::ranges::copy(blockInputL, blockOutputL.begin());
+            std::ranges::copy(blockInputR, blockOutputR.begin());
         }
-        
+
         // Appliquer chaque bande de filtre active
-        for (const auto* band : activeBands) {
-            band->filter->processStereo(blockOutputL, blockOutputR,
-                                       blockOutputL, blockOutputR, samplesToProcess);
-        }
-        
-        // Appliquer le gain master avec SIMD pour les deux canaux
+        std::ranges::for_each(activeBands, [&](const EQBand* band) {
+            band->filter->processStereo(std::span<float>(blockOutputL.data(), samplesToProcess),
+                                       std::span<float>(blockOutputR.data(), samplesToProcess),
+                                       std::span<float>(blockOutputL.data(), samplesToProcess),
+                                       std::span<float>(blockOutputR.data(), samplesToProcess));
+        });
+
+        // Appliquer le gain master - C++20 pure
         float masterGainLinear = static_cast<float>(dbToLinear(m_masterGain.load()));
         if (std::abs(masterGainLinear - 1.0f) > 0.001f) {
-            #ifdef __AVX2__
-            const __m256 gain = _mm256_set1_ps(masterGainLinear);
-            size_t simdSamples = samplesToProcess & ~7;
-            
-            for (size_t i = 0; i < simdSamples; i += 8) {
-                __m256 dataL = _mm256_loadu_ps(blockOutputL + i);
-                __m256 dataR = _mm256_loadu_ps(blockOutputR + i);
-                dataL = _mm256_mul_ps(dataL, gain);
-                dataR = _mm256_mul_ps(dataR, gain);
-                _mm256_storeu_ps(blockOutputL + i, dataL);
-                _mm256_storeu_ps(blockOutputR + i, dataR);
-            }
-            
-            for (size_t i = simdSamples; i < samplesToProcess; ++i) {
-                blockOutputL[i] *= masterGainLinear;
-                blockOutputR[i] *= masterGainLinear;
-            }
-            #else
-            for (size_t i = 0; i < samplesToProcess; ++i) {
-                blockOutputL[i] *= masterGainLinear;
-                blockOutputR[i] *= masterGainLinear;
-            }
-            #endif
+            std::ranges::transform(blockOutputL, blockOutputL.begin(),
+                                 [masterGainLinear](float sample) {
+                                     return sample * masterGainLinear;
+                                 });
+            std::ranges::transform(blockOutputR, blockOutputR.begin(),
+                                 [masterGainLinear](float sample) {
+                                     return sample * masterGainLinear;
+                                 });
         }
-        
+
         processedSamples += samplesToProcess;
     }
 }
@@ -451,9 +386,10 @@ void AudioEqualizer::loadPreset(const EQPreset& preset) {
     std::lock_guard<std::mutex> lock(m_parameterMutex);
     
     size_t numBands = std::min(preset.gains.size(), m_bands.size());
-    for (size_t i = 0; i < numBands; ++i) {
-        m_bands[i].gain = preset.gains[i];
-    }
+    std::ranges::for_each(std::views::iota(size_t{0}, numBands),
+                         [this, &preset](size_t i) {
+                             m_bands[i].gain = preset.gains[i];
+                         });
     
     m_parametersChanged.store(true);
 }
@@ -464,17 +400,18 @@ void AudioEqualizer::savePreset(EQPreset& preset) const {
     preset.gains.clear();
     preset.gains.reserve(m_bands.size());
     
-    for (const auto& band : m_bands) {
-        preset.gains.push_back(band.gain);
-    }
+    std::ranges::transform(m_bands, std::back_inserter(preset.gains),
+                          [](const EQBand& band) {
+                              return band.gain;
+                          });
 }
 
 void AudioEqualizer::resetAllBands() {
     std::lock_guard<std::mutex> lock(m_parameterMutex);
     
-    for (auto& band : m_bands) {
+    std::ranges::for_each(m_bands, [](EQBand& band) {
         band.gain = 0.0;
-    }
+    });
     
     m_parametersChanged.store(true);
 }
@@ -579,5 +516,116 @@ EQPreset EQPresetFactory::createLoudnessPreset() {
     preset.gains = {5.0, 3.0, 0.0, -1.0, -2.0, -2.0, -1.0, 0.0, 3.0, 5.0};
     return preset;
 }
+
+// C++20 modernized processing methods
+template<AudioSampleType T>
+void AudioEqualizer::process(std::span<const T> input, std::span<T> output,
+                            std::source_location location) {
+    // C++20 validation
+    if (input.size() != output.size()) {
+        throw std::invalid_argument(std::format(
+            "Input and output spans must have the same size. Input: {}, Output: {} [{}:{}]",
+            input.size(), output.size(), location.file_name(), location.line()));
+    }
+
+    if (!validateAudioBuffer(input, location)) {
+        throw std::invalid_argument(std::format(
+            "Invalid audio buffer [{}:{}]", location.file_name(), location.line()));
+    }
+
+    // Direct C++20 implementation
+    if constexpr (std::is_same_v<T, float>) {
+        process(input, output);
+    } else {
+        // Convert to float for processing
+        std::vector<float> tempInput(input.begin(), input.end());
+        std::vector<float> tempOutput(output.size());
+        process(std::span<const float>(tempInput), std::span<float>(tempOutput));
+        std::ranges::copy(tempOutput, output.begin());
+    }
+}
+
+template<AudioSampleType T>
+void AudioEqualizer::processStereo(std::span<const T> inputL, std::span<const T> inputR,
+                                  std::span<T> outputL, std::span<T> outputR,
+                                  std::source_location location) {
+    // C++20 validation
+    if (inputL.size() != inputR.size() || inputL.size() != outputL.size() || inputR.size() != outputR.size()) {
+        throw std::invalid_argument(std::format(
+            "All spans must have the same size [{}:{}]", location.file_name(), location.line()));
+    }
+
+    // Direct C++20 implementation
+    if constexpr (std::is_same_v<T, float>) {
+        processStereo(inputL, inputR, outputL, outputR);
+    } else {
+        // Convert to float for processing
+        std::vector<float> tempInputL(inputL.begin(), inputL.end());
+        std::vector<float> tempInputR(inputR.begin(), inputR.end());
+        std::vector<float> tempOutputL(outputL.size());
+        std::vector<float> tempOutputR(outputR.size());
+
+        processStereo(std::span<const float>(tempInputL), std::span<const float>(tempInputR),
+                     std::span<float>(tempOutputL), std::span<float>(tempOutputR));
+
+        std::ranges::copy(tempOutputL, outputL.begin());
+        std::ranges::copy(tempOutputR, outputR.begin());
+    }
+}
+
+// C++20 formatted debugging
+std::string AudioEqualizer::getDebugInfo(std::source_location location) const {
+    std::string info = std::format(
+        "AudioEqualizer Debug Info:\n"
+        "  Sample Rate: {} Hz\n"
+        "  Master Gain: {:.2f} dB\n"
+        "  Bypassed: {}\n"
+        "  Number of Bands: {}\n"
+        "  Location: {}:{} ({})\n"
+        "  Bands:\n",
+        m_sampleRate, getMasterGain(), isBypassed(), getNumBands(),
+        location.file_name(), location.line(), location.function_name());
+
+    for (size_t i = 0; i < m_bands.size(); ++i) {
+        const auto& band = m_bands[i];
+        info += std::format(
+            "    Band {}: Freq={:.1f}Hz, Gain={:.2f}dB, Q={:.2f}, Type={}, Enabled={}\n",
+            i, band.frequency, band.gain, band.q,
+            static_cast<int>(band.type), band.enabled);
+    }
+
+    return info;
+}
+
+// C++20 buffer validation
+template<AudioSampleType T>
+bool AudioEqualizer::validateAudioBuffer(std::span<const T> buffer,
+                                       std::source_location location) const {
+    if (buffer.empty()) {
+        return false;
+    }
+
+    // Check for NaN or infinite values
+    auto invalidValues = std::ranges::count_if(buffer, [](T sample) {
+        return !std::isfinite(static_cast<double>(sample));
+    });
+
+    if (invalidValues > 0) {
+        return false;
+    }
+
+    return true;
+}
+
+// Explicit template instantiations
+template void AudioEqualizer::process<float>(std::span<const float>, std::span<float>, std::source_location);
+template void AudioEqualizer::process<double>(std::span<const double>, std::span<double>, std::source_location);
+template void AudioEqualizer::processStereo<float>(std::span<const float>, std::span<const float>,
+                                                  std::span<float>, std::span<float>, std::source_location);
+template void AudioEqualizer::processStereo<double>(std::span<const double>, std::span<const double>,
+                                                   std::span<double>, std::span<double>, std::source_location);
+
+template bool AudioEqualizer::validateAudioBuffer<float>(std::span<const float>, std::source_location) const;
+template bool AudioEqualizer::validateAudioBuffer<double>(std::span<const double>, std::source_location) const;
 
 } // namespace AudioEqualizer

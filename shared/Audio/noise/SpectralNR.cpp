@@ -1,7 +1,12 @@
 #include "SpectralNR.h"
-#include <cstring>
+#include <algorithm>
+#include <vector>
+#include <complex>
+#include <stdexcept>
 #include <stdexcept>
 #include <cmath>
+#include <ranges>
+#include <iterator>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -49,7 +54,10 @@ void SpectralNR::setConfig(const SpectralNRConfig& cfg) {
 
 void SpectralNR::buildWindow() {
     window_.resize(cfg_.fftSize);
-    for (size_t n = 0; n < cfg_.fftSize; ++n) window_[n] = hann(n, cfg_.fftSize);
+    std::ranges::for_each(std::views::iota(size_t{0}, cfg_.fftSize),
+                         [this](size_t n) {
+                             window_[n] = hann(n, cfg_.fftSize);
+                         });
 }
 
 void SpectralNR::fft(const std::vector<float>& in, std::vector<float>& re, std::vector<float>& im) {
@@ -109,7 +117,7 @@ void SpectralNR::process(const float* input, float* output, size_t numSamples) {
     if (!cfg_.enabled) {
         // Avoid copy if processing in-place
         if (output != input) {
-            std::memcpy(output, input, numSamples * sizeof(float));
+            std::copy(input, input + numSamples, output);
         }
         return;
     }
@@ -117,13 +125,13 @@ void SpectralNR::process(const float* input, float* output, size_t numSamples) {
     while (pos < numSamples) {
         size_t toCopy = std::min(cfg_.hopSize, numSamples - pos);
         // Shift buffer left by hop
-        std::memmove(inBuf_.data(), inBuf_.data() + cfg_.hopSize, (cfg_.fftSize - cfg_.hopSize) * sizeof(float));
+        std::shift_left(inBuf_.begin(), inBuf_.end(), static_cast<long long>(cfg_.hopSize));
         // Copy new input
         size_t destOffset = cfg_.fftSize - cfg_.hopSize;
-        std::memcpy(inBuf_.data() + destOffset, input + pos, toCopy * sizeof(float));
+        std::copy(input + pos, input + pos + toCopy, inBuf_.data() + destOffset);
         if (toCopy < cfg_.hopSize) {
             // Zero-pad if we don't have enough samples
-            std::memset(inBuf_.data() + destOffset + toCopy, 0, (cfg_.hopSize - toCopy) * sizeof(float));
+            std::fill(inBuf_.begin() + static_cast<long long>(destOffset + toCopy), inBuf_.begin() + static_cast<long long>(destOffset + cfg_.hopSize), 0.0f);
         }
 
         // Window
@@ -179,10 +187,10 @@ void SpectralNR::process(const float* input, float* output, size_t numSamples) {
 
         // Output hop segment
         size_t outCount = std::min(cfg_.hopSize, numSamples - pos);
-        std::memcpy(output + pos, outBuf_.data(), outCount * sizeof(float));
+        std::copy(outBuf_.data(), outBuf_.data() + outCount, output + pos);
         // Shift out buffer left
-        std::memmove(outBuf_.data(), outBuf_.data() + cfg_.hopSize, (cfg_.fftSize - cfg_.hopSize) * sizeof(float));
-        std::memset(outBuf_.data() + (cfg_.fftSize - cfg_.hopSize), 0, cfg_.hopSize * sizeof(float));
+        std::shift_left(outBuf_.begin(), outBuf_.end(), static_cast<long long>(cfg_.hopSize));
+        std::fill(outBuf_.end() - static_cast<long long>(cfg_.hopSize), outBuf_.end(), 0.0f);
 
         pos += toCopy;
     }
@@ -255,5 +263,3 @@ void SpectralNR::precomputeTwiddleFactors() {
 }
 
 } // namespace AudioNR
-
-

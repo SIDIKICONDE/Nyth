@@ -1,5 +1,38 @@
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
+## 🚀 C++20 Configuration
+
+Ce projet utilise **C++20** pour le traitement audio avec les fonctionnalités modernes suivantes :
+
+### ✅ Fonctionnalités C++20 activées
+- **Concepts** : Contraintes de type pour la sécurité
+- **std::span** : Gestion sécurisée des buffers audio
+- **std::format** : Formatage type-safe des messages
+- **std::source_location** : Debug amélioré avec informations de source
+- **consteval** : Calculs à la compilation pour les constantes audio
+- **std::ranges** : Programmation fonctionnelle pour le traitement audio
+
+### 🛠️ Configuration automatique
+- **CMakeLists.txt** : Configuration globale C++20
+- **cmake/toolchain.cmake** : Toolchain C++20 multi-plateforme
+- **ios/CMakeLists.txt** : Configuration iOS spécifique
+- **android/CMakeLists.txt** : Configuration Android NDK spécifique
+
+### 🔍 Vérification de la configuration
+```bash
+# Exécuter le script de vérification
+./scripts/verify_cpp20_config.sh
+
+# Ou manuellement avec CMake
+cmake -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain.cmake .
+```
+
+### 📋 Prérequis
+- **CMake 3.18+**
+- **Android NDK r23+** (pour C++20 complet)
+- **Xcode 14+** (pour iOS/macOS)
+- **Visual Studio 2019+** (pour Windows)
+
 # Getting Started
 
 > **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.

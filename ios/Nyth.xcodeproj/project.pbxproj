@@ -330,6 +330,8 @@
 			baseConfigurationReference = 43AFF0FBAE6378C4759709ED /* Pods-Nyth.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
+				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = NO;
 				CODE_SIGN_ENTITLEMENTS = Nyth/Nyth.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
@@ -383,6 +385,8 @@
 			baseConfigurationReference = 5C1BB482126F685642D298BD /* Pods-Nyth.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
+				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = NO;
 				CODE_SIGN_ENTITLEMENTS = Nyth/NythRelease.entitlements;
 				CURRENT_PROJECT_VERSION = 1;

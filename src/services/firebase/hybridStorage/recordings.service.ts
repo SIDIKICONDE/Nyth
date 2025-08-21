@@ -16,7 +16,7 @@ import { Recording } from "../../../types";
 import { THUMBNAIL_DIR, VIDEO_DIR } from "./constants";
 import { RecordingMetadata } from "./types";
 import { createLogger } from "../../../utils/optimizedLogger";
-import { FirestoreErrorNotificationService, FirestoreErrorType } from "../../FirestoreErrorNotificationService";
+import { FirestoreErrorNotificationService, FirestoreErrorType } from "@/services/FirestoreErrorNotificationService";
 
 const logger = createLogger("RecordingsService");
 

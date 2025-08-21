@@ -1,5 +1,9 @@
-#include "BiquadFilter.h"
+
+#include "BiquadFilter.hpp"
 #include <cmath>
+#include <format>
+#include <algorithm>
+#include <ranges>
 
 namespace AudioEqualizer {
 
@@ -176,54 +180,43 @@ void BiquadFilter::calculateAllpass(double frequency, double sampleRate, double 
 }
 
 void BiquadFilter::process(const float* input, float* output, size_t numSamples) {
-#if defined(__AVX2__)
-    // Use AVX2 optimized version on x86_64
-    processAVX2(input, output, numSamples);
-#elif defined(__SSE2__)
-    // Use SSE2 optimized version on x86
-    processSSE2(input, output, numSamples);
-#elif defined(__ARM_NEON)
-    // Use NEON optimized version on ARM
-    processNEON(input, output, numSamples);
-#else
-    // Fallback to optimized scalar processing with Direct Form II Transposed
+    // C++20 pure implementation - Direct Form II Transposed
     double y1 = m_y1, y2 = m_y2;
-    
+
     // Process in blocks for better cache efficiency
     constexpr size_t BLOCK_SIZE = 32;
     size_t fullBlocks = numSamples / BLOCK_SIZE;
     size_t remaining = numSamples % BLOCK_SIZE;
-    
+
     for (size_t block = 0; block < fullBlocks; ++block) {
         size_t offset = block * BLOCK_SIZE;
         for (size_t i = 0; i < BLOCK_SIZE; ++i) {
             double x = static_cast<double>(input[offset + i]);
             double w = x - m_b1 * y1 - m_b2 * y2;
             double y = m_a0 * w + m_a1 * y1 + m_a2 * y2;
-            
+
             y2 = y1;
             y1 = preventDenormal(w);
-            
+
             output[offset + i] = static_cast<float>(y);
         }
     }
-    
+
     // Process remaining samples
     size_t offset = fullBlocks * BLOCK_SIZE;
     for (size_t i = 0; i < remaining; ++i) {
         double x = static_cast<double>(input[offset + i]);
         double w = x - m_b1 * y1 - m_b2 * y2;
         double y = m_a0 * w + m_a1 * y1 + m_a2 * y2;
-        
+
         y2 = y1;
         y1 = preventDenormal(w);
-        
+
         output[offset + i] = static_cast<float>(y);
     }
-    
+
     m_y1 = y1;
     m_y2 = y2;
-#endif
 }
 
 void BiquadFilter::processStereo(const float* inputL, const float* inputR,
@@ -261,139 +254,9 @@ void BiquadFilter::processStereo(const float* inputL, const float* inputR,
     m_y1R = y1; m_y2R = y2;
 }
 
-#ifdef __ARM_NEON
-void BiquadFilter::processNEON(const float* input, float* output, size_t numSamples) {
-    // Traitement par blocs de 4, mais enchaîné séquentiellement (états récursifs)
-    size_t simdSamples = numSamples & ~3;
+// C++20 pure - no SIMD optimizations
 
-    for (size_t i = 0; i < simdSamples; i += 4) {
-        float inVals[4];
-        vst1q_f32(inVals, vld1q_f32(&input[i]));
-
-        float outVals[4];
-        outVals[0] = processSample(inVals[0]);
-        outVals[1] = processSample(inVals[1]);
-        outVals[2] = processSample(inVals[2]);
-        outVals[3] = processSample(inVals[3]);
-
-        float32x4_t outVec = vld1q_f32(outVals);
-        vst1q_f32(&output[i], outVec);
-    }
-
-    // Reste
-    for (size_t i = simdSamples; i < numSamples; ++i) {
-        output[i] = processSample(input[i]);
-    }
-}
-#endif
-
-#ifdef __AVX2__
-void BiquadFilter::processAVX2(const float* input, float* output, size_t numSamples) {
-    // Process 8 samples at a time using AVX2
-    // Note: Biquad filters are inherently sequential, so we process in chunks
-    // but still maintain state between samples
-    
-    double y1 = m_y1, y2 = m_y2;
-    
-    // Process in blocks of 8 for AVX2
-    size_t simdSamples = numSamples & ~7;
-    size_t i = 0;
-    
-    // Coefficients as AVX vectors
-    __m256d a0_vec = _mm256_set1_pd(m_a0);
-    __m256d a1_vec = _mm256_set1_pd(m_a1);
-    __m256d a2_vec = _mm256_set1_pd(m_a2);
-    __m256d b1_vec = _mm256_set1_pd(m_b1);
-    __m256d b2_vec = _mm256_set1_pd(m_b2);
-    
-    // Process 4 samples at a time (using double precision for stability)
-    for (; i + 3 < simdSamples; i += 4) {
-        // Load 4 floats and convert to double
-        __m128 input_float = _mm_loadu_ps(&input[i]);
-        __m256d x_vec = _mm256_cvtps_pd(input_float);
-        
-        // Process each sample (still sequential due to feedback)
-        alignas(32) double x_arr[4];
-        alignas(32) double y_arr[4];
-        _mm256_store_pd(x_arr, x_vec);
-        
-        for (int j = 0; j < 4; ++j) {
-            double x = x_arr[j];
-            double w = x - m_b1 * y1 - m_b2 * y2;
-            double y = m_a0 * w + m_a1 * y1 + m_a2 * y2;
-            
-            y2 = y1;
-            y1 = preventDenormal(w);
-            y_arr[j] = y;
-        }
-        
-        // Convert back to float and store
-        __m256d y_vec = _mm256_load_pd(y_arr);
-        __m128 output_float = _mm256_cvtpd_ps(y_vec);
-        _mm_storeu_ps(&output[i], output_float);
-    }
-    
-    // Process remaining samples
-    for (; i < numSamples; ++i) {
-        double x = static_cast<double>(input[i]);
-        double w = x - m_b1 * y1 - m_b2 * y2;
-        double y = m_a0 * w + m_a1 * y1 + m_a2 * y2;
-        
-        y2 = y1;
-        y1 = preventDenormal(w);
-        
-        output[i] = static_cast<float>(y);
-    }
-    
-    m_y1 = y1;
-    m_y2 = y2;
-}
-#endif
-
-#ifdef __SSE2__
-void BiquadFilter::processSSE2(const float* input, float* output, size_t numSamples) {
-    // Optimized SSE2 implementation with Direct Form II Transposed
-    double y1 = m_y1, y2 = m_y2;
-    
-    // Process in blocks of 4 samples for SSE efficiency
-    size_t simdSamples = numSamples & ~3;
-    
-    // Process SIMD blocks
-    for (size_t i = 0; i < simdSamples; i += 4) {
-        __m128 in = _mm_loadu_ps(&input[i]);
-        alignas(16) float temp[4];
-        _mm_store_ps(temp, in);
-        
-        // Process each sample with Direct Form II Transposed
-        for (int j = 0; j < 4; ++j) {
-            double x = static_cast<double>(temp[j]);
-            double w = x - m_b1 * y1 - m_b2 * y2;
-            double y = m_a0 * w + m_a1 * y1 + m_a2 * y2;
-            
-            y2 = y1;
-            y1 = preventDenormal(w);
-            temp[j] = static_cast<float>(y);
-        }
-        
-        __m128 out = _mm_load_ps(temp);
-        _mm_storeu_ps(&output[i], out);
-    }
-    
-    // Process remaining samples
-    for (size_t i = simdSamples; i < numSamples; ++i) {
-        double x = static_cast<double>(input[i]);
-        double w = x - m_b1 * y1 - m_b2 * y2;
-        double y = m_a0 * w + m_a1 * y1 + m_a2 * y2;
-        
-        y2 = y1;
-        y1 = preventDenormal(w);
-        output[i] = static_cast<float>(y);
-    }
-    
-    m_y1 = y1;
-    m_y2 = y2;
-}
-#endif
+// C++20 pure - no SIMD optimizations
 
 void BiquadFilter::reset() {
     m_y1 = m_y2 = 0.0;
@@ -409,5 +272,83 @@ void BiquadFilter::getCoefficients(double& a0, double& a1, double& a2,
     b1 = m_b1;
     b2 = m_b2;
 }
+
+// C++20 modernized processing methods
+template<AudioSampleType T>
+void BiquadFilter::process(std::span<const T> input, std::span<T> output,
+                          std::source_location location) {
+    // C++20 concept validation at runtime
+    if (input.size() != output.size()) {
+        throw std::invalid_argument(std::format(
+            "Input and output spans must have the same size. Input: {}, Output: {} [{}:{}]",
+            input.size(), output.size(), location.file_name(), location.line()));
+    }
+
+    if (input.empty()) return;
+
+    // Use C++20 ranges for processing
+    double y1 = m_y1, y2 = m_y2;
+
+    std::ranges::transform(input, output.begin(),
+                          [&](const T& sample) {
+                              return process_sample_implementation(m_a0, m_a1, m_a2, m_b1, m_b2,
+                                                                 sample, y1, y2);
+                          });
+
+    m_y1 = y1;
+    m_y2 = y2;
+}
+
+template<AudioSampleType T>
+void BiquadFilter::processStereo(std::span<const T> inputL, std::span<const T> inputR,
+                                std::span<T> outputL, std::span<T> outputR,
+                                std::source_location location) {
+    // C++20 validation
+    if (inputL.size() != inputR.size() || inputL.size() != outputL.size() || inputR.size() != outputR.size()) {
+        throw std::invalid_argument(std::format(
+            "All spans must have the same size [{}:{}]", location.file_name(), location.line()));
+    }
+
+    if (inputL.empty()) return;
+
+    // Process left channel
+    double y1L = m_y1, y2L = m_y2;
+    std::ranges::transform(inputL, outputL.begin(),
+                          [&](const T& sample) {
+                              return process_sample_implementation(m_a0, m_a1, m_a2, m_b1, m_b2,
+                                                                 sample, y1L, y2L);
+                          });
+
+    // Process right channel
+    double y1R = m_y1R, y2R = m_y2R;
+    std::ranges::transform(inputR, outputR.begin(),
+                          [&](const T& sample) {
+                              return process_sample_implementation(m_a0, m_a1, m_a2, m_b1, m_b2,
+                                                                 sample, y1R, y2R);
+                          });
+
+    m_y1 = y1L; m_y2 = y2L;
+    m_y1R = y1R; m_y2R = y2R;
+}
+
+// C++20 formatted debugging
+std::string BiquadFilter::getDebugInfo(std::source_location location) const {
+    return std::format(
+        "BiquadFilter Debug Info:\n"
+        "  Coefficients: a0={:.6f}, a1={:.6f}, a2={:.6f}, b1={:.6f}, b2={:.6f}\n"
+        "  State: y1={:.6f}, y2={:.6f}, y1R={:.6f}, y2R={:.6f}\n"
+        "  Location: {}:{} ({})\n",
+        m_a0, m_a1, m_a2, m_b1, m_b2,
+        m_y1, m_y2, m_y1R, m_y2R,
+        location.file_name(), location.line(), location.function_name());
+}
+
+// Explicit template instantiations for common audio types
+template void AudioEqualizer::BiquadFilter::process<float>(std::span<const float>, std::span<float>, std::source_location);
+template void AudioEqualizer::BiquadFilter::process<double>(std::span<const double>, std::span<double>, std::source_location);
+template void AudioEqualizer::BiquadFilter::processStereo<float>(std::span<const float>, std::span<const float>,
+                                                std::span<float>, std::span<float>, std::source_location);
+template void AudioEqualizer::BiquadFilter::processStereo<double>(std::span<const double>, std::span<const double>,
+                                                 std::span<double>, std::span<double>, std::source_location);
 
 } // namespace AudioEqualizer

@@ -1176,7 +1176,13 @@
       ],
       "queryScope": "COLLECTION"
     },
-
+    {
+      "collectionGroup": "adminCache",
+      "fields": [
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ],
+      "queryScope": "COLLECTION"
+    },
     {
       "collectionGroup": "adminMetrics",
       "fields": [
@@ -1201,6 +1207,7 @@
       ],
       "queryScope": "COLLECTION"
     },
+
     {
       "collectionGroup": "audit_trail",
       "fields": [
@@ -1218,6 +1225,8 @@
       ],
       "queryScope": "COLLECTION"
     },
+
+   
     {
       "collectionGroup": "global_themes",
       "fields": [
@@ -1226,6 +1235,7 @@
       ],
       "queryScope": "COLLECTION"
     },
+
     {
       "collectionGroup": "global_themes",
       "fields": [
@@ -1234,7 +1244,8 @@
       ],
       "queryScope": "COLLECTION"
     },
-   
+
+
     {
       "collectionGroup": "global_themes",
       "fields": [

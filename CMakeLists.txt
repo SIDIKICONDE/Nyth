@@ -1,86 +1,172 @@
-# Configuration CMake pour les tests unitaires du système audio
-cmake_minimum_required(VERSION 3.14)
-project(AudioSystemTests VERSION 1.0)
+# =============================================================================
+# CMakeLists.txt - Configuration C++20 Globale pour Nyth
+# =============================================================================
+cmake_minimum_required(VERSION 3.18.1)
 
+project(Nyth
+    VERSION 1.0.0
+    DESCRIPTION "Nyth - Application mobile avec traitement audio C++20"
+    LANGUAGES CXX C
+)
+
+# =============================================================================
+# C++20 Global Configuration
+# =============================================================================
+
+# Force C++20 standard pour tous les sous-projets
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Configuration pour les optimisations et warnings
+# Configuration globale des flags de compilation
 if(MSVC)
-    add_compile_options(/W4 /O2)
+    # Configuration pour MSVC (Windows)
+    add_compile_options(
+        /std:c++20
+        /O2
+        /Wall
+        /DNDEBUG
+        /DCXX20_AUDIO_ENABLED
+    )
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    # Configuration pour Clang/GCC (macOS, Linux, Android)
+    add_compile_options(
+        -std=c++20
+        -O3
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Wshadow
+        -Wconversion
+        -Wsign-conversion
+        -Wunused
+        -fvisibility=hidden
+        -ffast-math
+        -funroll-loops
+        -DNDEBUG
+        -DCXX20_AUDIO_ENABLED
+    )
+endif()
+
+# =============================================================================
+# C++20 Feature Detection
+# =============================================================================
+
+include(CheckCXXSourceCompiles)
+
+# Vérifier les concepts
+check_cxx_source_compiles("
+    #include <concepts>
+    template<typename T>
+    concept Integral = std::integral<T>;
+    int main() { return 0; }
+" HAS_CONCEPTS)
+
+if(HAS_CONCEPTS)
+    message(STATUS "✅ C++20 Concepts support: ENABLED")
+    add_definitions(-DHAS_CONCEPTS)
 else()
-    add_compile_options(-Wall -Wextra -Wpedantic -O3 -march=native)
+    message(WARNING "❌ C++20 Concepts support: NOT AVAILABLE")
 endif()
 
-# Inclure les répertoires du projet audio
+# Vérifier std::format
+check_cxx_source_compiles("
+    #include <format>
+    int main() {
+        std::string s = std::format(\"Hello {}\", \"World\");
+        return 0;
+    }
+" HAS_FORMAT)
+
+if(HAS_FORMAT)
+    message(STATUS "✅ std::format support: ENABLED")
+    add_definitions(-DHAS_FORMAT)
+else()
+    message(WARNING "❌ std::format support: NOT AVAILABLE")
+endif()
+
+# Vérifier std::source_location
+check_cxx_source_compiles("
+    #include <source_location>
+    int main() {
+        auto loc = std::source_location::current();
+        return 0;
+    }
+" HAS_SOURCE_LOCATION)
+
+if(HAS_SOURCE_LOCATION)
+    message(STATUS "✅ std::source_location support: ENABLED")
+    add_definitions(-DHAS_SOURCE_LOCATION)
+else()
+    message(WARNING "❌ std::source_location support: NOT AVAILABLE")
+endif()
+
+# Vérifier consteval
+check_cxx_source_compiles("
+    consteval int square(int x) { return x * x; }
+    int main() { return square(5); }
+" HAS_CONSTEVAL)
+
+if(HAS_CONSTEVAL)
+    message(STATUS "✅ consteval support: ENABLED")
+    add_definitions(-DHAS_CONSTEVAL)
+else()
+    message(WARNING "❌ consteval support: NOT AVAILABLE")
+endif()
+
+# =============================================================================
+# Include Directories
+# =============================================================================
+
 include_directories(
-    ${CMAKE_SOURCE_DIR}/shared/Audio
-    ${CMAKE_SOURCE_DIR}/shared/Audio/core
-    ${CMAKE_SOURCE_DIR}/shared/Audio/utils
-    ${CMAKE_SOURCE_DIR}/shared/Audio/effects
-    ${CMAKE_SOURCE_DIR}/shared/Audio/noise
-    ${CMAKE_SOURCE_DIR}/shared/Audio/safety
+    shared
+    shared/Audio
+    shared/Audio/core
+    shared/Audio/noise
+    shared/Audio/safety
+    shared/Audio/utils
+    shared/Audio/effects
+    shared/filters
+    shared/filters/common
 )
 
-# Définitions pour les tests
-add_definitions(-DTEST_MODE)
+# =============================================================================
+# Build Summary
+# =============================================================================
 
-# Télécharger et configurer Google Test
-include(FetchContent)
-FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/release-1.12.1.zip
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-FetchContent_MakeAvailable(googletest)
+message(STATUS "🔧 C++20 Global Configuration Summary:")
+message(STATUS "  - C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "  - Compiler: ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "  - Version: ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "  - Platform: ${CMAKE_SYSTEM_NAME}")
 
-# Bibliothèque audio (mocks pour les tests)
-add_library(audio_system STATIC
-    # Fichiers sources du système audio
-    shared/Audio/core/BiquadFilter.cpp
-    shared/Audio/core/AudioEqualizer.cpp
-    shared/Audio/utils/AudioBuffer.cpp
-    shared/Audio/safety/AudioSafety.cpp
-    shared/Audio/noise/NoiseReducer.cpp
-    shared/Audio/noise/SpectralNR.cpp
-    shared/Audio/effects/Compressor.h
-    shared/Audio/effects/Delay.h
-    shared/Audio/effects/EffectChain.h
-    shared/Audio/effects/EffectBase.h
-)
-
-# Tests unitaires
-add_executable(audio_tests
-    test/test_main.cpp
-    test/test_biquad_filter.cpp
-    test/test_audio_equalizer.cpp
-    test/test_audio_buffer.cpp
-    test/test_audio_safety.cpp
-    test/test_effects.cpp
-    test/test_noise_reduction.cpp
-    test/test_performance.cpp
-    test/test_math_utilities.cpp
-)
-
-target_link_libraries(audio_tests
-    PRIVATE
-    audio_system
-    gtest_main
-    gmock_main
-)
-
-# Configuration pour les tests de performance
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_definitions(audio_tests PRIVATE PERFORMANCE_TESTING)
+if(HAS_CONCEPTS)
+    message(STATUS "  - Concepts: ✅ ENABLED")
 endif()
 
-# Activer les tests
-enable_testing()
-add_test(NAME AudioSystemTests COMMAND audio_tests)
+if(HAS_FORMAT)
+    message(STATUS "  - std::format: ✅ ENABLED")
+endif()
 
-# Configuration pour générer des rapports de couverture (optionnel)
-option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
-if(ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
-    target_compile_options(audio_tests PRIVATE --coverage)
-    target_link_libraries(audio_tests PRIVATE gcov)
+if(HAS_SOURCE_LOCATION)
+    message(STATUS "  - std::source_location: ✅ ENABLED")
+endif()
+
+if(HAS_CONSTEVAL)
+    message(STATUS "  - consteval: ✅ ENABLED")
+endif()
+
+message(STATUS "🎯 C++20 Global Configuration completed successfully!")
+
+# =============================================================================
+# Subdirectories
+# =============================================================================
+
+# Inclure les configurations spécifiques à chaque plateforme
+if(ANDROID)
+    message(STATUS "📱 Building for Android with C++20")
+elseif(APPLE)
+    message(STATUS "🍎 Building for Apple platforms with C++20")
+elseif(WIN32)
+    message(STATUS "🖥️ Building for Windows with C++20")
 endif()

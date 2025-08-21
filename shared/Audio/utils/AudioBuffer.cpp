@@ -1,11 +1,11 @@
 // Inclure d'abord notre en-tête pour garantir la cohérence des dépendances
-#include "AudioBuffer.h"
+#include "AudioBuffer.hpp"
 
 // En-têtes C++ standards
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
-#include <cstring>
+#include <ranges>
+#include <iterator>
 
 #ifdef __ARM_NEON
 #include <arm_neon.h>
@@ -35,10 +35,11 @@ void AudioBuffer::allocateData() {
 void AudioBuffer::allocateChannels() {
     m_channels = std::make_unique<float*[]>(m_numChannels);
     size_t alignedSamples = getAlignedSize(m_numSamples);
-    
-    for (size_t ch = 0; ch < m_numChannels; ++ch) {
-        m_channels[ch] = m_data.get() + (ch * alignedSamples);
-    }
+
+    std::ranges::for_each(std::views::iota(size_t{0}, m_numChannels),
+                         [this, alignedSamples](size_t ch) {
+                             m_channels[ch] = m_data.get() + (ch * alignedSamples);
+                         });
 }
 
 size_t AudioBuffer::getAlignedSize(size_t size) {
@@ -56,19 +57,19 @@ const float* const* AudioBuffer::getArrayOfReadPointers() const {
 
 void AudioBuffer::clear() {
     size_t totalSamples = m_numChannels * getAlignedSize(m_numSamples);
-    std::memset(m_data.get(), 0, totalSamples * sizeof(float));
+    std::fill_n(m_data.get(), totalSamples, 0.0f);
 }
 
 void AudioBuffer::clear(size_t channel) {
     if (channel < m_numChannels) {
-        std::memset(m_channels[channel], 0, m_numSamples * sizeof(float));
+        std::fill_n(m_channels[channel], m_numSamples, 0.0f);
     }
 }
 
 void AudioBuffer::clear(size_t startSample, size_t numSamples) {
     for (size_t ch = 0; ch < m_numChannels; ++ch) {
         if (startSample + numSamples <= m_numSamples) {
-            std::memset(m_channels[ch] + startSample, 0, numSamples * sizeof(float));
+            std::fill_n(m_channels[ch] + startSample, numSamples, 0.0f);
         }
     }
 }
@@ -78,14 +79,14 @@ void AudioBuffer::copyFrom(const AudioBuffer& source) {
     size_t samplesToCopy = std::min(m_numSamples, source.getNumSamples());
     
     for (size_t ch = 0; ch < channelsToCopy; ++ch) {
-        std::memcpy(m_channels[ch], source.getChannel(ch), samplesToCopy * sizeof(float));
+        std::copy_n(source.getChannel(ch), samplesToCopy, m_channels[ch]);
     }
 }
 
 void AudioBuffer::copyFrom(size_t destChannel, const float* source, size_t numSamples) {
     if (destChannel < m_numChannels && source != nullptr) {
         size_t samplesToCopy = std::min(numSamples, m_numSamples);
-        std::memcpy(m_channels[destChannel], source, samplesToCopy * sizeof(float));
+        std::copy_n(source, samplesToCopy, m_channels[destChannel]);
     }
 }
 
@@ -100,9 +101,9 @@ void AudioBuffer::copyFrom(size_t destChannel, size_t destStartSample,
         size_t samplesToCopy = std::min({numSamples, maxDestSamples, maxSourceSamples});
         
         if (samplesToCopy > 0) {
-            std::memcpy(m_channels[destChannel] + destStartSample,
-                       source.getChannel(sourceChannel) + sourceStartSample,
-                       samplesToCopy * sizeof(float));
+            std::copy_n(source.getChannel(sourceChannel) + sourceStartSample,
+                        samplesToCopy,
+                        m_channels[destChannel] + destStartSample);
         }
     }
 }

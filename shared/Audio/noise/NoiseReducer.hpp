@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 #include <cmath>
-#include "../core/BiquadFilter.h"
+#include "../core/BiquadFilter.hpp"
 
 namespace AudioNR {
 

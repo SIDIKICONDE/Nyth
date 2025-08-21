@@ -2,8 +2,6 @@
 
 #ifdef __cplusplus
 
-#include <sys/types.h>
-#include <sys/time.h>
 #include <cstddef>
 #include <cstdint>
 #include <cmath>
@@ -40,7 +38,7 @@ struct SafetyReport {
     double peak = 0.0;
     double rms = 0.0;
     double dcOffset = 0.0;
-    uint32_t clippedSamples = 0;
+    std::uint32_t clippedSamples = 0;
     bool overloadActive = false;
     double feedbackScore = 0.0; // 0..1
     bool hasNaN = false;
@@ -54,14 +52,14 @@ public:
      * @param sampleRate Fréquence d'échantillonnage (Hz)
      * @param channels Nombre de canaux (1 ou 2)
      */
-    AudioSafetyEngine(uint32_t sampleRate, int channels);
+    AudioSafetyEngine(std::uint32_t sampleRate, int channels);
     ~AudioSafetyEngine();
 
     /**
      * @brief Mise à jour de la fréquence d'échantillonnage
      * @throws std::invalid_argument si hors bornes raisonnables
      */
-    void setSampleRate(uint32_t sr);
+    void setSampleRate(std::uint32_t sr);
     /**
      * @brief Mise à jour de la configuration
      * @throws std::invalid_argument si des paramètres sont invalides
@@ -70,11 +68,11 @@ public:
     const SafetyConfig& getConfig() const { return config_; }
     SafetyReport getLastReport() const { return report_; }
 
-    void processMono(float* buffer, size_t numSamples);
-    void processStereo(float* left, float* right, size_t numSamples);
+    void processMono(float* buffer, std::size_t numSamples);
+    void processStereo(float* left, float* right, std::size_t numSamples);
 
 private:
-    uint32_t sampleRate_;
+    std::uint32_t sampleRate_;
     int channels_;
     SafetyConfig config_{};
     SafetyReport report_{};
@@ -83,10 +81,10 @@ private:
     // Helpers
     inline double dbToLin(double dB) const { return std::pow(10.0, dB / 20.0); }
     // Analyse + nettoyage d'un canal. Retourne un rapport pour ce canal
-    SafetyReport analyzeAndClean(float* x, size_t n);
-    void dcRemove(float* x, size_t n, double mean);
-    void limitBuffer(float* x, size_t n);
-    double estimateFeedbackScore(const float* x, size_t n);
+    SafetyReport analyzeAndClean(float* x, std::size_t n);
+    void dcRemove(float* x, std::size_t n, double mean);
+    void limitBuffer(float* x, std::size_t n);
+    double estimateFeedbackScore(const float* x, std::size_t n);
 };
 
 } // namespace AudioSafety

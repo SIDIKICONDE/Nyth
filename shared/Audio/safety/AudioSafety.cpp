@@ -1,19 +1,4 @@
-// Assure l'exposition complète des API POSIX/BSD (dont nanosleep) sur Apple SDKs
-#ifndef _DARWIN_C_SOURCE
-#define _DARWIN_C_SOURCE 1
-#endif
-
-#include "AudioSafety.h"
-#include <TargetConditionals.h>
-#include <time.h>
-#include <unistd.h>
-#include <errno.h>
-
-// Déclaration anticipée de nanosleep pour iOS/iPhoneSimulator (non exposé par les headers)
-#if defined(__APPLE__) && defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-// Déclaration anticipée sans utiliser de macros internes Apple
-extern "C" int nanosleep(const struct timespec* __rqtp, struct timespec* __rmtp);
-#endif
+#include "AudioSafety.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -31,7 +16,7 @@ inline T minValue(const T& a, const T& b) { return (b < a) ? b : a; }
 
 namespace AudioSafety {
 
-AudioSafetyEngine::AudioSafetyEngine(uint32_t sampleRate, int channels)
+AudioSafetyEngine::AudioSafetyEngine(std::uint32_t sampleRate, int channels)
     : sampleRate_(sampleRate), channels_(channels) {
     if (sampleRate_ < 8000 || sampleRate_ > 192000) {
         throw std::invalid_argument("AudioSafetyEngine: sampleRate must be between 8000 and 192000 Hz");
@@ -44,7 +29,7 @@ AudioSafetyEngine::AudioSafetyEngine(uint32_t sampleRate, int channels)
 
 AudioSafetyEngine::~AudioSafetyEngine() = default;
 
-void AudioSafetyEngine::setSampleRate(uint32_t sr) {
+void AudioSafetyEngine::setSampleRate(std::uint32_t sr) {
     if (sr < 8000 || sr > 192000) {
         throw std::invalid_argument("AudioSafetyEngine::setSampleRate: out of range");
     }
@@ -68,13 +53,13 @@ void AudioSafetyEngine::setConfig(const SafetyConfig& cfg) {
     limiterThresholdLin_ = dbToLin(config_.limiterThresholdDb);
 }
 
-void AudioSafetyEngine::processMono(float* buffer, size_t numSamples) {
+void AudioSafetyEngine::processMono(float* buffer, std::size_t numSamples) {
     if (!buffer) throw std::invalid_argument("AudioSafetyEngine::processMono: buffer is null");
     if (!config_.enabled || numSamples == 0) return;
     report_ = analyzeAndClean(buffer, numSamples);
 }
 
-void AudioSafetyEngine::processStereo(float* left, float* right, size_t numSamples) {
+void AudioSafetyEngine::processStereo(float* left, float* right, std::size_t numSamples) {
     if (!left || !right) throw std::invalid_argument("AudioSafetyEngine::processStereo: buffers are null");
     if (!config_.enabled || numSamples == 0) return;
     // Analyser chaque canal séparément puis agréger
@@ -93,11 +78,11 @@ void AudioSafetyEngine::processStereo(float* left, float* right, size_t numSampl
     report_ = agg;
 }
 
-SafetyReport AudioSafetyEngine::analyzeAndClean(float* x, size_t n) {
+SafetyReport AudioSafetyEngine::analyzeAndClean(float* x, std::size_t n) {
     SafetyReport localReport{};
     // NaN/Inf guard + stats
-    double sum = 0.0, sum2 = 0.0; uint32_t clipped = 0; double peak = 0.0;
-    for (size_t i = 0; i < n; ++i) {
+    double sum = 0.0, sum2 = 0.0; std::uint32_t clipped = 0; double peak = 0.0;
+    for (std::size_t i = 0; i < n; ++i) {
         float v = x[i];
         if (!std::isfinite(v)) { localReport.hasNaN = true; v = 0.0f; }
         if (v > 1.0f) { v = 1.0f; ++clipped; }
@@ -122,7 +107,7 @@ SafetyReport AudioSafetyEngine::analyzeAndClean(float* x, size_t n) {
         const double knee = maxValue(0.0, config_.kneeWidthDb);
         const double thr = limiterThresholdLin_;
         const double thrDb = 20.0 * std::log10(thr);
-        for (size_t i = 0; i < n; ++i) {
+        for (std::size_t i = 0; i < n; ++i) {
             double v = x[i];
             double mag = std::abs(v);
             double magDb = 20.0 * std::log10(maxValue(mag, 1e-10));
@@ -152,28 +137,28 @@ SafetyReport AudioSafetyEngine::analyzeAndClean(float* x, size_t n) {
     return localReport;
 }
 
-void AudioSafetyEngine::dcRemove(float* x, size_t n, double mean) {
-    for (size_t i = 0; i < n; ++i) x[i] -= static_cast<float>(mean);
+void AudioSafetyEngine::dcRemove(float* x, std::size_t n, double mean) {
+    for (std::size_t i = 0; i < n; ++i) x[i] -= static_cast<float>(mean);
 }
 
-void AudioSafetyEngine::limitBuffer(float* x, size_t n) {
-    for (size_t i = 0; i < n; ++i) {
+void AudioSafetyEngine::limitBuffer(float* x, std::size_t n) {
+    for (std::size_t i = 0; i < n; ++i) {
         float v = x[i];
         if (v > limiterThresholdLin_) x[i] = static_cast<float>(limiterThresholdLin_);
         else if (v < -limiterThresholdLin_) x[i] = static_cast<float>(-limiterThresholdLin_);
     }
 }
 
-double AudioSafetyEngine::estimateFeedbackScore(const float* x, size_t n) {
+double AudioSafetyEngine::estimateFeedbackScore(const float* x, std::size_t n) {
     // Autocorrelation at short lags (e.g., [32..512] samples)
-    size_t minLag = minValue<size_t>(32, n/4);
-    size_t maxLag = minValue<size_t>(512, n-1);
+    std::size_t minLag = minValue<std::size_t>(32, n/4);
+    std::size_t maxLag = minValue<std::size_t>(512, n-1);
     if (maxLag <= minLag) return 0.0;
-    double energy = 0.0; for (size_t i = 0; i < n; ++i) energy += x[i] * x[i]; if (energy <= 1e-9) return 0.0;
+    double energy = 0.0; for (std::size_t i = 0; i < n; ++i) energy += x[i] * x[i]; if (energy <= 1e-9) return 0.0;
     double best = 0.0;
-    for (size_t lag = minLag; lag <= maxLag; lag *= 2) {
+    for (std::size_t lag = minLag; lag <= maxLag; lag *= 2) {
         double corr = 0.0;
-        for (size_t i = 0; i + lag < n; ++i) corr += x[i] * x[i + lag];
+        for (std::size_t i = 0; i + lag < n; ++i) corr += x[i] * x[i + lag];
         corr /= energy;
         best = maxValue(best, corr);
     }
