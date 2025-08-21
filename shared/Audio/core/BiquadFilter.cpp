@@ -180,25 +180,62 @@ void BiquadFilter::calculateAllpass(double frequency, double sampleRate, double 
 }
 
 void BiquadFilter::process(const float* input, float* output, size_t numSamples) {
-    // C++20 pure implementation - Direct Form II Transposed
+    // Optimized C++20 implementation - Direct Form II Transposed
     double y1 = m_y1, y2 = m_y2;
 
-    // Process in blocks for better cache efficiency
-    constexpr size_t BLOCK_SIZE = 32;
+    // Process in larger blocks for better cache efficiency and vectorization opportunities
+    constexpr size_t BLOCK_SIZE = 64;
     size_t fullBlocks = numSamples / BLOCK_SIZE;
     size_t remaining = numSamples % BLOCK_SIZE;
 
+    // Cache coefficients in local variables to avoid memory access
+    const double a0 = m_a0;
+    const double a1 = m_a1;
+    const double a2 = m_a2;
+    const double b1 = m_b1;
+    const double b2 = m_b2;
+
+    // Process full blocks with unrolled loop for better pipelining
     for (size_t block = 0; block < fullBlocks; ++block) {
         size_t offset = block * BLOCK_SIZE;
-        for (size_t i = 0; i < BLOCK_SIZE; ++i) {
-            double x = static_cast<double>(input[offset + i]);
-            double w = x - m_b1 * y1 - m_b2 * y2;
-            double y = m_a0 * w + m_a1 * y1 + m_a2 * y2;
-
-            y2 = y1;
-            y1 = preventDenormal(w);
-
-            output[offset + i] = static_cast<float>(y);
+        
+        // Prefetch next block data
+        if (block + 1 < fullBlocks) {
+            __builtin_prefetch(&input[offset + BLOCK_SIZE], 0, 1);
+            __builtin_prefetch(&output[offset + BLOCK_SIZE], 1, 1);
+        }
+        
+        // Process 4 samples at a time for better ILP
+        for (size_t i = 0; i < BLOCK_SIZE; i += 4) {
+            // Sample 0
+            double x0 = static_cast<double>(input[offset + i]);
+            double w0 = x0 - b1 * y1 - b2 * y2;
+            double y0 = a0 * w0 + a1 * y1 + a2 * y2;
+            
+            // Sample 1
+            double x1 = static_cast<double>(input[offset + i + 1]);
+            double w1 = x1 - b1 * w0 - b2 * y1;
+            double y1_new = a0 * w1 + a1 * w0 + a2 * y1;
+            
+            // Sample 2
+            double x2 = static_cast<double>(input[offset + i + 2]);
+            double w2 = x2 - b1 * w1 - b2 * w0;
+            double y2_new = a0 * w2 + a1 * w1 + a2 * w0;
+            
+            // Sample 3
+            double x3 = static_cast<double>(input[offset + i + 3]);
+            double w3 = x3 - b1 * w2 - b2 * w1;
+            double y3 = a0 * w3 + a1 * w2 + a2 * w1;
+            
+            // Update state for next iteration
+            y2 = w2;
+            y1 = (std::abs(w3) < EPSILON) ? 0.0 : w3;
+            
+            // Write outputs
+            output[offset + i] = static_cast<float>(y0);
+            output[offset + i + 1] = static_cast<float>(y1_new);
+            output[offset + i + 2] = static_cast<float>(y2_new);
+            output[offset + i + 3] = static_cast<float>(y3);
         }
     }
 
@@ -206,11 +243,11 @@ void BiquadFilter::process(const float* input, float* output, size_t numSamples)
     size_t offset = fullBlocks * BLOCK_SIZE;
     for (size_t i = 0; i < remaining; ++i) {
         double x = static_cast<double>(input[offset + i]);
-        double w = x - m_b1 * y1 - m_b2 * y2;
-        double y = m_a0 * w + m_a1 * y1 + m_a2 * y2;
+        double w = x - b1 * y1 - b2 * y2;
+        double y = a0 * w + a1 * y1 + a2 * y2;
 
         y2 = y1;
-        y1 = preventDenormal(w);
+        y1 = (std::abs(w) < EPSILON) ? 0.0 : w;
 
         output[offset + i] = static_cast<float>(y);
     }
@@ -221,37 +258,97 @@ void BiquadFilter::process(const float* input, float* output, size_t numSamples)
 
 void BiquadFilter::processStereo(const float* inputL, const float* inputR,
                                 float* outputL, float* outputR, size_t numSamples) {
-    // Process left channel (DF-II transposé)
-    double y1 = m_y1, y2 = m_y2;
+    // Optimized stereo processing - interleaved for better cache usage
+    double y1L = m_y1, y2L = m_y2;
+    double y1R = m_y1R, y2R = m_y2R;
     
-    for (size_t i = 0; i < numSamples; ++i) {
-        double x = static_cast<double>(inputL[i]);
-        double w = x - m_b1 * y1 - m_b2 * y2;
-        double y = m_a0 * w + m_a1 * y1 + m_a2 * y2;
+    // Cache coefficients
+    const double a0 = m_a0;
+    const double a1 = m_a1;
+    const double a2 = m_a2;
+    const double b1 = m_b1;
+    const double b2 = m_b2;
+    
+    // Process 4 samples at a time for both channels
+    size_t i = 0;
+    for (; i + 3 < numSamples; i += 4) {
+        // Prefetch next data
+        __builtin_prefetch(&inputL[i + 16], 0, 1);
+        __builtin_prefetch(&inputR[i + 16], 0, 1);
         
-        y2 = y1;
-        y1 = preventDenormal(w);
+        // Left channel - 4 samples
+        double xL0 = static_cast<double>(inputL[i]);
+        double wL0 = xL0 - b1 * y1L - b2 * y2L;
+        double yL0 = a0 * wL0 + a1 * y1L + a2 * y2L;
         
-        outputL[i] = static_cast<float>(y);
+        double xL1 = static_cast<double>(inputL[i + 1]);
+        double wL1 = xL1 - b1 * wL0 - b2 * y1L;
+        double yL1 = a0 * wL1 + a1 * wL0 + a2 * y1L;
+        
+        double xL2 = static_cast<double>(inputL[i + 2]);
+        double wL2 = xL2 - b1 * wL1 - b2 * wL0;
+        double yL2 = a0 * wL2 + a1 * wL1 + a2 * wL0;
+        
+        double xL3 = static_cast<double>(inputL[i + 3]);
+        double wL3 = xL3 - b1 * wL2 - b2 * wL1;
+        double yL3 = a0 * wL3 + a1 * wL2 + a2 * wL1;
+        
+        // Right channel - 4 samples  
+        double xR0 = static_cast<double>(inputR[i]);
+        double wR0 = xR0 - b1 * y1R - b2 * y2R;
+        double yR0 = a0 * wR0 + a1 * y1R + a2 * y2R;
+        
+        double xR1 = static_cast<double>(inputR[i + 1]);
+        double wR1 = xR1 - b1 * wR0 - b2 * y1R;
+        double yR1 = a0 * wR1 + a1 * wR0 + a2 * y1R;
+        
+        double xR2 = static_cast<double>(inputR[i + 2]);
+        double wR2 = xR2 - b1 * wR1 - b2 * wR0;
+        double yR2 = a0 * wR2 + a1 * wR1 + a2 * wR0;
+        
+        double xR3 = static_cast<double>(inputR[i + 3]);
+        double wR3 = xR3 - b1 * wR2 - b2 * wR1;
+        double yR3 = a0 * wR3 + a1 * wR2 + a2 * wR1;
+        
+        // Update states
+        y2L = wL2;
+        y1L = (std::abs(wL3) < EPSILON) ? 0.0 : wL3;
+        y2R = wR2;
+        y1R = (std::abs(wR3) < EPSILON) ? 0.0 : wR3;
+        
+        // Write outputs
+        outputL[i] = static_cast<float>(yL0);
+        outputL[i + 1] = static_cast<float>(yL1);
+        outputL[i + 2] = static_cast<float>(yL2);
+        outputL[i + 3] = static_cast<float>(yL3);
+        
+        outputR[i] = static_cast<float>(yR0);
+        outputR[i + 1] = static_cast<float>(yR1);
+        outputR[i + 2] = static_cast<float>(yR2);
+        outputR[i + 3] = static_cast<float>(yR3);
     }
     
-    m_y1 = y1; m_y2 = y2;
-    
-    // Process right channel (DF-II transposé)
-    y1 = m_y1R; y2 = m_y2R;
-    
-    for (size_t i = 0; i < numSamples; ++i) {
-        double x = static_cast<double>(inputR[i]);
-        double w = x - m_b1 * y1 - m_b2 * y2;
-        double y = m_a0 * w + m_a1 * y1 + m_a2 * y2;
+    // Process remaining samples
+    for (; i < numSamples; ++i) {
+        // Left channel
+        double xL = static_cast<double>(inputL[i]);
+        double wL = xL - b1 * y1L - b2 * y2L;
+        double yL = a0 * wL + a1 * y1L + a2 * y2L;
+        y2L = y1L;
+        y1L = (std::abs(wL) < EPSILON) ? 0.0 : wL;
+        outputL[i] = static_cast<float>(yL);
         
-        y2 = y1;
-        y1 = preventDenormal(w);
-        
-        outputR[i] = static_cast<float>(y);
+        // Right channel
+        double xR = static_cast<double>(inputR[i]);
+        double wR = xR - b1 * y1R - b2 * y2R;
+        double yR = a0 * wR + a1 * y1R + a2 * y2R;
+        y2R = y1R;
+        y1R = (std::abs(wR) < EPSILON) ? 0.0 : wR;
+        outputR[i] = static_cast<float>(yR);
     }
     
-    m_y1R = y1; m_y2R = y2;
+    m_y1 = y1L; m_y2 = y2L;
+    m_y1R = y1R; m_y2R = y2R;
 }
 
 // C++20 pure - no SIMD optimizations
