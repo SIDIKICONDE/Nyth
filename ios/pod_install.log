@@ -1,0 +1,2 @@
+  $ /Users/m1/.nvm/versions/node/v22.17.1/bin/node -p require.resolve(     "react-native/scripts/react_native_pods.rb",     {paths: [process.argv[1]]},   ) /Users/m1/Desktop/Nyth/ios
+  /Users/m1/Desktop/Nyth/node_modules/react-native/scripts/react_native_pods.rb

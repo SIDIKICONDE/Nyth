@@ -124,10 +124,10 @@ export interface Spec extends TurboModule {
   readonly setPerformanceConfig: (config: PerformanceConfig) => boolean;
   readonly getPerformanceConfig: () => PerformanceConfig;
   
-  // Traitement direct (avancé)
+  // Traitement direct (avancé) - Note: ArrayBuffer not supported by codegen, using string instead
   readonly processFrame: (
-    inputData: ArrayBuffer,
-    outputData: ArrayBuffer,
+    inputDataPath: string,
+    outputDataPath: string,
     format: VideoFormat
   ) => boolean;
   

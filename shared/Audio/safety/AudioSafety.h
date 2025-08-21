@@ -2,11 +2,11 @@
 
 #ifdef __cplusplus
 
+#include <sys/types.h>
+#include <sys/time.h>
 #include <cstddef>
 #include <cstdint>
 #include <cmath>
-#include <algorithm>
-#include <stdexcept>
 
 namespace AudioSafety {
 

@@ -8,8 +8,34 @@ import { goalsControlService } from "../services/GoalsControlService";
 import { enhancedNotificationService } from "../services/notifications/EnhancedNotificationService";
 import { calendarService } from "../services/calendar/CalendarIntegrationService";
 import { useGlobalPreferences } from "./useGlobalPreferences";
+import { adminAdvancedCacheService } from "../services/cache/adminAdvancedCacheService";
 
 const logger = createLogger("usePlanning");
+
+// Configuration du cache pour les données de planification
+const PLANNING_CACHE_STRATEGIES = {
+  events: {
+    name: 'planning_events',
+    ttl: 5, // 5 minutes
+    priority: 'high' as const,
+    maxSize: 2 * 1024 * 1024, // 2MB
+    compression: true
+  },
+  goals: {
+    name: 'planning_goals',
+    ttl: 10, // 10 minutes
+    priority: 'high' as const,
+    maxSize: 1024 * 1024, // 1MB
+    compression: true
+  },
+  analytics: {
+    name: 'planning_analytics',
+    ttl: 30, // 30 minutes
+    priority: 'medium' as const,
+    maxSize: 512 * 1024, // 512KB
+    compression: true
+  }
+};
 
 // Fonction de debounce pour optimiser les mises à jour
 const debounce = <T extends (...args: any[]) => any>(
@@ -72,7 +98,19 @@ export const usePlanning = (): UsePlanningReturn => {
   // Ref pour débouncer refreshData
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Charger les données initiales
+  // 🔧 FONCTION D'INVALIDATION DE CACHE
+  const invalidatePlanningCache = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      const cacheKey = `planning_data_${user.uid}`;
+      await adminAdvancedCacheService.invalidate(cacheKey);
+      logger.info("🗑️ Cache de planification invalidé");
+    } catch (error) {
+      logger.warn("Erreur lors de l'invalidation du cache:", error);
+    }
+  }, [user?.uid]);
+
+  // Charger les données initiales avec cache intelligent
   const loadData = useCallback(async () => {
     if (!user?.uid) return;
 
@@ -80,42 +118,61 @@ export const usePlanning = (): UsePlanningReturn => {
       setIsLoading(true);
       setError(null);
 
-      logger.info("🔄 Chargement des données depuis Firebase...", {
+      logger.info("🔄 Chargement des données avec cache intelligent...", {
         userId: user.uid,
       });
 
+      // 🔥 CACHE OPTIMISÉ: Vérifier le cache d'abord
+      const cacheKey = `planning_data_${user.uid}`;
+      const cachedData = await adminAdvancedCacheService.get(cacheKey) as {
+        data: { events: PlanningEvent[]; goals: Goal[]; timestamp: number };
+        metadata: { timestamp: number };
+      };
+
+      if (cachedData && Date.now() - cachedData.metadata.timestamp < 2 * 60 * 1000) { // Cache de 2 minutes
+        logger.info("⚡ CACHE HIT! Données chargées depuis le cache");
+        setEvents(cachedData.data.events || []);
+        setGoals(cachedData.data.goals || []);
+        setIsLoading(false);
+        return;
+      }
+
+      // Pas de cache valide, charger depuis Firebase
       const [eventsData, goalsData] = await Promise.all([
         planningService.getUserEvents(user.uid),
         planningService.getUserGoals(user.uid),
       ]);
 
-      logger.info("📊 Données récupérées de Firebase:", {
+      logger.info("📊 Données chargées depuis Firebase:", {
         eventsCount: eventsData.length,
         goalsCount: goalsData.length,
-        events: eventsData.map((e: any) => ({
-          id: e.id,
-          title: e.title,
-          type: e.type,
-        })),
-        goals: goalsData.map((g) => ({
-          id: g.id,
-          title: g.title,
-          type: g.type,
-        })),
       });
 
       setEvents(eventsData);
       setGoals(goalsData);
 
-      // Synchroniser avec le widget iOS
-      // Synchroniser avec le widget et les notifications
-      await widgetService.updateWidgetData(goalsData);
-      await goalsControlService.createGoalControlNotifications(goalsData);
+      // 🔥 METTRE EN CACHE pour les prochaines fois
+      await adminAdvancedCacheService.set(
+        cacheKey,
+        {
+          events: eventsData,
+          goals: goalsData,
+          timestamp: Date.now()
+        },
+        PLANNING_CACHE_STRATEGIES.events
+      );
 
-      logger.info("✅ Données chargées avec succès", {
-        eventsCount: eventsData.length,
-        goalsCount: goalsData.length,
-      });
+      // Synchronisations en arrière-plan (optimisées)
+      setTimeout(async () => {
+        try {
+          await widgetService.updateWidgetData(goalsData);
+          await goalsControlService.createGoalControlNotifications(goalsData);
+        } catch (syncError) {
+          logger.warn("Erreur de synchronisation en arrière-plan:", syncError);
+        }
+      }, 1000);
+
+      logger.info("✅ Données chargées et mises en cache");
     } catch (err: any) {
       logger.error("❌ Erreur lors du chargement des données:", err);
       setError("Impossible de charger les données de planification");
@@ -297,6 +354,9 @@ export const usePlanning = (): UsePlanningReturn => {
           });
         }
 
+        // Invalider le cache après création
+        await invalidatePlanningCache();
+
         return eventId;
       } catch (err: any) {
         logger.error(
@@ -381,6 +441,10 @@ export const usePlanning = (): UsePlanningReturn => {
             error: (sideEffectError as Error)?.message,
           });
         }
+
+        // Invalider le cache après mise à jour
+        await invalidatePlanningCache();
+
         logger.info("✅ Événement mis à jour avec succès", { eventId });
       } catch (err: any) {
         logger.error(
@@ -428,6 +492,10 @@ export const usePlanning = (): UsePlanningReturn => {
           error: (cleanupError as Error)?.message,
         });
       }
+
+      // Invalider le cache après suppression
+      await invalidatePlanningCache();
+
       logger.info("✅ Événement supprimé avec succès", { eventId });
     } catch (err: any) {
       logger.error("❌ Erreur lors de la suppression de l'événement:", {
@@ -518,6 +586,9 @@ export const usePlanning = (): UsePlanningReturn => {
           });
         }
 
+        // Invalider le cache après création
+        await invalidatePlanningCache();
+
         return goalId;
       } catch (err) {
         logger.error("Erreur lors de la création de l'objectif:", err);
@@ -551,7 +622,11 @@ export const usePlanning = (): UsePlanningReturn => {
               );
             }
           }
-        } catch (e) {}
+        } catch (e) {        }
+
+        // Invalider le cache après mise à jour
+        await invalidatePlanningCache();
+
       } catch (err) {
         logger.error("Erreur lors de la mise à jour de la progression:", err);
         throw new Error("Impossible de mettre à jour la progression");
@@ -570,6 +645,9 @@ export const usePlanning = (): UsePlanningReturn => {
           error: (e as Error)?.message,
         });
       }
+      // Invalider le cache après suppression
+      await invalidatePlanningCache();
+
       // Rafraîchir localement
       setGoals((prev) => prev.filter((g) => g.id !== goalId));
     } catch (err) {
@@ -584,13 +662,16 @@ export const usePlanning = (): UsePlanningReturn => {
       clearTimeout(refreshTimeoutRef.current);
     }
 
+    // Invalider le cache avant de recharger
+    await invalidatePlanningCache();
+
     return new Promise((resolve) => {
       refreshTimeoutRef.current = setTimeout(async () => {
         await loadData();
         resolve();
       }, 50);
     });
-  }, [loadData]);
+  }, [loadData, invalidatePlanningCache]);
 
   const getEventsForDate = useCallback(
     (date: Date): PlanningEvent[] => {

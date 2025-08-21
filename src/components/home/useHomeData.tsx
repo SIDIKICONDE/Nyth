@@ -8,20 +8,22 @@ import { useScripts } from "../../contexts/ScriptsContext";
 import { useAuth } from "../../contexts/AuthContext";
 import analyticsService from "../../services/firebase/analyticsService";
 import RNFS from "react-native-fs";
+import { adminAdvancedCacheService } from "../../services/cache/adminAdvancedCacheService";
+import { createLogger } from "../../utils/optimizedLogger";
+
+const logger = createLogger("useHomeData");
 
 export function useHomeData() {
   const { t } = useTranslation();
   const { scripts, deleteScript: deleteScriptFromContext } = useScripts();
+  const { user } = useAuth();
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedScripts, setSelectedScripts] = useState<string[]>([]);
   const [selectedRecordings, setSelectedRecordings] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState<boolean>(false);
 
-  const loadData = useCallback(async () => {
-    await loadRecordings();
-  }, []);
-
-  const loadRecordings = useCallback(async () => {
+  // 🔥 FONCTION HELPER: Charger les enregistrements depuis AsyncStorage
+  const loadRecordingsFromStorage = useCallback(async (): Promise<Recording[]> => {
     try {
       const savedRecordings = await AsyncStorage.getItem("recordings");
       if (savedRecordings) {
@@ -30,8 +32,7 @@ export function useHomeData() {
         const validRecordings: Recording[] = [];
         let removedCount = 0;
         for (const recording of recordingsData) {
-          const videoUri =
-            (recording as any).uri || (recording as any).videoUri;
+          const videoUri = (recording as any).uri || (recording as any).videoUri;
           if (typeof videoUri !== "string" || videoUri.trim() === "") {
             removedCount += 1;
             continue;
@@ -46,20 +47,88 @@ export function useHomeData() {
 
         // Sort by creation date (newest first)
         validRecordings.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
-        setRecordings(validRecordings);
 
-        if (removedCount > 0) {
-          await AsyncStorage.setItem(
-            "recordings",
-            JSON.stringify(validRecordings)
-          );
-        }
+        return validRecordings;
       }
-    } catch (error) {}
+      return [];
+    } catch (error) {
+      logger.error("Erreur lors du chargement des enregistrements:", error);
+      return [];
+    }
   }, []);
+
+  const loadData = useCallback(async () => {
+    if (!user?.uid) return;
+
+    try {
+      logger.info("🔄 Chargement des données avec cache intelligent...", {
+        userId: user.uid,
+      });
+
+      // 🔥 CACHE OPTIMISÉ: Vérifier le cache d'abord
+      const cacheKey = `home_data_${user.uid}`;
+      const cachedData = await adminAdvancedCacheService.get(cacheKey) as {
+        data: { recordings: Recording[]; timestamp: number };
+        metadata: { timestamp: number };
+      };
+
+      if (cachedData && Date.now() - cachedData.metadata.timestamp < 2 * 60 * 1000) { // Cache de 2 minutes
+        logger.info("⚡ CACHE HIT! Données chargées depuis le cache");
+        setRecordings(cachedData.data.recordings || []);
+        return;
+      }
+
+      // Pas de cache valide, charger depuis AsyncStorage
+      await loadRecordings();
+
+      // 🔥 METTRE EN CACHE pour les prochaines fois
+      const recordingsData = await loadRecordingsFromStorage();
+      await adminAdvancedCacheService.set(
+        cacheKey,
+        {
+          recordings: recordingsData,
+          timestamp: Date.now()
+        },
+        {
+          name: 'home_recordings',
+          ttl: 5, // 5 minutes
+          priority: 'high' as const,
+          maxSize: 3 * 1024 * 1024, // 3MB
+          compression: true
+        }
+      );
+
+      logger.info("✅ Données chargées et mises en cache");
+    } catch (err: any) {
+      logger.error("❌ Erreur lors du chargement des données:", err);
+      // Fallback: charger sans cache
+      await loadRecordings();
+    }
+  }, [user?.uid]);
+
+  const loadRecordings = useCallback(async () => {
+    try {
+      const recordingsData = await loadRecordingsFromStorage();
+      setRecordings(recordingsData);
+    } catch (error) {
+      logger.error("Erreur lors du chargement des enregistrements:", error);
+      setRecordings([]);
+    }
+  }, [loadRecordingsFromStorage]);
+
+  // 🔥 FONCTION D'INVALIDATION DE CACHE
+  const invalidateHomeCache = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      const cacheKey = `home_data_${user.uid}`;
+      await adminAdvancedCacheService.invalidate(cacheKey);
+      logger.info("🗑️ Cache de la page d'accueil invalidé");
+    } catch (error) {
+      logger.warn("Erreur lors de l'invalidation du cache:", error);
+    }
+  }, [user?.uid]);
 
   const toggleSelectionMode = useCallback(() => {
     setSelectionMode((prev) => !prev);
@@ -198,6 +267,9 @@ export function useHomeData() {
 
             // Reset selection
             clearSelection();
+
+            // Invalider le cache après suppression en masse
+            await invalidateHomeCache();
           },
         },
       ]
@@ -210,6 +282,7 @@ export function useHomeData() {
     clearSelection,
     deleteScriptFromContext,
     t,
+    invalidateHomeCache,
   ]);
 
   const deleteRecording = useCallback(
@@ -251,6 +324,9 @@ export function useHomeData() {
                   "recordings",
                   JSON.stringify(updatedRecordings)
                 );
+
+                // Invalider le cache après suppression
+                await invalidateHomeCache();
               } catch (error) {
                 Alert.alert(
                   t("common.error"),
@@ -263,7 +339,7 @@ export function useHomeData() {
         ]
       );
     },
-    [recordings, t]
+    [recordings, t, invalidateHomeCache]
   );
 
   useEffect(() => {
@@ -279,12 +355,18 @@ export function useHomeData() {
     }, [loadData, clearSelection])
   );
 
+  const refreshData = useCallback(async (): Promise<void> => {
+    // Invalider le cache avant de recharger
+    await invalidateHomeCache();
+    return loadData();
+  }, [loadData, invalidateHomeCache]);
+
   return {
     scripts,
     recordings,
     deleteScript,
     deleteRecording,
-    refreshData: loadData,
+    refreshData,
     selectedScripts,
     selectedRecordings,
     toggleScriptSelection,

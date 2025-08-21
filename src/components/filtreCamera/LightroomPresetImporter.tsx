@@ -18,7 +18,7 @@ import {
 import { BlurView } from '@react-native-community/blur';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
-import DocumentPicker from 'react-native-document-picker';
+import DocumentPicker from '@react-native-documents/picker';
 import RNFS from 'react-native-fs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { XMLParser } from 'fast-xml-parser';

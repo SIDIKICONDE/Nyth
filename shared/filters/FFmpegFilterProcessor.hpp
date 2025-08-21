@@ -3,7 +3,6 @@
 #include "common/FilterTypes.hpp"
 #include <string>
 #include <vector>
-#include <cstdint>
 #include <memory>
 
 // Forward declarations pour FFmpeg

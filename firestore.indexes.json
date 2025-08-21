@@ -1176,13 +1176,7 @@
       ],
       "queryScope": "COLLECTION"
     },
-    {
-      "collectionGroup": "adminCache",
-      "fields": [
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
-      ],
-      "queryScope": "COLLECTION"
-    },
+
     {
       "collectionGroup": "adminMetrics",
       "fields": [
@@ -1207,8 +1201,6 @@
       ],
       "queryScope": "COLLECTION"
     },
-
-    // Index pour l'audit trail
     {
       "collectionGroup": "audit_trail",
       "fields": [
@@ -1226,12 +1218,6 @@
       ],
       "queryScope": "COLLECTION"
     },
-
-    // ====================================
-    // INDEX POUR LES THÈMES GLOBAUX
-    // ====================================
-
-    // Index pour les thèmes globaux par nom
     {
       "collectionGroup": "global_themes",
       "fields": [
@@ -1240,8 +1226,6 @@
       ],
       "queryScope": "COLLECTION"
     },
-
-    // Index pour les thèmes actifs
     {
       "collectionGroup": "global_themes",
       "fields": [
@@ -1250,8 +1234,7 @@
       ],
       "queryScope": "COLLECTION"
     },
-
-    // Index pour les thèmes par défaut
+   
     {
       "collectionGroup": "global_themes",
       "fields": [

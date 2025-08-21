@@ -5,6 +5,15 @@
 #include <cstddef>
 #include <cmath>
 
+// Platform-specific includes needed by portable_sleep_ms
+#ifdef __APPLE__
+#include <time.h>
+#include <unistd.h>
+#else
+#include <thread>
+#include <chrono>
+#endif
+
 namespace AudioEqualizer {
 
 // Audio processing constants
@@ -67,6 +76,18 @@ constexpr double DENORMAL_THRESHOLD = 1e-15;
 
 // SIMD alignment
 constexpr size_t SIMD_ALIGNMENT = 16;
+
+// Portable sleep function for iOS/macOS compatibility
+// Prefer usleep over nanosleep for iOS Simulator compatibility
+#ifdef __APPLE__
+inline void portable_sleep_ms(long milliseconds) {
+    usleep(static_cast<useconds_t>(milliseconds * 1000)); // Convert to microseconds
+}
+#else
+inline void portable_sleep_ms(long milliseconds) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+}
+#endif
 
 } // namespace AudioEqualizer
 

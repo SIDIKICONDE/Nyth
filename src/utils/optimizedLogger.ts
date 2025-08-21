@@ -26,5 +26,16 @@ export const createLogger = (namespace: string): Logger => {
   };
 };
 
+// Fonction pour désactiver les logs console en production
+export const disableConsoleLogs = (): void => {
+  if (!__DEV__) {
+    console.log = () => {};
+    console.warn = () => {};
+    console.error = () => {};
+    console.debug = () => {};
+    console.info = () => {};
+  }
+};
+
 // Alias for backward compatibility
 export { createLogger as createOptimizedLogger };

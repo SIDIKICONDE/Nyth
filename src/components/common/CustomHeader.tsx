@@ -78,7 +78,7 @@ export default function CustomHeader({
                 onPress={onBackPress}
                 disabled={backButtonDisabled}
                 style={[
-                  tw`w-6 h-6 rounded-full items-center justify-center`,
+                  tw`w-11 h-11 rounded-full items-center justify-center`,
                   {
                     backgroundColor: currentTheme.colors.surface,
                     shadowColor: "#000",
@@ -90,6 +90,7 @@ export default function CustomHeader({
                   },
                 ]}
                 activeOpacity={backButtonDisabled ? 1 : 0.8}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons
                   name="arrow-back"
@@ -134,8 +135,8 @@ export default function CustomHeader({
                 onPress={button.onPress}
                 style={[
                   button.isImportant
-                    ? tw`py-1 px-2 rounded-lg items-center justify-center`
-                    : tw`w-6 h-6 rounded-full items-center justify-center`,
+                    ? tw`py-1.5 px-3 rounded-lg items-center justify-center`
+                    : tw`w-11 h-11 rounded-full items-center justify-center`,
                   {
                     backgroundColor: button.isDestructive
                       ? currentTheme.colors.error
@@ -155,6 +156,7 @@ export default function CustomHeader({
                   },
                 ]}
                 activeOpacity={0.85}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 {button.iconComponent ? (
                   button.iconComponent
@@ -239,6 +241,7 @@ export default function CustomHeader({
                     },
                   ]}
                   activeOpacity={backButtonDisabled ? 1 : 0.8}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Ionicons
                     name="arrow-back"
@@ -304,6 +307,7 @@ export default function CustomHeader({
                     },
                   ]}
                   activeOpacity={0.85}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   {button.iconComponent ? (
                     button.iconComponent

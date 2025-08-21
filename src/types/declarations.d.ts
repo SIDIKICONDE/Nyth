@@ -2,6 +2,7 @@
 
 // Global variables
 declare const __DEV__: boolean;
+declare const __TEST__: boolean;
 
 declare module "react-native-modal" {
   import { ReactNode } from "react";

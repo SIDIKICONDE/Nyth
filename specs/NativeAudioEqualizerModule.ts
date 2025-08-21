@@ -61,8 +61,8 @@ export interface Spec extends TurboModule {
   // Noise Reduction (NR)
   readonly nrSetEnabled: (enabled: boolean) => void;
   readonly nrGetEnabled: () => boolean;
-  // Mode: 0=expander, 1=rnnoise, 2=off (ou libellés)
-  readonly nrSetMode: (mode: number | 'expander' | 'rnnoise' | 'off') => void;
+  // Mode: 0=expander, 1=rnnoise, 2=off
+  readonly nrSetMode: (mode: number) => void;
   readonly nrGetMode: () => number;
   // RNNoise aggressiveness 0.0..3.0
   readonly rnnsSetAggressiveness: (aggressiveness: number) => void;

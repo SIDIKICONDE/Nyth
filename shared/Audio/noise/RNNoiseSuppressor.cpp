@@ -2,9 +2,14 @@
 #include <cstring>
 #include <cstdio>
 #include <stdexcept>
-#include <algorithm>
-#include <vector>
-#include <cmath>
+
+namespace {
+template <typename T>
+inline T maxValue(const T& a, const T& b) { return (a < b) ? b : a; }
+
+template <typename T>
+inline T minValue(const T& a, const T& b) { return (b < a) ? b : a; }
+}
 #ifdef NAAYA_RNNOISE
 extern "C" {
   #include "rnnoise.h"
@@ -61,7 +66,7 @@ void RNNoiseSuppressor::setAggressiveness(double aggressiveness) {
     // Clamp to valid range with warning
     if (aggressiveness < 0.0 || aggressiveness > 3.0) {
         // Log warning if logging is available
-        aggressiveness = std::max(0.0, std::min(3.0, aggressiveness));
+        aggressiveness = maxValue(0.0, minValue(3.0, aggressiveness));
     }
     aggressiveness_ = aggressiveness;
 }
@@ -113,7 +118,7 @@ void RNNoiseSuppressor::processMono(const float* input, float* output, size_t nu
         // S'il y a des restes en attente, on les complète et on sort une trame
         if (!pendingMono_.empty()) {
             size_t need = 480 - pendingMono_.size();
-            size_t chunk = std::min(need, numSamples);
+            size_t chunk = minValue(need, numSamples);
             pendingMono_.insert(pendingMono_.end(), input, input + chunk);
             if (pendingMono_.size() == 480) {
                 float frame[480];

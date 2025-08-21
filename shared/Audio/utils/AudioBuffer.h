@@ -1,10 +1,12 @@
 #pragma once
 
 #ifdef __cplusplus
-#include "Constants.h"
-#include <memory>
-#include <cstring>
+// Inclure d'abord les en-têtes C pour éviter les conflits
 #include <cstddef>
+#include <cstring>
+// Puis les en-têtes C++ 
+#include <memory>
+#include "Constants.h"
 
 namespace AudioEqualizer {
 

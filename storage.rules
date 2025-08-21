@@ -1,0 +1,164 @@
+rules_version = '2';
+
+// Règles pour Firebase Storage
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Fonction pour vérifier si l'utilisateur est authentifié
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Fonction pour vérifier si l'utilisateur est admin
+    function isAdmin() {
+      return request.auth != null && 
+        request.auth.token.role in ['admin', 'super_admin'];
+    }
+    
+    // Fonction pour vérifier si l'utilisateur est propriétaire du fichier
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Fonction pour valider le type de fichier
+    function isValidFileType(allowedTypes) {
+      return request.resource.contentType in allowedTypes;
+    }
+    
+    // Fonction pour valider la taille du fichier (en MB)
+    function isValidFileSize(maxSizeMB) {
+      return request.resource.size < maxSizeMB * 1024 * 1024;
+    }
+
+    // ====================================
+    // RÈGLES POUR LES ENREGISTREMENTS AUDIO
+    // ====================================
+    match /recordings/{userId}/{recordingId} {
+      // Types audio autorisés
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      
+      // Upload d'enregistrements (max 100MB, formats audio uniquement)
+      allow write: if isAuthenticated() && 
+        isOwner(userId) &&
+        isValidFileType(['audio/mp3', 'audio/wav', 'audio/m4a', 'audio/aac', 'audio/ogg']) &&
+        isValidFileSize(100);
+      
+      // Suppression par le propriétaire ou admin
+      allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin());
+    }
+
+    // ====================================
+    // RÈGLES POUR LES VIDÉOS EXPORTÉES
+    // ====================================
+    match /exports/{userId}/{videoId} {
+      // Lecture par le propriétaire ou admin
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      
+      // Upload de vidéos (max 500MB, formats vidéo uniquement)
+      allow write: if isAuthenticated() && 
+        isOwner(userId) &&
+        isValidFileType(['video/mp4', 'video/mov', 'video/avi', 'video/mkv', 'video/webm']) &&
+        isValidFileSize(500);
+      
+      // Suppression par le propriétaire ou admin
+      allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin());
+    }
+
+    // ====================================
+    // RÈGLES POUR LES AVATARS UTILISATEUR
+    // ====================================
+    match /avatars/{userId} {
+      // Lecture publique des avatars
+      allow read: if true;
+      
+      // Upload d'avatar (max 5MB, images uniquement)
+      allow write: if isAuthenticated() && 
+        isOwner(userId) &&
+        isValidFileType(['image/jpeg', 'image/png', 'image/gif', 'image/webp']) &&
+        isValidFileSize(5);
+      
+      // Suppression par le propriétaire ou admin
+      allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin());
+    }
+
+    // ====================================
+    // RÈGLES POUR LES MINIATURES
+    // ====================================
+    match /thumbnails/{userId}/{thumbnailId} {
+      // Lecture par le propriétaire ou admin
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      
+      // Upload de miniatures (max 2MB, images uniquement)
+      allow write: if isAuthenticated() && 
+        isOwner(userId) &&
+        isValidFileType(['image/jpeg', 'image/png', 'image/webp']) &&
+        isValidFileSize(2);
+      
+      // Suppression par le propriétaire ou admin
+      allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin());
+    }
+
+    // ====================================
+    // RÈGLES POUR LES FICHIERS TEMPORAIRES
+    // ====================================
+    match /temp/{userId}/{fileId} {
+      // Lecture par le propriétaire uniquement
+      allow read: if isAuthenticated() && isOwner(userId);
+      
+      // Upload de fichiers temporaires (max 50MB)
+      allow write: if isAuthenticated() && 
+        isOwner(userId) &&
+        isValidFileSize(50);
+      
+      // Suppression par le propriétaire
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // ====================================
+    // RÈGLES POUR LES RESSOURCES PUBLIQUES
+    // ====================================
+    match /public/{allPaths=**} {
+      // Lecture publique
+      allow read: if true;
+      
+      // Écriture par les admins uniquement
+      allow write: if isAdmin();
+      
+      // Suppression par les admins uniquement
+      allow delete: if isAdmin();
+    }
+
+    // ====================================
+    // RÈGLES POUR LES BACKUPS
+    // ====================================
+    match /backups/{backupId} {
+      // Lecture et écriture par les admins uniquement
+      allow read, write: if isAdmin();
+      
+      // Suppression par les super admins uniquement
+      allow delete: if isAdmin() && 
+        request.auth.token.role == 'super_admin';
+    }
+
+    // ====================================
+    // RÈGLES POUR LES LOGS
+    // ====================================
+    match /logs/{logId} {
+      // Lecture par les admins uniquement
+      allow read: if isAdmin();
+      
+      // Écriture interdite depuis le client
+      allow write: if false;
+      
+      // Suppression par les super admins uniquement
+      allow delete: if isAdmin() && 
+        request.auth.token.role == 'super_admin';
+    }
+
+    // ====================================
+    // RÈGLES PAR DÉFAUT (TOUT REFUSER)
+    // ====================================
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

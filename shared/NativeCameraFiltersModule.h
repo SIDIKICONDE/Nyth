@@ -1,16 +1,18 @@
 #pragma once
+// Types fixes comme uint8_t
+#include <stdint.h>
 
-// Détection de l'environnement JSI/TurboModule et NaayaJSI
-#ifdef __cplusplus
-  #if __has_include(<NaayaJSI.h>) && \
-      __has_include(<jsi/jsi.h>) && \
-      __has_include(<ReactCommon/TurboModule.h>) && \
-      __has_include(<ReactCommon/TurboModuleUtils.h>)
-    #define NAAYA_CAMERA_FILTERS_ENABLED 1
-  #else
-    #define NAAYA_CAMERA_FILTERS_ENABLED 0
-  #endif
-#endif // __cplusplus
+// Détection de l'environnement JSI/TurboModule et NythJSI
+#if defined(__has_include) && \
+    __has_include(<NythJSI.h>) && \
+    __has_include(<jsi/jsi.h>) && \
+    __has_include(<ReactCommon/TurboModule.h>) && \
+    __has_include(<ReactCommon/TurboModuleUtils.h>) && \
+    __has_include(<NaayaJSI.h>)
+  #define NAAYA_CAMERA_FILTERS_ENABLED 1
+#else
+  #define NAAYA_CAMERA_FILTERS_ENABLED 0
+#endif
 
 #if defined(__cplusplus) && NAAYA_CAMERA_FILTERS_ENABLED
   #include <NaayaJSI.h>
@@ -117,7 +119,6 @@
 // API C minimale pour exposer l'état de filtre au code ObjC/AVFoundation
 #ifndef __cplusplus
   #include <stdbool.h>
-  #include <stdint.h>
 #endif
 
 #ifdef __cplusplus

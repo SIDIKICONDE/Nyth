@@ -1,10 +1,16 @@
 #pragma once
-
+#if defined(__has_include)
+  #if __has_include(<NythJSI.h>)
+    #include <NythJSI.h>
+  #endif
+#endif
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 
-#if __has_include(<jsi/jsi.h>) && __has_include(<ReactCommon/TurboModule.h>) && __has_include(<ReactCommon/TurboModuleUtils.h>)
+#if defined(__has_include) && \
+    __has_include(<ReactCommon/TurboModule.h>) && \
+    __has_include(<ReactCommon/TurboModuleUtils.h>)
 #define NAAYA_AUDIO_EQ_ENABLED 1
 #else
 #define NAAYA_AUDIO_EQ_ENABLED 0

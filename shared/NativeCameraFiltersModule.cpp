@@ -1,7 +1,10 @@
+#include <pthread.h>
 #include "NativeCameraFiltersModule.h"
 #include <cstdint>
 #include <mutex>
 #include <string>
+#include <chrono>
+#include <thread>
 
 // État global filtres accessible depuis ObjC/ObjC++ (toujours défini pour le lint)
 static std::mutex g_naaya_filters_mutex;

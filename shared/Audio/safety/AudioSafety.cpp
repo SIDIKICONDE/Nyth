@@ -1,10 +1,33 @@
+// Assure l'exposition complète des API POSIX/BSD (dont nanosleep) sur Apple SDKs
+#ifndef _DARWIN_C_SOURCE
+#define _DARWIN_C_SOURCE 1
+#endif
+
 #include "AudioSafety.h"
+#include <TargetConditionals.h>
+#include <time.h>
+#include <unistd.h>
+#include <errno.h>
+
+// Déclaration anticipée de nanosleep pour iOS/iPhoneSimulator (non exposé par les headers)
+#if defined(__APPLE__) && defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+// Déclaration anticipée sans utiliser de macros internes Apple
+extern "C" int nanosleep(const struct timespec* __rqtp, struct timespec* __rmtp);
+#endif
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
 #include <cmath>
 #include <algorithm>
+
+namespace {
+template <typename T>
+inline T maxValue(const T& a, const T& b) { return (a < b) ? b : a; }
+
+template <typename T>
+inline T minValue(const T& a, const T& b) { return (b < a) ? b : a; }
+}
 
 namespace AudioSafety {
 
@@ -58,13 +81,13 @@ void AudioSafetyEngine::processStereo(float* left, float* right, size_t numSampl
     SafetyReport rl = analyzeAndClean(left, numSamples);
     SafetyReport rr = analyzeAndClean(right, numSamples);
     SafetyReport agg{};
-    agg.peak = std::max(rl.peak, rr.peak);
+    agg.peak = maxValue(rl.peak, rr.peak);
     // RMS agrégé (deux canaux supposés indépendants)
     agg.rms = std::sqrt((rl.rms*rl.rms + rr.rms*rr.rms) / 2.0);
     agg.dcOffset = (rl.dcOffset + rr.dcOffset) / 2.0;
     agg.clippedSamples = rl.clippedSamples + rr.clippedSamples;
     agg.overloadActive = rl.overloadActive || rr.overloadActive;
-    agg.feedbackScore = std::max(rl.feedbackScore, rr.feedbackScore);
+    agg.feedbackScore = maxValue(rl.feedbackScore, rr.feedbackScore);
     agg.hasNaN = rl.hasNaN || rr.hasNaN;
     agg.feedbackLikely = agg.feedbackScore >= config_.feedbackCorrThreshold;
     report_ = agg;
@@ -81,7 +104,7 @@ SafetyReport AudioSafetyEngine::analyzeAndClean(float* x, size_t n) {
         if (v < -1.0f) { v = -1.0f; ++clipped; }
         x[i] = v;
         double dv = static_cast<double>(v);
-        sum += dv; sum2 += dv * dv; peak = std::max(peak, std::abs(dv));
+        sum += dv; sum2 += dv * dv; peak = maxValue(peak, std::abs(dv));
     }
     double mean = sum / static_cast<double>(n);
     double rms = std::sqrt(sum2 / static_cast<double>(n));
@@ -96,13 +119,13 @@ SafetyReport AudioSafetyEngine::analyzeAndClean(float* x, size_t n) {
     // Overload/limiter
     if (config_.limiterEnabled) {
         // Soft knee compressor/limiter (static, no look-ahead)
-        const double knee = std::max(0.0, config_.kneeWidthDb);
+        const double knee = maxValue(0.0, config_.kneeWidthDb);
         const double thr = limiterThresholdLin_;
         const double thrDb = 20.0 * std::log10(thr);
         for (size_t i = 0; i < n; ++i) {
             double v = x[i];
             double mag = std::abs(v);
-            double magDb = 20.0 * std::log10(std::max(mag, 1e-10));
+            double magDb = 20.0 * std::log10(maxValue(mag, 1e-10));
             double overDb = magDb - thrDb;
             if (overDb > 0.0) {
                 localReport.overloadActive = true;
@@ -143,8 +166,8 @@ void AudioSafetyEngine::limitBuffer(float* x, size_t n) {
 
 double AudioSafetyEngine::estimateFeedbackScore(const float* x, size_t n) {
     // Autocorrelation at short lags (e.g., [32..512] samples)
-    size_t minLag = std::min<size_t>(32, n/4);
-    size_t maxLag = std::min<size_t>(512, n-1);
+    size_t minLag = minValue<size_t>(32, n/4);
+    size_t maxLag = minValue<size_t>(512, n-1);
     if (maxLag <= minLag) return 0.0;
     double energy = 0.0; for (size_t i = 0; i < n; ++i) energy += x[i] * x[i]; if (energy <= 1e-9) return 0.0;
     double best = 0.0;
@@ -152,13 +175,15 @@ double AudioSafetyEngine::estimateFeedbackScore(const float* x, size_t n) {
         double corr = 0.0;
         for (size_t i = 0; i + lag < n; ++i) corr += x[i] * x[i + lag];
         corr /= energy;
-        best = std::max(best, corr);
+        best = maxValue(best, corr);
     }
     // Normalize 0..1 and thresholding
-    double score = std::max(0.0, std::min(1.0, best));
+    double score = maxValue(0.0, minValue(1.0, best));
     return score;
 }
 
 } // namespace AudioSafety
 
+
+// Pas d'implémentation locale pour éviter les conflits de linkage.
 

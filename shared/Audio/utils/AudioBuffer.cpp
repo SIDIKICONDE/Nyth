@@ -1,7 +1,11 @@
+// Inclure d'abord notre en-tête pour garantir la cohérence des dépendances
 #include "AudioBuffer.h"
-#include <cmath>
+
+// En-têtes C++ standards
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
+#include <cstring>
 
 #ifdef __ARM_NEON
 #include <arm_neon.h>

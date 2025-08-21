@@ -1,12 +1,31 @@
-import React from "react";
-import { View } from "react-native";
+import React, { Suspense, lazy } from "react";
+import { View, ActivityIndicator } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import tw from "twrnc";
-import { LibraryScriptsList, VideoLibraryList } from "../../../components/home";
 import { ScriptDisplayStyle } from "../../../hooks/useDisplayPreferences";
 import { TabType } from "../types";
 
 import { createOptimizedLogger } from '../../../utils/optimizedLogger';
+
+// 🔥 LAZY LOADING: Chargement différé des composants lourds
+const LibraryScriptsList = lazy(() =>
+  import("../../../components/home").then(module => ({
+    default: module.LibraryScriptsList
+  }))
+);
+
+const VideoLibraryList = lazy(() =>
+  import("../../../components/home").then(module => ({
+    default: module.VideoLibraryList
+  }))
+);
+
+// 🔥 COMPOSANT DE LOADING optimisé
+const LoadingComponent = () => (
+  <View style={tw`flex-1 items-center justify-center`}>
+    <ActivityIndicator size="large" color="#3B82F6" />
+  </View>
+);
 const logger = createOptimizedLogger('ContentTabs');
 
 interface ContentTabsProps {
@@ -33,7 +52,7 @@ interface ContentTabsProps {
   onToggleFavorite?: (scriptId: string) => void;
 }
 
-export function ContentTabs({
+export const ContentTabs = React.memo(function ContentTabs({
   activeTab,
   isInitialLoad,
   numColumns,
@@ -77,66 +96,70 @@ export function ContentTabs({
       >
         {activeTab === "scripts" ? (
           <View style={tw`flex-1`}>
-            {scriptDisplayStyle === "library" ? (
-              <LibraryScriptsList
-                scripts={scripts}
-                onScriptPress={onScriptPress}
-                onScriptDelete={onScriptDelete}
-                selectedScripts={selectedScripts}
-                onToggleSelection={onToggleScriptSelection}
-                onDeleteSelected={onDeleteSelected}
-                isSelectionModeActive={selectionMode}
-                onEnableSelectionMode={onToggleSelectionMode}
-                onScriptShare={onScriptShare}
-                onScriptDuplicate={onScriptDuplicate}
-                onScriptExport={onScriptExport}
-                onToggleFavorite={onToggleFavorite}
-              />
-            ) : (
-              <LibraryScriptsList
-                scripts={scripts}
-                onScriptPress={onScriptPress}
-                onScriptDelete={onScriptDelete}
-                selectedScripts={selectedScripts}
-                onToggleSelection={onToggleScriptSelection}
-                onDeleteSelected={onDeleteSelected}
-                isSelectionModeActive={selectionMode}
-                onEnableSelectionMode={onToggleSelectionMode}
-                onScriptShare={onScriptShare}
-                onScriptDuplicate={onScriptDuplicate}
-                onScriptExport={onScriptExport}
-                onToggleFavorite={onToggleFavorite}
-              />
-            )}
+            <Suspense fallback={<LoadingComponent />}>
+              {scriptDisplayStyle === "library" ? (
+                <LibraryScriptsList
+                  scripts={scripts}
+                  onScriptPress={onScriptPress}
+                  onScriptDelete={onScriptDelete}
+                  selectedScripts={selectedScripts}
+                  onToggleSelection={onToggleScriptSelection}
+                  onDeleteSelected={onDeleteSelected}
+                  isSelectionModeActive={selectionMode}
+                  onEnableSelectionMode={onToggleSelectionMode}
+                  onScriptShare={onScriptShare}
+                  onScriptDuplicate={onScriptDuplicate}
+                  onScriptExport={onScriptExport}
+                  onToggleFavorite={onToggleFavorite}
+                />
+              ) : (
+                <LibraryScriptsList
+                  scripts={scripts}
+                  onScriptPress={onScriptPress}
+                  onScriptDelete={onScriptDelete}
+                  selectedScripts={selectedScripts}
+                  onToggleSelection={onToggleScriptSelection}
+                  onDeleteSelected={onDeleteSelected}
+                  isSelectionModeActive={selectionMode}
+                  onEnableSelectionMode={onToggleSelectionMode}
+                  onScriptShare={onScriptShare}
+                  onScriptDuplicate={onScriptDuplicate}
+                  onScriptExport={onScriptExport}
+                  onToggleFavorite={onToggleFavorite}
+                />
+              )}
+            </Suspense>
           </View>
         ) : (
           <View style={tw`flex-1`}>
-            {scriptDisplayStyle === "library" ? (
-              <VideoLibraryList
-                recordings={recordings}
-                scripts={scripts}
-                selectedRecordings={selectedRecordings}
-                isSelectionModeActive={selectionMode}
-                onRecordingPress={onRecordingPress}
-                onRecordingLongPress={() => onToggleSelectionMode()}
-                onToggleSelection={onToggleRecordingSelection}
-                onDeleteSelected={onDeleteSelected}
-              />
-            ) : (
-              <VideoLibraryList
-                recordings={recordings}
-                scripts={scripts}
-                selectedRecordings={selectedRecordings}
-                isSelectionModeActive={selectionMode}
-                onRecordingPress={onRecordingPress}
-                onRecordingLongPress={() => onToggleSelectionMode()}
-                onToggleSelection={onToggleRecordingSelection}
-                onDeleteSelected={onDeleteSelected}
-              />
-            )}
+            <Suspense fallback={<LoadingComponent />}>
+              {scriptDisplayStyle === "library" ? (
+                <VideoLibraryList
+                  recordings={recordings}
+                  scripts={scripts}
+                  selectedRecordings={selectedRecordings}
+                  isSelectionModeActive={selectionMode}
+                  onRecordingPress={onRecordingPress}
+                  onRecordingLongPress={() => onToggleSelectionMode()}
+                  onToggleSelection={onToggleRecordingSelection}
+                  onDeleteSelected={onDeleteSelected}
+                />
+              ) : (
+                <VideoLibraryList
+                  recordings={recordings}
+                  scripts={scripts}
+                  selectedRecordings={selectedRecordings}
+                  isSelectionModeActive={selectionMode}
+                  onRecordingPress={onRecordingPress}
+                  onRecordingLongPress={() => onToggleSelectionMode()}
+                  onToggleSelection={onToggleRecordingSelection}
+                  onDeleteSelected={onDeleteSelected}
+                />
+              )}
+            </Suspense>
           </View>
         )}
       </Animated.View>
     </View>
   );
-}
+});

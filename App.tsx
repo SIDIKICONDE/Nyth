@@ -1,7 +1,7 @@
 import "react-native-get-random-values";
 
 // Import conditionnel de react-native-reanimated
-if (!__TEST__) {
+if (typeof __TEST__ === 'undefined' || !__TEST__) {
   require('react-native-reanimated');
 }
 
