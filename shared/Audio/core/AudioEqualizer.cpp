@@ -145,66 +145,88 @@ void AudioEqualizer::processOptimized(std::span<const float> input, std::span<fl
     }
 
     // Optimisation: traiter par blocs plus grands pour améliorer la localité du cache
-    constexpr size_t OPTIMAL_BLOCK_SIZE = 1024;  // Augmenté pour meilleure efficacité cache
+    constexpr size_t OPTIMAL_BLOCK_SIZE = 2048;  // Augmenté pour meilleure efficacité cache
     size_t numSamples = input.size();
-    size_t processedSamples = 0;
-
+    
     // Pré-calculer les filtres actifs pour éviter les vérifications répétées
     // Protéger l'accès à m_bands pour éviter les data races
-    std::vector<const EQBand*> activeBands;
+    std::vector<BiquadFilter*> activeFilters;
     {
         std::lock_guard<std::mutex> lock(m_parameterMutex);
-        activeBands.reserve(m_bands.size());
-        std::ranges::copy_if(m_bands, std::back_inserter(activeBands),
-                            [](const EQBand& band) {
-                                return band.enabled && std::abs(band.gain) > 0.01;
-                            });
+        activeFilters.reserve(m_bands.size());
+        for (const auto& band : m_bands) {
+            if (band.enabled && std::abs(band.gain) > 0.01) {
+                activeFilters.push_back(band.filter.get());
+            }
+        }
     }
 
+    // Pré-calculer le gain master une seule fois
+    float masterGainLinear = static_cast<float>(dbToLinear(m_masterGain.load()));
+    bool needsMasterGain = std::abs(masterGainLinear - 1.0f) > 0.001f;
+
     // Si aucun filtre actif, appliquer seulement le gain master
-    if (activeBands.empty()) {
-        float masterGainLinear = static_cast<float>(dbToLinear(m_masterGain.load()));
-        if (std::abs(masterGainLinear - 1.0f) < 0.001f) {
+    if (activeFilters.empty()) {
+        if (!needsMasterGain) {
             // Pas de traitement nécessaire, copie directe
             if (input.data() != output.data()) {
                 std::ranges::copy(input, output.begin());
             }
         } else {
-            // C++20 pure implementation - no SIMD
-            std::ranges::transform(input, output.begin(),
-                                 [masterGainLinear](float sample) {
-                                     return sample * masterGainLinear;
-                                 });
+            // Appliquer le gain master avec unrolling
+            size_t i = 0;
+            for (; i + 3 < numSamples; i += 4) {
+                output[i] = input[i] * masterGainLinear;
+                output[i + 1] = input[i + 1] * masterGainLinear;
+                output[i + 2] = input[i + 2] * masterGainLinear;
+                output[i + 3] = input[i + 3] * masterGainLinear;
+            }
+            for (; i < numSamples; ++i) {
+                output[i] = input[i] * masterGainLinear;
+            }
         }
         return;
     }
 
-    while (processedSamples < numSamples) {
-        size_t samplesToProcess = std::min(OPTIMAL_BLOCK_SIZE, numSamples - processedSamples);
-        auto blockInput = input.subspan(processedSamples, samplesToProcess);
-        auto blockOutput = output.subspan(processedSamples, samplesToProcess);
-
-        // Copier l'entrée vers la sortie pour le premier filtre
-        if (blockOutput.data() != blockInput.data()) {
-            std::ranges::copy(blockInput, blockOutput.begin());
+    // Traitement par blocs avec prefetch
+    for (size_t offset = 0; offset < numSamples; offset += OPTIMAL_BLOCK_SIZE) {
+        size_t blockSize = std::min(OPTIMAL_BLOCK_SIZE, numSamples - offset);
+        
+        // Prefetch next block
+        if (offset + OPTIMAL_BLOCK_SIZE < numSamples) {
+            __builtin_prefetch(&input[offset + OPTIMAL_BLOCK_SIZE], 0, 1);
+            __builtin_prefetch(&output[offset + OPTIMAL_BLOCK_SIZE], 1, 1);
         }
 
-        // Appliquer chaque bande de filtre active
-        std::ranges::for_each(activeBands, [&](const EQBand* band) {
-            band->filter->process(std::span<float>(blockOutput.data(), samplesToProcess),
-                                std::span<float>(blockOutput.data(), samplesToProcess));
-        });
-
-        // Appliquer le gain master - C++20 pure
-        float masterGainLinear = static_cast<float>(dbToLinear(m_masterGain.load()));
-        if (std::abs(masterGainLinear - 1.0f) > 0.001f) {
-            std::ranges::transform(blockOutput, blockOutput.begin(),
-                                 [masterGainLinear](float sample) {
-                                     return sample * masterGainLinear;
-                                 });
+        // Copier l'entrée vers la sortie si nécessaire
+        if (output.data() != input.data()) {
+            std::copy(input.data() + offset, input.data() + offset + blockSize, output.data() + offset);
         }
 
-        processedSamples += samplesToProcess;
+        // Appliquer chaque filtre actif en séquence
+        // L'ordre est important pour l'égaliseur
+        for (auto* filter : activeFilters) {
+            filter->process(output.data() + offset, output.data() + offset, blockSize);
+        }
+
+        // Appliquer le gain master si nécessaire
+        if (needsMasterGain) {
+            float* blockPtr = output.data() + offset;
+            size_t i = 0;
+            
+            // Unroll par 4 pour meilleure performance
+            for (; i + 3 < blockSize; i += 4) {
+                blockPtr[i] *= masterGainLinear;
+                blockPtr[i + 1] *= masterGainLinear;
+                blockPtr[i + 2] *= masterGainLinear;
+                blockPtr[i + 3] *= masterGainLinear;
+            }
+            
+            // Traiter les échantillons restants
+            for (; i < blockSize; ++i) {
+                blockPtr[i] *= masterGainLinear;
+            }
+        }
     }
 }
 
@@ -227,57 +249,86 @@ void AudioEqualizer::processStereo(std::span<const float> inputL, std::span<cons
     }
 
     // Optimisation: traiter par blocs plus grands
-    constexpr size_t OPTIMAL_BLOCK_SIZE = 1024;
+    constexpr size_t OPTIMAL_BLOCK_SIZE = 2048;
     size_t numSamples = inputL.size();
-    size_t processedSamples = 0;
 
     // Pré-calculer les filtres actifs
-    // Protéger l'accès à m_bands pour éviter les data races
-    std::vector<const EQBand*> activeBands;
+    std::vector<BiquadFilter*> activeFilters;
     {
         std::lock_guard<std::mutex> lock(m_parameterMutex);
-        activeBands.reserve(m_bands.size());
-        std::ranges::copy_if(m_bands, std::back_inserter(activeBands),
-                            [](const EQBand& band) {
-                                return band.enabled && std::abs(band.gain) > 0.01;
-                            });
+        activeFilters.reserve(m_bands.size());
+        for (const auto& band : m_bands) {
+            if (band.enabled && std::abs(band.gain) > 0.01) {
+                activeFilters.push_back(band.filter.get());
+            }
+        }
     }
 
-    while (processedSamples < numSamples) {
-        size_t samplesToProcess = std::min(OPTIMAL_BLOCK_SIZE, numSamples - processedSamples);
-        auto blockInputL = inputL.subspan(processedSamples, samplesToProcess);
-        auto blockInputR = inputR.subspan(processedSamples, samplesToProcess);
-        auto blockOutputL = outputL.subspan(processedSamples, samplesToProcess);
-        auto blockOutputR = outputR.subspan(processedSamples, samplesToProcess);
+    // Pré-calculer le gain master
+    float masterGainLinear = static_cast<float>(dbToLinear(m_masterGain.load()));
+    bool needsMasterGain = std::abs(masterGainLinear - 1.0f) > 0.001f;
 
-        // Copier l'entrée vers la sortie
-        if (blockOutputL.data() != blockInputL.data() || blockOutputR.data() != blockInputR.data()) {
-            std::ranges::copy(blockInputL, blockOutputL.begin());
-            std::ranges::copy(blockInputR, blockOutputR.begin());
+    // Si aucun filtre actif, appliquer seulement le gain master
+    if (activeFilters.empty() && !needsMasterGain) {
+        // Copie directe optimisée
+        if (outputL.data() != inputL.data() || outputR.data() != inputR.data()) {
+            std::copy(inputL.data(), inputL.data() + numSamples, outputL.data());
+            std::copy(inputR.data(), inputR.data() + numSamples, outputR.data());
+        }
+        return;
+    }
+
+    // Traitement par blocs avec prefetch
+    for (size_t offset = 0; offset < numSamples; offset += OPTIMAL_BLOCK_SIZE) {
+        size_t blockSize = std::min(OPTIMAL_BLOCK_SIZE, numSamples - offset);
+        
+        // Prefetch next block
+        if (offset + OPTIMAL_BLOCK_SIZE < numSamples) {
+            __builtin_prefetch(&inputL[offset + OPTIMAL_BLOCK_SIZE], 0, 1);
+            __builtin_prefetch(&inputR[offset + OPTIMAL_BLOCK_SIZE], 0, 1);
+            __builtin_prefetch(&outputL[offset + OPTIMAL_BLOCK_SIZE], 1, 1);
+            __builtin_prefetch(&outputR[offset + OPTIMAL_BLOCK_SIZE], 1, 1);
         }
 
-        // Appliquer chaque bande de filtre active
-        std::ranges::for_each(activeBands, [&](const EQBand* band) {
-            band->filter->processStereo(std::span<float>(blockOutputL.data(), samplesToProcess),
-                                       std::span<float>(blockOutputR.data(), samplesToProcess),
-                                       std::span<float>(blockOutputL.data(), samplesToProcess),
-                                       std::span<float>(blockOutputR.data(), samplesToProcess));
-        });
-
-        // Appliquer le gain master - C++20 pure
-        float masterGainLinear = static_cast<float>(dbToLinear(m_masterGain.load()));
-        if (std::abs(masterGainLinear - 1.0f) > 0.001f) {
-            std::ranges::transform(blockOutputL, blockOutputL.begin(),
-                                 [masterGainLinear](float sample) {
-                                     return sample * masterGainLinear;
-                                 });
-            std::ranges::transform(blockOutputR, blockOutputR.begin(),
-                                 [masterGainLinear](float sample) {
-                                     return sample * masterGainLinear;
-                                 });
+        // Copier l'entrée vers la sortie si nécessaire
+        if (outputL.data() != inputL.data()) {
+            std::copy(inputL.data() + offset, inputL.data() + offset + blockSize, outputL.data() + offset);
+        }
+        if (outputR.data() != inputR.data()) {
+            std::copy(inputR.data() + offset, inputR.data() + offset + blockSize, outputR.data() + offset);
         }
 
-        processedSamples += samplesToProcess;
+        // Appliquer chaque filtre actif
+        for (auto* filter : activeFilters) {
+            filter->processStereo(outputL.data() + offset, outputR.data() + offset,
+                                outputL.data() + offset, outputR.data() + offset, blockSize);
+        }
+
+        // Appliquer le gain master si nécessaire avec unrolling
+        if (needsMasterGain) {
+            float* blockPtrL = outputL.data() + offset;
+            float* blockPtrR = outputR.data() + offset;
+            size_t i = 0;
+            
+            // Unroll par 4
+            for (; i + 3 < blockSize; i += 4) {
+                blockPtrL[i] *= masterGainLinear;
+                blockPtrL[i + 1] *= masterGainLinear;
+                blockPtrL[i + 2] *= masterGainLinear;
+                blockPtrL[i + 3] *= masterGainLinear;
+                
+                blockPtrR[i] *= masterGainLinear;
+                blockPtrR[i + 1] *= masterGainLinear;
+                blockPtrR[i + 2] *= masterGainLinear;
+                blockPtrR[i + 3] *= masterGainLinear;
+            }
+            
+            // Traiter les échantillons restants
+            for (; i < blockSize; ++i) {
+                blockPtrL[i] *= masterGainLinear;
+                blockPtrR[i] *= masterGainLinear;
+            }
+        }
     }
 }
 

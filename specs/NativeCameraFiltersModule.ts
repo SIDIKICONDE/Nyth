@@ -87,6 +87,52 @@ export interface PerformanceConfig {
   threadPoolSize?: number;
 }
 
+// Configuration de production
+export interface ProductionConfig {
+  productionMode?: boolean;
+  enableLogging?: boolean;
+  enableProfiling?: boolean;
+  cacheSize?: number; // en bytes
+  targetFPS?: number;
+  maxThreads?: number;
+  enableOpenGL?: boolean;
+  enableCache?: boolean;
+  enablePrediction?: boolean;
+}
+
+// Informations système
+export interface SystemInfo {
+  totalMemory?: number; // en MB
+  cpuCores?: number;
+  hasGPU?: boolean;
+  supportsOpenGLES3?: boolean;
+  screenWidth?: number;
+  screenHeight?: number;
+  isLowPowerMode?: boolean;
+}
+
+// Statistiques de performance
+export interface PerformanceStats {
+  averageFPS: number;
+  averageProcessingTime: number; // en ms
+  totalFramesProcessed: number;
+  activeThreads: number;
+  queueSize: number;
+  memoryUsage: number; // en bytes
+}
+
+// Statistiques mémoire
+export interface MemoryStats {
+  totalAllocated: number;
+  currentlyUsed: number;
+  peakUsage: number;
+  allocationCount: number;
+  deallocationCount: number;
+  cacheHits: number;
+  cacheMisses: number;
+  cacheHitRate: number; // 0.0 à 1.0
+}
+
 export interface Spec extends TurboModule {
   // === API de base (existante) ===
   readonly getAvailableFilters: () => string[];
@@ -137,6 +183,18 @@ export interface Spec extends TurboModule {
   readonly validateLUTFile: (path: string) => boolean;
   readonly supportsFormat: (pixelFormat: string) => boolean;
   readonly supportsFilter: (filterName: string) => boolean;
+  
+  // === API de production ===
+  readonly setProductionConfig: (config: ProductionConfig) => boolean;
+  readonly getProductionConfig: () => ProductionConfig;
+  readonly getSystemInfo: () => SystemInfo;
+  readonly getPerformanceStats: () => PerformanceStats;
+  readonly getMemoryStats: () => MemoryStats;
+  readonly preloadFilters: (filterNames: string[]) => boolean;
+  readonly cleanup: () => boolean;
+  readonly enableProfiling: (enable: boolean) => boolean;
+  readonly setTargetFPS: (fps: number) => boolean;
+  readonly setCacheSize: (sizeInMB: number) => boolean;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('NativeCameraFiltersModule');

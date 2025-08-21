@@ -1,5 +1,6 @@
 #include "FilterFactory.hpp"
 #include "FFmpegFilterProcessor.hpp"
+#include "OpenGLFilterProcessor.hpp"
 #include <iostream>
 
 namespace Camera {
@@ -34,8 +35,16 @@ std::shared_ptr<IFilterProcessor> FilterFactory::createFFmpegProcessor() {
 
 
 std::shared_ptr<IFilterProcessor> FilterFactory::createOpenGLProcessor() {
-    std::cout << "[FilterFactory] Processeur OpenGL - utilisation FFmpeg obligatoire" << std::endl;
-    return createFFmpegProcessor();
+    std::cout << "[FilterFactory] Création du processeur OpenGL" << std::endl;
+
+    auto processor = std::make_shared<OpenGLFilterProcessor>();
+    if (processor && processor->initialize()) {
+        std::cout << "[FilterFactory] Processeur OpenGL créé avec succès" << std::endl;
+        return processor;
+    } else {
+        std::cout << "[FilterFactory] Échec création OpenGL - fallback vers FFmpeg" << std::endl;
+        return createFFmpegProcessor();
+    }
 }
 
 
@@ -57,8 +66,13 @@ bool FilterFactory::isProcessorTypeAvailable(ProcessorType type) {
         case ProcessorType::FFMPEG:
             return true; // Toujours disponible avec fallback
 
-        case ProcessorType::OPENGL:
-            return true; // OpenGL disponible partout
+        case ProcessorType::OPENGL: {
+            // Vérifier si OpenGL est réellement disponible
+            auto tempProcessor = std::make_shared<OpenGLFilterProcessor>();
+            bool available = tempProcessor && tempProcessor->initialize();
+            if (tempProcessor) tempProcessor->shutdown();
+            return available;
+        }
 
         case ProcessorType::CUSTOM:
             return false; // Pas encore implémenté

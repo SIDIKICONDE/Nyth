@@ -29,6 +29,8 @@ static NaayaAdvancedFilterParams g_naaya_filters_advanced_params = {
 #include "filters/FilterManager.hpp"
 #include "filters/FilterFactory.hpp"
 #include "filters/FFmpegFilterProcessor.hpp"
+#include "filters/ProductionConfig.hpp"
+#include "filters/ProductionSetup.hpp"
 #include <iostream>
 
 namespace facebook::react {
@@ -39,9 +41,25 @@ NativeCameraFiltersModule::NativeCameraFiltersModule(std::shared_ptr<CallInvoker
   filterManager_ = std::make_unique<Camera::FilterManager>();
   filterManager_->initialize();
   
-  // Enregistrer le processeur FFmpeg par défaut
-  auto processor = Camera::FilterFactory::createProcessor(Camera::FilterFactory::ProcessorType::FFMPEG);
-  filterManager_->registerProcessor(processor);
+  // Configuration de production automatique
+  auto& prodConfig = Camera::ProductionConfig::getInstance();
+  if (prodConfig.isProductionMode()) {
+    Camera::ProductionSetup::configureForProduction(*filterManager_);
+    std::cout << "[NativeCameraFiltersModule] Mode production activé" << std::endl;
+  }
+  
+  // Enregistrer les processeurs disponibles
+  auto ffmpegProcessor = Camera::FilterFactory::createProcessor(Camera::FilterFactory::ProcessorType::FFMPEG);
+  filterManager_->registerProcessor(ffmpegProcessor);
+  
+  // Essayer d'enregistrer OpenGL si disponible
+  if (Camera::FilterFactory::isProcessorTypeAvailable(Camera::FilterFactory::ProcessorType::OPENGL)) {
+    auto openglProcessor = Camera::FilterFactory::createProcessor(Camera::FilterFactory::ProcessorType::OPENGL);
+    if (openglProcessor) {
+      filterManager_->registerProcessor(openglProcessor);
+      std::cout << "[NativeCameraFiltersModule] Processeur OpenGL enregistré" << std::endl;
+    }
+  }
 }
 
 NativeCameraFiltersModule::~NativeCameraFiltersModule() = default;
@@ -485,6 +503,271 @@ bool NativeCameraFiltersModule::supportsFilter(jsi::Runtime& rt, jsi::String fil
   }
   
   return false;
+}
+
+// === Implémentation API de production ===
+
+bool NativeCameraFiltersModule::setProductionConfig(jsi::Runtime& rt, jsi::Object config) {
+  try {
+    auto& prodConfig = Camera::ProductionConfig::getInstance();
+    
+    // Configuration générale
+    if (config.hasProperty(rt, "productionMode")) {
+      prodConfig.setProductionMode(config.getProperty(rt, "productionMode").getBool());
+    }
+    
+    if (config.hasProperty(rt, "enableLogging")) {
+      prodConfig.setLogging(config.getProperty(rt, "enableLogging").getBool());
+    }
+    
+    if (config.hasProperty(rt, "cacheSize")) {
+      size_t cacheSize = static_cast<size_t>(config.getProperty(rt, "cacheSize").getNumber());
+      prodConfig.setCacheSize(cacheSize);
+    }
+    
+    if (config.hasProperty(rt, "targetFPS")) {
+      int fps = static_cast<int>(config.getProperty(rt, "targetFPS").getNumber());
+      prodConfig.setTargetFPS(fps);
+    }
+    
+    // Appliquer la configuration au FilterManager
+    if (filterManager_) {
+      const auto& memConfig = prodConfig.getMemory();
+      const auto& perfConfig = prodConfig.getPerformance();
+      
+      filterManager_->getMemoryManager().setMaxCacheSize(memConfig.maxCacheSize);
+      filterManager_->setThreadPoolSize(perfConfig.maxProcessingThreads);
+      filterManager_->setParallelProcessing(perfConfig.enableThreadPooling);
+      filterManager_->enableProfiling(prodConfig.isProfilingEnabled());
+    }
+    
+    std::cout << "[NativeCameraFiltersModule] Configuration de production appliquée" << std::endl;
+    return true;
+  } catch (const std::exception& e) {
+    lastError_ = std::string("Erreur configuration production: ") + e.what();
+    return false;
+  }
+}
+
+jsi::Object NativeCameraFiltersModule::getProductionConfig(jsi::Runtime& rt) {
+  jsi::Object config(rt);
+  
+  const auto& prodConfig = Camera::ProductionConfig::getInstance();
+  const auto& general = prodConfig.getGeneral();
+  const auto& memory = prodConfig.getMemory();
+  const auto& gpu = prodConfig.getGPU();
+  const auto& performance = prodConfig.getPerformance();
+  
+  // Configuration générale
+  config.setProperty(rt, "productionMode", jsi::Value(general.enableProductionMode));
+  config.setProperty(rt, "enableLogging", jsi::Value(general.enableLogging));
+  config.setProperty(rt, "enableCache", jsi::Value(general.enableCache));
+  config.setProperty(rt, "enableOpenGL", jsi::Value(general.enableOpenGL));
+  
+  // Configuration mémoire
+  config.setProperty(rt, "cacheSize", jsi::Value(static_cast<double>(memory.maxCacheSize)));
+  config.setProperty(rt, "cleanupThreshold", jsi::Value(static_cast<double>(memory.cleanupThreshold)));
+  
+  // Configuration GPU
+  config.setProperty(rt, "preferOpenGL", jsi::Value(gpu.preferOpenGL));
+  config.setProperty(rt, "enableShaderCache", jsi::Value(gpu.enableShaderCache));
+  config.setProperty(rt, "maxTextureSize", jsi::Value(gpu.maxTextureSize));
+  
+  // Configuration performances
+  config.setProperty(rt, "targetFPS", jsi::Value(performance.targetFPS));
+  config.setProperty(rt, "maxThreads", jsi::Value(performance.maxProcessingThreads));
+  config.setProperty(rt, "enablePrediction", jsi::Value(performance.enablePrediction));
+  
+  return config;
+}
+
+jsi::Object NativeCameraFiltersModule::getSystemInfo(jsi::Runtime& rt) {
+  jsi::Object info(rt);
+  
+  // Informations système de base
+  info.setProperty(rt, "cpuCores", jsi::Value(std::thread::hardware_concurrency()));
+  
+  // Détection OpenGL
+  bool hasOpenGL = Camera::FilterFactory::isProcessorTypeAvailable(Camera::FilterFactory::ProcessorType::OPENGL);
+  info.setProperty(rt, "hasGPU", jsi::Value(hasOpenGL));
+  info.setProperty(rt, "supportsOpenGLES3", jsi::Value(hasOpenGL));
+  
+  // Informations mémoire (estimation)
+  info.setProperty(rt, "totalMemory", jsi::Value(4096.0)); // 4GB par défaut
+  
+  // Informations écran (valeurs par défaut)
+  info.setProperty(rt, "screenWidth", jsi::Value(1080.0));
+  info.setProperty(rt, "screenHeight", jsi::Value(1920.0));
+  
+  // Mode économie d'énergie (non détectable facilement)
+  info.setProperty(rt, "isLowPowerMode", jsi::Value(false));
+  
+  return info;
+}
+
+jsi::Object NativeCameraFiltersModule::getPerformanceStats(jsi::Runtime& rt) {
+  jsi::Object stats(rt);
+  
+  if (filterManager_) {
+    auto perfStats = filterManager_->getPerformanceStats();
+    
+    stats.setProperty(rt, "averageFPS", jsi::Value(perfStats.currentFPS));
+    stats.setProperty(rt, "averageProcessingTime", jsi::Value(perfStats.averageProcessingTime));
+    stats.setProperty(rt, "totalFramesProcessed", jsi::Value(static_cast<double>(perfStats.totalFramesProcessed)));
+    stats.setProperty(rt, "activeThreads", jsi::Value(static_cast<double>(perfStats.activeThreads)));
+    stats.setProperty(rt, "queueSize", jsi::Value(static_cast<double>(perfStats.queueSize)));
+    stats.setProperty(rt, "memoryUsage", jsi::Value(static_cast<double>(perfStats.memoryUsage)));
+  } else {
+    // Valeurs par défaut si pas de FilterManager
+    stats.setProperty(rt, "averageFPS", jsi::Value(0.0));
+    stats.setProperty(rt, "averageProcessingTime", jsi::Value(0.0));
+    stats.setProperty(rt, "totalFramesProcessed", jsi::Value(0.0));
+    stats.setProperty(rt, "activeThreads", jsi::Value(0.0));
+    stats.setProperty(rt, "queueSize", jsi::Value(0.0));
+    stats.setProperty(rt, "memoryUsage", jsi::Value(0.0));
+  }
+  
+  return stats;
+}
+
+jsi::Object NativeCameraFiltersModule::getMemoryStats(jsi::Runtime& rt) {
+  jsi::Object stats(rt);
+  
+  if (filterManager_) {
+    auto memStats = filterManager_->getMemoryStats();
+    
+    stats.setProperty(rt, "totalAllocated", jsi::Value(static_cast<double>(memStats.totalAllocated)));
+    stats.setProperty(rt, "currentlyUsed", jsi::Value(static_cast<double>(memStats.currentlyUsed)));
+    stats.setProperty(rt, "peakUsage", jsi::Value(static_cast<double>(memStats.peakUsage)));
+    stats.setProperty(rt, "allocationCount", jsi::Value(static_cast<double>(memStats.allocationCount)));
+    stats.setProperty(rt, "deallocationCount", jsi::Value(static_cast<double>(memStats.deallocationCount)));
+    stats.setProperty(rt, "cacheHits", jsi::Value(static_cast<double>(memStats.cacheHits)));
+    stats.setProperty(rt, "cacheMisses", jsi::Value(static_cast<double>(memStats.cacheMisses)));
+    
+    // Calculer le taux de hit du cache
+    double hitRate = 0.0;
+    if (memStats.cacheHits + memStats.cacheMisses > 0) {
+      hitRate = static_cast<double>(memStats.cacheHits) / (memStats.cacheHits + memStats.cacheMisses);
+    }
+    stats.setProperty(rt, "cacheHitRate", jsi::Value(hitRate));
+  } else {
+    // Valeurs par défaut
+    stats.setProperty(rt, "totalAllocated", jsi::Value(0.0));
+    stats.setProperty(rt, "currentlyUsed", jsi::Value(0.0));
+    stats.setProperty(rt, "peakUsage", jsi::Value(0.0));
+    stats.setProperty(rt, "allocationCount", jsi::Value(0.0));
+    stats.setProperty(rt, "deallocationCount", jsi::Value(0.0));
+    stats.setProperty(rt, "cacheHits", jsi::Value(0.0));
+    stats.setProperty(rt, "cacheMisses", jsi::Value(0.0));
+    stats.setProperty(rt, "cacheHitRate", jsi::Value(0.0));
+  }
+  
+  return stats;
+}
+
+bool NativeCameraFiltersModule::preloadFilters(jsi::Runtime& rt, jsi::Array filterNames) {
+  if (!filterManager_) {
+    lastError_ = "FilterManager non initialisé";
+    return false;
+  }
+  
+  try {
+    size_t count = filterNames.size(rt);
+    std::vector<std::string> filters;
+    filters.reserve(count);
+    
+    for (size_t i = 0; i < count; ++i) {
+      auto value = filterNames.getValueAtIndex(rt, i);
+      if (value.isString()) {
+        filters.push_back(value.getString(rt).utf8(rt));
+      }
+    }
+    
+    // Précharger chaque filtre
+    for (const auto& filterName : filters) {
+      Camera::FilterState state;
+      state.isActive = true;
+      state.params.intensity = 1.0;
+      
+      // Mapper le nom vers le type
+      if (filterName == "sepia") {
+        state.type = Camera::FilterType::SEPIA;
+      } else if (filterName == "vintage") {
+        state.type = Camera::FilterType::VINTAGE;
+      } else if (filterName == "cool") {
+        state.type = Camera::FilterType::COOL;
+      } else if (filterName == "warm") {
+        state.type = Camera::FilterType::WARM;
+      } else {
+        continue; // Ignorer les filtres non reconnus
+      }
+      
+      // Ajouter temporairement pour précharger
+      filterManager_->addFilter(state);
+      filterManager_->removeFilter(state.type);
+    }
+    
+    std::cout << "[NativeCameraFiltersModule] " << filters.size() << " filtres préchargés" << std::endl;
+    return true;
+  } catch (const std::exception& e) {
+    lastError_ = std::string("Erreur préchargement: ") + e.what();
+    return false;
+  }
+}
+
+bool NativeCameraFiltersModule::cleanup(jsi::Runtime& rt) {
+  (void)rt;
+  
+  if (filterManager_) {
+    // Nettoyer le cache et optimiser la mémoire
+    filterManager_->clearFilters();
+    filterManager_->getMemoryManager().cleanupUnused();
+    
+    std::cout << "[NativeCameraFiltersModule] Nettoyage effectué" << std::endl;
+    return true;
+  }
+  
+  return false;
+}
+
+bool NativeCameraFiltersModule::enableProfiling(jsi::Runtime& rt, bool enable) {
+  (void)rt;
+  
+  if (filterManager_) {
+    filterManager_->enableProfiling(enable);
+    filterManager_->getMemoryManager().enableProfiling(enable);
+    
+    std::cout << "[NativeCameraFiltersModule] Profiling: " << (enable ? "activé" : "désactivé") << std::endl;
+    return true;
+  }
+  
+  return false;
+}
+
+bool NativeCameraFiltersModule::setTargetFPS(jsi::Runtime& rt, double fps) {
+  (void)rt;
+  
+  auto& prodConfig = Camera::ProductionConfig::getInstance();
+  prodConfig.setTargetFPS(static_cast<int>(fps));
+  
+  std::cout << "[NativeCameraFiltersModule] FPS cible défini: " << fps << std::endl;
+  return true;
+}
+
+bool NativeCameraFiltersModule::setCacheSize(jsi::Runtime& rt, double sizeInMB) {
+  (void)rt;
+  
+  size_t sizeInBytes = static_cast<size_t>(sizeInMB * 1024 * 1024);
+  
+  auto& prodConfig = Camera::ProductionConfig::getInstance();
+  prodConfig.setCacheSize(sizeInBytes);
+  
+  if (filterManager_) {
+    filterManager_->getMemoryManager().setMaxCacheSize(sizeInBytes);
+  }
+  
+  std::cout << "[NativeCameraFiltersModule] Taille cache définie: " << sizeInMB << " MB" << std::endl;
+  return true;
 }
 
 } // namespace facebook::react

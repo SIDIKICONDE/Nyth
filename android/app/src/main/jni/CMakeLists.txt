@@ -36,6 +36,10 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     )
 endif()
 
+# Définitions pour OpenGL ES sur Android
+add_definitions(-DUSE_OPENGL_ES)
+add_definitions(-DANDROID)
+
 # =============================================================================
 # Build Configuration
 # =============================================================================
@@ -44,9 +48,33 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
 
-# Release configuration avec optimisations C++20
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG")
+# Release configuration avec optimisations C++20 production
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -DPRODUCTION_BUILD")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG -DPRODUCTION_BUILD")
+
+# Optimisations avancées pour Android production
+if(CMAKE_SYSTEM_NAME STREQUAL "Android")
+    # Optimisations spécifiques ARM
+    if(ANDROID_ABI STREQUAL "arm64-v8a")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=armv8-a")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mtune=cortex-a53")
+    elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=armv7-a")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
+    endif()
+
+    # Optimisations générales
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -flto -fomit-frame-pointer")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffast-math -funroll-loops")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fvisibility=hidden")
+
+    # Link Time Optimization
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
+    # Réduction taille binaire
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fdata-sections -ffunction-sections")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
+endif()
 
 # Common flags for all configurations
 add_compile_options(
@@ -168,6 +196,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/filters/FFmpegFilterProcessor.cpp
     ../../../../../shared/filters/FilterFactory.cpp
     ../../../../../shared/filters/FilterManager.cpp
+    ../../../../../shared/filters/OpenGLFilterProcessor.cpp
+    ../../../../../shared/filters/MemoryManager.cpp
+    ../../../../../shared/filters/ProductionConfig.cpp
 )
 
 # =============================================================================
@@ -220,6 +251,29 @@ if(HAS_CONSTEVAL)
     message(STATUS "  - consteval: ✅ ENABLED")
 else()
     message(STATUS "  - consteval: ❌ DISABLED")
+endif()
+
+# =============================================================================
+# OpenGL ES Configuration for Android
+# =============================================================================
+
+# Link against OpenGL ES for GPU-accelerated filters
+find_library(OPENGLES_LIBRARY GLESv3 NAMES GLESv3 GLESv2)
+if(OPENGLES_LIBRARY)
+    target_link_libraries(${CMAKE_PROJECT_NAME} ${OPENGLES_LIBRARY})
+    message(STATUS "✅ OpenGL ES library found: ${OPENGLES_LIBRARY}")
+else()
+    message(WARNING "❌ OpenGL ES library not found - GPU filters will be disabled")
+    add_definitions(-DDISABLE_OPENGL_FILTERS)
+endif()
+
+# Link against EGL for OpenGL ES context management
+find_library(EGL_LIBRARY EGL NAMES EGL)
+if(EGL_LIBRARY)
+    target_link_libraries(${CMAKE_PROJECT_NAME} ${EGL_LIBRARY})
+    message(STATUS "✅ EGL library found: ${EGL_LIBRARY}")
+else()
+    message(WARNING "❌ EGL library not found")
 endif()
 
 message(STATUS "🎯 C++20 Audio Processing Modules configured successfully!")

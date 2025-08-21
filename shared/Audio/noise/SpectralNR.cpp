@@ -48,6 +48,16 @@ void SpectralNR::setConfig(const SpectralNRConfig& cfg) {
     inBuf_.assign(cfg_.fftSize, 0.0f);
     outBuf_.assign(cfg_.fftSize, 0.0f);
     noiseMag_.assign(cfg_.fftSize / 2 + 1, 0.0f);
+    
+    // Pre-allocate work buffers
+    frame_.resize(cfg_.fftSize);
+    re_.resize(cfg_.fftSize);
+    im_.resize(cfg_.fftSize);
+    mag_.resize(cfg_.fftSize / 2 + 1);
+    ph_.resize(cfg_.fftSize / 2 + 1);
+    time_.resize(cfg_.fftSize);
+    fftData_.resize(cfg_.fftSize);
+    
     writePos_ = 0;
     noiseInit_ = true;
 }
@@ -67,21 +77,20 @@ void SpectralNR::fft(const std::vector<float>& in, std::vector<float>& re, std::
         throw std::runtime_error("FFT size must be a power of 2");
     }
     
-    // Convert to complex format
-    std::vector<std::complex<float>> data(N);
+    // Convert to complex format - use pre-allocated buffer
     for (size_t i = 0; i < N; ++i) {
-        data[i] = std::complex<float>(in[i], 0.0f);
+        fftData_[i] = std::complex<float>(in[i], 0.0f);
     }
     
     // Perform FFT
-    fftRadix2(data, false);
+    fftRadix2(fftData_, false);
     
     // Extract real and imaginary parts
     re.resize(N);
     im.resize(N);
     for (size_t i = 0; i < N; ++i) {
-        re[i] = data[i].real();
-        im[i] = data[i].imag();
+        re[i] = fftData_[i].real();
+        im[i] = fftData_[i].imag();
     }
 }
 
@@ -91,20 +100,19 @@ void SpectralNR::ifft(const std::vector<float>& re, const std::vector<float>& im
         throw std::runtime_error("IFFT size must be a power of 2");
     }
     
-    // Convert to complex format
-    std::vector<std::complex<float>> data(N);
+    // Convert to complex format - use pre-allocated buffer
     for (size_t i = 0; i < N; ++i) {
-        data[i] = std::complex<float>(re[i], im[i]);
+        fftData_[i] = std::complex<float>(re[i], im[i]);
     }
     
     // Perform inverse FFT
-    fftRadix2(data, true);
+    fftRadix2(fftData_, true);
     
     // Extract real part and normalize
     out.resize(N);
     float scale = 1.0f / static_cast<float>(N);
     for (size_t i = 0; i < N; ++i) {
-        out[i] = data[i].real() * scale;
+        out[i] = fftData_[i].real() * scale;
     }
 }
 
@@ -134,56 +142,52 @@ void SpectralNR::process(const float* input, float* output, size_t numSamples) {
             std::fill(inBuf_.begin() + static_cast<long long>(destOffset + toCopy), inBuf_.begin() + static_cast<long long>(destOffset + cfg_.hopSize), 0.0f);
         }
 
-        // Window
-        std::vector<float> frame(cfg_.fftSize);
-        for (size_t i = 0; i < cfg_.fftSize; ++i) frame[i] = inBuf_[i] * window_[i];
+        // Window - use pre-allocated buffer
+        for (size_t i = 0; i < cfg_.fftSize; ++i) frame_[i] = inBuf_[i] * window_[i];
 
-        // FFT
-        std::vector<float> re, im;
-        fft(frame, re, im);
+        // FFT - use pre-allocated buffers
+        fft(frame_, re_, im_);
 
-        // Magnitude and phase
+        // Magnitude and phase - use pre-allocated buffers
         size_t half = cfg_.fftSize / 2;
-        std::vector<float> mag(half + 1), ph(half + 1);
         for (size_t k = 0; k <= half; ++k) {
-            float r = re[k]; float ii = im[k];
-            mag[k] = std::sqrt(r * r + ii * ii);
-            ph[k] = std::atan2(ii, r);
+            float r = re_[k]; float ii = im_[k];
+            mag_[k] = std::sqrt(r * r + ii * ii);
+            ph_[k] = std::atan2(ii, r);
         }
 
         // Noise estimate (MCRA-like)
         if (noiseInit_) {
-            for (size_t k = 0; k <= half; ++k) noiseMag_[k] = mag[k];
+            for (size_t k = 0; k <= half; ++k) noiseMag_[k] = mag_[k];
             noiseInit_ = false;
         } else {
-            for (size_t k = 0; k <= half; ++k) noiseMag_[k] = static_cast<float>(cfg_.noiseUpdate * noiseMag_[k] + (1.0 - cfg_.noiseUpdate) * mag[k]);
+            for (size_t k = 0; k <= half; ++k) noiseMag_[k] = static_cast<float>(cfg_.noiseUpdate * noiseMag_[k] + (1.0 - cfg_.noiseUpdate) * mag_[k]);
         }
 
         // Spectral subtraction with floor
         for (size_t k = 0; k <= half; ++k) {
-            float sub = mag[k] - static_cast<float>(cfg_.beta) * noiseMag_[k];
+            float sub = mag_[k] - static_cast<float>(cfg_.beta) * noiseMag_[k];
             if (sub < cfg_.floorGain * noiseMag_[k]) sub = static_cast<float>(cfg_.floorGain * noiseMag_[k]);
-            mag[k] = sub;
+            mag_[k] = sub;
         }
 
         // Reconstruct full spectrum (Hermitian for real signal)
         for (size_t k = 0; k <= half; ++k) {
-            re[k] = mag[k] * std::cos(ph[k]);
-            im[k] = mag[k] * std::sin(ph[k]);
+            re_[k] = mag_[k] * std::cos(ph_[k]);
+            im_[k] = mag_[k] * std::sin(ph_[k]);
         }
         for (size_t k = half + 1; k < cfg_.fftSize; ++k) {
             size_t kr = cfg_.fftSize - k;
-            re[k] = re[kr];
-            im[k] = -im[kr];
+            re_[k] = re_[kr];
+            im_[k] = -im_[kr];
         }
 
-        // IFFT
-        std::vector<float> time;
-        ifft(re, im, time);
+        // IFFT - use pre-allocated buffer
+        ifft(re_, im_, time_);
 
         // Overlap-add
         if (outBuf_.size() != cfg_.fftSize) outBuf_.assign(cfg_.fftSize, 0.0f);
-        for (size_t i = 0; i < cfg_.fftSize; ++i) outBuf_[i] += time[i] * window_[i];
+        for (size_t i = 0; i < cfg_.fftSize; ++i) outBuf_[i] += time_[i] * window_[i];
 
         // Output hop segment
         size_t outCount = std::min(cfg_.hopSize, numSamples - pos);

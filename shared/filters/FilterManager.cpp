@@ -59,6 +59,9 @@ FilterManager::FilterManager() {
     size_t numThreads = std::min(std::thread::hardware_concurrency(), 8u);
     threadPool_ = std::make_unique<ThreadPool>(numThreads);
     parallelBuffers_.resize(numThreads);
+
+    // Initialiser le gestionnaire de mémoire
+    memoryManager_ = std::make_unique<MemoryManager>();
 }
 
 FilterManager::~FilterManager() {
@@ -68,17 +71,22 @@ FilterManager::~FilterManager() {
 
 bool FilterManager::initialize() {
     std::lock_guard<std::mutex> lock(mutex_);
-    
+
     if (initialized_) {
         return true;
     }
-    
+
     std::cout << "[FilterManager] Initialisation..." << std::endl;
-    
+
     // Réinitialiser l'état
     lastError_.clear();
     activeFilters_.clear();
-    
+
+    // Initialiser le gestionnaire de mémoire
+    if (memoryManager_) {
+        memoryManager_->enableProfiling(profilingEnabled_);
+    }
+
     initialized_ = true;
     std::cout << "[FilterManager] Initialisation terminée" << std::endl;
     return true;
@@ -650,6 +658,27 @@ void FilterManager::enableProfiling(bool enabled) {
     if (enabled) {
         resetPerformanceStats();
     }
+
+    // Synchroniser avec le gestionnaire de mémoire
+    if (memoryManager_) {
+        memoryManager_->enableProfiling(enabled);
+    }
+}
+
+// Méthodes de gestion de la mémoire
+
+MemoryManager& FilterManager::getMemoryManager() const {
+    if (!memoryManager_) {
+        throw std::runtime_error("MemoryManager non initialisé");
+    }
+    return *memoryManager_;
+}
+
+MemoryManager::MemoryStats FilterManager::getMemoryStats() const {
+    if (!memoryManager_) {
+        return MemoryManager::MemoryStats();
+    }
+    return memoryManager_->getStats();
 }
 
 } // namespace Camera

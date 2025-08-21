@@ -83,7 +83,7 @@ export default function CameraWithFiltersPro() {
           setFilterCapabilities(caps);
 
           // Configuration optimisée selon l'appareil
-          const threadCount = caps.availableProcessors.includes('VULKAN') ? 8 : 4;
+          const threadCount = caps.availableProcessors.includes('OPENGL') ? 8 : 4;
           await cameraFiltersAPI.setPerformanceConfig({
             parallelProcessing: true,
             threadPoolSize: threadCount,

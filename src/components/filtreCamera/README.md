@@ -56,9 +56,9 @@ const capabilities = await cameraFiltersAPI.getCapabilities();
 console.log('FFmpeg disponible:', capabilities.ffmpegAvailable);
 console.log('Processeurs:', capabilities.availableProcessors);
 
-// Changer de processeur (ex: Vulkan sur Android)
-if (capabilities.availableProcessors.includes('VULKAN')) {
-  await cameraFiltersAPI.setProcessor('VULKAN');
+// Changer de processeur (ex: OpenGL)
+if (capabilities.availableProcessors.includes('OPENGL')) {
+  await cameraFiltersAPI.setProcessor('OPENGL');
 }
 
 // Configurer la performance
@@ -168,14 +168,14 @@ Assurez-vous que `react-native-vector-icons` charge bien ses polices:
 
 ## 📱 Support multi-plateforme
 
-- **iOS** : FFmpeg + Core Image (à venir)
-- **Android** : FFmpeg + Vulkan (beta)
+- **iOS** : FFmpeg uniquement
+- **Android** : FFmpeg + OpenGL
 - **Fallback** : Mode CPU optimisé si FFmpeg non disponible
 
 ## 🎯 Roadmap
 
-- [ ] Support Core Image pour iOS
-- [ ] Pipeline Vulkan complet pour Android
+
+- [ ] Pipeline OpenGL complet pour Android
 - [ ] Export/import de presets personnalisés
 - [ ] Historique des filtres appliqués
 - [ ] Mode comparaison avant/après

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "../../../../../contexts/ThemeContext";
 import { OptionButton } from "../OptionButton";
@@ -11,8 +11,21 @@ interface Props {
   onChange: (updates: Partial<AdvancedCameraConfig>) => void;
 }
 
-export const AudioSection: React.FC<Props> = ({ config, onChange }) => {
+const AudioSectionComponent: React.FC<Props> = ({ config, onChange }) => {
   const { currentTheme } = useTheme();
+  
+  // Mémoiser les callbacks pour éviter les re-renders
+  const handleAudioQualityChange = useCallback((quality: "standard" | "high" | "lossless") => {
+    onChange({ audioQuality: quality });
+  }, [onChange]);
+  
+  const handleMicrophoneGainChange = useCallback((value: number) => {
+    onChange({ microphoneGain: value });
+  }, [onChange]);
+  
+  const handleNoiseReductionChange = useCallback((value: boolean) => {
+    onChange({ noiseReduction: value });
+  }, [onChange]);
   return (
     <View>
       <Text style={[styles.optionLabel, { color: currentTheme.colors.text }]}>
@@ -22,17 +35,17 @@ export const AudioSection: React.FC<Props> = ({ config, onChange }) => {
         <OptionButton
           label="Standard"
           isActive={config.audioQuality === "standard"}
-          onPress={() => onChange({ audioQuality: "standard" })}
+          onPress={() => handleAudioQualityChange("standard")}
         />
         <OptionButton
           label="Haute"
           isActive={config.audioQuality === "high"}
-          onPress={() => onChange({ audioQuality: "high" })}
+          onPress={() => handleAudioQualityChange("high")}
         />
         <OptionButton
           label="Sans perte"
           isActive={config.audioQuality === "lossless"}
-          onPress={() => onChange({ audioQuality: "lossless" })}
+          onPress={() => handleAudioQualityChange("lossless")}
         />
       </View>
 
@@ -42,18 +55,28 @@ export const AudioSection: React.FC<Props> = ({ config, onChange }) => {
         minimumValue={0}
         maximumValue={100}
         step={5}
-        onValueChange={(value) => onChange({ microphoneGain: value })}
+        onValueChange={handleMicrophoneGainChange}
         formatValue={(value) => `${value}%`}
       />
 
       <SwitchControl
         label="Réduction de bruit"
         value={config.noiseReduction}
-        onValueChange={(value) => onChange({ noiseReduction: value })}
+        onValueChange={handleNoiseReductionChange}
       />
     </View>
   );
 };
+
+// Mémoiser le composant pour éviter les re-renders inutiles
+export const AudioSection = memo(AudioSectionComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.config.audioQuality === nextProps.config.audioQuality &&
+    prevProps.config.microphoneGain === nextProps.config.microphoneGain &&
+    prevProps.config.noiseReduction === nextProps.config.noiseReduction &&
+    prevProps.onChange === nextProps.onChange
+  );
+});
 
 const styles = StyleSheet.create({
   optionLabel: {

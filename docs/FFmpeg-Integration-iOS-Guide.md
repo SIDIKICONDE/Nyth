@@ -1,7 +1,7 @@
 # Guide d'Intégration FFmpeg iOS pour Naaya
 
 ## 🎯 Objectif
-Unifier le pipeline de filtres en utilisant FFmpeg comme moteur unique sur iOS et Android, éliminant la dépendance à Core Image.
+Unifier le pipeline de filtres en utilisant FFmpeg comme moteur unique sur iOS et Android.
 
 ## ✅ Modifications Implémentées
 
@@ -11,7 +11,7 @@ Unifier le pipeline de filtres en utilisant FFmpeg comme moteur unique sur iOS e
 - ✅ Définition `FFMPEG_AVAILABLE` pour iOS dans le header
 
 ### 2. Pipeline iOS Modifié
-- ✅ **Preview** (`NaayaPreviewView.mm`) : FFmpeg en priorité, Core Image en fallback
+- ✅ **Preview** (`NaayaPreviewView.mm`) : FFmpeg uniquement
 - ✅ **Enregistrement** (`VideoCaptureIOS.mm`) : Traitement FFmpeg des frames avant encodage
 - ✅ Gestion propre des buffers CVPixelBuffer
 
@@ -55,8 +55,8 @@ Preview & Recording (Objective-C)
 ### Avant vs Après
 | Aspect | Avant | Après |
 |--------|-------|-------|
-| **Preview iOS** | Core Image uniquement | FFmpeg → Core Image (fallback) |
-| **Recording iOS** | Core Image uniquement | FFmpeg → Core Image (fallback) |
+| **Preview iOS** | FFmpeg uniquement | FFmpeg uniquement |
+| **Recording iOS** | FFmpeg uniquement | FFmpeg uniquement |
 | **Android** | FFmpeg uniquement | FFmpeg uniquement (inchangé) |
 | **Consistance** | ❌ Deux moteurs différents | ✅ FFmpeg partout |
 
@@ -74,7 +74,7 @@ cd android && ./gradlew assembleDebug
 ### 2. Test Fonctionnel
 1. **Preview** : Vérifier que les filtres s'appliquent en temps réel
 2. **Recording** : Enregistrer une vidéo et vérifier les filtres
-3. **Fallback** : Désactiver FFmpeg et vérifier Core Image
+3. **Fallback** : Mode CPU optimisé
 4. **Performance** : Mesurer les FPS avec/sans filtres
 
 ### 3. Validation Pipeline
@@ -93,7 +93,7 @@ NativeCameraFiltersModule.setAdvancedFilter('brightness', 0.3, {});
 ## 📋 TODO Restants
 
 - [ ] Tester la compilation iOS avec ffmpeg-kit
-- [ ] Valider les performances FFmpeg vs Core Image
+- [ ] Valider les performances FFmpeg
 - [ ] Ajouter la gestion d'erreurs FFmpeg côté C++
 - [ ] Optimiser les conversions de formats de buffers
 - [ ] Mesurer l'impact sur la taille de l'app
@@ -124,5 +124,5 @@ cd ios && pod list | grep ffmpeg
 Une fois cette intégration terminée :
 - ✅ **Moteur unique** : FFmpeg partout (iOS + Android)
 - ✅ **Consistance** : Même rendu de filtres sur toutes plateformes
-- ✅ **Fallback robuste** : Core Image si FFmpeg indisponible
+- ✅ **Fallback robuste** : Mode CPU optimisé
 - ✅ **Performance** : Pipeline optimisé pour le temps réel

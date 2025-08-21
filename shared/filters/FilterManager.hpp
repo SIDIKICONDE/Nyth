@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include "common/FilterTypes.hpp"
+#include "MemoryManager.hpp"
 #include <memory>
 #include <vector>
 #include <unordered_map>
@@ -129,6 +130,10 @@ public:
     PerformanceStats getPerformanceStats() const;
     void resetPerformanceStats();
     void enableProfiling(bool enabled);
+
+    // Gestion de la mémoire
+    MemoryManager& getMemoryManager() const;
+    MemoryManager::MemoryStats getMemoryStats() const;
     
     // Factory pour créer des filtres prédéfinis
     static FilterState createSepiaFilter(double intensity = 1.0);
@@ -171,6 +176,9 @@ private:
     
     // Buffers pour traitement parallèle
     mutable std::vector<std::vector<uint8_t>> parallelBuffers_;
+
+    // Gestionnaire de mémoire
+    std::unique_ptr<MemoryManager> memoryManager_;
 
     // Performance monitoring
     mutable bool profilingEnabled_{false};

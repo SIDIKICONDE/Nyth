@@ -80,6 +80,13 @@ private:
     std::vector<float> noiseMag_;
     bool noiseInit_ = true;
 
+    // Pre-allocated work buffers to avoid allocations in process()
+    std::vector<float> frame_;
+    std::vector<float> re_, im_;
+    std::vector<float> mag_, ph_;
+    std::vector<float> time_;
+    std::vector<std::complex<float>> fftData_;
+
     // FFT implementation - Radix-2 Cooley-Tukey for efficiency
     void fft(const std::vector<float>& in, std::vector<float>& re, std::vector<float>& im);
     void ifft(const std::vector<float>& re, const std::vector<float>& im, std::vector<float>& out);

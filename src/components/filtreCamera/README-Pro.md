@@ -279,7 +279,7 @@ CameraFiltersAPI (Wrapper)
          ↓
 NativeCameraFiltersModule (Bridge)
          ↓
-Système C++ Complet (FFmpeg/Vulkan)
+Système C++ Complet (FFmpeg/OpenGL)
 ```
 
 ## 🚀 Roadmap

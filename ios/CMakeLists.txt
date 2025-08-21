@@ -31,6 +31,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
         add_compile_options(-mcpu=apple-m1)
     endif()
+
+    # Définitions pour OpenGL ES sur iOS
+    add_definitions(-DUSE_OPENGL_ES)
 endif()
 
 # =============================================================================
@@ -41,9 +44,24 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
 
-# Configuration Release
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG")
+# Configuration Release avec optimisations production
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -DPRODUCTION_BUILD")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG -DPRODUCTION_BUILD")
+
+# Flags d'optimisation avancés pour production
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -flto -fomit-frame-pointer")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffast-math -funroll-loops")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=armv8-a -mcpu=apple-m1")
+
+    # Optimisations Link Time Optimization (LTO)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
+    # Réduction de la taille binaire
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fvisibility=hidden")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fdata-sections -ffunction-sections")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
+endif()
 
 # Flags de sécurité et warnings
 add_compile_options(
@@ -158,6 +176,9 @@ set(CAMERA_SOURCES
     ../shared/filters/FFmpegFilterProcessor.cpp
     ../shared/filters/FilterFactory.cpp
     ../shared/filters/FilterManager.cpp
+    ../shared/filters/OpenGLFilterProcessor.cpp
+    ../shared/filters/MemoryManager.cpp
+    ../shared/filters/ProductionConfig.cpp
 )
 
 # =============================================================================
@@ -203,6 +224,25 @@ endif()
 
 if(HAS_CONSTEVAL)
     message(STATUS "  - consteval: ✅ ENABLED")
+endif()
+
+# =============================================================================
+# OpenGL ES Configuration for iOS
+# =============================================================================
+
+# iOS uses OpenGL ES through system frameworks
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    # OpenGL ES framework is automatically available on iOS
+    message(STATUS "✅ OpenGL ES available via iOS system frameworks")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    # macOS might need explicit linking
+    find_library(OPENGL_FRAMEWORK OpenGL)
+    if(OPENGL_FRAMEWORK)
+        message(STATUS "✅ OpenGL framework found: ${OPENGL_FRAMEWORK}")
+    else()
+        message(WARNING "❌ OpenGL framework not found - GPU filters will be disabled")
+        add_definitions(-DDISABLE_OPENGL_FILTERS)
+    endif()
 endif()
 
 message(STATUS "🎯 iOS C++20 Audio Processing configured successfully!")

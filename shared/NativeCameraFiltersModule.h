@@ -25,6 +25,8 @@
   #include <mutex>
   #include <optional>
   #include "filters/FilterManager.hpp"
+  #include "filters/ProductionConfig.hpp"
+  #include "filters/ProductionSetup.hpp"
 
   // Définir FFMPEG_AVAILABLE pour iOS maintenant
   #ifdef __APPLE__
@@ -76,6 +78,18 @@
     bool validateLUTFile(jsi::Runtime& rt, jsi::String path);
     bool supportsFormat(jsi::Runtime& rt, jsi::String pixelFormat);
     bool supportsFilter(jsi::Runtime& rt, jsi::String filterName);
+    
+    // JSI methods - API de production
+    bool setProductionConfig(jsi::Runtime& rt, jsi::Object config);
+    jsi::Object getProductionConfig(jsi::Runtime& rt);
+    jsi::Object getSystemInfo(jsi::Runtime& rt);
+    jsi::Object getPerformanceStats(jsi::Runtime& rt);
+    jsi::Object getMemoryStats(jsi::Runtime& rt);
+    bool preloadFilters(jsi::Runtime& rt, jsi::Array filterNames);
+    bool cleanup(jsi::Runtime& rt);
+    bool enableProfiling(jsi::Runtime& rt, bool enable);
+    bool setTargetFPS(jsi::Runtime& rt, double fps);
+    bool setCacheSize(jsi::Runtime& rt, double sizeInMB);
 
     // Internal cross-platform state
     struct FilterState { std::string name; double intensity; };
