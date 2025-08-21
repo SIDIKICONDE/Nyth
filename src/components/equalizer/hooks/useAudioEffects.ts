@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import NativeAudioEqualizerModule from '../../../../specs/NativeAudioEqualizerModule';
+import { AudioComputationCache, useAudioDebounce } from '../../../utils/audioPerformanceOptimizations';
 
 export interface CompressorConfig {
   thresholdDb: number;
@@ -61,43 +62,55 @@ export const useAudioEffects = () => {
     }
   }, [isEnabled]);
 
-  // Mettre à jour le compresseur
+  // Mettre à jour le compresseur - optimisé sans dépendances
   const updateCompressor = useCallback(async (newConfig: Partial<CompressorConfig>) => {
     try {
-      const updatedConfig = { ...compressor, ...newConfig };
-      
-      await NativeAudioEqualizerModule.fxSetCompressor(
-        updatedConfig.thresholdDb,
-        updatedConfig.ratio,
-        updatedConfig.attackMs,
-        updatedConfig.releaseMs,
-        updatedConfig.makeupDb
-      );
-      
-      setCompressor(updatedConfig);
+      // Utiliser une mise à jour fonctionnelle pour éviter la dépendance
+      setCompressor(prevCompressor => {
+        const updatedConfig = { ...prevCompressor, ...newConfig };
+        
+        // Appel asynchrone en dehors du setState
+        NativeAudioEqualizerModule.fxSetCompressor(
+          updatedConfig.thresholdDb,
+          updatedConfig.ratio,
+          updatedConfig.attackMs,
+          updatedConfig.releaseMs,
+          updatedConfig.makeupDb
+        ).catch(error => {
+          console.error('Failed to update compressor:', error);
+        });
+        
+        return updatedConfig;
+      });
     } catch (error) {
       console.error('Failed to update compressor:', error);
     }
-  }, [compressor]);
+  }, []);
 
-  // Mettre à jour le delay
+  // Mettre à jour le delay - optimisé sans dépendances
   const updateDelay = useCallback(async (newConfig: Partial<DelayConfig>) => {
     try {
-      const updatedConfig = { ...delay, ...newConfig };
-      
-      await NativeAudioEqualizerModule.fxSetDelay(
-        updatedConfig.delayMs,
-        updatedConfig.feedback,
-        updatedConfig.mix
-      );
-      
-      setDelay(updatedConfig);
+      // Utiliser une mise à jour fonctionnelle pour éviter la dépendance
+      setDelay(prevDelay => {
+        const updatedConfig = { ...prevDelay, ...newConfig };
+        
+        // Appel asynchrone en dehors du setState
+        NativeAudioEqualizerModule.fxSetDelay(
+          updatedConfig.delayMs,
+          updatedConfig.feedback,
+          updatedConfig.mix
+        ).catch(error => {
+          console.error('Failed to update delay:', error);
+        });
+        
+        return updatedConfig;
+      });
     } catch (error) {
       console.error('Failed to update delay:', error);
     }
-  }, [delay]);
+  }, []);
 
-  // Réinitialiser les effets
+  // Réinitialiser les effets - exécution en parallèle
   const resetEffects = useCallback(async () => {
     const defaultCompressor: CompressorConfig = {
       thresholdDb: -18.0,
@@ -113,20 +126,26 @@ export const useAudioEffects = () => {
       mix: 0.25
     };
     
-    await updateCompressor(defaultCompressor);
-    await updateDelay(defaultDelay);
+    // Exécuter les mises à jour en parallèle pour améliorer les performances
+    await Promise.all([
+      updateCompressor(defaultCompressor),
+      updateDelay(defaultDelay)
+    ]);
   }, [updateCompressor, updateDelay]);
 
-  // Calculer la réduction de gain du compresseur
+  // Calculer la réduction de gain du compresseur - optimisé
   const getCompressorGainReduction = useCallback((inputDb: number): number => {
-    if (inputDb <= compressor.thresholdDb) return 0;
+    // Utiliser les valeurs directement au lieu de l'objet complet
+    const threshold = compressor.thresholdDb;
+    const ratio = compressor.ratio;
     
-    const excess = inputDb - compressor.thresholdDb;
-    const compressedExcess = excess / compressor.ratio;
-    const reduction = excess - compressedExcess;
+    if (inputDb <= threshold) return 0;
+    
+    const excess = inputDb - threshold;
+    const reduction = excess - (excess / ratio);
     
     return reduction;
-  }, [compressor]);
+  }, [compressor.thresholdDb, compressor.ratio]);
 
   return {
     // État
