@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import NativeAudioEqualizerModule from '../../../../specs/NativeAudioEqualizerModule';
+import { AudioComputationCache, useAudioDebounce } from '../../../utils/audioPerformanceOptimizations';
 
 export interface CompressorConfig {
   thresholdDb: number;
