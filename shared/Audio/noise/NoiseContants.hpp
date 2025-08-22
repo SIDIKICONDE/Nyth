@@ -115,6 +115,7 @@ namespace NoiseReducerConstants {
 namespace RNNoiseSuppressorConstants {
     // Validation des paramètres audio
     // Bornes d'entrée globales pour l'API publique
+    constexpr uint32_t MIN_SAMPLE_RATE = 8000;           // Minimum sample rate in Hz
     constexpr uint32_t MAX_SAMPLE_RATE = 192000;         // Maximum sample rate in Hz
     constexpr int MIN_CHANNELS = 1;                      // Minimum number of channels
     constexpr int MAX_CHANNELS = 2;                      // Maximum number of channels

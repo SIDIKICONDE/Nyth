@@ -1,9 +1,6 @@
 #pragma once
 
 #ifdef __cplusplus
-#pragma once
-
-#ifdef __cplusplus
 
 // C++17 standard headers ONLY - No C++20 features
 #include <cstddef>

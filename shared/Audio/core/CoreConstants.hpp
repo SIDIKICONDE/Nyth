@@ -101,8 +101,8 @@ enum class FilterType {
 constexpr double EPSILON = 1e-10;
 constexpr double DENORMAL_THRESHOLD = 1e-15;
 
-// SIMD alignment
-constexpr size_t SIMD_ALIGNMENT = 16;
+// SIMD alignment is already defined above at line 105
+// constexpr size_t SIMD_ALIGNMENT = 16;  // Commented to avoid redefinition
 
 // ============================================================================
 // NAMESPACE EQUALIZER - Constantes spécifiques à l'égaliseur
@@ -260,8 +260,8 @@ namespace EffectConstants {
     constexpr double MS_TO_SECONDS = 0.001;              // Milliseconds to seconds conversion
 }
 
-// SIMD alignment
-constexpr size_t SIMD_ALIGNMENT = 16;
+// SIMD alignment - already defined above
+// constexpr size_t SIMD_ALIGNMENT = 16;
 
 // C++17 modernized frequency bands using std::array
 constexpr std::array<double, NUM_BANDS> DEFAULT_FREQUENCY_BANDS = {

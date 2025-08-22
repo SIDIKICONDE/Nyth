@@ -68,7 +68,7 @@ public:
 
 private:
     bool available_{false};
-    uint32_t sampleRate_{RNNoiseSuppressorConstants::DEFAULT_SAMPLE_RATE};
+    uint32_t sampleRate_{48000};  // Default sample rate
     int channels_{RNNoiseSuppressorConstants::DEFAULT_CHANNELS};
     double aggressiveness_{RNNoiseSuppressorConstants::DEFAULT_AGGRESSIVENESS};
 
