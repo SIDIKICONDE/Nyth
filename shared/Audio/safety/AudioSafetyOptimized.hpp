@@ -125,7 +125,7 @@ inline void AudioSafetyEngineOptimized::limitBufferAVX2(float* x, size_t n, floa
     
     // Process remaining samples with branch-free scalar
     for (; i < n; ++i) {
-        x[i] = BranchFree::clamp(x[i], -threshold, threshold);
+        x[i] = AudioFX::BranchFree::clamp(x[i], -threshold, threshold);
     }
 }
 
@@ -234,7 +234,7 @@ inline void AudioSafetyEngineOptimized::limitBufferNEON(float* x, size_t n, floa
     
     // Process remaining samples
     for (; i < n; ++i) {
-        x[i] = BranchFree::clamp(x[i], -threshold, threshold);
+        x[i] = AudioFX::BranchFree::clamp(x[i], -threshold, threshold);
     }
 }
 #endif // SAFETY_NEON
@@ -247,7 +247,7 @@ inline void AudioSafetyEngineOptimized::limitBufferBranchFree(float* x, size_t n
 #else
     // Branch-free scalar fallback
     for (size_t i = 0; i < n; ++i) {
-        x[i] = BranchFree::clamp(x[i], -threshold, threshold);
+        x[i] = AudioFX::BranchFree::clamp(x[i], -threshold, threshold);
     }
 #endif
 }

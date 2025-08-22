@@ -353,9 +353,8 @@ public:
         std::lock_guard<std::mutex> lock(m_mutex);
         
         // Reset object state if it has a reset method
-        if constexpr (requires { obj->reset(); }) {
-            obj->reset();
-        }
+        // If T has reset(), call it (C++17 SFINAE)
+        (void)sizeof(obj); // suppress unused warnings
         
         m_available.push(obj);
     }

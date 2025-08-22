@@ -8,10 +8,13 @@
 namespace AudioFX {
 
 // === AUDIO CONFIGURATION ===
-static constexpr uint32_t DEFAULT_SAMPLE_RATE = 48000;
+#ifndef AUDIOFX_CORE_DEFAULTS_INCLUDED
+#include "../core/CoreConstants.hpp"
+#endif
+using AudioFX::DEFAULT_SAMPLE_RATE;
 static constexpr uint32_t MIN_SAMPLE_RATE = 8000;
 static constexpr uint32_t MINIMUM_SAMPLE_RATE = 8000;
-static constexpr uint32_t REFERENCE_SAMPLE_RATE = 48000;
+static constexpr uint32_t REFERENCE_SAMPLE_RATE = DEFAULT_SAMPLE_RATE;
 static constexpr int DEFAULT_CHANNELS = 2;
 static constexpr int MONO_CHANNELS = 1;
 static constexpr int STEREO_CHANNELS = 2;

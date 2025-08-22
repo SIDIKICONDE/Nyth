@@ -21,6 +21,7 @@
 #include "../core/AudioError.hpp"
 #include "../core/BiquadFilterSafe.hpp"
 #include "../core/ThreadSafeBiquadFilter.hpp"
+#include "../core/CoreConstants.hpp"
 #include "../effects/EffectConstants.hpp"
 
 using namespace AudioFX;
@@ -67,7 +68,7 @@ bool testErrorCodeSystem() {
     TEST_ASSERT(result2.error() == AudioError::INVALID_SIZE);
     
     // Test monadic operations
-    auto result3 = result1.map([](int x) { return x * 2; });
+    auto result3 = result1.map([](int x) -> int { return x * 2; });
     TEST_ASSERT(result3.isOk());
     TEST_ASSERT(result3.value() == 84);
     
@@ -134,7 +135,7 @@ bool testBoundsChecking() {
     // Test SafeAudioBuffer
     SafeAudioBuffer<float> safeBuf(output.data(), output.size());
     
-    auto result = safeBuf.at(10);
+    auto result = safeBuf.at(10); // returns AudioResult<float> by value
     TEST_ASSERT(result.isOk());
     
     auto result2 = safeBuf.at(1000); // Out of bounds

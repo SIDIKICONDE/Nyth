@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project(AudioEqualizerProject)
 
 # Configuration C++ standard - à configurer selon vos besoins
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Force l'utilisation de g++ pour éviter les problèmes de headers
@@ -14,7 +14,7 @@ set(CMAKE_C_COMPILER "gcc")
 enable_testing()
 
 # Add subdirectories
-add_subdirectory(shared/Audio/core)
+add_subdirectory(shared/Audio)
 
 # Optional: Add other components here
 # add_subdirectory(src)

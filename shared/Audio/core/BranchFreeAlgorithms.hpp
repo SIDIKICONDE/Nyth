@@ -98,8 +98,11 @@ inline T clamp(T value, T minVal, T maxVal) noexcept {
  */
 template<typename T>
 inline T select(bool condition, T a, T b) noexcept {
-    // Converts bool to 0 or -1, then uses bit manipulation
-    return b ^ ((a ^ b) & -T(condition));
+    if constexpr (std::is_floating_point_v<T>) {
+        return condition ? a : b;
+    } else {
+        return b ^ ((a ^ b) & -(condition ? 1 : 0));
+    }
 }
 
 // ============================================================================
@@ -226,6 +229,8 @@ private:
  * @brief Branch-free noise gate
  * Gates signal without if statements
  */
+// Forward declaration for smoothstep used below
+inline float smoothstep(float edge0, float edge1, float x) noexcept;
 inline float noiseGate(float input, float threshold, float ratio) noexcept {
     // Traditional: if (abs(input) < threshold) return input * ratio; else return input;
     float inputAbs = BranchFree::abs(input);

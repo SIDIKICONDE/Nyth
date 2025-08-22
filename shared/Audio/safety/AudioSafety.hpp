@@ -108,20 +108,20 @@ public:
      * @brief Process mono audio buffer
      * @return Error code
      */
-    SafetyError processMono(float* buffer, size_t numSamples) noexcept;
+    virtual SafetyError processMono(float* buffer, size_t numSamples) noexcept;
     
     /**
      * @brief Process stereo audio buffers
      * @return Error code
      */
-    SafetyError processStereo(float* left, float* right, size_t numSamples) noexcept;
+    virtual SafetyError processStereo(float* left, float* right, size_t numSamples) noexcept;
 
     /**
      * @brief Check if last initialization was successful
      */
     bool isValid() const noexcept { return valid_; }
 
-private:
+protected:
     uint32_t sampleRate_;
     int channels_;
     SafetyConfig config_{};

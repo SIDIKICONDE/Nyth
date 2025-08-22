@@ -213,7 +213,7 @@ public:
     /**
      * @brief Safe array access with bounds checking
      */
-    AudioResult<T&> at(size_t index) noexcept {
+    AudioResult<T> at(size_t index) noexcept {
         if (index >= m_size) {
             return AudioError::OUT_OF_RANGE;
         }
@@ -223,7 +223,7 @@ public:
     /**
      * @brief Safe const array access
      */
-    AudioResult<const T&> at(size_t index) const noexcept {
+    AudioResult<T> at(size_t index) const noexcept {
         if (index >= m_size) {
             return AudioError::OUT_OF_RANGE;
         }

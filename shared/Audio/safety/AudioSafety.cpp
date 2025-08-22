@@ -225,36 +225,47 @@ void AudioSafetyEngine::limitBuffer(float* x, std::size_t n) noexcept {
 }
 
 double AudioSafetyEngine::estimateFeedbackScore(const float* x, std::size_t n) noexcept {
-    // Autocorrelation at short lags (e.g., [32..512] samples)
-    std::size_t minLag = minValue<std::size_t>(MIN_LAG_ABSOLUTE, n/MIN_LAG_DIVISOR);
-    std::size_t maxLag = minValue<std::size_t>(MAX_LAG_ABSOLUTE, n-MAX_LAG_INDEX);
-    
-    if (maxLag <= minLag) {
+    // Robust normalized autocorrelation to detect tonal feedback
+    if (n < 64) {
         return FEEDBACK_SCORE_MIN;
     }
-    
-    double energy = INITIAL_SUM; 
-    for (std::size_t i = ZERO_SAMPLES; i < n; ++i) {
-        energy += x[i] * x[i]; 
+
+    // Apply simple Hann window to reduce spectral leakage
+    double energy = 0.0;
+    for (std::size_t i = 0; i < n; ++i) {
+        double w = 0.5 * (1.0 - std::cos(2.0 * M_PI * static_cast<double>(i) / static_cast<double>(n - 1)));
+        double v = static_cast<double>(x[i]) * w;
+        energy += v * v;
     }
-    
     if (energy <= MIN_ENERGY_THRESHOLD) {
         return FEEDBACK_SCORE_MIN;
     }
-    
-    double best = INITIAL_SUM;
-    for (std::size_t lag = minLag; lag <= maxLag; lag *= LAG_MULTIPLIER) {
-        double corr = INITIAL_SUM;
-        for (std::size_t i = ZERO_SAMPLES; i + lag < n; ++i) {
-            corr += x[i] * x[i + lag];
+
+    // Search a wider, denser lag set to capture tonal peaks
+    std::size_t minLag = std::max<std::size_t>(MIN_LAG_ABSOLUTE, n / 16);
+    std::size_t maxLag = std::min<std::size_t>(MAX_LAG_ABSOLUTE, n / 2);
+    if (maxLag <= minLag) {
+        return FEEDBACK_SCORE_MIN;
+    }
+
+    double best = 0.0;
+    for (std::size_t lag = minLag; lag <= maxLag; lag += 1) {
+        double corr = 0.0;
+        for (std::size_t i = 0; i + lag < n; ++i) {
+            double w0 = 0.5 * (1.0 - std::cos(2.0 * M_PI * static_cast<double>(i) / static_cast<double>(n - 1)));
+            double w1 = 0.5 * (1.0 - std::cos(2.0 * M_PI * static_cast<double>(i + lag) / static_cast<double>(n - 1)));
+            double v0 = static_cast<double>(x[i]) * w0;
+            double v1 = static_cast<double>(x[i + lag]) * w1;
+            corr += v0 * v1;
         }
         corr /= energy;
-        best = maxValue(best, corr);
+        if (corr > best) best = corr;
     }
-    
-    // Normalize 0..1 and thresholding
-    double score = maxValue(NORMALIZATION_MIN, minValue(NORMALIZATION_MAX, best));
-    return score;
+
+    // Clamp 0..1
+    if (best < NORMALIZATION_MIN) best = NORMALIZATION_MIN;
+    if (best > NORMALIZATION_MAX) best = NORMALIZATION_MAX;
+    return best;
 }
 
 } // namespace AudioSafety
