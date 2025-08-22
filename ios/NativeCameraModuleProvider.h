@@ -11,4 +11,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
+@interface NativeAudioCaptureModuleProvider : NSObject <RCTModuleProvider>
+
+@end
+
 NS_ASSUME_NONNULL_END

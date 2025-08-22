@@ -37,6 +37,7 @@
 // Custom TurboModules includes
 #include "../../../../../../shared/NativeAudioEqualizerModule.h"
 #include "../../../../../../shared/NativeCameraFiltersModule.h"
+#include "../../../../../../shared/NativeAudioCaptureModule.h"
 
 #ifdef REACT_NATIVE_APP_CODEGEN_HEADER
 #include REACT_NATIVE_APP_CODEGEN_HEADER
@@ -82,6 +83,10 @@ std::shared_ptr<TurboModule> cxxModuleProvider(
 
   if (name == facebook::react::NativeCameraFiltersModule::kModuleName) {
     return std::make_shared<facebook::react::NativeCameraFiltersModule>(jsInvoker);
+  }
+
+  if (name == facebook::react::NativeAudioCaptureModule::kModuleName) {
+    return std::make_shared<facebook::react::NativeAudioCaptureModule>(jsInvoker);
   }
 
   // And we fallback to the CXX module providers autolinked
