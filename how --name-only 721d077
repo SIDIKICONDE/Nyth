@@ -1,0 +1,56 @@
+[33mcommit 721d077f93ea8e9087eaa61a7bbd1e7c76162efd[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: SIDIKICONDE <sidiki09@gmail.com>
+Date:   Fri Aug 22 05:54:35 2025 +0200
+
+    Mise à jour du système audio et des filtres - Amélioration des modules audio, ajout de nouveaux filtres et optimisation du système de traitement
+
+ Nyth/simple_fix.sh                       | 107 [32m+++++++[m
+ adapt_cpp17.sh                           |  46 [32m+++[m
+ build_and_test.sh                        | 269 [31m----------------[m
+ exclude_cpp_files.py                     |  40 [32m+++[m
+ ios/Nyth.xcodeproj/project.pbxproj       |  12 [32m+[m[31m-[m
+ ios/Podfile.backup                       | 159 [32m+++++++++[m
+ ios/Podfile.lock                         |   4 [32m+[m[31m-[m
+ ios/cpp_fix.xcconfig                     |  23 [32m++[m
+ ios/fix_project.py                       |  50 [32m+++[m
+ package-lock.json                        | 533 [32m+++[m[31m----------------------------[m
+ shared/Audio/core/AudioEqualizer.cpp     |  74 [32m++[m[31m---[m
+ shared/Audio/core/AudioEqualizer.hpp     |  34 [32m+[m[31m-[m
+ shared/Audio/core/BiquadFilter.cpp       |  26 [32m+[m[31m-[m
+ shared/Audio/core/BiquadFilter.hpp       |  18 [32m+[m[31m-[m
+ shared/Audio/core/CoreConstants.hpp      |  26 [32m+[m[31m-[m
+ shared/Audio/effects/Compressor.hpp      |  26 [32m+[m[31m-[m
+ shared/Audio/effects/Delay.hpp           |  30 [32m+[m[31m-[m
+ shared/Audio/effects/EffectBase.hpp      |  38 [32m+[m[31m--[m
+ shared/Audio/effects/EffectChain.hpp     |  32 [32m+[m[31m-[m
+ shared/Audio/fft/FFTEngine.hpp           |   2 [32m+[m[31m-[m
+ shared/Audio/noise/NoiseReducer.cpp      |  10 [32m+[m[31m-[m
+ shared/Audio/noise/NoiseReducer.hpp      |   2 [32m+[m[31m-[m
+ shared/Audio/noise/RNNoiseSuppressor.cpp |   2 [32m+[m[31m-[m
+ shared/Audio/noise/RNNoiseSuppressor.hpp |   2 [32m+[m[31m-[m
+ shared/Audio/noise/SpectralNR.cpp        |   6 [32m+[m[31m-[m
+ shared/Audio/noise/SpectralNR.hpp        |   2 [32m+[m[31m-[m
+ shared/Audio/utils/AudioBuffer.cpp       |   4 [32m+[m[31m-[m
+ shared/Audio/utils/AudioBuffer.hpp       |  48 [32m+[m[31m--[m
+ shared/NativeAudioEqualizerModule.cpp    |   2 [32m+[m[31m-[m
+ shared/NativeCameraFiltersModule.cpp     |   4 [32m+[m[31m-[m
+ shared/compat/format.hpp                 |   2 [32m+[m[31m-[m
+ shared/filters/FFmpegFilterProcessor.cpp |   6 [32m+[m[31m-[m
+ shared/filters/FFmpegFilterProcessor.hpp |   3 [32m+[m[31m-[m
+ shared/filters/FilterFactory.cpp         |   2 [32m+[m[31m-[m
+ shared/filters/FilterFactory.hpp         |   3 [32m+[m[31m-[m
+ shared/filters/FilterManager.cpp         |   6 [32m+[m[31m-[m
+ shared/filters/FilterManager.hpp         |  22 [32m+[m[31m-[m
+ shared/filters/FilterPlugin.hpp          |   5 [32m+[m[31m-[m
+ shared/filters/MemoryManager.cpp         |   3 [32m+[m[31m-[m
+ shared/filters/MemoryManager.hpp         |   7 [32m+[m[31m-[m
+ shared/filters/OpenGLFilterProcessor.cpp |   6 [32m+[m[31m-[m
+ shared/filters/OpenGLFilterProcessor.hpp |   2 [31m-[m
+ shared/filters/ProductionConfig.cpp      |   2 [32m+[m[31m-[m
+ shared/filters/ProductionConfig.hpp      |   3 [32m+[m[31m-[m
+ shared/filters/ProductionSetup.hpp       |  25 [32m+[m[31m-[m
+ shared/filters/SmartCache.hpp            |  10 [32m+[m[31m-[m
+ shared/filters/common/FilterTypes.hpp    |   3 [32m+[m[31m-[m
+ shared/pch.hpp                           | 102 [32m++[m[31m----[m
+ shared/pch_simple.hpp                    |  55 [32m++++[m
+ 49 files changed, 811 insertions(+), 1087 deletions(-)

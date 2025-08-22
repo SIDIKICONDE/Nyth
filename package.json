@@ -110,23 +110,23 @@
     "lint-staged": "^16.1.5",
     "prettier": "2.8.8",
     "react-test-renderer": "19.1.0",
+    "resolve.exports": "^2.0.3",
     "typescript": "^5.9.2"
   },
   "engines": {
-   "codegenConfig": {
-     "name": "Nyth",
-     "type": "modules",
-     "jsSrcsDir": "specs",
-     "android": {
-       "javaPackageName": "com.nyth.specs"
+    "codegenConfig": {
+      "name": "Nyth",
+      "type": "modules",
+      "jsSrcsDir": "specs",
+      "android": {
+        "javaPackageName": "com.nyth.specs"
       },
       "ios": {
-         "modulesProvider": {
-           "NativeCameraFiltersModule":  "NativeCameraFiltersModuleProvider",
-           "NativeAudioEqualizerModule":  "NativeAudioEqualizerModuleProvider"
-         }
+        "modulesProvider": {
+          "NativeCameraFiltersModule": "NativeCameraFiltersModuleProvider",
+          "NativeAudioEqualizerModule": "NativeAudioEqualizerModuleProvider"
+        }
       }
-     }
-   }
+    }
   }
-  
+}

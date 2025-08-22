@@ -26,7 +26,7 @@ export class BasicFormatter {
       .join(' ');
   }
 
-  /**
+  /** 
    * Normalise le texte (supprime les caractères spéciaux, accents, etc.)
    */
   static normalize(text: string): string {
