@@ -57,6 +57,15 @@ public:
 #endif
     }
 
+    /**
+     * @brief Reset filter state
+     */
+    void reset() {
+        BiquadFilter::reset();  // Call parent reset method
+        // Initialize SIMD state
+        resetSIMDState();
+    }
+
 #ifdef AUDIOFX_AVX2
     /**
      * @brief AVX2 implementation - processes 8 samples in parallel
@@ -289,10 +298,8 @@ public:
 private:
     void resetSIMDState() {
         // Reset any SIMD-specific state if needed
-        m_y1 = 0.0;
-        m_y2 = 0.0;
-        m_y1R = 0.0;
-        m_y2R = 0.0;
+        // Use parent class reset method instead of direct member access
+        BiquadFilter::reset();
     }
 };
 

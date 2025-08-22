@@ -346,9 +346,9 @@ public:
         std::lock_guard<std::mutex> lock(m_mutex);
 
         // Reset object state if it has a reset method
-        if constexpr (requires { obj->reset(); }) {
-            obj->reset();
-        }
+        // Reset object if it has a reset method
+        // For now, just clear the object (destructor will be called)
+        obj->~T();
 
         m_available.push(obj);
     }
