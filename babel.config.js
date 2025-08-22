@@ -11,11 +11,17 @@ module.exports = {
     }],
     ['module-resolver', {
       root: ['./src'],
-      extensions: ['.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json'],
+      extensions: ['.ios.js', '.android.js', '.native.js', '.js', '.native.ts', '.native.tsx', '.ts', '.tsx', '.json'],
       alias: {
         '@': './src',
       }
     }],
     'react-native-worklets/plugin',
+    // Inline react-native-paper icons to reduce dynamic requires
+    'react-native-paper/babel',
+    // Dead code elimination hints
+    ['transform-inline-environment-variables', {
+      include: ['NODE_ENV']
+    }],
   ]
 };
