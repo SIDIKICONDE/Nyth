@@ -19,7 +19,11 @@
     "start": "react-native start",
     "test": "jest",
     "test:auth": "jest __tests__/auth --passWithNoTests",
-    "prepare": "husky"
+    "prepare": "husky",
+    "bundle:android": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output ./build/index.android.bundle --assets-dest ./build | cat",
+    "bundle:ios": "react-native bundle --platform ios --dev false --entry-file index.js --bundle-output ./build/index.ios.bundle --assets-dest ./build | cat",
+    "analyze:android": "npm run bundle:android && npx react-native bundle-visualizer ./build/index.android.bundle --open false | cat",
+    "analyze:ios": "npm run bundle:ios && npx react-native bundle-visualizer ./build/index.ios.bundle --open false | cat"
   },
   "dependencies": {
     "@bam.tech/react-native-image-resizer": "^3.0.11",
@@ -111,7 +115,8 @@
     "prettier": "2.8.8",
     "react-test-renderer": "19.1.0",
     "resolve.exports": "^2.0.3",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "react-native-bundle-visualizer": "^5.1.1"
   },
   "engines": {
     "codegenConfig": {

@@ -137,14 +137,12 @@ void NoiseReducer::processStereo(const float* inL, const float* inR, float* outL
 }
 
 void NoiseReducer::processChannel(const float* in, float* out, size_t n, ChannelState& st) {
-    // Optional high-pass pre-filter to remove rumble
+    // Optional high-pass pre-filter to remove rumble (avoid per-call allocations)
     if (st.highPass) {
-        std::vector<float> inputVec(in, in + n);
-        std::vector<float> outputVec(n);
-        st.highPass->process(inputVec, outputVec);
-        // Copy filtered data back
-        std::copy(outputVec.begin(), outputVec.end(), out);
-        in = out; // For in-place operation, update input pointer
+        // Process directly using pointer-based API to avoid vector allocations
+        st.highPass->process(in, out, n);
+        // For in-place operation, update input pointer to filtered output
+        in = out;
     } else if (out != in) {
         // Only copy if buffers are different
         std::copy_n(in, n, out);

@@ -197,6 +197,21 @@ export interface Spec extends TurboModule {
   readonly setCacheSize: (sizeInMB: number) => boolean;
 }
 
-export default TurboModuleRegistry.getEnforcing<Spec>('NativeCameraFiltersModule');
+let _nativeCameraModule: Spec | null = null;
+const getNativeCameraModule = (): Spec => {
+  if (!_nativeCameraModule) {
+    _nativeCameraModule = TurboModuleRegistry.getEnforcing<Spec>('NativeCameraFiltersModule');
+  }
+  return _nativeCameraModule;
+};
+
+const LazyNativeCameraFiltersModule: Spec = new Proxy({} as any, {
+  get: (_target, prop) => {
+    const mod = getNativeCameraModule() as any;
+    return mod[prop as keyof Spec];
+  },
+}) as Spec;
+
+export default LazyNativeCameraFiltersModule;
 
 
