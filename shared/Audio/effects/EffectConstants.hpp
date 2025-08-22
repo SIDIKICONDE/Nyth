@@ -68,6 +68,7 @@ static constexpr size_t UNROLL_BLOCK_SIZE = 4;
 static constexpr size_t PREFETCH_DISTANCE = 64;
 
 <<<<<<< Current (Your changes)
+<<<<<<< Current (Your changes)
 // Valeurs par défaut du Delay (C++17 constexpr)
 constexpr double DEFAULT_DELAY_MS = 150.0;
 constexpr double DEFAULT_FEEDBACK = 0.3;
@@ -77,6 +78,8 @@ constexpr double DEFAULT_MIX = 0.25;
 constexpr double MAX_FLOAT = 3.40282347e+38;     // Maximum float value
 constexpr double MIN_FLOAT = -3.40282347e+38;    // Minimum float value
 
+=======
+>>>>>>> Incoming (Background Agent changes)
 =======
 >>>>>>> Incoming (Background Agent changes)
 } // namespace AudioFX

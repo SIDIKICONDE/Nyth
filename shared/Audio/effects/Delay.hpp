@@ -46,6 +46,7 @@ public:
   processStereoModern(std::vector<T>& inputL, std::vector<T>& inputR,
                      std::vector<T>& outputL, std::vector<T>& outputR,
                      const std::string& location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
+    (void)location; // Éviter warning unused parameter
     // Call our own stereo processing method
     if (std::is_same<T, float>::value) {
       processStereo(inputL.data(), inputR.data(), outputL.data(), outputR.data(), inputL.size());
@@ -76,10 +77,12 @@ public:
     for (size_t i = 0; i < numSamples; ++i) {
       float x = input[i];
       float d = buffer_[0][readIndex_];
-      float y = static_cast<float>((AudioFX::MIX_INVERT_FACTOR - mix_) * x + mix_ * d);
+      float mixf = static_cast<float>(mix_);
+      float y = (1.0f - mixf) * x + mixf * d;
       output[i] = y;
       // write with feedback
-      float w = static_cast<float>(x + feedback_ * d);
+      float feedbackf = static_cast<float>(feedback_);
+      float w = x + feedbackf * d;
       buffer_[0][writeIndex_] = w;
       incrementIndices(maxN);
     }
@@ -93,15 +96,17 @@ public:
     }
     ensureState(2);
     size_t maxN = buffer_[0].size();
+    float mixf = static_cast<float>(mix_);
+    float feedbackf = static_cast<float>(feedback_);
     for (size_t i = 0; i < numSamples; ++i) {
       float xl = inL[i];
       float xr = inR[i];
       float dl = buffer_[0][readIndex_];
       float dr = buffer_[1][readIndex_];
-      outL[i] = static_cast<float>((AudioFX::MIX_INVERT_FACTOR - mix_) * xl + mix_ * dl);
-      outR[i] = static_cast<float>((AudioFX::MIX_INVERT_FACTOR - mix_) * xr + mix_ * dr);
-      buffer_[0][writeIndex_] = static_cast<float>(xl + feedback_ * dl);
-      buffer_[1][writeIndex_] = static_cast<float>(xr + feedback_ * dr);
+      outL[i] = (1.0f - mixf) * xl + mixf * dl;
+      outR[i] = (1.0f - mixf) * xr + mixf * dr;
+      buffer_[0][writeIndex_] = xl + feedbackf * dl;
+      buffer_[1][writeIndex_] = xr + feedbackf * dr;
       incrementIndices(maxN);
     }
   }

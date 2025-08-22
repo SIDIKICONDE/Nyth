@@ -197,8 +197,8 @@ void AudioFX::AudioEqualizer::processOptimized(const std::vector<float>& input, 
 
         // Prefetch next block
         if (offset + OPTIMAL_BLOCK_SIZE_LOCAL < numSamples) {
-            __builtin_prefetch(&input[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
-            __builtin_prefetch(&output[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&input[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&output[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
         }
 
         // Copier l'entrée vers la sortie si nécessaire
@@ -286,10 +286,10 @@ void AudioFX::AudioEqualizer::processStereo<float>(const std::vector<float>& inp
 
         // Prefetch next block
         if (offset + OPTIMAL_BLOCK_SIZE_LOCAL < numSamples) {
-            __builtin_prefetch(&inputL[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
-            __builtin_prefetch(&inputR[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
-            __builtin_prefetch(&outputL[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
-            __builtin_prefetch(&outputR[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&inputL[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&inputR[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&outputL[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&outputR[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
         }
 
         // Copier l'entrée vers la sortie si nécessaire
@@ -584,62 +584,11 @@ EQPreset EQPresetFactory::createLoudnessPreset() {
     return preset;
 }
 
-// C++17 modernized processing methods
-template<typename T>
-void AudioFX::AudioEqualizer::process(const std::vector<T>& input, std::vector<T>& output,
-                            const std::string& location) {
-    // C++17 validation
-    if (input.size() != output.size()) {
-        std::ostringstream oss;
-        oss << "Input and output spans must have the same size. Input: " << input.size()
-            << ", Output: " << output.size();
-        throw std::invalid_argument(oss.str());
-    }
-
-    if (!validateAudioBuffer(input, location)) {
-        throw std::invalid_argument("Invalid audio buffer");
-    }
-
-    // Direct C++17 implementation
-    if constexpr (std::is_same_v<T, float>) {
-        process(input, output);
-    } else {
-        // Convert to float for processing
-        std::vector<float> tempInput(input.begin(), input.end());
-        std::vector<float> tempOutput(output.size());
-        this->process<float>(tempInput, tempOutput);
-        std::copy(tempOutput.begin(), tempOutput.end(), output.begin());
-    }
-}
-
-template<typename T>
-void AudioFX::AudioEqualizer::processStereo(const std::vector<T>& inputL, const std::vector<T>& inputR,
-                                  std::vector<T>& outputL, std::vector<T>& outputR,
-                                  const std::string& location) {
-    // C++17 validation
-    if (inputL.size() != inputR.size() || inputL.size() != outputL.size() || inputR.size() != outputR.size()) {
-        throw std::invalid_argument("All spans must have the same size");
-    }
-
-    // Direct C++17 implementation
-    if constexpr (std::is_same_v<T, float>) {
-        processStereo(inputL, inputR, outputL, outputR);
-    } else {
-        // Convert to float for processing
-        std::vector<float> tempInputL(inputL.begin(), inputL.end());
-        std::vector<float> tempInputR(inputR.begin(), inputR.end());
-        std::vector<float> tempOutputL(outputL.size());
-        std::vector<float> tempOutputR(outputR.size());
-
-        this->processStereo<float>(tempInputL, tempInputR, tempOutputL, tempOutputR);
-
-        std::copy(tempOutputL.begin(), tempOutputL.end(), outputL.begin());
-        std::copy(tempOutputR.begin(), tempOutputR.end(), outputR.begin());
-    }
-}
+// Les définitions des templates sont maintenant dans AudioEqualizer.inl
 
 // C++17 formatted debugging
 std::string AudioFX::AudioEqualizer::getDebugInfo(const std::string& location) const {
+    (void)location; // Éviter warning unused
     std::ostringstream oss;
     oss << "AudioEqualizer Debug Info:\n"
         << "  Sample Rate: " << m_sampleRate << " Hz\n"
@@ -659,25 +608,7 @@ std::string AudioFX::AudioEqualizer::getDebugInfo(const std::string& location) c
     return oss.str();
 }
 
-// C++17 buffer validation
-template<typename T>
-bool AudioFX::AudioEqualizer::validateAudioBuffer(const std::vector<T>& buffer,
-                                       const std::string& location) const {
-    if (buffer.empty()) {
-        return false;
-    }
-
-    // Check for NaN or infinite values
-    auto invalidValues = std::count_if(buffer.begin(), buffer.end(), [](T sample) {
-        return !std::isfinite(static_cast<double>(sample));
-    });
-
-    if (invalidValues > EqualizerConstants::FIRST_BAND_INDEX) {
-        return false;
-    }
-
-    return true;
-}
+// Les définitions de validateAudioBuffer sont dans AudioEqualizer.inl
 
 // Explicit template instantiations
 template void AudioFX::AudioEqualizer::process<float>(const std::vector<float>&, std::vector<float>&, const std::string&);
