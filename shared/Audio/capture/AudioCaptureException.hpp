@@ -1,8 +1,10 @@
 #pragma once
 
+#include <cstddef>
 #include <chrono>
 #include <exception>
 #include <string>
+#include "AudioCapture.hpp"
 
 
 namespace Nyth {

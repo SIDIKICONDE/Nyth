@@ -1,10 +1,7 @@
 #pragma once
 
 #ifdef __cplusplus
-#include <algorithm>
-#include <array>
 #include <cmath>
-#include <complex>
 #include <cstdint>
 #include <vector>
 
@@ -52,7 +49,8 @@ public:
         double gMin = 0.001;   ///< Minimum gain floor
     };
 
-    explicit IMCRA(const Config& cfg = Config{});
+    explicit IMCRA(const Config& cfg);
+    explicit IMCRA();
     ~IMCRA();
 
     /**

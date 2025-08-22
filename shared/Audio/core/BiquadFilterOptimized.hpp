@@ -2,13 +2,20 @@
 #ifndef BIQUADFILTER_OPTIMIZED_HPP
 #define BIQUADFILTER_OPTIMIZED_HPP
 
+#include <cmath>
 #include "BiquadFilter.hpp"
-#include <immintrin.h> // For SIMD intrinsics
+
+#ifdef __x86_64__
+#include <immintrin.h> // For x86/x64 SIMD intrinsics
+#endif
+
+#ifdef __ARM_NEON
+#include <arm_neon.h> // For ARM NEON intrinsics
+#endif
 
 namespace AudioFX {
 
 // Specialized float-only processing to avoid conversions
-template <>
 class BiquadFilterFloat : public BiquadFilter {
 public:
     // Process using native float precision throughout
@@ -44,7 +51,7 @@ public:
         m_y2 = static_cast<double>(y2f);
     }
 
-#ifdef __AVX2__
+#if defined(__AVX2__) && defined(__x86_64__)
     // AVX2 optimized version for x86_64
     void processAVX2(const float* input, float* output, size_t numSamples) {
         if (!input || !output || numSamples == 0)

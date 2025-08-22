@@ -6,47 +6,21 @@
 #include <algorithm>
 #include <vector>
 #include <type_traits>
-#include <array>
 #include <stdexcept>
 #include <sstream>
 #include <string>
-#include <utility>
 
-#include "../utils/utilsConstants.hpp"
 #include "EffectConstants.hpp"
+#include "../core/CoreConstants.hpp"
 
 namespace AudioFX {
 
 // All constants are now centralized in EffectConstants.hpp
 
 // C++17 Type traits for better type safety (replaces concepts)
-template<typename T>
-struct is_audio_sample_type {
-    static constexpr bool value = std::is_floating_point<T>::value;
-};
+// Note: is_audio_sample_type is now imported from CoreConstants.hpp to avoid conflicts
 
-template<typename T>
-constexpr bool is_audio_sample_type_v = is_audio_sample_type<T>::value;
-
-template<typename T>
-struct is_audio_buffer_type {
-    template<typename U>
-    static auto test_data(int) -> decltype(std::declval<U>().data(), std::true_type{});
-    template<typename>
-    static std::false_type test_data(...);
-
-    template<typename U>
-    static auto test_size(int) -> decltype(std::declval<U>().size(), std::true_type{});
-    template<typename>
-    static std::false_type test_size(...);
-
-    static constexpr bool value = std::is_pointer<T>::value ||
-                                 (decltype(test_data<T>(0))::value &&
-                                  decltype(test_size<T>(0))::value);
-};
-
-template<typename T>
-constexpr bool is_audio_buffer_type_v = is_audio_buffer_type<T>::value;
+// Note: is_audio_buffer_type is now imported from CoreConstants.hpp to avoid conflicts
 
 class IAudioEffect {
 public:

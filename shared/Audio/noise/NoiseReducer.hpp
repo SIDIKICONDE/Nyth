@@ -1,9 +1,9 @@
 #pragma once
 
 #ifdef __cplusplus
-#include <array>
-#include <memory>
 #include <cmath>
+#include <memory>
+#include <vector>
 #include "../core/BiquadFilter.hpp"
 #include "NoiseContants.hpp"
 

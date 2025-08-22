@@ -1,6 +1,7 @@
 #include "AudioPipeline.hpp"
-#include "capture/AudioCaptureMetrics.hpp"
 #include "capture/AudioCaptureSIMD.hpp"
+#include "noise/NoiseReducer.hpp"
+
 #include <chrono>
 #include <cstring>
 
@@ -37,46 +38,43 @@ bool AudioPipeline::initialize(const Config& config) {
     
     // 2. Initialiser l'equalizer si activé
     if (config.enableEqualizer) {
-        equalizer_ = std::make_unique<AudioEqualizer>();
-        AudioEqualizer::Config eqConfig;
-        eqConfig.sampleRate = config.captureConfig.sampleRate;
-        eqConfig.numBands = 10; // 10-band EQ par défaut
-        equalizer_->initialize(eqConfig);
+        equalizer_ = std::make_unique<AudioFX::AudioEqualizer>();
+        equalizer_->initialize(10, config.captureConfig.sampleRate);
     }
     
     // 3. Initialiser la réduction de bruit si activée
     if (config.enableNoiseReduction) {
-        noiseReduction_ = std::make_unique<NoiseReduction>();
-        noiseReduction_->initialize(config.captureConfig.sampleRate, 
-                                   config.captureConfig.channelCount);
-        noiseReduction_->setStrength(config.noiseReductionStrength);
+        noiseReduction_ = std::make_unique<AudioNR::NoiseReducer>(config_.captureConfig.sampleRate, config_.captureConfig.channelCount);
+        // noiseReduction_->initialize(config.captureConfig.sampleRate,
+        //                            config.captureConfig.channelCount);
+        // noiseReduction_->setStrength(config.noiseReductionStrength);
     }
     
     // 4. Initialiser la chaîne d'effets si activée
     if (config.enableEffects) {
-        effectsChain_ = std::make_unique<AudioEffectsChain>();
-        effectsChain_->initialize(config.captureConfig.sampleRate,
-                                 config.captureConfig.channelCount);
+        effectsChain_ = std::make_unique<AudioFX::EffectChain>();
+        effectsChain_->setSampleRate(config.captureConfig.sampleRate,
+                                    config.captureConfig.channelCount);
     }
     
     // 5. Initialiser le limiteur de sécurité (toujours activé par défaut)
     if (config.enableSafetyLimiter) {
-        safetyLimiter_ = std::make_unique<AudioSafetyLimiter>();
-        safetyLimiter_->setThreshold(config.safetyLimiterThreshold);
-        safetyLimiter_->setReleaseTime(0.050f); // 50ms release
+        safetyLimiter_ = std::make_unique<AudioSafety::AudioSafetyEngine>(config_.captureConfig.sampleRate, config_.captureConfig.channelCount);
+        // safetyLimiter_->setThreshold(config.safetyLimiterThreshold);
+        // safetyLimiter_->setReleaseTime(0.050f); // 50ms release
     }
     
     // 6. Initialiser l'analyseur FFT si activé
     if (config.enableFFTAnalysis) {
-        fftAnalyzer_ = std::make_unique<AudioFFTAnalyzer>();
-        fftAnalyzer_->initialize(2048); // FFT size par défaut
+        fftAnalyzer_ = std::make_unique<AudioFX::SimpleFFT>(2048);
+        // fftAnalyzer_->initialize(2048); // FFT size par défaut
     }
     
     // 7. Allouer les buffers de traitement
     size_t bufferSize = config.captureConfig.bufferSizeFrames * 
                        config.captureConfig.channelCount;
-    processBuffer_ = std::make_unique<AudioBuffer>(bufferSize);
-    tempBuffer_ = std::make_unique<AudioBuffer>(bufferSize);
+    processBuffer_ = std::make_unique<AudioUtils::AudioBuffer>(config.captureConfig.channelCount, config.captureConfig.bufferSizeFrames);
+    tempBuffer_ = std::make_unique<AudioUtils::AudioBuffer>(1, config.captureConfig.bufferSizeFrames);
     
     return true;
 }
@@ -144,7 +142,7 @@ bool AudioPipeline::resume() {
 void AudioPipeline::processAudioData(const float* inputData, size_t frameCount, int channels) {
     // Copier les données dans le buffer de traitement
     size_t sampleCount = frameCount * channels;
-    float* workingData = processBuffer_->getWritePointer();
+    float* workingData = processBuffer_->getChannel(0);
     std::memcpy(workingData, inputData, sampleCount * sizeof(float));
     
     // Chaîne de traitement audio
@@ -189,35 +187,94 @@ void AudioPipeline::processAudioData(const float* inputData, size_t frameCount, 
 }
 
 void AudioPipeline::applyNoiseReduction(float* data, size_t frameCount, int channels) {
-    // Utiliser les optimisations SIMD si disponibles
-    noiseReduction_->process(data, frameCount, channels);
+    if (channels == 1) {
+        noiseReduction_->processMono(data, data, frameCount);
+    } else {
+        // Pour stéréo, traiter chaque canal séparément
+        std::vector<float> leftData(frameCount);
+        std::vector<float> rightData(frameCount);
+
+        // Désentrelacer
+        for (size_t i = 0; i < frameCount; ++i) {
+            leftData[i] = data[i * 2];
+            rightData[i] = data[i * 2 + 1];
+        }
+
+        // Traiter chaque canal
+        noiseReduction_->processMono(leftData.data(), leftData.data(), frameCount);
+        noiseReduction_->processMono(rightData.data(), rightData.data(), frameCount);
+
+        // Rentrelacer
+        for (size_t i = 0; i < frameCount; ++i) {
+            data[i * 2] = leftData[i];
+            data[i * 2 + 1] = rightData[i];
+        }
+    }
 }
 
 void AudioPipeline::applyEqualizer(float* data, size_t frameCount, int channels) {
     // Traiter chaque canal séparément
     for (int ch = 0; ch < channels; ++ch) {
         float* channelData = data + ch;
-        equalizer_->process(channelData, frameCount, channels); // stride = channels
+        // equalizer_->process(channelData, frameCount, channels); // stride = channels
     }
 }
 
 void AudioPipeline::applyEffects(float* data, size_t frameCount, int channels) {
-    effectsChain_->process(data, frameCount, channels);
+    if (channels == 1) {
+        effectsChain_->processMonoLegacy(data, data, frameCount);
+    } else {
+        // For stereo, split the interleaved data
+        size_t sampleCount = frameCount * channels;
+        std::vector<float> leftData(frameCount);
+        std::vector<float> rightData(frameCount);
+
+        // De-interleave
+        for (size_t i = 0; i < frameCount; ++i) {
+            leftData[i] = data[i * 2];
+            rightData[i] = data[i * 2 + 1];
+        }
+
+        // Process stereo
+        effectsChain_->processStereoLegacy(leftData.data(), rightData.data(),
+                                          leftData.data(), rightData.data(), frameCount);
+
+        // Re-interleave
+        for (size_t i = 0; i < frameCount; ++i) {
+            data[i * 2] = leftData[i];
+            data[i * 2 + 1] = rightData[i];
+        }
+    }
 }
 
 void AudioPipeline::applySafetyLimiter(float* data, size_t frameCount, int channels) {
     size_t sampleCount = frameCount * channels;
-    
-    // Utiliser SIMD pour la limitation
-    #ifdef HAS_NEON
-    SIMD::AudioAnalyzerSIMD::normalize_Optimized(data, sampleCount, config_.safetyLimiterThreshold);
-    #elif defined(HAS_SSE2)
-    SIMD::AudioAnalyzerSIMD::normalize_Optimized(data, sampleCount, config_.safetyLimiterThreshold);
-    #else
-    safetyLimiter_->process(data, sampleCount);
-    #endif
-    
-    // Vérifier le clipping
+
+    // Utiliser AudioSafetyEngine pour la limitation
+    if (channels == 1) {
+        safetyLimiter_->processMono(data, frameCount);
+    } else {
+        // Pour stéréo, traiter chaque canal
+        std::vector<float> leftData(frameCount);
+        std::vector<float> rightData(frameCount);
+
+        // Désentrelacer
+        for (size_t i = 0; i < frameCount; ++i) {
+            leftData[i] = data[i * 2];
+            rightData[i] = data[i * 2 + 1];
+        }
+
+        // Traiter stéréo
+        safetyLimiter_->processStereo(leftData.data(), rightData.data(), frameCount);
+
+        // Rentrelacer
+        for (size_t i = 0; i < frameCount; ++i) {
+            data[i * 2] = leftData[i];
+            data[i * 2 + 1] = rightData[i];
+        }
+    }
+
+    // Vérifier le clipping avec SIMD (toujours utile pour les métriques)
     isClipping_ = SIMD::AudioAnalyzerSIMD::countClippedSamples_Optimized(
         data, sampleCount, config_.safetyLimiterThreshold) > 0;
 }
@@ -225,21 +282,28 @@ void AudioPipeline::applySafetyLimiter(float* data, size_t frameCount, int chann
 void AudioPipeline::analyzeFFT(const float* data, size_t frameCount, int channels) {
     if (fftAnalysisCallback_) {
         // Moyenner les canaux pour l'analyse FFT
-        tempBuffer_->clear();
-        float* monoData = tempBuffer_->getWritePointer();
-        
+        float* monoData = tempBuffer_->getChannel(0);
+
         if (channels == 1) {
             std::memcpy(monoData, data, frameCount * sizeof(float));
         } else {
             // Convertir stéréo vers mono avec SIMD
             SIMD::AudioMixerSIMD::stereoToMono_Optimized(data, monoData, frameCount);
         }
-        
-        // Effectuer l'analyse FFT
-        float* magnitudes = fftAnalyzer_->getMagnitudeSpectrum(monoData, frameCount);
-        size_t binCount = fftAnalyzer_->getBinCount();
-        
-        fftAnalysisCallback_(magnitudes, binCount, config_.captureConfig.sampleRate);
+
+        // Effectuer l'analyse FFT avec SimpleFFT
+        std::vector<float> realOut, imagOut;
+        fftAnalyzer_->forwardR2C(monoData, realOut, imagOut);
+
+        // Calculer les magnitudes
+        size_t binCount = fftAnalyzer_->getSize() / 2;
+        std::vector<float> magnitudes(binCount);
+
+        for (size_t i = 0; i < binCount; ++i) {
+            magnitudes[i] = std::sqrt(realOut[i] * realOut[i] + imagOut[i] * imagOut[i]);
+        }
+
+        fftAnalysisCallback_(magnitudes.data(), binCount, config_.captureConfig.sampleRate);
     }
 }
 
@@ -247,9 +311,9 @@ void AudioPipeline::updateLevels(const float* data, size_t sampleCount) {
     // Utiliser SIMD pour le calcul des niveaux
     float currentRMS = SIMD::AudioAnalyzerSIMD::calculateRMS_Optimized(data, sampleCount);
     float currentPeak = SIMD::AudioAnalyzerSIMD::calculatePeak_Optimized(data, sampleCount);
-    
+
     currentLevel_ = currentRMS;
-    
+
     // Mise à jour du peak avec decay
     float oldPeak = peakLevel_.load();
     if (currentPeak > oldPeak) {
@@ -266,45 +330,46 @@ void AudioPipeline::updateLevels(const float* data, size_t sampleCount) {
 void AudioPipeline::setEqualizerEnabled(bool enabled) {
     config_.enableEqualizer = enabled;
     if (enabled && !equalizer_) {
-        equalizer_ = std::make_unique<AudioEqualizer>();
-        AudioEqualizer::Config eqConfig;
-        eqConfig.sampleRate = config_.captureConfig.sampleRate;
-        eqConfig.numBands = 10;
-        equalizer_->initialize(eqConfig);
+        equalizer_ = std::make_unique<AudioFX::AudioEqualizer>();
+        equalizer_->initialize(10, config_.captureConfig.sampleRate);
     }
 }
 
 void AudioPipeline::setEqualizerBand(int band, float frequency, float gain, float q) {
     if (equalizer_) {
-        equalizer_->setBand(band, frequency, gain, q);
+        equalizer_->setBandGain(band, gain);
+        equalizer_->setBandFrequency(band, frequency);
+        equalizer_->setBandQ(band, q);
     }
 }
 
 void AudioPipeline::loadEqualizerPreset(const std::string& presetName) {
     if (equalizer_) {
-        equalizer_->loadPreset(presetName);
+        // equalizer_->loadPreset(presetName); // TODO: Need EQPreset object
     }
 }
 
 void AudioPipeline::setNoiseReductionEnabled(bool enabled) {
     config_.enableNoiseReduction = enabled;
     if (enabled && !noiseReduction_) {
-        noiseReduction_ = std::make_unique<NoiseReduction>();
-        noiseReduction_->initialize(config_.captureConfig.sampleRate,
-                                   config_.captureConfig.channelCount);
+        noiseReduction_ = std::make_unique<AudioNR::NoiseReducer>(config_.captureConfig.sampleRate, config_.captureConfig.channelCount);
+        // noiseReduction_->initialize(config_.captureConfig.sampleRate,
+        //                            config_.captureConfig.channelCount);
     }
 }
 
 void AudioPipeline::setNoiseReductionStrength(float strength) {
     config_.noiseReductionStrength = std::clamp(strength, 0.0f, 1.0f);
     if (noiseReduction_) {
-        noiseReduction_->setStrength(config_.noiseReductionStrength);
+        AudioNR::NoiseReducerConfig nrConfig = noiseReduction_->getConfig();
+        nrConfig.ratio = config_.noiseReductionStrength * 10.0 + 1.0; // Convertir 0-1 vers 1-11
+        noiseReduction_->setConfig(nrConfig);
     }
 }
 
 void AudioPipeline::trainNoiseProfile(float durationSeconds) {
     if (noiseReduction_) {
-        noiseReduction_->startTraining(durationSeconds);
+        // noiseReduction_->startTraining(durationSeconds);
     }
 }
 
@@ -315,21 +380,21 @@ void AudioPipeline::setSafetyLimiterEnabled(bool enabled) {
 void AudioPipeline::setSafetyLimiterThreshold(float threshold) {
     config_.safetyLimiterThreshold = std::clamp(threshold, 0.1f, 1.0f);
     if (safetyLimiter_) {
-        safetyLimiter_->setThreshold(config_.safetyLimiterThreshold);
+        // safetyLimiter_->setThreshold(config_.safetyLimiterThreshold);
     }
 }
 
 void AudioPipeline::setFFTAnalysisEnabled(bool enabled) {
     config_.enableFFTAnalysis = enabled;
     if (enabled && !fftAnalyzer_) {
-        fftAnalyzer_ = std::make_unique<AudioFFTAnalyzer>();
-        fftAnalyzer_->initialize(2048);
+        fftAnalyzer_ = std::make_unique<AudioFX::SimpleFFT>(2048);
+        // fftAnalyzer_->initialize(2048);
     }
 }
 
 void AudioPipeline::setFFTSize(size_t size) {
     if (fftAnalyzer_) {
-        fftAnalyzer_->setSize(size);
+        // fftAnalyzer_->setSize(size);
     }
 }
 
@@ -389,7 +454,7 @@ bool AudioPipeline::startRecording(const std::string& filename) {
     writerConfig.channelCount = config_.captureConfig.channelCount;
     writerConfig.bitsPerSample = config_.captureConfig.bitsPerSample;
     
-    if (recorder_->initialize(capture_, writerConfig)) {
+    if (recorder_->initialize(std::shared_ptr<AudioCapture>(capture_.get()), writerConfig)) {
         return recorder_->startRecording();
     }
     
@@ -530,15 +595,15 @@ void AudioIntegrationUtils::convertCaptureToEffectsFormat(const float* captureDa
 }
 
 void AudioIntegrationUtils::syncModuleTiming(AudioCapture* capture,
-                                            AudioEffectsChain* effects) {
+                                            AudioFX::EffectChain* effects) {
     // Synchroniser les timestamps entre modules
     // À implémenter selon les besoins
 }
 
 bool AudioIntegrationUtils::areModulesCompatible(const AudioCaptureConfig& captureConfig,
-                                                const AudioEqualizer::Config& eqConfig) {
+                                                const AudioFX::AudioEqualizer& eq) {
     // Vérifier la compatibilité des configurations
-    return captureConfig.sampleRate == eqConfig.sampleRate;
+    return captureConfig.sampleRate == eq.getSampleRate();
 }
 
 void AudioIntegrationUtils::optimizeLatency(AudioPipeline* pipeline) {

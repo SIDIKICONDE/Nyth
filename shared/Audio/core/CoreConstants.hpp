@@ -7,15 +7,8 @@
 #include <thread>
 #include <chrono>
 #include <array>
-#include <algorithm>
 #include <type_traits>
 #include <cstring>
-#include <stdexcept>
-#include <memory>
-#include <atomic>
-#include <mutex>
-#include <vector>
-#include <iterator>
 #include <string>
 
 // ============================================================================

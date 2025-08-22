@@ -2,16 +2,9 @@
 
 #ifdef __cplusplus
 
-// C++17 standard headers - Robust compatibility
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <cstddef>
-#include <cstdint>
-#include <limits>
-#include <string>
-#include <type_traits>
-#include <vector>
+// C++17 standard headers - Required for types used
+#include <cstddef>  // for size_t
+#include <cstdint>  // for uint32_t
 
 
 namespace AudioSafety {

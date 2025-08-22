@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { DeviceEventEmitter } from 'react-native';
 import { SpectrumData } from '../types';
 import NativeAudioEqualizerModule from '../../../../specs/NativeAudioEqualizerModule';
 import { useAudioWorker } from '../../../hooks/useAudioWorker';

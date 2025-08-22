@@ -6,7 +6,6 @@
 // ✅ SFINAE, std::string, std::ostringstream, constexpr
 
 // C++17 standard headers
-#include <cstdint>
 #include <cstddef>
 #include <cmath>
 #include <vector>
@@ -78,7 +77,7 @@ public:
     // C++17 formatted debugging
     std::string getDebugInfo(const std::string& location = NYTH_SOURCE_LOCATION) const;
 
-private:
+protected:
     // Filter coefficients
     double m_a0, m_a1, m_a2;  // Feedforward coefficients
     double m_b1, m_b2;        // Feedback coefficients (b0 is normalized to 1)

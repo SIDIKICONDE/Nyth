@@ -3,13 +3,6 @@
 // C++17 standard headers - Compatibility garantie
 #include <cstdint>
 #include <cstddef>
-#include <array>
-#include <vector>
-#include <string>
-#include <type_traits>
-#include <limits>
-#include <cmath>
-#include <algorithm>
 
 // Constantes mathématiques universelles
 #ifndef M_PI

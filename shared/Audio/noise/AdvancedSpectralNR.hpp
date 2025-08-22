@@ -3,9 +3,10 @@
 #ifdef __cplusplus
 #include "IMCRA.hpp"
 #include "MultibandProcessor.hpp"
-#include "SpectralNR.hpp"
 #include "WienerFilter.hpp"
+#include "../fft/FFTEngine.hpp"
 #include <memory>
+#include <string>
 #include <vector>
 
 
@@ -80,7 +81,8 @@ public:
         } advanced;
     };
 
-    explicit AdvancedSpectralNR(const Config& cfg = Config{});
+    explicit AdvancedSpectralNR(const Config& cfg);
+    explicit AdvancedSpectralNR();
     ~AdvancedSpectralNR();
 
     /**
@@ -232,7 +234,8 @@ public:
         } weights;
     };
 
-    explicit HybridNoiseReducer(const Config& cfg = Config{});
+    explicit HybridNoiseReducer(const Config& cfg);
+    explicit HybridNoiseReducer();
     ~HybridNoiseReducer();
 
     /**

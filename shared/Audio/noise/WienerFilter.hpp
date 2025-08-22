@@ -2,8 +2,7 @@
 
 #ifdef __cplusplus
 #include "IMCRA.hpp"
-#include <cmath>
-#include <complex>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -59,7 +58,8 @@ public:
         } noiseMode = IMCRA_FULL;
     };
 
-    explicit WienerFilter(const Config& cfg = Config{});
+    explicit WienerFilter(const Config& cfg);
+    explicit WienerFilter();
     ~WienerFilter();
 
     /**
@@ -229,7 +229,8 @@ public:
         double residualSmoothing = 0.9; ///< Smoothing for residual estimate
     };
 
-    explicit TwoStepNoiseReduction(const Config& cfg = Config{});
+    explicit TwoStepNoiseReduction(const Config& cfg);
+    explicit TwoStepNoiseReduction();
     ~TwoStepNoiseReduction();
 
     /**

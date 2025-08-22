@@ -1,11 +1,13 @@
 #pragma once
 
-#include <vector>
-#include <cstring>
-#include <cmath>
 #include <algorithm>
-#include <mutex>
 #include <atomic>
+#include <chrono>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <mutex>
+#include <vector>
 
 namespace Nyth {
 namespace Audio {

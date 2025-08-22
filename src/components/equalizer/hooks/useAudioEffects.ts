@@ -69,16 +69,18 @@ export const useAudioEffects = () => {
       setCompressor(prevCompressor => {
         const updatedConfig = { ...prevCompressor, ...newConfig };
         
-        // Appel asynchrone en dehors du setState
-        NativeAudioEqualizerModule.fxSetCompressor(
-          updatedConfig.thresholdDb,
-          updatedConfig.ratio,
-          updatedConfig.attackMs,
-          updatedConfig.releaseMs,
-          updatedConfig.makeupDb
-        ).catch(error => {
+        // Appel natif en dehors du setState
+        try {
+          NativeAudioEqualizerModule.fxSetCompressor(
+            updatedConfig.thresholdDb,
+            updatedConfig.ratio,
+            updatedConfig.attackMs,
+            updatedConfig.releaseMs,
+            updatedConfig.makeupDb
+          );
+        } catch (error) {
           console.error('Failed to update compressor:', error);
-        });
+        }
         
         return updatedConfig;
       });
@@ -94,14 +96,16 @@ export const useAudioEffects = () => {
       setDelay(prevDelay => {
         const updatedConfig = { ...prevDelay, ...newConfig };
         
-        // Appel asynchrone en dehors du setState
-        NativeAudioEqualizerModule.fxSetDelay(
-          updatedConfig.delayMs,
-          updatedConfig.feedback,
-          updatedConfig.mix
-        ).catch(error => {
+        // Appel natif en dehors du setState
+        try {
+          NativeAudioEqualizerModule.fxSetDelay(
+            updatedConfig.delayMs,
+            updatedConfig.feedback,
+            updatedConfig.mix
+          );
+        } catch (error) {
           console.error('Failed to update delay:', error);
-        });
+        }
         
         return updatedConfig;
       });

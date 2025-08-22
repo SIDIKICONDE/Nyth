@@ -1,6 +1,9 @@
 #include "IMCRA.hpp"
-#include <cstring>
-#include <numeric>
+#include <algorithm>
+#include <cmath>
+#include <stdexcept>
+#include <vector>
+
 
 namespace AudioNR {
 

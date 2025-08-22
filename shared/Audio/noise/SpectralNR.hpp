@@ -1,11 +1,9 @@
 #pragma once
 
 #ifdef __cplusplus
-#include <array>
 #include <cstdint>
-#include <cmath>
-#include <algorithm>
-#include <complex>
+#include <memory>
+#include <vector>
 #include "NoiseContants.hpp"
 #include "../fft/FFTEngine.hpp"
 

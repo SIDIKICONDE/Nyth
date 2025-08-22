@@ -1,14 +1,19 @@
 #pragma once
 
+#include <atomic>
+#include <condition_variable>
+#include <cstddef>
+#include <cstdint>
+#include <fstream>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <string>
+#include <thread>
+#include <vector>
 #include "AudioCapture.hpp"
 #include "AudioCaptureUtils.hpp"
-#include <fstream>
-#include <string>
-#include <vector>
-#include <atomic>
-#include <thread>
-#include <queue>
-#include <condition_variable>
 
 namespace Nyth {
 namespace Audio {

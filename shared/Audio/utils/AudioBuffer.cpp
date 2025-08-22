@@ -4,8 +4,8 @@
 // En-têtes C++ standards
 #include <algorithm>
 #include <cmath>
-#include <algorithm>
-#include <iterator>
+#include <memory>
+#include <string>
 
 #ifdef __ARM_NEON
 #include <arm_neon.h>

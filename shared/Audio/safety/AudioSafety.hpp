@@ -18,7 +18,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #endif
-#include "SafetyConstants.hpp"
+#include "SafetyContants.hpp"
 
 namespace AudioSafety {
 
@@ -127,7 +127,7 @@ public:
         return valid_;
     }
 
-private:
+protected:
     uint32_t sampleRate_;
     int channels_;
     SafetyConfig config_{};

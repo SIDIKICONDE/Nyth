@@ -6,6 +6,8 @@
 #include "BiquadFilter.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <new>
 
 
 namespace AudioFX {

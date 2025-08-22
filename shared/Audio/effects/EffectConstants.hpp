@@ -3,13 +3,13 @@
 // C++17 standard headers
 #include <cstdint>
 #include <cstddef>
+#include "../core/CoreConstants.hpp"
 
 namespace AudioFX {
 
 // === AUDIO CONFIGURATION ===
-static constexpr uint32_t DEFAULT_SAMPLE_RATE = 48000;
+// Note: DEFAULT_SAMPLE_RATE is now imported from CoreConstants.hpp to avoid conflicts
 static constexpr uint32_t MIN_SAMPLE_RATE = 8000;
-static constexpr uint32_t MINIMUM_SAMPLE_RATE = 8000;
 static constexpr uint32_t REFERENCE_SAMPLE_RATE = 48000;
 static constexpr int DEFAULT_CHANNELS = 2;
 static constexpr int MONO_CHANNELS = 1;
@@ -67,22 +67,7 @@ static constexpr float BUFFER_INIT_VALUE = 0.0f;
 static constexpr size_t UNROLL_BLOCK_SIZE = 4;
 static constexpr size_t PREFETCH_DISTANCE = 64;
 
-<<<<<<< Current (Your changes)
-<<<<<<< Current (Your changes)
-<<<<<<< Current (Your changes)
-// Valeurs par défaut du Delay (C++17 constexpr)
-constexpr double DEFAULT_DELAY_MS = 150.0;
-constexpr double DEFAULT_FEEDBACK = 0.3;
-constexpr double DEFAULT_MIX = 0.25;
-
 // Constantes utilitaires (C++17 constexpr)
-constexpr double MAX_FLOAT = 3.40282347e+38;     // Maximum float value
-constexpr double MIN_FLOAT = -3.40282347e+38;    // Minimum float value
-
-=======
->>>>>>> Incoming (Background Agent changes)
-=======
->>>>>>> Incoming (Background Agent changes)
-=======
->>>>>>> Incoming (Background Agent changes)
+static constexpr double MAX_FLOAT = 3.40282347e+38;     // Maximum float value
+static constexpr double MIN_FLOAT = -3.40282347e+38;    // Minimum float value
 } // namespace AudioFX

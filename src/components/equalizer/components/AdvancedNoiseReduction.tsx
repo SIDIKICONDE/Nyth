@@ -12,7 +12,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useNoiseReduction } from '../hooks/useNoiseReduction';
-import Slider from '@react-native-community/slider';
+
 
 interface AdvancedNoiseReductionProps {
   isVisible: boolean;
@@ -48,18 +48,6 @@ export const AdvancedNoiseReduction: React.FC<AdvancedNoiseReductionProps> = ({
     speechBins: 0,
   });
 
-  // Charger les métriques au montage
-  useEffect(() => {
-    if (isVisible && useAdvanced && advancedConfig.enabled) {
-      loadAllMetrics();
-      startAdvancedMonitoring(200); // Mise à jour toutes les 200ms
-    }
-
-    return () => {
-      stopAdvancedMonitoring();
-    };
-  }, [isVisible, useAdvanced, advancedConfig.enabled]);
-
   const loadAllMetrics = async () => {
     if (isLoadingMetrics) return;
 
@@ -86,6 +74,18 @@ export const AdvancedNoiseReduction: React.FC<AdvancedNoiseReductionProps> = ({
       setIsLoadingMetrics(false);
     }
   };
+
+  // Charger les métriques au montage
+  useEffect(() => {
+    if (isVisible && useAdvanced && advancedConfig.enabled) {
+      loadAllMetrics();
+      startAdvancedMonitoring(200); // Mise à jour toutes les 200ms
+    }
+
+    return () => {
+      stopAdvancedMonitoring();
+    };
+  }, [isVisible, useAdvanced, advancedConfig.enabled, loadAllMetrics, startAdvancedMonitoring, stopAdvancedMonitoring]);
 
   const getAlgorithmInfo = (mode: number) => {
     switch (mode) {

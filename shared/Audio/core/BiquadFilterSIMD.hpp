@@ -3,8 +3,11 @@
 #define BIQUADFILTER_SIMD_HPP
 
 #include "BiquadFilter.hpp"
-#include <array>
+#include <algorithm>
+#include <cstdlib>
 #include <cstring>
+#include <new>
+#include <type_traits>
 
 // Platform detection and SIMD headers
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)

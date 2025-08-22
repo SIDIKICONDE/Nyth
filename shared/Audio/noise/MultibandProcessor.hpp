@@ -2,7 +2,6 @@
 
 #ifdef __cplusplus
 #include "../fft/FFTEngine.hpp"
-#include <array>
 #include <cmath>
 #include <complex>
 #include <memory>
@@ -96,7 +95,8 @@ public:
         float transientDecay = 0.9f;     ///< Transient envelope decay rate
     };
 
-    explicit MultibandProcessor(const Config& cfg = Config{});
+    explicit MultibandProcessor(const Config& cfg);
+    explicit MultibandProcessor();
     ~MultibandProcessor();
 
     /**
@@ -205,7 +205,8 @@ public:
         size_t filterOrder = 4;   ///< Gammatone filter order
     };
 
-    explicit GammatoneFilterbank(const Config& cfg = Config{});
+    explicit GammatoneFilterbank(const Config& cfg);
+    explicit GammatoneFilterbank();
     ~GammatoneFilterbank();
 
     /**

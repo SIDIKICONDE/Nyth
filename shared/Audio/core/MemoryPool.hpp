@@ -345,7 +345,7 @@ public:
         std::lock_guard<std::mutex> lock(m_mutex);
 
         // Reset object state if it has a reset method
-        if constexpr (requires { obj->reset(); }) {
+        if constexpr (std::is_member_function_pointer_v<decltype(&T::reset)>) {
             obj->reset();
         }
 

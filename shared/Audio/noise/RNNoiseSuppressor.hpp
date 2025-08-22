@@ -11,8 +11,8 @@
 #else
 #include <stdint.h>
 #endif
-#include <array>
 #include <memory>
+#include <vector>
 
 #include "SpectralNR.hpp"
 #include "NoiseReducer.hpp"

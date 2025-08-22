@@ -1,14 +1,11 @@
 #pragma once
 
 // C++17 standard headers
-#include <cstdint>
-#include <cstddef>
 #include <algorithm>
 #include <cmath>
 #include <vector>
 #include <string>
 #include <type_traits>
-
 #include "EffectBase.hpp"
 #include "EffectConstants.hpp"
 

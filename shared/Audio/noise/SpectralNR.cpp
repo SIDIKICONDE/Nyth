@@ -1,11 +1,8 @@
 #include "SpectralNR.hpp"
 #include <algorithm>
-#include <array>
-#include <complex>
-#include <stdexcept>
 #include <cmath>
-#include <algorithm>
-#include <iterator>
+#include <stdexcept>
+#include <vector>
 #include "NoiseContants.hpp"
 
 namespace AudioNR {

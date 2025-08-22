@@ -3,16 +3,13 @@
 #ifdef __cplusplus
 
 // C++17 standard headers ONLY - No C++20 features
-#include <cstddef>
-#include <cstdint>
-#include <complex>
-#include <memory>
-#include <array>
-#include <vector>
-#include <stdexcept>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <memory>
+#include <stdexcept>
 #include <type_traits>
+#include <vector>
 
 namespace AudioFX {
 

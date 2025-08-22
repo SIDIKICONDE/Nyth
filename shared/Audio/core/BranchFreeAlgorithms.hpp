@@ -2,7 +2,6 @@
 #ifndef BRANCH_FREE_ALGORITHMS_HPP
 #define BRANCH_FREE_ALGORITHMS_HPP
 
-#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <type_traits>
@@ -101,8 +100,13 @@ inline T clamp(T value, T minVal, T maxVal) noexcept {
  */
 template <typename T>
 inline T select(bool condition, T a, T b) noexcept {
-    // Converts bool to 0 or -1, then uses bit manipulation
-    return b ^ ((a ^ b) & -T(condition));
+    if constexpr (std::is_floating_point_v<T>) {
+        // For floating point types, use arithmetic
+        return condition ? a : b; // Compiler optimizes to conditional move
+    } else {
+        // For integer types, use bit manipulation
+        return b ^ ((a ^ b) & -T(condition));
+    }
 }
 
 // ============================================================================
@@ -232,17 +236,6 @@ private:
 };
 
 /**
- * @brief Branch-free noise gate
- * Gates signal without if statements
- */
-inline float noiseGate(float input, float threshold, float ratio) noexcept {
-    // Traditional: if (abs(input) < threshold) return input * ratio; else return input;
-    float inputAbs = BranchFree::abs(input);
-    float gateAmount = smoothstep(threshold * 0.9f, threshold * 1.1f, inputAbs);
-    return input * (ratio + (1.0f - ratio) * gateAmount);
-}
-
-/**
  * @brief Branch-free smoothstep
  * Smooth interpolation function without branches
  */
@@ -251,6 +244,17 @@ inline float smoothstep(float edge0, float edge1, float x) noexcept {
     float t = clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
     // Evaluate polynomial
     return t * t * (3.0f - 2.0f * t);
+}
+
+/**
+ * @brief Branch-free noise gate
+ * Gates signal without if statements
+ */
+inline float noiseGate(float input, float threshold, float ratio) noexcept {
+    // Traditional: if (abs(input) < threshold) return input * ratio; else return input;
+    float inputAbs = BranchFree::abs(input);
+    float gateAmount = smoothstep(threshold * 0.9f, threshold * 1.1f, inputAbs);
+    return input * (ratio + (1.0f - ratio) * gateAmount);
 }
 
 /**

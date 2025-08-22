@@ -1,13 +1,14 @@
 #pragma once
 
 #include "capture/AudioCapture.hpp"
-#include "capture/AudioCaptureUtils.hpp"
+
 #include "capture/AudioFileWriter.hpp"
 #include "core/AudioEqualizer.hpp"
-#include "core/BiquadFilter.hpp"
-#include "effects/AudioEffects.hpp"
-#include "fft/AudioFFT.hpp"
-#include "noise/NoiseReduction.hpp"
+
+#include "effects/EffectChain.hpp"
+#include "effects/EffectBase.hpp"
+#include "fft/FFTEngine.hpp"
+#include "noise/NoiseReducer.hpp"
 #include "safety/AudioSafety.hpp"
 #include "utils/AudioBuffer.hpp"
 
@@ -75,7 +76,7 @@ public:
 
     // Effects
     void setEffectsEnabled(bool enabled);
-    void addEffect(std::shared_ptr<AudioEffect> effect);
+    void addEffect(std::shared_ptr<AudioFX::IAudioEffect> effect);
     void removeEffect(const std::string& effectId);
     void setEffectParameter(const std::string& effectId, const std::string& param, float value);
 
@@ -105,16 +106,16 @@ public:
 private:
     // Modules
     std::unique_ptr<AudioCapture> capture_;
-    std::unique_ptr<AudioEqualizer> equalizer_;
-    std::unique_ptr<NoiseReduction> noiseReduction_;
-    std::unique_ptr<AudioEffectsChain> effectsChain_;
-    std::unique_ptr<AudioSafetyLimiter> safetyLimiter_;
-    std::unique_ptr<AudioFFTAnalyzer> fftAnalyzer_;
+    std::unique_ptr<AudioFX::AudioEqualizer> equalizer_;
+    std::unique_ptr<AudioNR::NoiseReducer> noiseReduction_;
+    std::unique_ptr<AudioFX::EffectChain> effectsChain_;
+    std::unique_ptr<AudioSafety::AudioSafetyEngine> safetyLimiter_;
+    std::unique_ptr<AudioFX::SimpleFFT> fftAnalyzer_;
     std::unique_ptr<AudioRecorder> recorder_;
 
     // Buffers de traitement
-    std::unique_ptr<AudioBuffer> processBuffer_;
-    std::unique_ptr<AudioBuffer> tempBuffer_;
+    std::unique_ptr<AudioUtils::AudioBuffer> processBuffer_;
+    std::unique_ptr<AudioUtils::AudioBuffer> tempBuffer_;
 
     // Configuration
     Config config_;
@@ -235,10 +236,10 @@ public:
                                               int channels);
 
     // Synchronisation entre modules
-    static void syncModuleTiming(AudioCapture* capture, AudioEffectsChain* effects);
+    static void syncModuleTiming(AudioCapture* capture, AudioFX::EffectChain* effects);
 
     // Validation de compatibilité
-    static bool areModulesCompatible(const AudioCaptureConfig& captureConfig, const AudioEqualizer::Config& eqConfig);
+    static bool areModulesCompatible(const AudioCaptureConfig& captureConfig, const AudioFX::AudioEqualizer& eq);
 
     // Optimisation de la latence
     static void optimizeLatency(AudioPipeline* pipeline);

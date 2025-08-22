@@ -1,8 +1,9 @@
 #pragma once
 
-#include <cmath>
-#include <cstring>
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 
 // Détection des capacités SIMD
 #ifdef __ARM_NEON

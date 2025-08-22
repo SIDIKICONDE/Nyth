@@ -4,7 +4,8 @@
 #include "../core/MemoryPool.hpp"
 #include "AudioSafety.hpp"
 #include <cstring>
-#include <memory>
+#include <cmath>
+
 
 
 // SIMD headers
@@ -38,8 +39,8 @@ public:
     ~AudioSafetyEngineOptimized();
 
     // Override processing methods with optimized versions
-    SafetyError processMono(float* buffer, size_t numSamples) noexcept override;
-    SafetyError processStereo(float* left, float* right, size_t numSamples) noexcept override;
+    SafetyError processMono(float* buffer, size_t numSamples) noexcept;
+    SafetyError processStereo(float* left, float* right, size_t numSamples) noexcept;
 
 private:
     // Memory pool for SafetyReport allocations
@@ -124,7 +125,7 @@ inline void AudioSafetyEngineOptimized::limitBufferAVX2(float* x, size_t n, floa
 
     // Process remaining samples with branch-free scalar
     for (; i < n; ++i) {
-        x[i] = BranchFree::clamp(x[i], -threshold, threshold);
+        x[i] = AudioFX::BranchFree::clamp(x[i], -threshold, threshold);
     }
 }
 
@@ -233,7 +234,7 @@ inline void AudioSafetyEngineOptimized::limitBufferNEON(float* x, size_t n, floa
 
     // Process remaining samples
     for (; i < n; ++i) {
-        x[i] = BranchFree::clamp(x[i], -threshold, threshold);
+        x[i] = AudioFX::BranchFree::clamp(x[i], -threshold, threshold);
     }
 }
 #endif // SAFETY_NEON
@@ -246,7 +247,7 @@ inline void AudioSafetyEngineOptimized::limitBufferBranchFree(float* x, size_t n
 #else
     // Branch-free scalar fallback
     for (size_t i = 0; i < n; ++i) {
-        x[i] = BranchFree::clamp(x[i], -threshold, threshold);
+        x[i] = AudioFX::BranchFree::clamp(x[i], -threshold, threshold);
     }
 #endif
 }

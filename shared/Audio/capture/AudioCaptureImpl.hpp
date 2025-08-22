@@ -1,10 +1,17 @@
 #pragma once
 
-#include "AudioCapture.hpp"
+#include <algorithm>
+#include <chrono>
 #include <condition_variable>
+#include <cstddef>
+#include <functional>
+#include <memory>
 #include <mutex>
 #include <queue>
+#include <string>
 #include <thread>
+#include <vector>
+#include "AudioCapture.hpp"
 
 #ifdef __ANDROID__
 #include <SLES/OpenSLES.h>
@@ -200,8 +207,8 @@ inline std::unique_ptr<AudioCapture> AudioCapture::create(const AudioCaptureConf
 #elif defined(__APPLE__) && TARGET_OS_IOS
     auto capture = std::make_unique<AudioCaptureIOS>();
 #else
-// Fallback ou erreur de compilation pour les plateformes non supportées
-#error "Platform not supported for audio capture"
+    // Fallback pour les plateformes non supportées
+    std::unique_ptr<AudioCapture> capture = nullptr;
 #endif
 
     if (capture && capture->initialize(config)) {
@@ -312,10 +319,5 @@ inline void AudioCaptureBase::updateLevelsInt16(const int16_t* data, size_t samp
     statistics_.peakLevel = maxVal;
 }
 
-<<<<<<< Current (Your changes)
-== == == =
-
-
->>>>>>> Incoming (Background Agent changes)
 } // namespace Audio
 } // namespace Nyth

@@ -1,9 +1,8 @@
 #include "NoiseReducer.hpp"
-#include <stdexcept>
 #include <algorithm>
-#include <array>
-#include <memory>
 #include <cmath>
+#include <memory>
+#include <stdexcept>
 #include <vector>
 #include "NoiseContants.hpp"
 

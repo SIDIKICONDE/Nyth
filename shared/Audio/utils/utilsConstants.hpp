@@ -45,16 +45,8 @@
     #define AUDIO_NO_INLINE
 #endif
 
-// C++17 standard headers - Robust compatibility
-#include <cstdint>
-#include <cstddef>
-#include <array>
-#include <vector>
-#include <string>
-#include <type_traits>
-#include <limits>
-#include <cmath>
-#include <algorithm>
+// C++17 standard headers - Required for types used
+#include <cstddef>  // for size_t
 
 // Audio Utils Constants - Centralized for all utility functions
 namespace AudioUtils {

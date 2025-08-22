@@ -4,22 +4,12 @@
 // C++17 standard headers
 #include <cstddef>
 #include <memory>
-#include <array>
 #include <vector>
-// C++17 - pas de concepts
-#include <type_traits>
-#include <algorithm>
-#include <numeric>
-#include "../../compat/format.hpp"
-// C++17 - pas de source_location
 #include <algorithm>
 #include <stdexcept>
-#include "utilsConstants.hpp"
+#include <sstream>
 
 namespace AudioUtils {
-
-// Import des constantes pour éviter la répétition des namespace
-using namespace UtilsConstants;
 
 // Type aliases C++17
 template<typename T>
@@ -81,35 +71,37 @@ public:
     float getRMSLevel(size_t channel, size_t startSample, size_t numSamples) const;
 
     // C++17 methods
-    std::vector<float>& getChannelSpan(size_t channel) {
+    std::vector<float> getChannelSpan(size_t channel) {
         if (channel >= m_numChannels) {
-            return std::vector<float>&();
+            return std::vector<float>();
         }
-        return std::vector<float>&(m_channels[channel], m_numSamples);
+        return std::vector<float>(m_channels[channel], m_channels[channel] + m_numSamples);
     }
 
-    std::vector<const float>& getChannelSpan(size_t channel) const {
+    std::vector<float> getChannelSpan(size_t channel) const {
         if (channel >= m_numChannels) {
-            return std::vector<const float>&();
+            return std::vector<float>();
         }
-        return std::vector<const float>&(m_channels[channel], m_numSamples);
+        return std::vector<float>(m_channels[channel], m_channels[channel] + m_numSamples);
     }
 
     // Template versions for compatibility
     template<typename T>
-    std::vector<T>& getChannelSpan(size_t channel) {
+    std::vector<T> getChannelSpan(size_t channel) {
         if (channel >= m_numChannels) {
-            return std::vector<T>&();
+            return std::vector<T>();
         }
-        return std::vector<T>&(reinterpret_cast<T*>(m_channels[channel]), m_numSamples);
+        return std::vector<T>(reinterpret_cast<T*>(m_channels[channel]),
+                              reinterpret_cast<T*>(m_channels[channel]) + m_numSamples);
     }
 
     template<typename T>
-    std::vector<const T>& getChannelSpan(size_t channel) const {
+    std::vector<T> getChannelSpan(size_t channel) const {
         if (channel >= m_numChannels) {
-            return std::vector<const T>&();
+            return std::vector<T>();
         }
-        return std::vector<const T>&(reinterpret_cast<const T*>(m_channels[channel]), m_numSamples);
+        return std::vector<T>(reinterpret_cast<T*>(m_channels[channel]),
+                              reinterpret_cast<T*>(m_channels[channel]) + m_numSamples);
     }
 
     // C++17 enhanced copy operations
