@@ -24,6 +24,7 @@ export type RootStackParamList = {
 
   VideoLibrary: undefined;
   Library: undefined;
+  AudioScreen: undefined;
   VideoPlayer: { videoUri: string; title?: string };
   // Onboarding: undefined; // Supprimé
   Theme: undefined;

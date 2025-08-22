@@ -18,14 +18,20 @@ import { useTranslation } from '@/hooks/useTranslation';
 
 interface AudioFABProps {
   onPress: () => void;
-  isRecording?: boolean;
-  recordingDuration?: number;
+  onPausePress?: () => void;
+  onResumePress?: () => void;
+  isRecording: boolean;
+  isPaused?: boolean;
+  recordingDuration: number;
 }
 
 export default function AudioFAB({
   onPress,
-  isRecording = false,
-  recordingDuration = 0,
+  onPausePress,
+  onResumePress,
+  isRecording,
+  isPaused = false,
+  recordingDuration,
 }: AudioFABProps) {
   const { currentTheme } = useTheme();
   const { t } = useTranslation();
@@ -192,7 +198,26 @@ export default function AudioFAB({
         </LinearGradient>
       </TouchableOpacity>
 
-      {/* Label explicatif */}
+      {/* Boutons secondaires pendant l'enregistrement */}
+      {isRecording && (
+        <View style={tw`absolute -left-20 flex-col gap-3`}>
+          {/* Bouton Pause/Reprise */}
+          <TouchableOpacity
+            onPress={isPaused ? onResumePress : onPausePress}
+            style={tw`w-12 h-12 rounded-full bg-white shadow-md items-center justify-center`}
+            accessibilityRole="button"
+            accessibilityLabel={isPaused ? t('audio.resume', 'Reprendre') : t('audio.pause', 'Pause')}
+          >
+            <Icon
+              name={isPaused ? 'play-arrow' : 'pause'}
+              size={24}
+              color={currentTheme.colors.accent}
+            />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Indicateur de durée */}
       <Animated.View
         style={[
           tw`absolute right-20 bg-black/80 px-3 py-2 rounded-lg`,

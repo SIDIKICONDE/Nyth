@@ -162,6 +162,7 @@ export default function HomeScreen() {
     handleAIGenerate,
     handleAIChat,
     handlePlanning,
+    handleAudioScreen,
     handlePreview,
     // handleNodeEditor supprimé,
     handleTabChange,
@@ -437,6 +438,7 @@ export default function HomeScreen() {
           onAIChat={handleAIChat}
           onPlanning={handlePlanning}
           onPreview={handlePreview}
+          onAudioScreen={handleAudioScreen}
           // onNodeEditor supprimé
         />
       )}

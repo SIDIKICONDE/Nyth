@@ -125,6 +125,11 @@ export function useNavigationHandlers(
     navigation.navigate("Planning");
   };
 
+  const handleAudioScreen = () => {
+    clearSelection();
+    navigation.navigate("AudioScreen");
+  };
+
   const handlePreview = async () => {
     // La fonctionnalité de prévisualisation n'est plus disponible
     // Les vidéos sont directement sauvegardées dans la galerie
@@ -150,6 +155,7 @@ export function useNavigationHandlers(
     handleAIGenerate,
     handleAIChat,
     handlePlanning,
+    handleAudioScreen,
     handlePreview,
     // handleNodeEditor supprimé,
     handleTabChange,
