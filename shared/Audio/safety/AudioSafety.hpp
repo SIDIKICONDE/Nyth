@@ -18,12 +18,28 @@
 #  include <stdint.h>
 #  include <stddef.h>
 #endif
-#include "SafetyContants.hpp"
+#include "SafetyConstants.hpp"
 
 namespace AudioSafety {
 
 // Import des constantes pour éviter la répétition des namespace
 using namespace SafetyConstants;
+
+/**
+ * @brief Error codes for AudioSafety operations
+ * Real-time safe alternative to exceptions
+ */
+enum class SafetyError : int32_t {
+    OK = 0,
+    NULL_BUFFER = -1,
+    INVALID_SAMPLE_RATE = -2,
+    INVALID_CHANNELS = -3,
+    INVALID_THRESHOLD_DB = -4,
+    INVALID_KNEE_WIDTH = -5,
+    INVALID_DC_THRESHOLD = -6,
+    INVALID_FEEDBACK_THRESHOLD = -7,
+    PROCESSING_FAILED = -8
+};
 
 /**
  * @brief Configuration de l'engine de sécurité audio
@@ -68,66 +84,82 @@ public:
      * @brief Constructeur
      * @param sampleRate Fréquence d'échantillonnage (Hz)
      * @param channels Nombre de canaux (1 ou 2)
+     * @param error Output error code (optional)
      */
-    AudioSafetyEngine(uint32_t sampleRate, int channels);
+    AudioSafetyEngine(uint32_t sampleRate, int channels, SafetyError* error = nullptr);
     ~AudioSafetyEngine();
 
     /**
      * @brief Mise à jour de la fréquence d'échantillonnage
-     * @throws std::invalid_argument si hors bornes raisonnables
+     * @return Error code
      */
-    void setSampleRate(uint32_t sr);
+    SafetyError setSampleRate(uint32_t sr) noexcept;
+    
     /**
      * @brief Mise à jour de la configuration
-     * @throws std::invalid_argument si des paramètres sont invalides
+     * @return Error code
      */
-    void setConfig(const SafetyConfig& cfg);
+    SafetyError setConfig(const SafetyConfig& cfg) noexcept;
+    
     const SafetyConfig& getConfig() const { return config_; }
     SafetyReport getLastReport() const { return report_; }
 
-    void processMono(float* buffer, size_t numSamples);
-    void processStereo(float* left, float* right, size_t numSamples);
+    /**
+     * @brief Process mono audio buffer
+     * @return Error code
+     */
+    SafetyError processMono(float* buffer, size_t numSamples) noexcept;
+    
+    /**
+     * @brief Process stereo audio buffers
+     * @return Error code
+     */
+    SafetyError processStereo(float* left, float* right, size_t numSamples) noexcept;
+
+    /**
+     * @brief Check if last initialization was successful
+     */
+    bool isValid() const noexcept { return valid_; }
 
 private:
     uint32_t sampleRate_;
     int channels_;
     SafetyConfig config_{};
     SafetyReport report_{};
-    double limiterThresholdLin_ = DEFAULT_LIMITER_THRESHOLD_LINEAR; // from dB
-
-    // Helpers - Conversion dB vers linéaire sans nombres magiques
-    inline double dbToLin(double dB) const {
-        double x = dB / DB_TO_LINEAR_DIVISOR;
-
-        // Cas simples sans calculs
-        if (x == ZERO_POWER_EXP) return UNITY_POWER;
-        if (x == POSITIVE_UNIT_EXP) return LOG_BASE_10;
-        if (x == NEGATIVE_UNIT_EXP) return LOG_BASE_10_INV;
-
-        // Implémentation sans pow() pour éviter les dépendances
-        double result = UNITY_POWER;
-        double base = (x > ZERO_POWER_EXP) ? LOG_BASE_10 : LOG_BASE_10_INV;
-        double absX = (x > ZERO_POWER_EXP) ? x : -x;
-
-        // Partie entière
-        for (int i = 0; i < (int)absX; ++i) {
-            result *= base;
-        }
-
-        // Approximation pour partie fractionnaire
-        double frac = absX - (int)absX;
-        if (frac > FRACTIONAL_THRESHOLD) {
-            result *= (x > ZERO_POWER_EXP) ? SQRT_10_APPROX : SQRT_10_INV_APPROX;
-        }
-
-        return result;
-    }
+    double limiterThresholdLin_ = DEFAULT_LIMITER_THRESHOLD_LINEAR;
+    bool valid_ = false; // Track initialization status
+    
+    // DbLookupTable will be integrated here
+    class DbConverter; // Forward declaration for LUT integration
+    
+    // Helpers - Using LUT for dB conversion when available
+    double dbToLin(double dB) const noexcept;
+    double linToDb(double linear) const noexcept;
+    
     // Analyse + nettoyage d'un canal. Retourne un rapport pour ce canal
-    SafetyReport analyzeAndClean(float* x, size_t n);
-    void dcRemove(float* x, size_t n, double mean);
-    void limitBuffer(float* x, size_t n);
-    double estimateFeedbackScore(const float* x, size_t n);
+    SafetyReport analyzeAndClean(float* x, size_t n) noexcept;
+    void dcRemove(float* x, size_t n, double mean) noexcept;
+    void limitBuffer(float* x, size_t n) noexcept;
+    double estimateFeedbackScore(const float* x, size_t n) noexcept;
 };
+
+/**
+ * @brief Convert error code to string for debugging (non-RT)
+ */
+inline const char* safetyErrorToString(SafetyError error) noexcept {
+    switch (error) {
+        case SafetyError::OK: return "OK";
+        case SafetyError::NULL_BUFFER: return "Null buffer";
+        case SafetyError::INVALID_SAMPLE_RATE: return "Invalid sample rate";
+        case SafetyError::INVALID_CHANNELS: return "Invalid channels";
+        case SafetyError::INVALID_THRESHOLD_DB: return "Invalid threshold dB";
+        case SafetyError::INVALID_KNEE_WIDTH: return "Invalid knee width";
+        case SafetyError::INVALID_DC_THRESHOLD: return "Invalid DC threshold";
+        case SafetyError::INVALID_FEEDBACK_THRESHOLD: return "Invalid feedback threshold";
+        case SafetyError::PROCESSING_FAILED: return "Processing failed";
+        default: return "Unknown error";
+    }
+}
 
 } // namespace AudioSafety
 
