@@ -15,14 +15,14 @@ namespace Audio {
 
 // Métriques de performance en temps réel
 struct RealtimeMetrics {
-    std::atomic<float> cpuUsagePercent{0.0f};
-    std::atomic<size_t> memoryUsageBytes{0};
-    std::atomic<float> inputLatencyMs{0.0f};
-    std::atomic<float> outputLatencyMs{0.0f};
-    std::atomic<float> roundTripLatencyMs{0.0f};
-    std::atomic<uint32_t> xruns{0};  // Underruns + Overruns
-    std::atomic<uint32_t> droppedFrames{0};
-    std::atomic<float> currentLoad{0.0f};
+    float cpuUsagePercent = 0.0f;
+    size_t memoryUsageBytes = 0;
+    float inputLatencyMs = 0.0f;
+    float outputLatencyMs = 0.0f;
+    float roundTripLatencyMs = 0.0f;
+    uint32_t xruns = 0;  // Underruns + Overruns
+    uint32_t droppedFrames = 0;
+    float currentLoad = 0.0f;
 };
 
 // Statistiques détaillées
@@ -122,7 +122,15 @@ public:
 // Collecteur de métriques principal
 class AudioMetricsCollector {
 private:
-    RealtimeMetrics realtime_;
+    std::atomic<float> cpuUsagePercent_{0.0f};
+    std::atomic<size_t> memoryUsageBytes_{0};
+    std::atomic<float> inputLatencyMs_{0.0f};
+    std::atomic<float> outputLatencyMs_{0.0f};
+    std::atomic<float> roundTripLatencyMs_{0.0f};
+    std::atomic<uint32_t> xruns_{0};
+    std::atomic<uint32_t> droppedFrames_{0};
+    std::atomic<float> currentLoad_{0.0f};
+    
     DetailedStatistics detailed_;
     
     MetricHistory<float> latencyHistory_;
@@ -156,7 +164,7 @@ public:
     void updateLatency(float latencyMs) {
         if (!isCollecting_) return;
         
-        realtime_.inputLatencyMs = latencyMs;
+        inputLatencyMs_ = latencyMs;
         latencyHistory_.add(latencyMs);
         
         // Mettre à jour les statistiques
@@ -172,7 +180,7 @@ public:
         if (!isCollecting_) return;
         
         float usage = 100.0f * processingTime.count() / availableTime.count();
-        realtime_.cpuUsagePercent = usage;
+        cpuUsagePercent_ = usage;
         cpuHistory_.add(usage);
         
         // Mettre à jour les statistiques
@@ -185,14 +193,14 @@ public:
     
     // Signaler un xrun (underrun ou overrun)
     void reportXRun() {
-        realtime_.xruns++;
+        xruns_++;
         detailed_.bufferErrors++;
         detailed_.totalErrors++;
     }
     
     // Signaler des frames perdues
     void reportDroppedFrames(uint32_t count) {
-        realtime_.droppedFrames += count;
+        droppedFrames_ += count;
     }
     
     // Signaler un événement de clipping
@@ -202,7 +210,16 @@ public:
     
     // Obtenir les métriques en temps réel
     RealtimeMetrics getRealtimeMetrics() const {
-        return realtime_;
+        RealtimeMetrics metrics;
+        metrics.cpuUsagePercent = cpuUsagePercent_.load();
+        metrics.memoryUsageBytes = memoryUsageBytes_.load();
+        metrics.inputLatencyMs = inputLatencyMs_.load();
+        metrics.outputLatencyMs = outputLatencyMs_.load();
+        metrics.roundTripLatencyMs = roundTripLatencyMs_.load();
+        metrics.xruns = xruns_.load();
+        metrics.droppedFrames = droppedFrames_.load();
+        metrics.currentLoad = currentLoad_.load();
+        return metrics;
     }
     
     // Obtenir les statistiques détaillées
@@ -212,7 +229,14 @@ public:
     
     // Réinitialiser toutes les métriques
     void reset() {
-        realtime_ = RealtimeMetrics();
+        cpuUsagePercent_ = 0.0f;
+        memoryUsageBytes_ = 0;
+        inputLatencyMs_ = 0.0f;
+        outputLatencyMs_ = 0.0f;
+        roundTripLatencyMs_ = 0.0f;
+        xruns_ = 0;
+        droppedFrames_ = 0;
+        currentLoad_ = 0.0f;
         detailed_ = DetailedStatistics();
         latencyHistory_.clear();
         cpuHistory_.clear();
@@ -225,11 +249,11 @@ public:
     std::string exportToJSON() const {
         std::string json = "{\n";
         json += "  \"realtime\": {\n";
-        json += "    \"cpuUsage\": " + std::to_string(realtime_.cpuUsagePercent.load()) + ",\n";
-        json += "    \"memoryUsage\": " + std::to_string(realtime_.memoryUsageBytes.load()) + ",\n";
-        json += "    \"inputLatency\": " + std::to_string(realtime_.inputLatencyMs.load()) + ",\n";
-        json += "    \"xruns\": " + std::to_string(realtime_.xruns.load()) + ",\n";
-        json += "    \"droppedFrames\": " + std::to_string(realtime_.droppedFrames.load()) + "\n";
+        json += "    \"cpuUsage\": " + std::to_string(cpuUsagePercent_.load()) + ",\n";
+        json += "    \"memoryUsage\": " + std::to_string(memoryUsageBytes_.load()) + ",\n";
+        json += "    \"inputLatency\": " + std::to_string(inputLatencyMs_.load()) + ",\n";
+        json += "    \"xruns\": " + std::to_string(xruns_.load()) + ",\n";
+        json += "    \"droppedFrames\": " + std::to_string(droppedFrames_.load()) + "\n";
         json += "  },\n";
         json += "  \"detailed\": {\n";
         json += "    \"avgLatency\": " + std::to_string(detailed_.avgLatencyMs) + ",\n";

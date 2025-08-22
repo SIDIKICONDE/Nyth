@@ -4,6 +4,7 @@
 #include "../shared/Audio/capture/AudioCaptureMetrics.hpp"
 #include <random>
 #include <vector>
+#include <iostream>
 
 using namespace Nyth::Audio;
 
@@ -563,8 +564,7 @@ class SpeedupReporter : public benchmark::ConsoleReporter {
 public:
     bool ReportContext(const Context& context) override {
         std::cout << "\n=== Audio Capture Performance Benchmarks ===\n";
-        std::cout << "CPU: " << context.cpu_info.name << "\n";
-        std::cout << "Frequency: " << context.cpu_info.cycles_per_second / 1e9 << " GHz\n";
+        std::cout << "CPU Frequency: " << context.cpu_info.cycles_per_second / 1e9 << " GHz\n";
         std::cout << "Cores: " << context.cpu_info.num_cpus << "\n\n";
         return ConsoleReporter::ReportContext(context);
     }

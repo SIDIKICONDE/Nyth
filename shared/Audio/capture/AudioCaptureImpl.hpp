@@ -190,7 +190,11 @@ protected:
     void updateStatistics(size_t frameCount, size_t byteCount);
     
 public:
-    void resetStatistics() override;
+    void resetStatistics() override {
+        statistics_ = CaptureStatistics();
+        currentLevel_ = 0.0f;
+        peakLevel_ = 0.0f;
+    }
 };
 
 // === Factory implementation ===
@@ -314,11 +318,7 @@ inline void AudioCaptureBase::updateLevelsInt16(const int16_t* data, size_t samp
     statistics_.peakLevel = maxVal;
 }
 
-inline void AudioCaptureBase::resetStatistics() {
-    statistics_ = CaptureStatistics();
-    currentLevel_ = 0.0f;
-    peakLevel_ = 0.0f;
-}
+
 
 } // namespace Audio
 } // namespace Nyth

@@ -10,6 +10,7 @@
 #include <chrono>
 #include <random>
 #include <numeric>
+#include <cmath>
 
 using namespace Nyth::Audio;
 using namespace testing;
@@ -403,14 +404,14 @@ TEST(AudioMetricsTest, RealtimeMetricsUpdate) {
     collector.updateLatency(5.5f);
     
     auto metrics = collector.getRealtimeMetrics();
-    EXPECT_FLOAT_EQ(metrics.inputLatencyMs.load(), 5.5f);
+    EXPECT_FLOAT_EQ(metrics.inputLatencyMs, 5.5f);
     
     collector.reportXRun();
     collector.reportXRun();
-    EXPECT_EQ(collector.getRealtimeMetrics().xruns.load(), 2);
+    EXPECT_EQ(collector.getRealtimeMetrics().xruns, 2);
     
     collector.reportDroppedFrames(10);
-    EXPECT_EQ(collector.getRealtimeMetrics().droppedFrames.load(), 10);
+    EXPECT_EQ(collector.getRealtimeMetrics().droppedFrames, 10);
 }
 
 TEST(AudioMetricsTest, DetailedStatistics) {
