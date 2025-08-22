@@ -180,6 +180,7 @@ endif()
 # Audio System C++20 Sources
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/NativeAudioEqualizerModule.cpp
+    ../../../../../shared/NativeAudioCaptureModule.cpp
     ../../../../../shared/Audio/fft/FFTEngine.hpp
     ../../../../../shared/Audio/core/AudioEqualizer.cpp
     ../../../../../shared/Audio/core/AudioEqualizerTemplates.hpp
@@ -193,7 +194,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/Audio/noise/SpectralNR.cpp
     ../../../../../shared/Audio/safety/AudioSafety.cpp
     ../../../../../shared/Audio/utils/AudioBuffer.cpp
-    # Note: Effects are header-only for now
+    # Note: Effects and Capture implementations are header-only for now
 )
 
 # Camera Filters System C++ Sources
@@ -220,6 +221,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
     ../../../../../shared/Audio/safety
     ../../../../../shared/Audio/utils
     ../../../../../shared/Audio/effects
+    ../../../../../shared/Audio/capture
     ../../../../../shared/filters
     ../../../../../shared/filters/common
 )

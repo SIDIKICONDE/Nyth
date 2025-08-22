@@ -3,6 +3,7 @@
 #import <ReactCommon/TurboModule.h>
 #import "../../shared/NativeCameraFiltersModule.h"
 #import "../../shared/NativeAudioEqualizerModule.h"
+#import "../../shared/NativeAudioCaptureModule.h"
 
 @implementation NativeCameraFiltersModuleProvider
 
@@ -20,6 +21,16 @@
     (const facebook::react::ObjCTurboModule::InitParams &)params
 {
   return std::make_shared<facebook::react::NativeAudioEqualizerModule>(params.jsInvoker);
+}
+
+@end
+
+@implementation NativeAudioCaptureModuleProvider
+
+- (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
+    (const facebook::react::ObjCTurboModule::InitParams &)params
+{
+  return std::make_shared<facebook::react::NativeAudioCaptureModule>(params.jsInvoker);
 }
 
 @end
