@@ -16,7 +16,20 @@ export enum TextFormatType {
   SPLIT_SENTENCES = 'splitSentences',
   AUTO_PAUSE = 'autoPause',
   NORMALIZE = 'normalize',
-  MARKDOWN = 'markdown'
+  MARKDOWN = 'markdown',
+  STRIKETHROUGH = 'strikethrough',
+  CODE = 'code',
+  CODE_BLOCK = 'codeBlock',
+  QUOTE = 'quote',
+  NUMBERED_LIST = 'numberedList',
+  // GitHub Flavored Markdown
+  GFM = 'gfm',
+  TABLE = 'table',
+  TASK_LIST = 'taskList',
+  MENTION = 'mention',
+  ISSUE_REFERENCE = 'issueReference',
+  EMOJI = 'emoji',
+  AUTOLINK = 'autolink'
 }
 
 /**
@@ -43,6 +56,11 @@ export interface MarkdownOptions {
   convertHighlight?: boolean;
   convertHeaders?: boolean;
   convertLists?: boolean;
+  convertStrikethrough?: boolean;
+  convertCode?: boolean;
+  convertCodeBlocks?: boolean;
+  convertQuotes?: boolean;
+  convertNumberedLists?: boolean;
 }
 
 /**

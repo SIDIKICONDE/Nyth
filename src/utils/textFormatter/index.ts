@@ -7,6 +7,9 @@
 export { BasicFormatter } from "./BasicFormatter";
 export { HtmlFormatter } from "./HtmlFormatter";
 export { MarkdownFormatter } from "./MarkdownFormatter";
+export { ExtendedMarkdownFormatter } from "./ExtendedMarkdownFormatter";
+export { GFMFormatter } from "./GFMFormatter";
+export { NoteFormatter } from "./NoteFormatter";
 export {
   ReactFormatter,
   processFormattedParagraph,
@@ -15,6 +18,8 @@ export {
   processTextStyles,
   useFormattingStyles,
 } from "./ReactFormatter";
+export { ExtendedReactFormatter } from "./ExtendedReactFormatter";
+export { GFMReactFormatter } from "./GFMReactFormatter";
 export { TeleprompterFormatter } from "./TeleprompterFormatter";
 export { TextAnalyzer } from "./TextAnalyzer";
 export * from "./types";
@@ -23,7 +28,11 @@ export * from "./types";
 import { BasicFormatter } from "./BasicFormatter";
 import { HtmlFormatter } from "./HtmlFormatter";
 import { MarkdownFormatter } from "./MarkdownFormatter";
+import { ExtendedMarkdownFormatter } from "./ExtendedMarkdownFormatter";
+import { GFMFormatter } from "./GFMFormatter";
 import { ReactFormatter } from "./ReactFormatter";
+import { ExtendedReactFormatter } from "./ExtendedReactFormatter";
+import { GFMReactFormatter } from "./GFMReactFormatter";
 import { TeleprompterFormatter } from "./TeleprompterFormatter";
 import { TextAnalyzer } from "./TextAnalyzer";
 import { NoteFormatter } from "./NoteFormatter";
@@ -71,4 +80,29 @@ export class TextFormatter {
   static insertFormatting = NoteFormatter.insertFormatting;
   static hasFormatting = NoteFormatter.hasFormatting;
   static getStats = NoteFormatter.getStats;
+
+  // === FORMATAGE MARKDOWN ÉTENDU ===
+  static applyExtendedMarkdownFormatting = ExtendedMarkdownFormatter.applyExtendedMarkdownFormatting;
+  static autoFormatExtendedText = ExtendedMarkdownFormatter.autoFormatExtendedText;
+  static convertToHtml = ExtendedMarkdownFormatter.convertToHtml;
+  static stripAllMarkdown = ExtendedMarkdownFormatter.stripAllMarkdown;
+  static getMarkdownStats = ExtendedMarkdownFormatter.getMarkdownStats;
+  static hasExtendedMarkdown = ExtendedMarkdownFormatter.hasExtendedMarkdown;
+
+  // === FORMATAGE REACT ÉTENDU ===
+  static processExtendedMarkdown = ExtendedReactFormatter.processExtendedMarkdown;
+  static processExtendedParagraph = ExtendedReactFormatter.processExtendedParagraph;
+  static processExtendedText = ExtendedReactFormatter.processExtendedText;
+
+  // === GITHUB FLAVORED MARKDOWN (GFM) ===
+  static applyGFMFormatting = GFMFormatter.applyGFMFormatting;
+  static convertGFMToHtml = GFMFormatter.convertGFMToHtml;
+  static extractTableData = GFMFormatter.extractTableData;
+  static getGFMStats = GFMFormatter.getGFMStats;
+  static hasGFMFeatures = GFMFormatter.hasGFMFeatures;
+  static stripAllGFM = GFMFormatter.stripAllGFM;
+
+  // === FORMATAGE REACT GFM ===
+  static processGFMText = GFMReactFormatter.processGFMText;
+  static processGFMParagraph = GFMReactFormatter.processGFMParagraph;
 }

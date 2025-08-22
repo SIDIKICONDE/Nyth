@@ -1,6 +1,10 @@
 import React, { useContext } from "react";
 import { Linking, StyleProp, Text, TextStyle, View } from "react-native";
 import { FontContext } from "../../contexts/FontContext";
+import { ExtendedMarkdownFormatter } from "./ExtendedMarkdownFormatter";
+import { ExtendedReactFormatter } from "./ExtendedReactFormatter";
+import { GFMFormatter } from "./GFMFormatter";
+import { GFMReactFormatter } from "./GFMReactFormatter";
 
 /**
  * Module unifié pour le formatage de texte avec composants React
@@ -443,8 +447,59 @@ export const processFormattedText = (
   text: string,
   baseStyle: StyleProp<TextStyle> = {},
   isComplete: boolean = true
-) =>
-  ReactFormatter.processFormattedText(text, {
+) => {
+  // D'abord, vérifier si le texte contient des éléments GFM
+  if (GFMFormatter.hasGFMFeatures(text)) {
+    // Utiliser le rendu GFM avancé
+    return GFMReactFormatter.processGFMText(text, {
+      baseStyle,
+      isComplete,
+      // Options GFM par défaut
+      convertTables: true,
+      convertTaskLists: true,
+      convertImages: true,
+      convertEmojis: true,
+      convertMentions: true,
+      convertIssueReferences: true,
+      convertAutolinks: true,
+      convertEscapes: true,
+      // Options Markdown héritées
+      convertBold: true,
+      convertItalic: true,
+      convertStrikethrough: true,
+      convertCode: true,
+      convertCodeBlocks: true,
+      convertHeaders: true,
+      convertQuotes: true,
+      convertLists: true,
+      convertNumberedLists: true,
+      convertHighlight: true,
+    });
+  }
+  
+  // Sinon, vérifier si le texte contient du Markdown étendu
+  if (ExtendedMarkdownFormatter.hasExtendedMarkdown(text)) {
+    // Utiliser le rendu Markdown étendu
+    return ExtendedReactFormatter.processExtendedText(text, {
+      baseStyle,
+      isComplete,
+      // Options Markdown étendues par défaut
+      convertBold: true,
+      convertItalic: true,
+      convertStrikethrough: true,
+      convertCode: true,
+      convertCodeBlocks: true,
+      convertHeaders: true,
+      convertQuotes: true,
+      convertLists: true,
+      convertNumberedLists: true,
+      convertHighlight: true,
+    });
+  }
+  
+  // Fallback vers le formatage de base
+  return ReactFormatter.processFormattedText(text, {
     baseStyle,
     isComplete,
   });
+};

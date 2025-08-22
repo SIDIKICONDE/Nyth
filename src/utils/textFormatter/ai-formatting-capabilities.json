@@ -1,0 +1,46 @@
+{
+  "formatting_capabilities": {
+    "description": "L'interface de chat supporte automatiquement GitHub Flavored Markdown (GFM) et Markdown étendu. Utilisez ces fonctionnalités pour améliorer vos réponses.",
+    "basic_formatting": {
+      "bold": "**texte** ou __texte__",
+      "italic": "*texte* ou _texte_",
+      "strikethrough": "~~texte~~",
+      "highlight": "^texte^",
+      "inline_code": "`code`",
+      "code_block": "```\ncode sur plusieurs lignes\n```"
+    },
+    "structure": {
+      "headers": "# H1, ## H2, ### H3",
+      "quotes": "> texte important",
+      "bullet_lists": "- item",
+      "numbered_lists": "1. item numéroté"
+    },
+    "gfm_advanced": {
+      "tables": "| Col1 | Col2 |\n|------|------|\n| data | data |",
+      "task_lists": "- [x] terminé / - [ ] à faire",
+      "images": "![alt](url)",
+      "mentions": "@utilisateur",
+      "issues": "#123",
+      "autolinks": "URLs et emails détectés automatiquement"
+    },
+    "emojis": {
+      "description": "Plus de 40 emojis supportés",
+      "popular": [":smile:", ":rocket:", ":fire:", ":thumbsup:", ":heart:", ":star:", ":warning:", ":heavy_check_mark:", ":x:", ":bulb:", ":gear:", ":computer:", ":wave:", ":clap:", ":muscle:", ":thinking:", ":sparkles:", ":zap:", ":boom:", ":arrow_right:"],
+      "categories": {
+        "emotions": [":smile:", ":joy:", ":wink:", ":thinking:", ":cry:"],
+        "actions": [":thumbsup:", ":clap:", ":wave:", ":pray:", ":muscle:"],
+        "objects": [":rocket:", ":fire:", ":star:", ":bulb:", ":gear:", ":computer:"],
+        "status": [":heavy_check_mark:", ":x:", ":warning:", ":question:"]
+      }
+    },
+    "best_practices": [
+      "Structurez avec des titres (# ## ###)",
+      "Utilisez des tableaux pour les comparaisons",
+      "Créez des listes de tâches pour les actions",
+      "Ajoutez des emojis avec modération",
+      "Mettez en évidence avec **gras** et > citations",
+      "Utilisez `code` pour les exemples techniques"
+    ],
+    "example_response_template": "# 🎯 Titre Principal\n\n## 📋 Section\n\n**Point important** avec du texte normal.\n\n> ⚠️ **Attention** : Information critique\n\n| Élément | Status |\n|---------|--------|\n| Item 1  | ✅ OK  |\n| Item 2  | ❌ KO  |\n\n## ✅ Actions\n\n- [x] Tâche terminée ✅\n- [ ] Tâche à faire 📝\n\nPour plus d'infos : https://example.com\n\nBesoin d'aide ? Contactez @support ! :smile:"
+  }
+}
