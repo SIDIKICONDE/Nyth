@@ -197,8 +197,8 @@ void AudioFX::AudioEqualizer::processOptimized(const std::vector<float>& input, 
 
         // Prefetch next block
         if (offset + OPTIMAL_BLOCK_SIZE_LOCAL < numSamples) {
-            __builtin_prefetch(&input[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
-            __builtin_prefetch(&output[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&input[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&output[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
         }
 
         // Copier l'entrée vers la sortie si nécessaire
@@ -286,10 +286,10 @@ void AudioFX::AudioEqualizer::processStereo<float>(const std::vector<float>& inp
 
         // Prefetch next block
         if (offset + OPTIMAL_BLOCK_SIZE_LOCAL < numSamples) {
-            __builtin_prefetch(&inputL[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
-            __builtin_prefetch(&inputR[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
-            __builtin_prefetch(&outputL[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
-            __builtin_prefetch(&outputR[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&inputL[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&inputR[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&outputL[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&outputR[offset + OPTIMAL_BLOCK_SIZE_LOCAL], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
         }
 
         // Copier l'entrée vers la sortie si nécessaire

@@ -203,8 +203,8 @@ void AudioFX::BiquadFilter::process(const float* input, float* output, size_t nu
 
         // Prefetch next block data
         if (block + EqualizerConstants::STEP_INCREMENT < fullBlocks) {
-            __builtin_prefetch(&input[offset + BLOCK_SIZE], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
-            __builtin_prefetch(&output[offset + BLOCK_SIZE], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&input[offset + BLOCK_SIZE], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
+            AUDIO_PREFETCH(&output[offset + BLOCK_SIZE], EqualizerConstants::PREFETCH_WRITE, EqualizerConstants::PREFETCH_LOCALITY);
         }
 
         // Process UNROLL_FACTOR_BIQUAD samples at a time for better ILP
@@ -275,8 +275,8 @@ void AudioFX::BiquadFilter::processStereo(const float* inputL, const float* inpu
     size_t i = SAMPLE_INDEX_0;
     for (; i + SAMPLE_INDEX_3 < numSamples; i += UNROLL_FACTOR_BIQUAD) {
         // Prefetch next data
-        __builtin_prefetch(&inputL[i + PREFETCH_DISTANCE], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
-        __builtin_prefetch(&inputR[i + PREFETCH_DISTANCE], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
+        AUDIO_PREFETCH(&inputL[i + PREFETCH_DISTANCE], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
+        AUDIO_PREFETCH(&inputR[i + PREFETCH_DISTANCE], EqualizerConstants::PREFETCH_READ, EqualizerConstants::PREFETCH_LOCALITY);
 
         // Left channel - UNROLL_FACTOR_BIQUAD samples
         double xL0 = static_cast<double>(inputL[i]);
