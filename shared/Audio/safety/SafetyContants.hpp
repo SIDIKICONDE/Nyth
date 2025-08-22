@@ -3,15 +3,16 @@
 #ifdef __cplusplus
 
 // C++17 standard headers - Robust compatibility
-#include <cstdint>
-#include <cstddef>
+#include <algorithm>
 #include <array>
-#include <vector>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <limits>
 #include <string>
 #include <type_traits>
-#include <limits>
-#include <cmath>
-#include <algorithm>
+#include <vector>
+
 
 namespace AudioSafety {
 
@@ -47,21 +48,21 @@ static constexpr double DB_TO_LINEAR_BASE = 10.0;
 static constexpr double DB_TO_LINEAR_DIVISOR = 20.0;
 
 // === CONSTANTES MATHEMATIQUES POUR CONVERSIONS ===
-static constexpr double SQRT_10_APPROX = 3.16;           // sqrt(10) approximation
-static constexpr double SQRT_10_INV_APPROX = 0.316;      // 1/sqrt(10) approximation
-static constexpr double LOG_BASE_10 = 10.0;              // Base 10 pour puissances
-static constexpr double LOG_BASE_10_INV = 0.1;           // 1/10 pour puissances négatives
-static constexpr double UNITY_POWER = 1.0;               // 10^0 = 1
-static constexpr double ZERO_POWER_EXP = 0.0;            // Exposant 0
-static constexpr double POSITIVE_UNIT_EXP = 1.0;         // Exposant +1
-static constexpr double NEGATIVE_UNIT_EXP = -1.0;        // Exposant -1
-static constexpr double FRACTIONAL_THRESHOLD = 0.5;      // Seuil pour partie fractionnaire
+static constexpr double SQRT_10_APPROX = 3.16;      // sqrt(10) approximation
+static constexpr double SQRT_10_INV_APPROX = 0.316; // 1/sqrt(10) approximation
+static constexpr double LOG_BASE_10 = 10.0;         // Base 10 pour puissances
+static constexpr double LOG_BASE_10_INV = 0.1;      // 1/10 pour puissances négatives
+static constexpr double UNITY_POWER = 1.0;          // 10^0 = 1
+static constexpr double ZERO_POWER_EXP = 0.0;       // Exposant 0
+static constexpr double POSITIVE_UNIT_EXP = 1.0;    // Exposant +1
+static constexpr double NEGATIVE_UNIT_EXP = -1.0;   // Exposant -1
+static constexpr double FRACTIONAL_THRESHOLD = 0.5; // Seuil pour partie fractionnaire
 
 // === LIMITES DE VALIDATION ===
-static constexpr uint32_t MIN_SAMPLE_RATE = 8000;        // Minimum sample rate (8kHz)
-static constexpr uint32_t MAX_SAMPLE_RATE = 192000;       // Maximum sample rate (192kHz)
-static constexpr int MIN_CHANNELS = 1;                    // Minimum number of channels
-static constexpr int MAX_CHANNELS = 2;                    // Maximum number of channels
+static constexpr uint32_t MIN_SAMPLE_RATE = 8000;   // Minimum sample rate (8kHz)
+static constexpr uint32_t MAX_SAMPLE_RATE = 192000; // Maximum sample rate (192kHz)
+static constexpr int MIN_CHANNELS = 1;              // Minimum number of channels
+static constexpr int MAX_CHANNELS = 2;              // Maximum number of channels
 static constexpr double MIN_LIMITER_THRESHOLD_DB = -20.0;
 static constexpr double MAX_LIMITER_THRESHOLD_DB = 0.0;
 static constexpr double MIN_KNEE_WIDTH_DB = 0.0;
@@ -79,11 +80,11 @@ static constexpr double MIN_ENERGY_THRESHOLD = 1e-9;
 static constexpr size_t ZERO_SAMPLES = 0;
 
 // === CONSTANTES DE CLIPPING ===
-static constexpr float CLIP_THRESHOLD_HIGH = 1.0f;       // Upper clipping threshold
-static constexpr float CLIP_THRESHOLD_LOW = -1.0f;       // Lower clipping threshold
-static constexpr float CLIP_CORRECTION_HIGH = 1.0f;      // Upper clipping correction value
-static constexpr float CLIP_CORRECTION_LOW = -1.0f;      // Lower clipping correction value
-static constexpr float NAN_REPLACEMENT = 0.0f;           // Replacement value for NaN/Inf
+static constexpr float CLIP_THRESHOLD_HIGH = 1.0f;  // Upper clipping threshold
+static constexpr float CLIP_THRESHOLD_LOW = -1.0f;  // Lower clipping threshold
+static constexpr float CLIP_CORRECTION_HIGH = 1.0f; // Upper clipping correction value
+static constexpr float CLIP_CORRECTION_LOW = -1.0f; // Lower clipping correction value
+static constexpr float NAN_REPLACEMENT = 0.0f;      // Replacement value for NaN/Inf
 
 // === CONSTANTES D'INITIALISATION ===
 static constexpr double INITIAL_SUM = 0.0;

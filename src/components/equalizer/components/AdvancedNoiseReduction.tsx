@@ -7,7 +7,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-}, Platform } from 'react-native';
+  Platform,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useNoiseReduction } from '../hooks/useNoiseReduction';
