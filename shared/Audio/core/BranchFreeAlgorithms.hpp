@@ -102,8 +102,10 @@ inline T clamp(T value, T minVal, T maxVal) noexcept {
  */
 template <typename T>
 inline T select(bool condition, T a, T b) noexcept {
-    // Converts bool to 0 or -1, then uses bit manipulation
-    return b ^ ((a ^ b) & -T(condition));
+    // For floating point types, use multiplication-based approach
+    // Compiler will optimize this to branch-free code
+    T mask = condition ? T(1) : T(0);
+    return a * mask + b * (T(1) - mask);
 }
 
 // ============================================================================
@@ -117,7 +119,6 @@ inline T select(bool condition, T a, T b) noexcept {
 inline float softClip(float x) noexcept {
     // Using tanh approximation for soft clipping
     // This avoids the branch in: if (abs(x) > 1) ...
-    constexpr float a = 0.5f;
     float x2 = x * x;
     float x3 = x2 * x;
     float x5 = x3 * x2;
@@ -233,9 +234,21 @@ private:
 };
 
 /**
+ * @brief Smoothstep function for smooth transitions
+ * Returns 0 for x <= edge0, 1 for x >= edge1, smooth interpolation between
+ */
+inline float smoothstep(float edge0, float edge1, float x) noexcept {
+    // Scale, bias and saturate x to [0, 1] range
+    x = clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
+    // Evaluate polynomial
+    return x * x * (3.0f - 2.0f * x);
+}
+
+/**
  * @brief Branch-free noise gate
  * Gates signal without if statements
  */
+
 inline float noiseGate(float input, float threshold, float ratio) noexcept {
     // Traditional: if (abs(input) < threshold) return input * ratio; else return input;
     float inputAbs = BranchFree::abs(input);
@@ -243,16 +256,7 @@ inline float noiseGate(float input, float threshold, float ratio) noexcept {
     return input * (ratio + (1.0f - ratio) * gateAmount);
 }
 
-/**
- * @brief Branch-free smoothstep
- * Smooth interpolation function without branches
- */
-inline float smoothstep(float edge0, float edge1, float x) noexcept {
-    // Scale, bias and saturate x to [0, 1] range
-    float t = clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
-    // Evaluate polynomial
-    return t * t * (3.0f - 2.0f * t);
-}
+
 
 /**
  * @brief Branch-free linear interpolation
