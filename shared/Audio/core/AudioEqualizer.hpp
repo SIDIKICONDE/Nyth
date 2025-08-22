@@ -130,6 +130,10 @@ private:
   std::atomic<bool> m_bypass;
   std::atomic<bool> m_parametersChanged;
   mutable std::mutex m_parameterMutex;
+  
+  // Performance optimization: cached active filters
+  mutable std::vector<BiquadFilter*> m_activeFiltersCache;
+  mutable std::atomic<bool> m_activeFiltersCacheDirty{true};
 };
 
 } // namespace AudioFX

@@ -186,9 +186,9 @@ enum class FilterType {
     ALLPASS
 };
 
-// Processing precision
+// Processing precision (corrected for consistency)
 constexpr double EPSILON = 1e-10;
-constexpr double DENORMAL_THRESHOLD = 1e-15;
+constexpr double DENORMAL_THRESHOLD = 1e-30;  // Much smaller than EPSILON for proper denormal handling
 
 // SIMD alignment is already defined above at line 105
 // constexpr size_t SIMD_ALIGNMENT = 16;  // Commented to avoid redefinition
