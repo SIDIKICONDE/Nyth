@@ -44,7 +44,7 @@ void SpectralNR::setConfig(const SpectralNRConfig& cfg) {
     cfg_ = cfg;
     buildWindow();
     // Init FFT engine
-    fftEngine_ = createFFTEngine(cfg_.fftSize);
+    fftEngine_ = AudioFX::createFFTEngine(cfg_.fftSize);
     inBuf_.assign(cfg_.fftSize, ZERO);
     outBuf_.assign(cfg_.fftSize, ZERO);
     noiseMag_.assign(cfg_.fftSize / FFT_HALF_DIVISOR + SPECTRUM_NYQUIST_OFFSET, ZERO);
@@ -94,7 +94,8 @@ void SpectralNR::process(const float* input, float* output, size_t numSamples) {
     while (pos < numSamples) {
         size_t toCopy = std::min(cfg_.hopSize, numSamples - pos);
         // Shift buffer left by hop
-        std::shift_left(inBuf_.begin(), inBuf_.end(), static_cast<long long>(cfg_.hopSize));
+        // std::shift_left is C++20, use std::rotate for C++17
+        std::rotate(inBuf_.begin(), inBuf_.begin() + cfg_.hopSize, inBuf_.end());
         // Copy new input
         size_t destOffset = cfg_.fftSize - cfg_.hopSize;
         std::copy(input + pos, input + pos + toCopy, inBuf_.data() + destOffset);
@@ -154,7 +155,8 @@ void SpectralNR::process(const float* input, float* output, size_t numSamples) {
         size_t outCount = std::min(cfg_.hopSize, numSamples - pos);
         std::copy(outBuf_.data(), outBuf_.data() + outCount, output + pos);
         // Shift out buffer left
-        std::shift_left(outBuf_.begin(), outBuf_.end(), static_cast<long long>(cfg_.hopSize));
+        // std::shift_left is C++20, use std::rotate for C++17
+        std::rotate(outBuf_.begin(), outBuf_.begin() + cfg_.hopSize, outBuf_.end());
         std::fill(outBuf_.end() - static_cast<long long>(cfg_.hopSize), outBuf_.end(), ZERO);
 
         pos += toCopy;

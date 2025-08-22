@@ -21,7 +21,7 @@ using namespace SpectralNRConstants;
  * spectral subtraction with noise estimation.
  */
 struct SpectralNRConfig {
-    uint32_t sampleRate = DEFAULT_SAMPLE_RATE;  ///< Sample rate in Hz
+    uint32_t sampleRate = 48000;  ///< Sample rate in Hz (default 48kHz)
     size_t fftSize = DEFAULT_FFT_SIZE;        ///< FFT size (must be power of 2). Larger = better frequency resolution
     size_t hopSize = DEFAULT_HOP_SIZE;         ///< Hop size for overlap-add (typically fftSize/4 for 75% overlap)
     double beta = DEFAULT_BETA;            ///< Over-subtraction factor (1.0-3.0). Higher = more aggressive
@@ -92,8 +92,12 @@ private:
     std::vector<float> time_;
 
     // FFT engine (pluggable: KissFFT or fallback radix-2)
-    std::unique_ptr<IFFTEngine> fftEngine_;
+    std::unique_ptr<AudioFX::IFFTEngine> fftEngine_;
     void buildWindow();
+    
+    // FFT helpers
+    void fft(const std::vector<float>& in, std::vector<float>& re, std::vector<float>& im);
+    void ifft(const std::vector<float>& re, const std::vector<float>& im, std::vector<float>& out);
     
     // Helper
     bool isPowerOfTwo(size_t n) const { return n && !(n & (n - 1)); }
