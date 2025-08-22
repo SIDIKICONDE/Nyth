@@ -16,6 +16,7 @@
 		FF2000012F5A6B8C0099AABB /* libavcodec.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = FF1000012F5A6B8C0099AABB /* libavcodec.xcframework */; };
 		SA2000012F5A6B8C0099AABB /* AudioEqualizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000012F5A6B8C0099AABB /* AudioEqualizer.cpp */; };
 		SA2000022F5A6B8C0099AABB /* BiquadFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000032F5A6B8C0099AABB /* BiquadFilter.cpp */; };
+		SA2000092F5A6B8C0099AABB /* EQPresetFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000072F5A6B8C0099AABB /* EQPresetFactory.cpp */; };
 		SA2000032F5A6B8C0099AABB /* NoiseReducer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000092F5A6B8C0099AABB /* NoiseReducer.cpp */; };
 		SA2000042F5A6B8C0099AABB /* RNNoiseSuppressor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000112F5A6B8C0099AABB /* RNNoiseSuppressor.cpp */; };
 		SA2000052F5A6B8C0099AABB /* SpectralNR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000132F5A6B8C0099AABB /* SpectralNR.cpp */; };
@@ -52,7 +53,12 @@
 		FF1000052F5A6B8C0099AABB /* libswresample.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libswresample.xcframework; path = FFmpeg/libswresample.xcframework; sourceTree = "<group>"; };
 		FF1000062F5A6B8C0099AABB /* libswscale.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libswscale.xcframework; path = FFmpeg/libswscale.xcframework; sourceTree = "<group>"; };
 		SA1000012F5A6B8C0099AABB /* AudioEqualizer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioEqualizer.cpp; path = ../shared/Audio/core/AudioEqualizer.cpp; sourceTree = SOURCE_ROOT; };
+		SA1000022F5A6B8C0099AABB /* EQBand.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = EQBand.hpp; path = ../shared/Audio/core/EQBand.hpp; sourceTree = SOURCE_ROOT; };
 		SA1000032F5A6B8C0099AABB /* BiquadFilter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = BiquadFilter.cpp; path = ../shared/Audio/core/BiquadFilter.cpp; sourceTree = SOURCE_ROOT; };
+		SA1000042F5A6B8C0099AABB /* EQPreset.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = EQPreset.hpp; path = ../shared/Audio/core/EQPreset.hpp; sourceTree = SOURCE_ROOT; };
+		SA1000052F5A6B8C0099AABB /* AudioEqualizerTemplates.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioEqualizerTemplates.hpp; path = ../shared/Audio/core/AudioEqualizerTemplates.hpp; sourceTree = SOURCE_ROOT; };
+		SA1000062F5A6B8C0099AABB /* EQPresetFactory.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = EQPresetFactory.hpp; path = ../shared/Audio/core/EQPresetFactory.hpp; sourceTree = SOURCE_ROOT; };
+		SA1000072F5A6B8C0099AABB /* EQPresetFactory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EQPresetFactory.cpp; path = ../shared/Audio/core/EQPresetFactory.cpp; sourceTree = SOURCE_ROOT; };
 		SA1000092F5A6B8C0099AABB /* NoiseReducer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NoiseReducer.cpp; path = ../shared/Audio/noise/NoiseReducer.cpp; sourceTree = SOURCE_ROOT; };
 		SA1000112F5A6B8C0099AABB /* RNNoiseSuppressor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = RNNoiseSuppressor.cpp; path = ../shared/Audio/noise/RNNoiseSuppressor.cpp; sourceTree = SOURCE_ROOT; };
 		SA1000132F5A6B8C0099AABB /* SpectralNR.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SpectralNR.cpp; path = ../shared/Audio/noise/SpectralNR.cpp; sourceTree = SOURCE_ROOT; };
@@ -317,6 +323,7 @@
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 				SA2000012F5A6B8C0099AABB /* AudioEqualizer.cpp in Sources */,
 				SA2000022F5A6B8C0099AABB /* BiquadFilter.cpp in Sources */,
+				SA2000092F5A6B8C0099AABB /* EQPresetFactory.cpp in Sources */,
 				SA2000032F5A6B8C0099AABB /* NoiseReducer.cpp in Sources */,
 				SA2000042F5A6B8C0099AABB /* RNNoiseSuppressor.cpp in Sources */,
 				SA2000052F5A6B8C0099AABB /* SpectralNR.cpp in Sources */,

@@ -71,7 +71,7 @@ clean:
 	@echo "✅ Clean complete"
 
 # Tests de compilation uniquement (sans exécution)
-compile-only: 
+compile-only:
 	@echo "🔨 Testing compilation only..."
 	@$(CXX) $(CXXFLAGS) -c test_core_constants.cpp && echo "✅ CoreConstants compiles OK" || echo "❌ CoreConstants compilation failed"
 	@$(CXX) $(CXXFLAGS) -c test_effect_constants.cpp && echo "✅ EffectConstants compiles OK" || echo "❌ EffectConstants compilation failed"

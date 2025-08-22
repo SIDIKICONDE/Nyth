@@ -4,7 +4,6 @@
 
 // 🎯 C++17 PURE - 100% standard C++17, no platform-specific extensions
 // ✅ SFINAE, std::string, std::ostringstream, constexpr
-// ❌ No SIMD, no platform-specific optimizations
 
 // C++17 standard headers
 #include <cstdint>

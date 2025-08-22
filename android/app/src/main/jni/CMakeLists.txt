@@ -1,5 +1,5 @@
 # CMakeLists.txt - Configuration C++20 pour Android NDK
-cmake_minimum_required(VERSION 3.18.1)  # Minimum pour C++20 support complet
+cmake_minimum_required(VERSION 3.18.1) # Minimum pour C++20 support complet
 
 # Define the library name here.
 project(appmodules
@@ -26,13 +26,13 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(
         -std=c++17
         -stdlib=libc++
-        -fexperimental-library  # Pour les nouvelles features de la stdlib
+        -fexperimental-library # Pour les nouvelles features de la stdlib
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # GCC-specific C++20 flags
     add_compile_options(
         -std=c++20
-        -lstdc++fs  # Pour filesystem si nécessaire
+        -lstdc++fs # Pour filesystem si nécessaire
     )
 endif()
 
@@ -85,7 +85,7 @@ add_compile_options(
     -Wconversion
     -Wsign-conversion
     -Wunused
-    -fvisibility=hidden  # Réduire la taille du binaire
+    -fvisibility=hidden # Réduire la taille du binaire
 )
 
 # =============================================================================
@@ -94,12 +94,12 @@ add_compile_options(
 
 # Link against libc++ for NDK (C++20 compatible)
 find_library(CPP_SHARED_LIB c++_shared NAMES c++_shared)
-if (CPP_SHARED_LIB)
+if(CPP_SHARED_LIB)
     target_link_libraries(${CMAKE_PROJECT_NAME} ${CPP_SHARED_LIB})
 else()
     # Fallback pour différentes versions de l'NDK
     find_library(CPP_STATIC_LIB c++_static NAMES c++_static)
-    if (CPP_STATIC_LIB)
+    if(CPP_STATIC_LIB)
         target_link_libraries(${CMAKE_PROJECT_NAME} ${CPP_STATIC_LIB})
     else()
         message(WARNING "Could not find C++ standard library. Using system default.")
@@ -117,7 +117,7 @@ check_cxx_source_compiles("
     template<typename T>
     concept Integral = std::integral<T>;
     int main() { return 0; }
-" HAS_CONCEPTS)
+"    HAS_CONCEPTS)
 
 if(HAS_CONCEPTS)
     message(STATUS "✅ C++20 Concepts support: ENABLED")
@@ -133,7 +133,7 @@ check_cxx_source_compiles("
         std::string s = std::format(\"Hello {}\", \"World\");
         return 0;
     }
-" HAS_FORMAT)
+"    HAS_FORMAT)
 
 if(HAS_FORMAT)
     message(STATUS "✅ std::format support: ENABLED")
@@ -149,7 +149,7 @@ check_cxx_source_compiles("
         auto loc = std::source_location::current();
         return 0;
     }
-" HAS_SOURCE_LOCATION)
+"    HAS_SOURCE_LOCATION)
 
 if(HAS_SOURCE_LOCATION)
     message(STATUS "✅ std::source_location support: ENABLED")
@@ -162,7 +162,7 @@ endif()
 check_cxx_source_compiles("
     consteval int square(int x) { return x * x; }
     int main() { return square(5); }
-" HAS_CONSTEVAL)
+"    HAS_CONSTEVAL)
 
 if(HAS_CONSTEVAL)
     message(STATUS "✅ consteval support: ENABLED")
@@ -182,7 +182,12 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/NativeAudioEqualizerModule.cpp
     ../../../../../shared/Audio/fft/FFTEngine.hpp
     ../../../../../shared/Audio/core/AudioEqualizer.cpp
+    ../../../../../shared/Audio/core/AudioEqualizerTemplates.hpp
     ../../../../../shared/Audio/core/BiquadFilter.cpp
+    ../../../../../shared/Audio/core/EQBand.hpp
+    ../../../../../shared/Audio/core/EQPreset.hpp
+    ../../../../../shared/Audio/core/EQPresetFactory.hpp
+    ../../../../../shared/Audio/core/EQPresetFactory.cpp
     ../../../../../shared/Audio/noise/NoiseReducer.cpp
     ../../../../../shared/Audio/noise/RNNoiseSuppressor.cpp
     ../../../../../shared/Audio/noise/SpectralNR.cpp

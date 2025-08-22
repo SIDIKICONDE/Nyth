@@ -2,8 +2,13 @@
 cmake_minimum_required(VERSION 3.20)
 project(AudioEqualizerProject)
 
+# Configuration C++ standard - à configurer selon vos besoins
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Force l'utilisation de g++ pour éviter les problèmes de headers
+set(CMAKE_CXX_COMPILER "g++")
+set(CMAKE_C_COMPILER "gcc")
 
 # Enable testing for the entire project
 enable_testing()
