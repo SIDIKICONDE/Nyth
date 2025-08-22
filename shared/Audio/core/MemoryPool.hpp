@@ -11,7 +11,6 @@
 #include <stack>
 #include <vector>
 
-
 namespace AudioFX {
 
 /**

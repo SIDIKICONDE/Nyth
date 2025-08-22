@@ -129,7 +129,8 @@
       "ios": {
         "modulesProvider": {
           "NativeCameraFiltersModule": "NativeCameraFiltersModuleProvider",
-          "NativeAudioEqualizerModule": "NativeAudioEqualizerModuleProvider"
+          "NativeAudioEqualizerModule": "NativeAudioEqualizerModuleProvider",
+          "NativeAudioCaptureModule": "NativeAudioCaptureModuleProvider"
         }
       }
     }
