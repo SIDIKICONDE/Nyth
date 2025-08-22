@@ -46,6 +46,7 @@ public:
   processStereoModern(std::vector<T>& inputL, std::vector<T>& inputR,
                      std::vector<T>& outputL, std::vector<T>& outputR,
                      const std::string& location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
+    (void)location; // Éviter warning unused parameter
     // Call our own stereo processing method
     if (std::is_same<T, float>::value) {
       processStereo(inputL.data(), inputR.data(), outputL.data(), outputR.data(), inputL.size());
