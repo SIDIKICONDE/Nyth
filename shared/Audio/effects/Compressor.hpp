@@ -12,6 +12,21 @@
 #include "EffectBase.hpp"
 #include "EffectConstants.hpp"
 
+// Compatibilité macOS/Clang
+#ifdef __has_builtin
+  #if __has_builtin(__builtin_prefetch)
+    #define AUDIO_PREFETCH(addr, rw, locality) __builtin_prefetch(addr, rw, locality)
+  #else
+    #define AUDIO_PREFETCH(addr, rw, locality) ((void)0)
+  #endif
+#else
+  #ifdef __GNUC__
+    #define AUDIO_PREFETCH(addr, rw, locality) __builtin_prefetch(addr, rw, locality)
+  #else
+    #define AUDIO_PREFETCH(addr, rw, locality) ((void)0)
+  #endif
+#endif
+
 namespace AudioFX {
 
 class CompressorEffect final : public IAudioEffect {
@@ -81,7 +96,7 @@ public:
     for (; i + (AudioFX::UNROLL_BLOCK_SIZE - 1) < numSamples; i += AudioFX::UNROLL_BLOCK_SIZE) {
       // Prefetch next block
       if (i + AudioFX::PREFETCH_DISTANCE < numSamples) {
-        __builtin_prefetch(&input[i + AudioFX::PREFETCH_DISTANCE], 0, 1);
+        AUDIO_PREFETCH(&input[i + AudioFX::PREFETCH_DISTANCE], 0, 1);
       }
 
       // Process samples in current block
