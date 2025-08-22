@@ -55,14 +55,17 @@ inline void AudioEqualizer::process(const std::vector<T> &input,
     // Traitement direct pour float (type natif)
     processOptimized(input, output);
   } else {
-    // Conversion vers float pour les autres types (double)
+    // Pour double: traiter directement sans conversion si possible
+    // Sinon, utiliser une version optimisée pour double
+    // TODO: Implémenter processOptimizedDouble pour éviter les conversions
     std::vector<float> tempInput(input.begin(), input.end());
     std::vector<float> tempOutput(tempInput.size());
 
     processOptimized(tempInput, tempOutput);
 
     // Conversion retour vers le type original
-    std::copy(tempOutput.begin(), tempOutput.end(), output.begin());
+    std::transform(tempOutput.begin(), tempOutput.end(), output.begin(),
+                   [](float val) { return static_cast<T>(val); });
   }
 }
 

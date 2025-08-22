@@ -183,6 +183,11 @@ void AudioFX::BiquadFilter::calculateAllpass(double frequency, double sampleRate
 }
 
 void AudioFX::BiquadFilter::process(const float* input, float* output, size_t numSamples) {
+    // Input validation for safety
+    if (!input || !output || numSamples == 0) {
+        return;
+    }
+    
     // Optimized C++17 implementation - Direct Form II Transposed
     double y1 = m_y1, y2 = m_y2;
 
@@ -261,6 +266,11 @@ void AudioFX::BiquadFilter::process(const float* input, float* output, size_t nu
 
 void AudioFX::BiquadFilter::processStereo(const float* inputL, const float* inputR,
                                 float* outputL, float* outputR, size_t numSamples) {
+    // Input validation for safety
+    if (!inputL || !inputR || !outputL || !outputR || numSamples == 0) {
+        return;
+    }
+    
     // Optimized stereo processing - interleaved for better cache usage
     double y1L = m_y1, y2L = m_y2;
     double y1R = m_y1R, y2R = m_y2R;

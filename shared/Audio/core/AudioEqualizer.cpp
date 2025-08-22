@@ -135,17 +135,20 @@ void AudioEqualizer::processOptimized(const std::vector<float>& input, std::vect
     constexpr size_t OPTIMAL_BLOCK_SIZE_LOCAL = EqualizerConstants::OPTIMAL_BLOCK_SIZE;
     size_t numSamples = input.size();
 
-    // Pré-calculer les filtres actifs pour éviter les vérifications répétées
-    std::vector<BiquadFilter*> activeFilters;
-    {
+    // Utiliser le cache des filtres actifs (évite allocation dynamique)
+    if (m_activeFiltersCacheDirty.load(std::memory_order_acquire)) {
         std::lock_guard<std::mutex> lock(m_parameterMutex);
-        activeFilters.reserve(m_bands.size());
+        m_activeFiltersCache.clear();
+        m_activeFiltersCache.reserve(m_bands.size());
         for (const auto& band : m_bands) {
             if (band.enabled && std::abs(band.gain) > EqualizerConstants::ACTIVE_GAIN_THRESHOLD) {
-                activeFilters.push_back(band.filter.get());
+                m_activeFiltersCache.push_back(band.filter.get());
             }
         }
+        m_activeFiltersCacheDirty.store(false, std::memory_order_release);
     }
+    
+    const auto& activeFilters = m_activeFiltersCache;
 
     // Pré-calculer le gain master une seule fois
     float masterGainLinear = static_cast<float>(dbToLinear(m_masterGain.load()));
@@ -226,17 +229,20 @@ void AudioEqualizer::processStereoOptimized(const std::vector<float>& inputL, co
     constexpr size_t OPTIMAL_BLOCK_SIZE_LOCAL = EqualizerConstants::OPTIMAL_BLOCK_SIZE;
     size_t numSamples = inputL.size();
 
-    // Pré-calculer les filtres actifs
-    std::vector<BiquadFilter*> activeFilters;
-    {
+    // Utiliser le cache des filtres actifs (évite allocation dynamique)
+    if (m_activeFiltersCacheDirty.load(std::memory_order_acquire)) {
         std::lock_guard<std::mutex> lock(m_parameterMutex);
-        activeFilters.reserve(m_bands.size());
+        m_activeFiltersCache.clear();
+        m_activeFiltersCache.reserve(m_bands.size());
         for (const auto& band : m_bands) {
             if (band.enabled && std::abs(band.gain) > EqualizerConstants::ACTIVE_GAIN_THRESHOLD) {
-                activeFilters.push_back(band.filter.get());
+                m_activeFiltersCache.push_back(band.filter.get());
             }
         }
+        m_activeFiltersCacheDirty.store(false, std::memory_order_release);
     }
+    
+    const auto& activeFilters = m_activeFiltersCache;
 
     // Pré-calculer le gain master
     float masterGainLinear = static_cast<float>(dbToLinear(m_masterGain.load()));
@@ -308,53 +314,68 @@ void AudioEqualizer::processStereoOptimized(const std::vector<float>& inputL, co
 
 // Band control methods
 void AudioEqualizer::setBandGain(size_t bandIndex, double gainDB) {
-    if (bandIndex >= m_bands.size()) return;
+    // Validation complète avec logging
+    if (bandIndex >= m_bands.size()) {
+        // TODO: Add logging here
+        return;
+    }
 
-    gainDB = std::max(MIN_GAIN_DB, std::min(MAX_GAIN_DB, gainDB));
+    // Clamp avant le lock pour minimiser le temps dans la section critique
+    gainDB = std::clamp(gainDB, MIN_GAIN_DB, MAX_GAIN_DB);
 
-    // Si on est déjà dans une session de mise à jour, pas besoin de lock
-    if (m_parameterMutex.try_lock()) {
-        m_bands[bandIndex].gain = gainDB;
-        m_parametersChanged.store(true);
-        m_parameterMutex.unlock();
-    } else {
-        // On est déjà dans une session de mise à jour
-        m_bands[bandIndex].gain = gainDB;
-        m_parametersChanged.store(true);
+    // Protection thread-safe garantie avec RAII
+    {
+        std::lock_guard<std::mutex> lock(m_parameterMutex);
+        
+        // Éviter mise à jour inutile (optimisation)
+        if (std::abs(m_bands[bandIndex].gain - gainDB) > EPSILON) {
+            m_bands[bandIndex].gain = gainDB;
+            m_parametersChanged.store(true, std::memory_order_release);
+            m_activeFiltersCacheDirty.store(true, std::memory_order_release);
+        }
     }
 }
 
 void AudioEqualizer::setBandFrequency(size_t bandIndex, double frequency) {
-    if (bandIndex >= m_bands.size()) return;
+    // Validation complète
+    if (bandIndex >= m_bands.size()) {
+        return;
+    }
 
-    frequency = std::max(EqualizerConstants::MIN_FREQUENCY_HZ, std::min(m_sampleRate / EqualizerConstants::NYQUIST_DIVISOR, frequency));
+    // Clamp fréquence selon Nyquist avant le lock
+    const double maxFreq = m_sampleRate / EqualizerConstants::NYQUIST_DIVISOR;
+    frequency = std::clamp(frequency, EqualizerConstants::MIN_FREQUENCY_HZ, maxFreq);
 
-    // Si on est déjà dans une session de mise à jour, pas besoin de lock
-    if (m_parameterMutex.try_lock()) {
-        m_bands[bandIndex].frequency = frequency;
-        m_parametersChanged.store(true);
-        m_parameterMutex.unlock();
-    } else {
-        // On est déjà dans une session de mise à jour
-        m_bands[bandIndex].frequency = frequency;
-        m_parametersChanged.store(true);
+    // Protection thread-safe garantie
+    {
+        std::lock_guard<std::mutex> lock(m_parameterMutex);
+        
+        // Éviter mise à jour inutile
+        if (std::abs(m_bands[bandIndex].frequency - frequency) > EPSILON) {
+            m_bands[bandIndex].frequency = frequency;
+            m_parametersChanged.store(true, std::memory_order_release);
+        }
     }
 }
 
 void AudioEqualizer::setBandQ(size_t bandIndex, double q) {
-    if (bandIndex >= m_bands.size()) return;
+    // Validation complète
+    if (bandIndex >= m_bands.size()) {
+        return;
+    }
 
-    q = std::max(MIN_Q, std::min(MAX_Q, q));
+    // Clamp Q factor avant le lock
+    q = std::clamp(q, MIN_Q, MAX_Q);
 
-    // Si on est déjà dans une session de mise à jour, pas besoin de lock
-    if (m_parameterMutex.try_lock()) {
-        m_bands[bandIndex].q = q;
-        m_parametersChanged.store(true);
-        m_parameterMutex.unlock();
-    } else {
-        // On est déjà dans une session de mise à jour
-        m_bands[bandIndex].q = q;
-        m_parametersChanged.store(true);
+    // Protection thread-safe garantie
+    {
+        std::lock_guard<std::mutex> lock(m_parameterMutex);
+        
+        // Éviter mise à jour inutile
+        if (std::abs(m_bands[bandIndex].q - q) > EPSILON) {
+            m_bands[bandIndex].q = q;
+            m_parametersChanged.store(true, std::memory_order_release);
+        }
     }
 }
 
@@ -373,7 +394,10 @@ void AudioEqualizer::setBandEnabled(size_t bandIndex, bool enabled) {
 
     {
         std::lock_guard<std::mutex> lock(m_parameterMutex);
-        m_bands[bandIndex].enabled = enabled;
+        if (m_bands[bandIndex].enabled != enabled) {
+            m_bands[bandIndex].enabled = enabled;
+            m_activeFiltersCacheDirty.store(true, std::memory_order_release);
+        }
     }
 }
 
