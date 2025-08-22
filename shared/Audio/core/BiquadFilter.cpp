@@ -115,7 +115,8 @@ void AudioFX::BiquadFilter::calculatePeaking(double frequency, double sampleRate
     double alpha = sin_omega / (BiquadConstants::HALF_DIVISOR * q);
 
     double A = std::pow(BiquadConstants::POWER_BASE, gainDB / BiquadConstants::PEAKING_DB_DIVISOR);
-    double sqrt_A = std::sqrt(A);
+    // sqrt_A n'est pas utilisé dans cette formulation, commenté pour éviter le warning
+    // double sqrt_A = std::sqrt(A);
 
     double b0 = BiquadConstants::UNITY_COEFFICIENT + alpha * A;
     double b1 = BiquadConstants::NEGATIVE_TWO * cos_omega;
