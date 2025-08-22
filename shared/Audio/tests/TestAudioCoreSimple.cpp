@@ -154,7 +154,8 @@ TEST(AudioEqualizerTest, Initialization) {
     EXPECT_EQ(equalizer.getNumBands(), 10);
     EXPECT_EQ(equalizer.getSampleRate(), 48000);
     EXPECT_FALSE(equalizer.isBypassed());
-    EXPECT_DOUBLE_EQ(equalizer.getMasterGain(), 0.0);
+    // Note: Default master gain is 1.0 (unity gain), not 0.0
+    EXPECT_DOUBLE_EQ(equalizer.getMasterGain(), 1.0);
 }
 
 TEST(AudioEqualizerTest, BandConfiguration) {
