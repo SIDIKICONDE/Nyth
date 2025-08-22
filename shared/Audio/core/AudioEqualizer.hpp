@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstring>
 #include <string>        // Pour std::string et std::to_string
+#include <sstream>       // Pour std::ostringstream
 #include <array>
 #include <memory>
 #include <atomic>
@@ -28,34 +29,10 @@ namespace AudioFX {
 // Forward declaration
 struct EQBand;
 
-// C++17 SFINAE-based type traits to replace concepts
-template<typename T>
-struct is_audio_buffer_type {
-    template<typename U>
-    static auto test_data(int) -> decltype(std::declval<U>().data(), std::true_type{});
-    template<typename>
-    static std::false_type test_data(...);
+// Note: is_audio_buffer_type is already defined in CoreConstants.hpp
 
-    template<typename U>
-    static auto test_size(int) -> decltype(std::declval<U>().size(), std::true_type{});
-    template<typename>
-    static std::false_type test_size(...);
-
-    static constexpr bool value = std::is_pointer_v<T> ||
-                                 (decltype(test_data<T>(0))::value &&
-                                  decltype(test_size<T>(0))::value);
-};
-
-template<typename T>
-constexpr bool is_audio_buffer_type_v = is_audio_buffer_type<T>::value;
-
-template<typename T>
-struct is_equalizer_band_type {
-    static constexpr bool value = std::is_same_v<T, EQBand>;
-};
-
-template<typename T>
-constexpr bool is_equalizer_band_type_v = is_equalizer_band_type<T>::value;
+// Equalizer configuration constants
+// ... existing code ...
 
 // Macro pour remplacer source_location
 #define NYTH_SOURCE_LOCATION (std::string(__FILE__) + ":" + std::to_string(__LINE__))
@@ -188,29 +165,22 @@ public:
     }
 
 private:
+    // Implementation details
+    void updateBandFilter(size_t bandIndex);
+    void processOptimized(const std::vector<float>& input, std::vector<float>& output);
+    void processStereoOptimized(const std::vector<float>& inputL, const std::vector<float>& inputR,
+                               std::vector<float>& outputL, std::vector<float>& outputR);
+
+    // Member variables
     std::vector<EQBand> m_bands;
     uint32_t m_sampleRate;
-
-    // Master controls
-    std::atomic<double> m_masterGain;
-    std::atomic<bool> m_bypass;
-
-    // Thread safety
-    mutable std::mutex m_parameterMutex;
-    std::atomic<bool> m_parametersChanged;
-
-    // Helper functions
-    void updateFilters();
-    void updateBandFilter(size_t bandIndex);
-    double dbToLinear(double db) const;
-    double linearToDb(double linear) const;
-
-    // Optimized processing paths
-    void processOptimized(const std::vector<float>& input, std::vector<float>& output);
-
-    // Default band setup
-    void setupDefaultBands();
+    bool m_enabled;
+    std::string m_presetName;
+    mutable std::mutex m_mutex;  // For thread safety
 };
+
+// Inclure les définitions des templates
+#include "AudioEqualizer.inl"
 
 // Preset factory
 class EQPresetFactory {
@@ -226,6 +196,9 @@ public:
     static EQPreset createTrebleBoostPreset();
     static EQPreset createLoudnessPreset();
 };
+
+// Inclure les définitions des templates
+#include "AudioEqualizer.inl"
 
 } // namespace AudioFX
 

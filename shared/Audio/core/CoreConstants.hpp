@@ -18,6 +18,63 @@
 #include <iterator>
 #include <string>
 
+// ============================================================================
+// COMPATIBILITÉ CROSS-PLATFORM POUR XCODE/CLANG/GCC
+// ============================================================================
+
+// Détection du compilateur et de la plateforme
+#if defined(__APPLE__) && defined(__MACH__)
+    #define AUDIO_PLATFORM_MACOS 1
+    #include <TargetConditionals.h>
+#elif defined(_WIN32) || defined(_WIN64)
+    #define AUDIO_PLATFORM_WINDOWS 1
+#elif defined(__linux__)
+    #define AUDIO_PLATFORM_LINUX 1
+#endif
+
+// Détection du compilateur
+#if defined(__clang__)
+    #define AUDIO_COMPILER_CLANG 1
+#elif defined(__GNUC__) || defined(__GNUG__)
+    #define AUDIO_COMPILER_GCC 1
+#elif defined(_MSC_VER)
+    #define AUDIO_COMPILER_MSVC 1
+#endif
+
+// Macro de compatibilité pour __builtin_prefetch
+#ifdef __has_builtin
+  #if __has_builtin(__builtin_prefetch)
+    #define AUDIO_PREFETCH(addr, rw, locality) __builtin_prefetch(addr, rw, locality)
+  #else
+    #define AUDIO_PREFETCH(addr, rw, locality) ((void)0)
+  #endif
+#else
+  #ifdef __GNUC__
+    #define AUDIO_PREFETCH(addr, rw, locality) __builtin_prefetch(addr, rw, locality)
+  #else
+    #define AUDIO_PREFETCH(addr, rw, locality) ((void)0)
+  #endif
+#endif
+
+// Macros d'alignement et d'inline
+#ifdef AUDIO_COMPILER_CLANG
+    #define AUDIO_FORCE_INLINE __attribute__((always_inline)) inline
+    #define AUDIO_NO_INLINE __attribute__((noinline))
+    #define AUDIO_ALIGNED(x) __attribute__((aligned(x)))
+#elif defined(AUDIO_COMPILER_GCC)
+    #define AUDIO_FORCE_INLINE __attribute__((always_inline)) inline
+    #define AUDIO_NO_INLINE __attribute__((noinline))
+    #define AUDIO_ALIGNED(x) __attribute__((aligned(x)))
+#elif defined(AUDIO_COMPILER_MSVC)
+    #define AUDIO_FORCE_INLINE __forceinline
+    #define AUDIO_NO_INLINE __declspec(noinline)
+    #define AUDIO_ALIGNED(x) __declspec(align(x))
+#else
+    #define AUDIO_FORCE_INLINE inline
+    #define AUDIO_NO_INLINE
+    #define AUDIO_ALIGNED(x)
+#endif
+
 namespace AudioFX {
 
 // ============================================================================
@@ -40,6 +97,38 @@ struct is_frequency_value {
 
 template<typename T>
 constexpr bool is_frequency_value_v = is_frequency_value<T>::value;
+
+// Type trait pour les buffers audio
+template<typename T>
+struct is_audio_buffer_type {
+    template<typename U>
+    static auto test_data(int) -> decltype(std::declval<U>().data(), std::true_type{});
+    template<typename>
+    static std::false_type test_data(...);
+
+    template<typename U>
+    static auto test_size(int) -> decltype(std::declval<U>().size(), std::true_type{});
+    template<typename>
+    static std::false_type test_size(...);
+
+    static constexpr bool value = std::is_pointer_v<T> ||
+                                 (decltype(test_data<T>(0))::value &&
+                                  decltype(test_size<T>(0))::value);
+};
+
+template<typename T>
+constexpr bool is_audio_buffer_type_v = is_audio_buffer_type<T>::value;
+
+// Forward declaration pour EQBand
+struct EQBand;
+
+template<typename T>
+struct is_equalizer_band_type {
+    static constexpr bool value = std::is_same_v<T, EQBand>;
+};
+
+template<typename T>
+constexpr bool is_equalizer_band_type_v = is_equalizer_band_type<T>::value;
 
 // ============================================================================
 // CONSTANTES MATHÉMATIQUES GLOBALES

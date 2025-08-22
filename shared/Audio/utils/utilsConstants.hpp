@@ -2,6 +2,49 @@
 
 #ifdef __cplusplus
 
+// === COMPATIBILITÉ CROSS-PLATFORM ===
+// Détection du compilateur et de la plateforme
+#if defined(__APPLE__) && defined(__MACH__)
+    #define AUDIO_PLATFORM_MACOS 1
+    #include <TargetConditionals.h>
+#elif defined(_WIN32) || defined(_WIN64)
+    #define AUDIO_PLATFORM_WINDOWS 1
+#elif defined(__linux__)
+    #define AUDIO_PLATFORM_LINUX 1
+#else
+    #define AUDIO_PLATFORM_UNKNOWN 1
+#endif
+
+// Détection du compilateur
+#if defined(__clang__)
+    #define AUDIO_COMPILER_CLANG 1
+    #define AUDIO_COMPILER_NAME "Clang"
+#elif defined(__GNUC__) || defined(__GNUG__)
+    #define AUDIO_COMPILER_GCC 1
+    #define AUDIO_COMPILER_NAME "GCC"
+#elif defined(_MSC_VER)
+    #define AUDIO_COMPILER_MSVC 1
+    #define AUDIO_COMPILER_NAME "MSVC"
+#else
+    #define AUDIO_COMPILER_UNKNOWN 1
+    #define AUDIO_COMPILER_NAME "Unknown"
+#endif
+
+// Macros de compatibilité pour les attributs
+#ifdef AUDIO_COMPILER_CLANG
+    #define AUDIO_FORCE_INLINE __attribute__((always_inline)) inline
+    #define AUDIO_NO_INLINE __attribute__((noinline))
+#elif defined(AUDIO_COMPILER_GCC)
+    #define AUDIO_FORCE_INLINE __attribute__((always_inline)) inline
+    #define AUDIO_NO_INLINE __attribute__((noinline))
+#elif defined(AUDIO_COMPILER_MSVC)
+    #define AUDIO_FORCE_INLINE __forceinline
+    #define AUDIO_NO_INLINE __declspec(noinline)
+#else
+    #define AUDIO_FORCE_INLINE inline
+    #define AUDIO_NO_INLINE
+#endif
+
 // C++17 standard headers - Robust compatibility
 #include <cstdint>
 #include <cstddef>
@@ -30,9 +73,9 @@ static constexpr size_t INVALID_BUFFER_SIZE = 0;        // Invalid buffer size i
 static constexpr size_t SIMD_ALIGNMENT_BYTES = 16;      // 16-byte boundary alignment for SSE/NEON
 static constexpr size_t SIMD_ALIGNMENT_FLOATS = 4;      // 4 floats = 16 bytes (SSE/NEON vector size)
 static constexpr size_t SIMD_ALIGNMENT_MASK = 3;        // For (size + 3) & ~3 alignment calculation
-static constexpr size_t SIMD_ALIGNMENT_INVERSE_MASK = ~3; // ~3 for masking (inverse of mask)
+static constexpr size_t SIMD_ALIGNMENT_INVERSE_MASK = static_cast<size_t>(~3UL); // ~3 for masking (inverse of mask)
 static constexpr size_t SIMD_BLOCK_SIZE = 4;            // Process 4 samples at a time (vector width)
-static constexpr size_t SIMD_MASK_FOR_BLOCK = ~3;       // Mask for SIMD blocks (4-sample alignment)
+static constexpr size_t SIMD_MASK_FOR_BLOCK = static_cast<size_t>(~3UL);       // Mask for SIMD blocks (4-sample alignment)
 
 // === VALEURS D'INITIALISATION ===
 static constexpr float ZERO_FLOAT = 0.0f;               // Float zero value
@@ -91,7 +134,7 @@ static constexpr size_t SPAN_SAFETY_MARGIN = 1;         // Safety margin for spa
 
 // === CONSTANTES SIMD SPÉCIFIQUES ===
 static constexpr size_t SIMD_VECTOR_SIZE = 4;           // 4 floats per SIMD vector
-static constexpr size_t SIMD_MASK_4 = ~3;               // Mask for 4-byte alignment (~3)
+static constexpr size_t SIMD_MASK_4 = static_cast<size_t>(~3UL);               // Mask for 4-byte alignment (~3)
 static constexpr size_t SIMD_INCREMENT_4 = 4;           // Increment for 4-float SIMD operations
 
 // === CONSTANTES DE RÉINITIALISATION ===
