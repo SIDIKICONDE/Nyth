@@ -3,6 +3,7 @@ import { View, FlatList, Alert } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import tw from 'twrnc';
 import { useNavigation } from '@react-navigation/native';
+import RNFS from 'react-native-fs';
 
 // Hooks et contextes
 import { useTheme } from '@/contexts/ThemeContext';
@@ -16,10 +17,12 @@ import AudioFAB from './components/AudioFAB';
 import EmptyState from './components/EmptyState';
 import AudioFolderActions from './components/AudioFolderActions';
 import AudioSearchBar from './components/AudioSearchBar';
+import AudioLevelIndicator from './components/AudioLevelIndicator';
 
 // Hooks personnalisés
 import { useAudioFolders } from './hooks/useAudioFolders';
 import { useAudioScreenState } from './hooks/useAudioScreenState';
+import { useAudioCapture } from './hooks/useAudioCapture';
 
 // Types
 import { AudioFolder } from './types';
@@ -43,8 +46,31 @@ export default function AudioScreen() {
     clearSelection,
   } = useAudioScreenState();
 
-  // État d'enregistrement
-  const [isRecording, setIsRecording] = React.useState(false);
+  // Hook pour la capture audio native (TurboModule)
+  const {
+    isRecording: isNativeRecording,
+    isPaused: isRecordingPaused,
+    recordingInfo,
+    currentLevel,
+    peakLevel,
+    hasPermission,
+    startRecording: startNativeRecording,
+    stopRecording: stopNativeRecording,
+    pauseRecording: pauseNativeRecording,
+    resumeRecording: resumeNativeRecording,
+    analyzeAudioFile,
+  } = useAudioCapture({
+    onError: error => {
+      Alert.alert(t('audio.error'), error);
+      logger.error('🎤 Erreur audio:', error);
+    },
+    onAnalysis: analysis => {
+      // Mise à jour en temps réel des niveaux audio
+      logger.debug('📊 Analyse audio:', analysis);
+    },
+  });
+
+  // État d'enregistrement (utilise maintenant le module natif)
   const [recordingDuration, setRecordingDuration] = React.useState(0);
   const recordingIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
@@ -64,39 +90,29 @@ export default function AudioScreen() {
   const [showFolderActions, setShowFolderActions] = React.useState(false);
 
   // Gestion de l'enregistrement
-  const startRecording = React.useCallback(() => {
-    setIsRecording(true);
-    setRecordingDuration(0);
+  const startRecording = React.useCallback(async () => {
+    // Générer un nom de fichier unique pour l'enregistrement
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `audio_${timestamp}.wav`;
+    const filePath = `${RNFS.DocumentDirectoryPath}/recordings/${fileName}`;
 
-    // Démarrer le chronomètre
-    recordingIntervalRef.current = setInterval(() => {
-      setRecordingDuration(prev => prev + 1);
-    }, 1000);
-  }, []);
+    // Démarrer l'enregistrement avec le module natif
+    const success = await startNativeRecording(filePath, {
+      format: 'wav',
+      maxDuration: 3600, // 1 heure max
+    });
 
-  const stopRecording = React.useCallback(() => {
-    setIsRecording(false);
+    if (success) {
+      setRecordingDuration(0);
 
-    // Arrêter le chronomètre
-    if (recordingIntervalRef.current) {
-      clearInterval(recordingIntervalRef.current);
-      recordingIntervalRef.current = null;
+      // Démarrer le chronomètre
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+
+      logger.debug('🎤 Enregistrement démarré:', filePath);
     }
-
-    // Ici vous pourriez sauvegarder l'enregistrement
-    logger.debug(
-      `🎵 Enregistrement arrêté, durée: ${recordingDuration} secondes`,
-    );
-  }, [recordingDuration]);
-
-  // Nettoyer l'intervalle au démontage
-  React.useEffect(() => {
-    return () => {
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
-    };
-  }, []);
+  }, [startNativeRecording]);
 
   // Données des dossiers
   const {
@@ -117,6 +133,46 @@ export default function AudioScreen() {
     searchFolders,
     refreshFolders,
   } = useAudioFolders();
+
+  const stopRecording = React.useCallback(async () => {
+    const success = stopNativeRecording();
+
+    if (success) {
+      // Arrêter le chronomètre
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+
+      // Analyser le fichier enregistré si disponible
+      if (recordingInfo?.path) {
+        const analysis = await analyzeAudioFile(recordingInfo.path);
+        logger.debug('📊 Analyse du fichier enregistré:', analysis);
+
+        // Rafraîchir la liste des dossiers pour afficher le nouvel enregistrement
+        await refreshFolders();
+      }
+
+      logger.debug(
+        `🎵 Enregistrement arrêté, durée: ${recordingDuration} secondes`,
+      );
+    }
+  }, [
+    stopNativeRecording,
+    recordingInfo,
+    analyzeAudioFile,
+    refreshFolders,
+    recordingDuration,
+  ]);
+
+  // Nettoyer l'intervalle au démontage
+  React.useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Handlers
   // Gestion des dossiers avec actions étendues
@@ -187,7 +243,7 @@ export default function AudioScreen() {
   }, [folders, filterBy, searchQuery, filterFolders, searchFolders]);
 
   const handleFABPress = () => {
-    if (isRecording) {
+    if (isNativeRecording) {
       stopRecording();
     } else {
       // Pour l'instant, on simule l'enregistrement
@@ -313,17 +369,27 @@ export default function AudioScreen() {
       />
 
       {/* Barre de recherche et filtres */}
-      {!isSelectionMode && (
-        <AudioSearchBar
-          searchQuery={searchQuery}
-          onSearchChange={handleSearchChange}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSortChange={handleSortChange}
-          filterBy={filterBy}
-          onFilterChange={handleFilterChange}
-        />
-      )}
+      <AudioSearchBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={(newSortBy, newSortOrder) => {
+          setSortBy(newSortBy);
+          setSortOrder(newSortOrder);
+          sortFolders(newSortBy, newSortOrder);
+        }}
+        filterBy={filterBy}
+        onFilterChange={setFilterBy}
+      />
+
+      {/* Indicateur de niveau audio pendant l'enregistrement */}
+      <AudioLevelIndicator
+        currentLevel={currentLevel}
+        peakLevel={peakLevel}
+        isRecording={isNativeRecording}
+        isPaused={isRecordingPaused}
+      />
 
       {/* Liste des dossiers */}
       <FlatList
@@ -363,7 +429,10 @@ export default function AudioScreen() {
       {!isSelectionMode && (
         <AudioFAB
           onPress={handleFABPress}
-          isRecording={isRecording}
+          onPausePress={pauseNativeRecording}
+          onResumePress={resumeNativeRecording}
+          isRecording={isNativeRecording}
+          isPaused={isRecordingPaused}
           recordingDuration={recordingDuration}
         />
       )}

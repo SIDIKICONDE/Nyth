@@ -230,7 +230,7 @@ private:
     
     std::atomic<int> fileCount_{0};
     std::vector<std::string> createdFiles_;
-    std::mutex filesMutex_;
+    mutable std::mutex filesMutex_;
     
     FileSplitCallback fileSplitCallback_;
     

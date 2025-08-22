@@ -1,0 +1,25 @@
+[33mcommit 94c26db07d74472f65e157564104466fd93b8d6e[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Merge: 1b7de7a cbe8b2e
+Author: SIDIKI <96866377+SIDIKICONDE@users.noreply.github.com>
+Date:   Fri Aug 22 19:55:33 2025 +0200
+
+    Merge pull request #58 from SIDIKICONDE/cursor/capture-audio-for-android-and-ios-3beb
+    
+    Capture audio for Android and iOS
+
+ android/app/src/main/jni/CMakeLists.txt            |   4 [32m+[m[31m-[m
+ android/app/src/main/jni/OnLoad.cpp                |   5 [32m+[m
+ ios/NativeCameraModuleProvider.h                   |   4 [32m+[m
+ ios/NativeCameraModuleProvider.mm                  |  11 [32m+[m
+ shared/Audio/capture/AudioCapture.hpp              | 221 [32m+++++[m
+ shared/Audio/capture/AudioCaptureImpl.hpp          | 324 [32m+++++++[m
+ shared/Audio/capture/AudioCaptureUtils.hpp         | 401 [32m+++++++++[m
+ shared/Audio/capture/AudioFileWriter.hpp           | 276 [32m++++++[m
+ shared/Audio/capture/CMakeLists.txt                | 243 [32m++++++[m
+ shared/Audio/capture/README.md                     | 288 [32m++++++[m
+ .../capture/examples/audio_recorder_example.cpp    | 384 [32m++++++++[m
+ shared/NativeAudioCaptureModule.cpp                | 972 [32m+++++++++++++++++++++[m
+ shared/NativeAudioCaptureModule.h                  | 280 [32m++++++[m
+ specs/NativeAudioCaptureModule.ts                  | 244 [32m++++++[m
+ src/modules/AudioCapture.ts                        | 525 [32m+++++++++++[m
+ 15 files changed, 4181 insertions(+), 1 deletion(-)

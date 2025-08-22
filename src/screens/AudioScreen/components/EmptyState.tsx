@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import tw from 'twrnc';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -9,11 +9,16 @@ import Animated, {
   useSharedValue,
   withSpring,
   withDelay,
+  withSequence,
+  withTiming,
 } from 'react-native-reanimated';
 
 // Hooks et contextes
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from '@/hooks/useTranslation';
+
+// Composants personnalisés
+import RippleButton, { useMicroInteractions } from './RippleButton';
 
 interface EmptyStateProps {
   onCreateFolder: () => void;
@@ -27,14 +32,19 @@ export default function EmptyState({
   const { currentTheme } = useTheme();
   const { t } = useTranslation();
 
-  // Animations
+  // Hook pour les micro-interactions
+  const { triggerSuccess, triggerImpact } = useMicroInteractions();
+
+  // Animations améliorées
   const iconScale = useSharedValue(0);
   const textOpacity = useSharedValue(0);
   const buttonScale = useSharedValue(0);
+  const glowOpacity = useSharedValue(0);
+  const pulseScale = useSharedValue(1);
 
-  // Styles animés
+  // Styles animés améliorés
   const iconStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: iconScale.value }],
+    transform: [{ scale: iconScale.value }, { scale: pulseScale.value }],
   }));
 
   const textStyle = useAnimatedStyle(() => ({
@@ -45,14 +55,46 @@ export default function EmptyState({
     transform: [{ scale: buttonScale.value }],
   }));
 
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+    transform: [{ scale: 1.1 }],
+  }));
+
+  // Gestionnaire pour le bouton avec micro-interactions
+  const handleCreateFolder = () => {
+    triggerSuccess();
+    glowOpacity.value = withSequence(
+      withTiming(0.8, { duration: 200 }),
+      withTiming(0, { duration: 400 }),
+    );
+    onCreateFolder();
+  };
+
   // Démarrer les animations
   React.useEffect(() => {
     if (!isLoading) {
       iconScale.value = withDelay(200, withSpring(1));
       textOpacity.value = withDelay(400, withSpring(1));
       buttonScale.value = withDelay(600, withSpring(1));
+
+      // Animation de pulse continue pour l'icône
+      const pulseAnimation = () => {
+        pulseScale.value = withSequence(
+          withTiming(1.05, { duration: 2000 }),
+          withTiming(1, { duration: 2000 }),
+        );
+      };
+
+      // Démarrer l'animation de pulse après un délai
+      const timeoutId = setTimeout(() => {
+        pulseAnimation();
+        const intervalId = setInterval(pulseAnimation, 4000);
+        return () => clearInterval(intervalId);
+      }, 1000);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [isLoading, iconScale, textOpacity, buttonScale]);
+  }, [isLoading, iconScale, textOpacity, buttonScale, pulseScale]);
 
   if (isLoading) {
     return (
@@ -78,19 +120,32 @@ export default function EmptyState({
 
   return (
     <View style={tw`flex-1 items-center justify-center px-8`}>
-      {/* Animation de l'icône */}
+      {/* Animation de l'icône avec effet de glow */}
       <Animated.View style={iconStyle}>
-        <LinearGradient
-          colors={[
-            currentTheme.colors.accent,
-            `${currentTheme.colors.accent}80`,
-          ]}
-          style={tw`w-24 h-24 rounded-full items-center justify-center mb-6`}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Icon name="folder-open" size={32} color="white" />
-        </LinearGradient>
+        <View style={tw`relative items-center justify-center`}>
+          {/* Effet de glow */}
+          <Animated.View
+            style={[
+              tw`absolute w-28 h-28 rounded-full`,
+              {
+                backgroundColor: currentTheme.colors.accent,
+              },
+              glowStyle,
+            ]}
+          />
+
+          <LinearGradient
+            colors={[
+              currentTheme.colors.accent,
+              `${currentTheme.colors.accent}80`,
+            ]}
+            style={tw`w-24 h-24 rounded-full items-center justify-center mb-6`}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Icon name="folder-open" size={32} color="white" />
+          </LinearGradient>
+        </View>
       </Animated.View>
 
       {/* Texte */}
@@ -116,12 +171,14 @@ export default function EmptyState({
         </Text>
       </Animated.View>
 
-      {/* Bouton d'action */}
+      {/* Bouton d'action avec RippleButton */}
       <Animated.View style={buttonStyle}>
-        <TouchableOpacity
-          onPress={onCreateFolder}
-          activeOpacity={0.8}
+        <RippleButton
+          onPress={handleCreateFolder}
           style={tw`overflow-hidden rounded-2xl`}
+          rippleColor="rgba(255,255,255,0.3)"
+          hapticType="success"
+          borderRadius={16}
         >
           <LinearGradient
             colors={[
@@ -139,7 +196,7 @@ export default function EmptyState({
               </Text>
             </View>
           </LinearGradient>
-        </TouchableOpacity>
+        </RippleButton>
       </Animated.View>
 
       {/* Suggestions */}

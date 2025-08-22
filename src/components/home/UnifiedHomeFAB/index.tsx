@@ -37,6 +37,7 @@ interface UnifiedHomeFABProps {
   onPlanning: () => void;
   onNotes?: () => void;
   onPreview?: () => void;
+  onAudioScreen?: () => void;
 }
 
 export const UnifiedHomeFAB: React.FC<UnifiedHomeFABProps> = ({
@@ -49,6 +50,7 @@ export const UnifiedHomeFAB: React.FC<UnifiedHomeFABProps> = ({
   onPlanning,
   onNotes,
   onPreview,
+  onAudioScreen,
 }) => {
   const { currentTheme } = useTheme();
   const { t } = useTranslation();
@@ -144,6 +146,14 @@ export const UnifiedHomeFAB: React.FC<UnifiedHomeFABProps> = ({
       icon: "calendar-outline",
       color: "#3B82F6",
       onPress: onPlanning,
+    },
+
+    {
+      id: "audio",
+      label: "Audio",
+      icon: "microphone-outline",
+      color: "#EC4899",
+      onPress: onAudioScreen || (() => {}),
     },
 
     // Node Editor supprimé

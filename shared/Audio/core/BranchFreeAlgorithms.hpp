@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <type_traits>
 
-
 namespace AudioFX {
 namespace BranchFree {
 

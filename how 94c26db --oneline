@@ -1,0 +1,10 @@
+[33m1b7de7a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Ajout de nouvelles fonctionnalités audio et tests complets - Nouveau système de capture audio natif - Interface AudioScreen moderne avec composants réutilisables - Tests d'intégration complets pour AudioScreen - Améliorations de sécurité audio - Nouvelles fonctionnalités de réduction de bruit avancée
+[33m1ab9fed[m Mise à jour complète avec optimisations audio et corrections de sécurité
+[33m3db9834[m Mise à jour des modules audio et corrections de code
+[33m5b7cb90[m Mise à jour des modules audio et ajout des rapports de conformité C++17
+[33m9455e33[m Mise à jour des constantes audio et ajout d'outils d'analyse statique
+[33m7a82d4d[m feat: Migration complète vers C++17 - Harmonisation des constantes audio
+[33mfe7b495[m Nettoyage du projet : suppression des fichiers de build et mise à jour des dépendances
+[33m7a3a1bf[m  Implémentation complète du système de formatage avancé
+[33m721d077[m Mise à jour du système audio et des filtres - Amélioration des modules audio, ajout de nouveaux filtres et optimisation du système de traitement
+[33m42a6b79[m Mise à jour du système audio et nettoyage du projet - Amélioration du processeur audio optimisé - Nettoyage des fichiers de build Next.js - Mise à jour des modules audio C++ - Ajout de nouveaux tests et constantes - Suppression des fichiers de build inutiles - Mise à jour du .gitignore pour éviter les fichiers volumineux

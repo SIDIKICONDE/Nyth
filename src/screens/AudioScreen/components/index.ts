@@ -4,6 +4,7 @@ export { default as AudioFAB } from './AudioFAB';
 export { default as EmptyState } from './EmptyState';
 export { default as AudioFolderActions } from './AudioFolderActions';
 export { default as AudioSearchBar } from './AudioSearchBar';
+export { default as AudioLevelIndicator } from './AudioLevelIndicator';
 export { default as AudioFolderDetail } from './AudioFolderDetail';
 export { default as AudioSettings } from './AudioSettings';
 export { default as AudioStats } from './AudioStats';
@@ -15,3 +16,5 @@ export {
   UltraModernToast,
   SkiaUltraModernDemo,
 } from './UltraModernUI';
+export { default as RippleButton, useMicroInteractions } from './RippleButton';
+export { default as MicroInteractionsDemo } from './MicroInteractionsDemo';

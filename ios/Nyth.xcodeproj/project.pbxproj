@@ -30,6 +30,8 @@
 		SF2000062F5A6B8C0099AABB /* OpenGLFilterProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000122F5A6B8C0099AABB /* OpenGLFilterProcessor.cpp */; };
 		SF2000072F5A6B8C0099AABB /* MemoryManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000142F5A6B8C0099AABB /* MemoryManager.cpp */; };
 		SF2000082F5A6B8C0099AABB /* ProductionConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000152F5A6B8C0099AABB /* ProductionConfig.cpp */; };
+		SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */; };
+		SP2000022F5A6B8C0099AABB /* integrated_audio_example.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SP1000032F5A6B8C0099AABB /* integrated_audio_example.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -74,6 +76,12 @@
 		SF1000132F5A6B8C0099AABB /* MemoryManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = MemoryManager.hpp; path = ../shared/filters/MemoryManager.hpp; sourceTree = SOURCE_ROOT; };
 		SF1000142F5A6B8C0099AABB /* MemoryManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryManager.cpp; path = ../shared/filters/MemoryManager.cpp; sourceTree = SOURCE_ROOT; };
 		SF1000152F5A6B8C0099AABB /* ProductionConfig.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ProductionConfig.cpp; path = ../shared/filters/ProductionConfig.cpp; sourceTree = SOURCE_ROOT; };
+		SP1000012F5A6B8C0099AABB /* AudioPipeline.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioPipeline.hpp; path = ../shared/Audio/AudioPipeline.hpp; sourceTree = SOURCE_ROOT; };
+		SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioPipeline.cpp; path = ../shared/Audio/AudioPipeline.cpp; sourceTree = SOURCE_ROOT; };
+		SP1000032F5A6B8C0099AABB /* integrated_audio_example.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = integrated_audio_example.cpp; path = ../shared/Audio/examples/integrated_audio_example.cpp; sourceTree = SOURCE_ROOT; };
+		SP1000042F5A6B8C0099AABB /* AudioCaptureException.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCaptureException.hpp; path = ../shared/Audio/capture/AudioCaptureException.hpp; sourceTree = SOURCE_ROOT; };
+		SP1000052F5A6B8C0099AABB /* AudioCaptureMetrics.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCaptureMetrics.hpp; path = ../shared/Audio/capture/AudioCaptureMetrics.hpp; sourceTree = SOURCE_ROOT; };
+		SP1000062F5A6B8C0099AABB /* AudioCaptureSIMD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCaptureSIMD.hpp; path = ../shared/Audio/capture/AudioCaptureSIMD.hpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -337,6 +345,8 @@
 				SF2000062F5A6B8C0099AABB /* OpenGLFilterProcessor.cpp in Sources */,
 				SF2000072F5A6B8C0099AABB /* MemoryManager.cpp in Sources */,
 				SF2000082F5A6B8C0099AABB /* ProductionConfig.cpp in Sources */,
+				SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */,
+				SP2000022F5A6B8C0099AABB /* integrated_audio_example.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -524,6 +534,20 @@
 					"\"$(SRCROOT)/../shared/Audio/**\"",
 					"\"$(SRCROOT)/../shared/filters\"",
 					"\"$(SRCROOT)/../shared/filters/**\"",
+					"\"$(SRCROOT)/../shared/Audio/capture\"",
+					"\"$(SRCROOT)/../shared/Audio/core\"",
+					"\"$(SRCROOT)/../shared/Audio/effects\"",
+					"\"$(SRCROOT)/../shared/Audio/fft\"",
+					"\"$(SRCROOT)/../shared/Audio/noise\"",
+					"\"$(SRCROOT)/../shared/Audio/safety\"",
+					"\"$(SRCROOT)/../shared/Audio/utils\"",
+					"\"$(SRCROOT)/../shared/Audio/capture/**\"",
+					"\"$(SRCROOT)/../shared/Audio/core/**\"",
+					"\"$(SRCROOT)/../shared/Audio/effects/**\"",
+					"\"$(SRCROOT)/../shared/Audio/fft/**\"",
+					"\"$(SRCROOT)/../shared/Audio/noise/**\"",
+					"\"$(SRCROOT)/../shared/Audio/safety/**\"",
+					"\"$(SRCROOT)/../shared/Audio/utils/**\"",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -547,6 +571,11 @@
 					"-Wno-ambiguous-macro",
 					"-D_LIBCPP_DISABLE_AVAILABILITY_ANNOTATIONS=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
+					"-DHAS_NEON=1",
+					"-O3",
+					"-march=armv8-a+simd",
+					"-mcpu=apple-a12",
+					"-flto",
 				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
@@ -617,6 +646,20 @@
 					"\"$(SRCROOT)/../shared/Audio/**\"",
 					"\"$(SRCROOT)/../shared/filters\"",
 					"\"$(SRCROOT)/../shared/filters/**\"",
+					"\"$(SRCROOT)/../shared/Audio/capture\"",
+					"\"$(SRCROOT)/../shared/Audio/core\"",
+					"\"$(SRCROOT)/../shared/Audio/effects\"",
+					"\"$(SRCROOT)/../shared/Audio/fft\"",
+					"\"$(SRCROOT)/../shared/Audio/noise\"",
+					"\"$(SRCROOT)/../shared/Audio/safety\"",
+					"\"$(SRCROOT)/../shared/Audio/utils\"",
+					"\"$(SRCROOT)/../shared/Audio/capture/**\"",
+					"\"$(SRCROOT)/../shared/Audio/core/**\"",
+					"\"$(SRCROOT)/../shared/Audio/effects/**\"",
+					"\"$(SRCROOT)/../shared/Audio/fft/**\"",
+					"\"$(SRCROOT)/../shared/Audio/noise/**\"",
+					"\"$(SRCROOT)/../shared/Audio/safety/**\"",
+					"\"$(SRCROOT)/../shared/Audio/utils/**\"",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -639,6 +682,11 @@
 					"-Wno-ambiguous-macro",
 					"-D_LIBCPP_DISABLE_AVAILABILITY_ANNOTATIONS=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
+					"-DHAS_NEON=1",
+					"-O3",
+					"-march=armv8-a+simd",
+					"-mcpu=apple-a12",
+					"-flto",
 				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
