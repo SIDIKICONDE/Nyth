@@ -29,7 +29,7 @@ public:
   void setSampleRate(uint32_t sampleRate, int numChannels) noexcept {
     sampleRate_ = sampleRate >= AudioFX::MIN_SAMPLE_RATE ? sampleRate : AudioFX::DEFAULT_SAMPLE_RATE;
     channels_ = (numChannels == AudioFX::MONO_CHANNELS || numChannels == AudioFX::STEREO_CHANNELS) ? numChannels : AudioFX::DEFAULT_CHANNELS;
-    std::for_each(effects_, [&](const auto& e) {
+    std::for_each(effects_.begin(), effects_.end(), [&](const auto& e) {
         if (e) e->setSampleRate(sampleRate_, channels_);
     });
   }

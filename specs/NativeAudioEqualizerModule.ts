@@ -124,4 +124,23 @@ export interface Spec extends TurboModule {
   ) => void;
 }
 
+<<<<<<< Current (Your changes)
 export default TurboModuleRegistry.getEnforcing<Spec>('NativeAudioEqualizerModule');
+=======
+let _nativeAudioModule: Spec | null = null;
+const getNativeAudioModule = (): Spec => {
+  if (!_nativeAudioModule) {
+    _nativeAudioModule = TurboModuleRegistry.getEnforcing<Spec>('NativeAudioEqualizerModule');
+  }
+  return _nativeAudioModule;
+};
+
+const LazyNativeAudioEqualizerModule: Spec = new Proxy({} as any, {
+  get: (_target, prop) => {
+    const mod = getNativeAudioModule() as any;
+    return mod[prop as keyof Spec];
+  },
+}) as Spec;
+
+export default LazyNativeAudioEqualizerModule;
+>>>>>>> Incoming (Background Agent changes)

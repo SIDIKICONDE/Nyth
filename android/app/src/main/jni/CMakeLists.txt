@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.18.1)  # Minimum pour C++20 support complet
 # Define the library name here.
 project(appmodules
     VERSION 1.0.0
-    DESCRIPTION "React Native C++20 Audio Processing Modules"
+    DESCRIPTION "React Native C++17 Audio Processing Modules"
     LANGUAGES CXX C
 )
 
@@ -16,7 +16,7 @@ include(${REACT_ANDROID_DIR}/cmake-utils/ReactNative-application.cmake)
 # =============================================================================
 
 # Force C++20 standard
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -24,7 +24,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     # Clang-specific C++20 flags
     add_compile_options(
-        -std=c++20
+        -std=c++17
         -stdlib=libc++
         -fexperimental-library  # Pour les nouvelles features de la stdlib
     )

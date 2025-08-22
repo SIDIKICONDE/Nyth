@@ -146,44 +146,44 @@ export interface Spec extends TurboModule {
   ) => boolean;
 
   // === API étendue complète ===
-  
+
   // Informations détaillées sur les filtres
   readonly getAvailableFiltersDetailed: () => FilterInfo[];
   readonly getFilterWithParams: () => FilterStateWithParams | null;
-  
+
   // Support LUT 3D
   readonly setLUT3D: (options: LUT3DOptions) => boolean;
   readonly getLUT3DPath: () => string | null;
-  
+
   // Gestion des processeurs
   readonly getCapabilities: () => FilterCapabilities;
   readonly setProcessor: (type: ProcessorType) => boolean;
   readonly getProcessor: () => ProcessorType;
-  
+
   // Configuration vidéo
   readonly setVideoFormat: (format: VideoFormat) => boolean;
   readonly getVideoFormat: () => VideoFormat | null;
-  
+
   // Performance et parallélisme
   readonly setPerformanceConfig: (config: PerformanceConfig) => boolean;
   readonly getPerformanceConfig: () => PerformanceConfig;
-  
+
   // Traitement direct (avancé) - Note: ArrayBuffer not supported by codegen
   readonly processFrame: (
     inputData: Object, // Input buffer data
     outputData: Object, // Output buffer data
     format: VideoFormat
   ) => boolean;
-  
+
   // Diagnostics
   readonly getLastError: () => string | null;
   readonly clearLastError: () => void;
-  
+
   // Validation
   readonly validateLUTFile: (path: string) => boolean;
   readonly supportsFormat: (pixelFormat: string) => boolean;
   readonly supportsFilter: (filterName: string) => boolean;
-  
+
   // === API de production ===
   readonly setProductionConfig: (config: ProductionConfig) => boolean;
   readonly getProductionConfig: () => ProductionConfig;
@@ -197,6 +197,21 @@ export interface Spec extends TurboModule {
   readonly setCacheSize: (sizeInMB: number) => boolean;
 }
 
-export default TurboModuleRegistry.getEnforcing<Spec>('NativeCameraFiltersModule');
 
+const _directCameraModule = TurboModuleRegistry.getEnforcing<Spec>('NativeCameraFiltersModule');
+let _nativeCameraModule: Spec | null = null;
+const getNativeCameraModule = (): Spec => {
+  if (!_nativeCameraModule) {
+    _nativeCameraModule = TurboModuleRegistry.getEnforcing<Spec>('NativeCameraFiltersModule');
+  }
+  return _nativeCameraModule;
+};
 
+const LazyNativeCameraFiltersModule: Spec = new Proxy({} as any, {
+  get: (_target, prop) => {
+    const mod = getNativeCameraModule() as any;
+    return mod[prop as keyof Spec];
+  },
+}) as Spec;
+
+export default LazyNativeCameraFiltersModule;

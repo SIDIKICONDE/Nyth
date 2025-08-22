@@ -17,5 +17,11 @@ module.exports = {
       }
     }],
     'react-native-worklets/plugin',
+    // Inline react-native-paper icons to reduce dynamic requires
+    'react-native-paper/babel',
+    // Dead code elimination hints
+    ['transform-inline-environment-variables', {
+      include: ['NODE_ENV']
+    }],
   ]
 };

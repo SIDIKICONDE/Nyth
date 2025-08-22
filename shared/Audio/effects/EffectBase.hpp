@@ -53,7 +53,7 @@ public:
   virtual ~IAudioEffect() noexcept = default;
 
   virtual void setSampleRate(uint32_t sampleRate, int numChannels) noexcept {
-    sampleRate_ = sampleRate > AudioFX::MINIMUM_SAMPLE_RATE ? sampleRate : AudioFX::DEFAULT_SAMPLE_RATE;
+    sampleRate_ = sampleRate > AudioFX::MIN_SAMPLE_RATE ? sampleRate : AudioFX::DEFAULT_SAMPLE_RATE;
     channels_ = (numChannels == AudioFX::MONO_CHANNELS || numChannels == AudioFX::STEREO_CHANNELS) ? numChannels : AudioFX::DEFAULT_CHANNELS;
   }
 
