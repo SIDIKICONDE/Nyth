@@ -4,15 +4,15 @@
 // C++20 standard headers
 #include <cstddef>
 #include <memory>
+#include <array>
 #include <vector>
-#include <span>
-#include <concepts>
+// #include <concepts> // Supprimé pour C++17
 #include <type_traits>
 #include <algorithm>
 #include <numeric>
 #include "../../compat/format.hpp"
-#include <source_location>
-#include <ranges>
+// #include <source_location> // Supprimé pour C++17
+#include <algorithm>
 #include <stdexcept>
 #include "utilsConstants.hpp"
 
@@ -81,40 +81,40 @@ public:
     float getRMSLevel(size_t channel, size_t startSample, size_t numSamples) const;
 
     // C++20 modernized methods - simplified for compatibility
-    std::span<float> getChannelSpan(size_t channel) {
+    std::vector<float>& getChannelSpan(size_t channel) {
         if (channel >= m_numChannels) {
-            return std::span<float>();
+            return std::vector<float>&();
         }
-        return std::span<float>(m_channels[channel], m_numSamples);
+        return std::vector<float>&(m_channels[channel], m_numSamples);
     }
 
-    std::span<const float> getChannelSpan(size_t channel) const {
+    std::vector<const float>& getChannelSpan(size_t channel) const {
         if (channel >= m_numChannels) {
-            return std::span<const float>();
+            return std::vector<const float>&();
         }
-        return std::span<const float>(m_channels[channel], m_numSamples);
+        return std::vector<const float>&(m_channels[channel], m_numSamples);
     }
 
     // Template versions for compatibility
     template<typename T>
-    std::span<T> getChannelSpan(size_t channel) {
+    std::vector<T>& getChannelSpan(size_t channel) {
         if (channel >= m_numChannels) {
-            return std::span<T>();
+            return std::vector<T>&();
         }
-        return std::span<T>(reinterpret_cast<T*>(m_channels[channel]), m_numSamples);
+        return std::vector<T>&(reinterpret_cast<T*>(m_channels[channel]), m_numSamples);
     }
 
     template<typename T>
-    std::span<const T> getChannelSpan(size_t channel) const {
+    std::vector<const T>& getChannelSpan(size_t channel) const {
         if (channel >= m_numChannels) {
-            return std::span<const T>();
+            return std::vector<const T>&();
         }
-        return std::span<const T>(reinterpret_cast<const T*>(m_channels[channel]), m_numSamples);
+        return std::vector<const T>&(reinterpret_cast<const T*>(m_channels[channel]), m_numSamples);
     }
 
     // C++20 enhanced copy operations
-    void copyFromSpan(size_t destChannel, std::span<const float> source,
-                     std::source_location location = std::source_location::current()) {
+    void copyFromSpan(size_t destChannel, std::vector<const float>& source,
+                     std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
         if (destChannel >= m_numChannels) {
             throw std::out_of_range(nyth::format("Channel {} out of range [0, {}) [{}:{}]",
                 destChannel, m_numChannels, location.file_name(), location.line()));
@@ -126,13 +126,13 @@ public:
         }
 
         auto destSpan = getChannelSpan(destChannel);
-        std::ranges::copy(source, destSpan.begin());
+        std::copy(source, destSpan.begin());
     }
 
     // Template version for compatibility
     template<typename T>
-    void copyFromSpan(size_t destChannel, std::span<const T> source,
-                     std::source_location location = std::source_location::current()) {
+    void copyFromSpan(size_t destChannel, std::vector<const T>& source,
+                     std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
         if (destChannel >= m_numChannels) {
             throw std::out_of_range(nyth::format("Channel {} out of range [0, {}) [{}:{}]",
                 destChannel, m_numChannels, location.file_name(), location.line()));
@@ -144,12 +144,12 @@ public:
         }
 
         auto destSpan = getChannelSpan<T>(destChannel);
-        std::ranges::copy(source, destSpan.begin());
+        std::copy(source, destSpan.begin());
     }
 
     // C++20 validation
-    bool validateBuffer(std::source_location location = std::source_location::current()) const;
-    std::string getDebugInfo(std::source_location location = std::source_location::current()) const;
+    bool validateBuffer(std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) const;
+    std::string getDebugInfo(std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) const;
 
 private:
     size_t m_numChannels;

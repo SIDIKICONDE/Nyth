@@ -4,11 +4,11 @@
 #include <cstdint>
 #include <algorithm>
 #include <cmath>
-#include <span>
+#include <vector>
 #include "../../compat/format.hpp"
-#include <source_location>
-#include <ranges>
-#include <concepts>
+// #include <source_location> // Supprimé pour C++17
+#include <algorithm>
+// #include <concepts> // Supprimé pour C++17
 #include <type_traits>
 
 // Legacy headers
@@ -41,16 +41,16 @@ public:
 
   // C++20 modernized processing methods
   template<AudioSampleType T = float>
-  void processMonoModern(std::span<const T> input, std::span<T> output,
-                        std::source_location location = std::source_location::current()) {
+  void processMonoModern(std::vector<const T>& input, std::vector<T>& output,
+                        std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
     // Use the base class C++20 method
     processMono(input, output, location);
   }
 
   template<AudioSampleType T = float>
-  void processStereoModern(std::span<const T> inputL, std::span<const T> inputR,
-                          std::span<T> outputL, std::span<T> outputR,
-                          std::source_location location = std::source_location::current()) {
+  void processStereoModern(std::vector<const T>& inputL, std::vector<const T>& inputR,
+                          std::vector<T>& outputL, std::vector<T>& outputR,
+                          std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
     // Call our own stereo processing method
     if constexpr (std::is_same_v<T, float>) {
       processStereo(inputL.data(), inputR.data(), outputL.data(), outputR.data(), inputL.size());
@@ -61,8 +61,8 @@ public:
       std::vector<float> tempOutputL(outputL.size());
       std::vector<float> tempOutputR(outputR.size());
       processStereo(tempInputL.data(), tempInputR.data(), tempOutputL.data(), tempOutputR.data(), tempInputL.size());
-      std::ranges::copy(tempOutputL, outputL.begin());
-      std::ranges::copy(tempOutputR, outputR.begin());
+      std::copy(tempOutputL, outputL.begin());
+      std::copy(tempOutputR, outputR.begin());
     }
   }
 
@@ -70,8 +70,8 @@ public:
   void processMono(const float* input, float* output, size_t numSamples) override {
     if (!isEnabled() || !input || !output || numSamples == 0) {
       if (output != input && input && output) {
-        std::ranges::copy(std::span<const float>(input, numSamples),
-                         std::span<float>(output, numSamples).begin());
+        std::copy(std::vector<const float>&(input, numSamples),
+                         std::vector<float>&(output, numSamples).begin());
       }
       return;
     }

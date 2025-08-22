@@ -1,13 +1,15 @@
 #pragma once
 
 #include "common/FilterTypes.hpp"
-#include <memory>
-#include <unordered_map>
-#include <list>
+#include <string>
 #include <vector>
+#include <list>
+#include <unordered_map>
 #include <chrono>
-#include <functional>
 #include <mutex>
+#include <cstdint>
+#include <cstring>
+#include <time.h>
 
 namespace Camera {
 

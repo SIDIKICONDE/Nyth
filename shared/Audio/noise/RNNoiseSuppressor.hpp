@@ -11,7 +11,7 @@
 #else
 #include <stdint.h>
 #endif
-#include <vector>
+#include <array>
 #include <memory>
 
 #include "SpectralNR.hpp"

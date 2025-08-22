@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef __cplusplus
-#include <vector>
+#include <array>
 #include <memory>
 #include <cmath>
 #include "../core/BiquadFilter.hpp"

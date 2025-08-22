@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef __cplusplus
-#include <vector>
+#include <array>
 #include <cstdint>
 #include <cmath>
 #include <algorithm>

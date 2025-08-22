@@ -171,7 +171,7 @@ extern "C" void NaayaFX_GetDelay(double* delayMs,
 
 #if NAAYA_AUDIO_EQ_ENABLED
 #include <cmath>
-#include <string>
+#include <cstring>
 #ifndef NAAYA_HAS_SPECTRUM
 #define NAAYA_HAS_SPECTRUM 1
 #endif

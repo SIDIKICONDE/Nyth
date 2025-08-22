@@ -3,7 +3,7 @@
 #include <cmath>
 #include "../../compat/format.hpp"
 #include <algorithm>
-#include <ranges>
+#include <algorithm>
 
 namespace AudioFX {
 
@@ -373,7 +373,7 @@ void BiquadFilter::getCoefficients(double& a0, double& a1, double& a2,
 
 // C++20 modernized processing methods
 template<AudioSampleType T>
-void BiquadFilter::process(std::span<const T> input, std::span<T> output,
+void BiquadFilter::process(std::vector<const T>& input, std::vector<T>& output,
                           std::source_location location) {
     // C++20 concept validation at runtime
     if (input.size() != output.size()) {
@@ -387,7 +387,7 @@ void BiquadFilter::process(std::span<const T> input, std::span<T> output,
     // Use C++20 ranges for processing
     double y1 = m_y1, y2 = m_y2;
 
-    std::ranges::transform(input, output.begin(),
+    std::transform(input, output.begin(),
                           [&](const T& sample) {
                               return process_sample_implementation(m_a0, m_a1, m_a2, m_b1, m_b2,
                                                                  sample, y1, y2);
@@ -398,8 +398,8 @@ void BiquadFilter::process(std::span<const T> input, std::span<T> output,
 }
 
 template<AudioSampleType T>
-void BiquadFilter::processStereo(std::span<const T> inputL, std::span<const T> inputR,
-                                std::span<T> outputL, std::span<T> outputR,
+void BiquadFilter::processStereo(std::vector<const T>& inputL, std::vector<const T>& inputR,
+                                std::vector<T>& outputL, std::vector<T>& outputR,
                                 std::source_location location) {
     // C++20 validation
     if (inputL.size() != inputR.size() || inputL.size() != outputL.size() || inputR.size() != outputR.size()) {
@@ -411,7 +411,7 @@ void BiquadFilter::processStereo(std::span<const T> inputL, std::span<const T> i
 
     // Process left channel
     double y1L = m_y1, y2L = m_y2;
-    std::ranges::transform(inputL, outputL.begin(),
+    std::transform(inputL, outputL.begin(),
                           [&](const T& sample) {
                               return process_sample_implementation(m_a0, m_a1, m_a2, m_b1, m_b2,
                                                                  sample, y1L, y2L);
@@ -419,7 +419,7 @@ void BiquadFilter::processStereo(std::span<const T> inputL, std::span<const T> i
 
     // Process right channel
     double y1R = m_y1R, y2R = m_y2R;
-    std::ranges::transform(inputR, outputR.begin(),
+    std::transform(inputR, outputR.begin(),
                           [&](const T& sample) {
                               return process_sample_implementation(m_a0, m_a1, m_a2, m_b1, m_b2,
                                                                  sample, y1R, y2R);
@@ -442,11 +442,11 @@ std::string BiquadFilter::getDebugInfo(std::source_location location) const {
 }
 
 // Explicit template instantiations for common audio types
-template void AudioFX::BiquadFilter::process<float>(std::span<const float>, std::span<float>, std::source_location);
-template void AudioFX::BiquadFilter::process<double>(std::span<const double>, std::span<double>, std::source_location);
-template void AudioFX::BiquadFilter::processStereo<float>(std::span<const float>, std::span<const float>,
-                                                std::span<float>, std::span<float>, std::source_location);
-template void AudioFX::BiquadFilter::processStereo<double>(std::span<const double>, std::span<const double>,
-                                                 std::span<double>, std::span<double>, std::source_location);
+template void AudioFX::BiquadFilter::process<float>(std::vector<const float>&, std::vector<float>&, std::source_location);
+template void AudioFX::BiquadFilter::process<double>(std::vector<const double>&, std::vector<double>&, std::source_location);
+template void AudioFX::BiquadFilter::processStereo<float>(std::vector<const float>&, std::vector<const float>&,
+                                                std::vector<float>&, std::vector<float>&, std::source_location);
+template void AudioFX::BiquadFilter::processStereo<double>(std::vector<const double>&, std::vector<const double>&,
+                                                 std::vector<double>&, std::vector<double>&, std::source_location);
 
 } // namespace AudioFX

@@ -2,11 +2,11 @@
 #include "EffectBase.hpp"
 #include "EffectConstants.hpp"
 #include <memory>
+#include <array>
 #include <vector>
-#include <span>
 #include "../../compat/format.hpp"
-#include <source_location>
-#include <ranges>
+// #include <source_location> // Supprimé pour C++17
+#include <algorithm>
 #include <stdexcept>
 
 namespace AudioFX {
@@ -22,7 +22,7 @@ public:
   void setSampleRate(uint32_t sampleRate, int numChannels) noexcept {
     sampleRate_ = sampleRate >= AudioFX::MIN_SAMPLE_RATE ? sampleRate : AudioFX::DEFAULT_SAMPLE_RATE;
     channels_ = (numChannels == AudioFX::MONO_CHANNELS || numChannels == AudioFX::STEREO_CHANNELS) ? numChannels : AudioFX::DEFAULT_CHANNELS;
-    std::ranges::for_each(effects_, [&](const auto& e) {
+    std::for_each(effects_, [&](const auto& e) {
         if (e) e->setSampleRate(sampleRate_, channels_);
     });
   }
@@ -40,11 +40,11 @@ public:
 
   // C++20 modernized processing methods
   template<AudioSampleType T = float>
-  void processMono(std::span<const T> input, std::span<T> output,
-                   std::source_location location = std::source_location::current()) {
+  void processMono(std::vector<const T>& input, std::vector<T>& output,
+                   std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
     if (!enabled_ || effects_.empty()) {
       if (output.data() != input.data() && !input.empty() && !output.empty()) {
-        std::ranges::copy(input, output.begin());
+        std::copy(input, output.begin());
       }
       return;
     }
@@ -66,7 +66,7 @@ public:
       std::vector<float> tempInput(input.begin(), input.end());
       std::vector<float> tempOutput(output.size());
       effects_[AudioFX::FIRST_EFFECT_INDEX]->processMono(tempInput.data(), tempOutput.data(), tempInput.size());
-      std::ranges::copy(tempOutput, output.begin());
+      std::copy(tempOutput, output.begin());
     }
 
     // Chain remaining effects in-place
@@ -76,21 +76,21 @@ public:
       } else {
         std::vector<float> tempOutput(output.begin(), output.end());
         effects_[i]->processMono(tempOutput.data(), tempOutput.data(), tempOutput.size());
-        std::ranges::copy(tempOutput, output.begin());
+        std::copy(tempOutput, output.begin());
       }
     }
   }
 
   template<AudioSampleType T = float>
-  void processStereo(std::span<const T> inputL, std::span<const T> inputR,
-                     std::span<T> outputL, std::span<T> outputR,
-                     std::source_location location = std::source_location::current()) {
+  void processStereo(std::vector<const T>& inputL, std::vector<const T>& inputR,
+                     std::vector<T>& outputL, std::vector<T>& outputR,
+                     std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
     if (!enabled_ || effects_.empty()) {
       if (outputL.data() != inputL.data() && !inputL.empty() && !outputL.empty()) {
-        std::ranges::copy(inputL, outputL.begin());
+        std::copy(inputL, outputL.begin());
       }
       if (outputR.data() != inputR.data() && !inputR.empty() && !outputR.empty()) {
-        std::ranges::copy(inputR, outputR.begin());
+        std::copy(inputR, outputR.begin());
       }
       return;
     }
@@ -119,8 +119,8 @@ public:
         effects_[i]->processStereo(tempOutputL.data(), tempOutputR.data(), tempOutputL.data(), tempOutputR.data(), tempOutputL.size());
       }
 
-      std::ranges::copy(tempOutputL, outputL.begin());
-      std::ranges::copy(tempOutputR, outputR.begin());
+      std::copy(tempOutputL, outputL.begin());
+      std::copy(tempOutputR, outputR.begin());
     }
   }
 

@@ -5,15 +5,15 @@
 // C++20 standard headers
 #include <cstdint>
 #include <cstddef>
-#include <string>
-#include <vector>
+#include <cstring>
+#include <array>
 #include <memory>
 #include <atomic>
 #include <mutex>
-#include <span>
-#include <concepts>
-#include <ranges>
-#include <source_location>
+#include <vector>
+// #include <concepts> // Supprimé pour C++17
+#include <algorithm>
+// #include <source_location> // Supprimé pour C++17
 #include <type_traits>
 
 // Legacy headers
@@ -74,13 +74,13 @@ public:
     
     // C++20 modernized processing methods
     template<AudioSampleType T = float>
-    void process(std::span<const T> input, std::span<T> output,
-                std::source_location location = std::source_location::current());
+    void process(std::vector<const T>& input, std::vector<T>& output,
+                std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__));
 
     template<AudioSampleType T = float>
-    void processStereo(std::span<const T> inputL, std::span<const T> inputR,
-                      std::span<T> outputL, std::span<T> outputR,
-                      std::source_location location = std::source_location::current());
+    void processStereo(std::vector<const T>& inputL, std::vector<const T>& inputR,
+                      std::vector<T>& outputL, std::vector<T>& outputR,
+                      std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__));
 
     // Pure C++20 implementation - no legacy methods
     
@@ -137,19 +137,19 @@ public:
     };
 
     // C++20 enhanced methods
-    std::string getDebugInfo(std::source_location location = std::source_location::current()) const;
+    std::string getDebugInfo(std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) const;
 
     template<AudioSampleType T = float>
-    bool validateAudioBuffer(std::span<const T> buffer,
-                           std::source_location location = std::source_location::current()) const;
+    bool validateAudioBuffer(std::vector<const T>& buffer,
+                           std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) const;
 
     // C++20 range-based operations
     auto getActiveBands() const {
-        return m_bands | std::ranges::views::filter(&EQBand::enabled);
+        return m_bands | std::views::filter(&EQBand::enabled);
     }
 
     auto getBandsByType(FilterType type) const {
-        return m_bands | std::ranges::views::filter([type](const EQBand& band) {
+        return m_bands | std::views::filter([type](const EQBand& band) {
             return band.type == type;
         });
     }
@@ -173,7 +173,7 @@ private:
     double linearToDb(double linear) const;
     
     // Optimized processing paths
-    void processOptimized(std::span<const float> input, std::span<float> output);
+    void processOptimized(std::vector<const float>& input, std::vector<float>& output);
     
     // Default band setup
     void setupDefaultBands();

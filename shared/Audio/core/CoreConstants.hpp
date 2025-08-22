@@ -5,20 +5,20 @@
 #include <cstddef>
 #include <cmath>
 #include <thread>
-#include <chrono>
+#include <time.h>
 #include <array>
 #include <algorithm>
-#include <ranges>
-#include <concepts>
+#include <algorithm>
+// #include <concepts> // Supprimé pour C++17
 #include <type_traits>
-#include <string>
+#include <cstring>
 #include <stdexcept>
-#include <vector>
+#include <array>
 #include <memory>
 #include <atomic>
 #include <mutex>
-#include <span>
-#include <source_location>
+#include <vector>
+// #include <source_location> // Supprimé pour C++17
 #include <iterator>
 
 namespace AudioFX {
@@ -286,23 +286,23 @@ constexpr T linear_to_db(T linear) {
 
 // C++20 enhanced validation with source_location
 bool validate_frequency_range(double freq,
-                            std::source_location location = std::source_location::current());
+                            std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__));
 
 bool validate_q_range(double q,
-                    std::source_location location = std::source_location::current());
+                    std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__));
 
 bool validate_gain_range(double gain_db,
-                        std::source_location location = std::source_location::current());
+                        std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__));
 
 // C++20 formatted error messages
 std::string format_frequency_error(double freq,
-                                 std::source_location location = std::source_location::current());
+                                 std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__));
 
 std::string format_q_error(double q,
-                         std::source_location location = std::source_location::current());
+                         std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__));
 
 std::string format_gain_error(double gain_db,
-                            std::source_location location = std::source_location::current());
+                            std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__));
 
 // Temporisation portable en C++20 (évite les APIs C spécifiques plateforme)
 inline void portable_sleep_ms(long milliseconds) {

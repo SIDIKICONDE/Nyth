@@ -2,13 +2,13 @@
 #include <cstdint>
 #include <cstddef>
 #include <algorithm>
-#include <span>
-#include "../../compat/format.hpp"
-#include <concepts>
-#include <source_location>
-#include <type_traits>
 #include <vector>
-#include <ranges>
+#include "../../compat/format.hpp"
+// #include <concepts> // Supprimé pour C++17
+// #include <source_location> // Supprimé pour C++17
+#include <type_traits>
+#include <array>
+#include <algorithm>
 #include <stdexcept>
 #include "../utils/utilsConstants.hpp"
 #include "EffectConstants.hpp"
@@ -68,8 +68,8 @@ public:
 
   // C++20 modernized processing methods
   template<AudioSampleType T = float>
-  void processMono(std::span<const T> input, std::span<T> output,
-                   std::source_location location = std::source_location::current()) {
+  void processMono(std::vector<const T>& input, std::vector<T>& output,
+                   std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
     // C++20 validation
     if (input.size() != output.size()) {
       throw std::invalid_argument(nyth::format(
@@ -85,14 +85,14 @@ public:
       std::vector<float> tempInput(input.begin(), input.end());
       std::vector<float> tempOutput(output.size());
       processMono(tempInput.data(), tempOutput.data(), tempInput.size());
-      std::ranges::copy(tempOutput, output.begin());
+      std::copy(tempOutput, output.begin());
     }
   }
 
   template<AudioSampleType T = float>
-  void processStereo(std::span<const T> inputL, std::span<const T> inputR,
-                     std::span<T> outputL, std::span<T> outputR,
-                     std::source_location location = std::source_location::current()) {
+  void processStereo(std::vector<const T>& inputL, std::vector<const T>& inputR,
+                     std::vector<T>& outputL, std::vector<T>& outputR,
+                     std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
     // C++20 validation
     if (inputL.size() != inputR.size() || inputL.size() != outputL.size() || inputR.size() != outputR.size()) {
       throw std::invalid_argument(nyth::format(
@@ -102,10 +102,10 @@ public:
     // Pure C++20 implementation - passthrough by default
     if (!enabled_ || inputL.empty()) {
       if (outputL.data() != inputL.data()) {
-        std::ranges::copy(inputL, outputL.begin());
+        std::copy(inputL, outputL.begin());
       }
       if (outputR.data() != inputR.data()) {
-        std::ranges::copy(inputR, outputR.begin());
+        std::copy(inputR, outputR.begin());
       }
       return;
     }
@@ -113,8 +113,8 @@ public:
     // Convert to float for processing if needed
     if constexpr (std::is_same_v<T, float>) {
       // Direct float processing - default passthrough
-      std::ranges::copy(inputL, outputL.begin());
-      std::ranges::copy(inputR, outputR.begin());
+      std::copy(inputL, outputL.begin());
+      std::copy(inputR, outputR.begin());
     } else {
       // Convert to float for processing
       std::vector<float> tempInputL(inputL.begin(), inputL.end());
@@ -122,10 +122,10 @@ public:
       std::vector<float> tempOutputL(outputL.size());
       std::vector<float> tempOutputR(outputR.size());
       // Default passthrough for base class
-      std::ranges::copy(tempInputL, tempOutputL.begin());
-      std::ranges::copy(tempInputR, tempOutputR.begin());
-      std::ranges::copy(tempOutputL, outputL.begin());
-      std::ranges::copy(tempOutputR, outputR.begin());
+      std::copy(tempInputL, tempOutputL.begin());
+      std::copy(tempInputR, tempOutputR.begin());
+      std::copy(tempOutputL, outputL.begin());
+      std::copy(tempOutputR, outputR.begin());
     }
   }
 

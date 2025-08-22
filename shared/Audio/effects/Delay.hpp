@@ -1,13 +1,13 @@
 #pragma once
 #include "EffectBase.hpp"
 #include "EffectConstants.hpp"
-#include <vector>
+#include <array>
 #include <algorithm>
 #include <cmath>
-#include <span>
+#include <vector>
 #include <format>
-#include <source_location>
-#include <ranges>
+// #include <source_location> // Supprimé pour C++17
+#include <algorithm>
 
 namespace AudioFX {
 
@@ -29,16 +29,16 @@ public:
 
   // C++20 modernized processing methods
   template<AudioSampleType T = float>
-  void processMonoModern(std::span<const T> input, std::span<T> output,
-                        std::source_location location = std::source_location::current()) {
+  void processMonoModern(std::vector<const T>& input, std::vector<T>& output,
+                        std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
     // Use the base class C++20 method
     processMono(input, output, location);
   }
 
   template<AudioSampleType T = float>
-  void processStereoModern(std::span<const T> inputL, std::span<const T> inputR,
-                          std::span<T> outputL, std::span<T> outputR,
-                          std::source_location location = std::source_location::current()) {
+  void processStereoModern(std::vector<const T>& inputL, std::vector<const T>& inputR,
+                          std::vector<T>& outputL, std::vector<T>& outputR,
+                          std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
     // Call our own stereo processing method
     if constexpr (std::is_same_v<T, float>) {
       processStereo(inputL.data(), inputR.data(), outputL.data(), outputR.data(), inputL.size());
@@ -49,8 +49,8 @@ public:
       std::vector<float> tempOutputL(outputL.size());
       std::vector<float> tempOutputR(outputR.size());
       processStereo(tempInputL.data(), tempInputR.data(), tempOutputL.data(), tempOutputR.data(), tempInputL.size());
-      std::ranges::copy(tempOutputL, outputL.begin());
-      std::ranges::copy(tempOutputR, outputR.begin());
+      std::copy(tempOutputL, outputL.begin());
+      std::copy(tempOutputR, outputR.begin());
     }
   }
 
@@ -58,8 +58,8 @@ public:
   void processMono(const float* input, float* output, size_t numSamples) override {
     if (!isEnabled() || mix_ <= AudioFX::MIX_THRESHOLD || !input || !output || numSamples == 0) {
       if (output != input && input && output) {
-        std::ranges::copy(std::span<const float>(input, numSamples),
-                         std::span<float>(output, numSamples).begin());
+        std::copy(std::vector<const float>&(input, numSamples),
+                         std::vector<float>&(output, numSamples).begin());
       }
       return;
     }
@@ -67,7 +67,7 @@ public:
     size_t maxN = buffer_[0].size();
 
     // C++20 ranges-based processing
-    std::ranges::for_each(std::views::iota(size_t{0}, numSamples),
+    std::for_each(std::views::iota(size_t{0}, numSamples),
                          [&](size_t i) {
                              float x = input[i];
                              float d = buffer_[0][readIndex_];
@@ -109,7 +109,7 @@ private:
     size_t maxDelaySamples = static_cast<size_t>(std::round(delayMs_ * AudioFX::MS_TO_SECONDS_DELAY * static_cast<double>(sampleRate_)));
     if (maxDelaySamples < AudioFX::MIN_DELAY_SAMPLES) maxDelaySamples = AudioFX::MIN_DELAY_SAMPLES;
     if (maxDelaySamples > AudioFX::MAX_DELAY_SECONDS * AudioFX::REFERENCE_SAMPLE_RATE) maxDelaySamples = AudioFX::MAX_DELAY_SECONDS * AudioFX::REFERENCE_SAMPLE_RATE; // clamp 4s max
-    std::ranges::for_each(std::views::iota(0, channels_),
+    std::for_each(std::views::iota(0, channels_),
                           [&](int ch) {
                               buffer_[ch].assign(maxDelaySamples, AudioFX::BUFFER_INIT_VALUE);
                           });

@@ -1,5 +1,5 @@
 #include "ProductionConfig.hpp"
-#include <iostream>
+#include <cstdio>
 #include <cstdlib>
 #include <mutex>
 #include <sstream>

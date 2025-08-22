@@ -1,10 +1,10 @@
 #include "SpectralNR.hpp"
 #include <algorithm>
-#include <vector>
+#include <array>
 #include <complex>
 #include <stdexcept>
 #include <cmath>
-#include <ranges>
+#include <algorithm>
 #include <iterator>
 #include "NoiseContants.hpp"
 
@@ -63,7 +63,7 @@ void SpectralNR::setConfig(const SpectralNRConfig& cfg) {
 
 void SpectralNR::buildWindow() {
     window_.resize(cfg_.fftSize);
-    std::ranges::for_each(std::views::iota(size_t{SPECTRUM_DC_INDEX}, cfg_.fftSize),
+    std::for_each(std::views::iota(size_t{SPECTRUM_DC_INDEX}, cfg_.fftSize),
                          [this](size_t n) {
                              window_[n] = hann(n, cfg_.fftSize);
                          });

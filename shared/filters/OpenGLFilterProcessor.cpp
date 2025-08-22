@@ -1,9 +1,9 @@
 #include "OpenGLFilterProcessor.hpp"
-#include <iostream>
+#include <cstdio>
 #include <cstring>
 #include <cmath>
-#include <vector>
-#include <string>
+#include <array>
+#include <cstring>
 #include <unordered_map>
 
 // OpenGL ES includes

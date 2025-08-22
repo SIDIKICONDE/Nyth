@@ -3,7 +3,8 @@
 #include "common/FilterTypes.hpp"
 #include <string>
 #include <vector>
-#include <memory>
+#include <cstdint>
+#include <cstring>
 
 // Forward declarations pour FFmpeg
 extern "C" {

@@ -10,10 +10,10 @@
 #include <cstdint>
 #include <cstddef>
 #include <cmath>
-#include <span>
-#include <concepts>
+#include <vector>
+// #include <concepts> // Supprimé pour C++17
 #include "../../compat/format.hpp"
-#include <source_location>
+// #include <source_location> // Supprimé pour C++17
 #include <type_traits>
 
 // Legacy constants header
@@ -53,13 +53,13 @@ public:
 
     // C++20 modernized processing methods
     template<AudioSampleType T = float>
-    void process(std::span<const T> input, std::span<T> output,
-                std::source_location location = std::source_location::current());
+    void process(std::vector<const T>& input, std::vector<T>& output,
+                std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__));
 
     template<AudioSampleType T = float>
-    void processStereo(std::span<const T> inputL, std::span<const T> inputR,
-                      std::span<T> outputL, std::span<T> outputR,
-                      std::source_location location = std::source_location::current());
+    void processStereo(std::vector<const T>& inputL, std::vector<const T>& inputR,
+                      std::vector<T>& outputL, std::vector<T>& outputR,
+                      std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__));
 
     // Legacy methods for backward compatibility (deprecated in C++20)
     [[deprecated("Use std::span version instead")]]
@@ -81,7 +81,7 @@ public:
                         double& b0, double& b1, double& b2) const;
 
     // C++20 formatted debugging
-    std::string getDebugInfo(std::source_location location = std::source_location::current()) const;
+    std::string getDebugInfo(std::source_location location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) const;
 
 private:
     // Filter coefficients

@@ -1,7 +1,8 @@
 #include "MemoryManager.hpp"
 #include <iostream>
+#include <cstdio>
 #include <algorithm>
-#include <chrono>
+#include <time.h>
 #include <cstring>
 
 namespace Camera {

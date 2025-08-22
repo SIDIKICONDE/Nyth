@@ -1,13 +1,13 @@
 #include "FilterManager.hpp"
-#include <iostream>
+#include <cstdio>
 #include <algorithm>
 #include <cstring>
 #include <thread>
 #include <future>
-#include <chrono>
+#include <time.h>
 #include <numeric>
 #include <functional>
-#include <string>
+#include <cstring>
 #ifdef __AVX2__
 #include <immintrin.h>
 #elif defined(__SSE2__)

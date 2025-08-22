@@ -1,7 +1,7 @@
 #include "RNNoiseSuppressor.hpp"
 #include <algorithm>
 #include <memory>
-#include <vector>
+#include <array>
 #include <cstdio>
 #include <stdexcept>
 #include "NoiseContants.hpp"

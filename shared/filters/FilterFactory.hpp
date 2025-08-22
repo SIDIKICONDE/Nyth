@@ -1,9 +1,10 @@
 #pragma once
 
 #include "common/FilterTypes.hpp"
-#include <memory>
 #include <string>
 #include <vector>
+#include <memory>
+#include <cstring>
 
 namespace Camera {
 

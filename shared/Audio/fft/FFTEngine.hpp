@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <complex>
 #include <memory>
-#include <vector>
+#include <array>
 #include <stdexcept>
 #include <cmath>
 

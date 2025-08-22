@@ -4,7 +4,7 @@
 // En-têtes C++ standards
 #include <algorithm>
 #include <cmath>
-#include <ranges>
+#include <algorithm>
 #include <iterator>
 
 #ifdef __ARM_NEON
@@ -41,7 +41,7 @@ void AudioBuffer::allocateChannels() {
     m_channels = std::make_unique<float*[]>(m_numChannels);
     size_t alignedSamples = getAlignedSize(m_numSamples);
 
-    std::ranges::for_each(std::views::iota(size_t{ZERO_INDEX}, m_numChannels),
+    std::for_each(std::views::iota(size_t{ZERO_INDEX}, m_numChannels),
                          [this, alignedSamples](size_t ch) {
                              m_channels[ch] = m_data.get() + (ch * alignedSamples);
                          });

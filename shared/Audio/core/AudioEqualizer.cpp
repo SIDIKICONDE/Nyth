@@ -4,9 +4,9 @@
 #include <cmath>
 #include <algorithm>
 #include "../../compat/format.hpp"
-#include <ranges>
-#include <span>
-#include <source_location>
+#include <algorithm>
+#include <vector>
+// #include <source_location> // Supprimé pour C++17
 #include <stdexcept>
 #include <iterator>
 
@@ -46,7 +46,7 @@ void AudioFX::AudioEqualizer::setupDefaultBands() {
     
     if (numBands == NUM_BANDS) {
         // Use predefined frequencies for 10-band EQ
-        std::ranges::for_each(std::views::iota(size_t{EqualizerConstants::FIRST_BAND_INDEX}, numBands),
+        std::for_each(std::views::iota(size_t{EqualizerConstants::FIRST_BAND_INDEX}, numBands),
                              [this](size_t i) {
                                  m_bands[i].frequency = DEFAULT_FREQUENCIES[i];
                                  m_bands[i].gain = EqualizerConstants::ZERO_GAIN;
@@ -66,7 +66,7 @@ void AudioFX::AudioEqualizer::setupDefaultBands() {
         double logMax = std::log10(maxFreq);
         double logStep = (logMax - logMin) / (numBands - EqualizerConstants::STEP_INCREMENT);
         
-        std::ranges::for_each(std::views::iota(size_t{EqualizerConstants::FIRST_BAND_INDEX}, numBands),
+        std::for_each(std::views::iota(size_t{EqualizerConstants::FIRST_BAND_INDEX}, numBands),
                              [this, logMin, logStep](size_t i) {
                                  double logFreq = logMin + i * logStep;
                                  m_bands[i].frequency = std::pow(EqualizerConstants::LOGARITHMIC_BASE, logFreq);
@@ -87,7 +87,7 @@ void AudioFX::AudioEqualizer::setupDefaultBands() {
 }
 
 void AudioFX::AudioEqualizer::updateFilters() {
-    std::ranges::for_each(std::views::iota(size_t{EqualizerConstants::FIRST_BAND_INDEX}, m_bands.size()),
+    std::for_each(std::views::iota(size_t{EqualizerConstants::FIRST_BAND_INDEX}, m_bands.size()),
                          [this](size_t i) {
                              updateBandFilter(i);
                          });
@@ -128,11 +128,11 @@ void AudioFX::AudioEqualizer::updateBandFilter(size_t bandIndex) {
 }
 
 template<>
-void AudioFX::AudioEqualizer::process<float>(std::span<const float> input, std::span<float> output, std::source_location location) {
+void AudioFX::AudioEqualizer::process<float>(std::vector<const float>& input, std::vector<float>& output, std::source_location location) {
     if (m_bypass.load()) {
         // Bypass mode - just copy input to output
         if (input.data() != output.data()) {
-            std::ranges::copy(input, output.begin());
+            std::copy(input, output.begin());
         }
         return;
     }
@@ -141,7 +141,7 @@ void AudioFX::AudioEqualizer::process<float>(std::span<const float> input, std::
     processOptimized(input, output);
 }
 
-void AudioFX::AudioEqualizer::processOptimized(std::span<const float> input, std::span<float> output) {
+void AudioFX::AudioEqualizer::processOptimized(std::vector<const float>& input, std::vector<float>& output) {
     // Check if parameters have changed
     if (m_parametersChanged.load()) {
         std::lock_guard<std::mutex> lock(m_parameterMutex);
@@ -175,7 +175,7 @@ void AudioFX::AudioEqualizer::processOptimized(std::span<const float> input, std
         if (!needsMasterGain) {
             // Pas de traitement nécessaire, copie directe
             if (input.data() != output.data()) {
-                std::ranges::copy(input, output.begin());
+                std::copy(input, output.begin());
             }
         } else {
             // Appliquer le gain master avec unrolling
@@ -234,13 +234,13 @@ void AudioFX::AudioEqualizer::processOptimized(std::span<const float> input, std
 }
 
 template<>
-void AudioFX::AudioEqualizer::processStereo<float>(std::span<const float> inputL, std::span<const float> inputR,
-                                         std::span<float> outputL, std::span<float> outputR, std::source_location location) {
+void AudioFX::AudioEqualizer::processStereo<float>(std::vector<const float>& inputL, std::vector<const float>& inputR,
+                                         std::vector<float>& outputL, std::vector<float>& outputR, std::source_location location) {
     if (m_bypass.load()) {
         // Bypass mode - C++20 pure
         if (outputL.data() != inputL.data() || outputR.data() != inputR.data()) {
-            std::ranges::copy(inputL, outputL.begin());
-            std::ranges::copy(inputR, outputR.begin());
+            std::copy(inputL, outputL.begin());
+            std::copy(inputR, outputR.begin());
         }
         return;
     }
@@ -456,7 +456,7 @@ void AudioFX::AudioEqualizer::loadPreset(const EQPreset& preset) {
     std::lock_guard<std::mutex> lock(m_parameterMutex);
     
     size_t numBands = std::min(preset.gains.size(), m_bands.size());
-    std::ranges::for_each(std::views::iota(size_t{EqualizerConstants::FIRST_BAND_INDEX}, numBands),
+    std::for_each(std::views::iota(size_t{EqualizerConstants::FIRST_BAND_INDEX}, numBands),
                          [this, &preset](size_t i) {
                              m_bands[i].gain = preset.gains[i];
                          });
@@ -470,7 +470,7 @@ void AudioFX::AudioEqualizer::savePreset(EQPreset& preset) const {
     preset.gains.clear();
     preset.gains.reserve(m_bands.size());
     
-    std::ranges::transform(m_bands, std::back_inserter(preset.gains),
+    std::transform(m_bands, std::back_inserter(preset.gains),
                           [](const EQBand& band) {
                               return band.gain;
                           });
@@ -479,7 +479,7 @@ void AudioFX::AudioEqualizer::savePreset(EQPreset& preset) const {
 void AudioFX::AudioEqualizer::resetAllBands() {
     std::lock_guard<std::mutex> lock(m_parameterMutex);
     
-    std::ranges::for_each(m_bands, [](EQBand& band) {
+    std::for_each(m_bands, [](EQBand& band) {
         band.gain = EqualizerConstants::ZERO_GAIN;
     });
     
@@ -589,7 +589,7 @@ EQPreset EQPresetFactory::createLoudnessPreset() {
 
 // C++20 modernized processing methods
 template<AudioSampleType T>
-void AudioFX::AudioEqualizer::process(std::span<const T> input, std::span<T> output,
+void AudioFX::AudioEqualizer::process(std::vector<const T>& input, std::vector<T>& output,
                             std::source_location location) {
     // C++20 validation
     if (input.size() != output.size()) {
@@ -610,14 +610,14 @@ void AudioFX::AudioEqualizer::process(std::span<const T> input, std::span<T> out
         // Convert to float for processing
         std::vector<float> tempInput(input.begin(), input.end());
         std::vector<float> tempOutput(output.size());
-        process(std::span<const float>(tempInput), std::span<float>(tempOutput));
-        std::ranges::copy(tempOutput, output.begin());
+        process(std::vector<const float>&(tempInput), std::vector<float>&(tempOutput));
+        std::copy(tempOutput, output.begin());
     }
 }
 
 template<AudioSampleType T>
-void AudioFX::AudioEqualizer::processStereo(std::span<const T> inputL, std::span<const T> inputR,
-                                  std::span<T> outputL, std::span<T> outputR,
+void AudioFX::AudioEqualizer::processStereo(std::vector<const T>& inputL, std::vector<const T>& inputR,
+                                  std::vector<T>& outputL, std::vector<T>& outputR,
                                   std::source_location location) {
     // C++20 validation
     if (inputL.size() != inputR.size() || inputL.size() != outputL.size() || inputR.size() != outputR.size()) {
@@ -635,11 +635,11 @@ void AudioFX::AudioEqualizer::processStereo(std::span<const T> inputL, std::span
         std::vector<float> tempOutputL(outputL.size());
         std::vector<float> tempOutputR(outputR.size());
 
-        processStereo(std::span<const float>(tempInputL), std::span<const float>(tempInputR),
-                     std::span<float>(tempOutputL), std::span<float>(tempOutputR));
+        processStereo(std::vector<const float>&(tempInputL), std::vector<const float>&(tempInputR),
+                     std::vector<float>&(tempOutputL), std::vector<float>&(tempOutputR));
 
-        std::ranges::copy(tempOutputL, outputL.begin());
-        std::ranges::copy(tempOutputR, outputR.begin());
+        std::copy(tempOutputL, outputL.begin());
+        std::copy(tempOutputR, outputR.begin());
     }
 }
 
@@ -669,14 +669,14 @@ std::string AudioFX::AudioEqualizer::getDebugInfo(std::source_location location)
 
 // C++20 buffer validation
 template<AudioSampleType T>
-bool AudioFX::AudioEqualizer::validateAudioBuffer(std::span<const T> buffer,
+bool AudioFX::AudioEqualizer::validateAudioBuffer(std::vector<const T>& buffer,
                                        std::source_location location) const {
     if (buffer.empty()) {
         return false;
     }
 
     // Check for NaN or infinite values
-    auto invalidValues = std::ranges::count_if(buffer, [](T sample) {
+    auto invalidValues = std::count_if(buffer, [](T sample) {
         return !std::isfinite(static_cast<double>(sample));
     });
 
@@ -688,14 +688,14 @@ bool AudioFX::AudioEqualizer::validateAudioBuffer(std::span<const T> buffer,
 }
 
 // Explicit template instantiations
-template void AudioFX::AudioEqualizer::process<float>(std::span<const float>, std::span<float>, std::source_location);
-template void AudioFX::AudioEqualizer::process<double>(std::span<const double>, std::span<double>, std::source_location);
-template void AudioFX::AudioEqualizer::processStereo<float>(std::span<const float>, std::span<const float>,
-                                                  std::span<float>, std::span<float>, std::source_location);
-template void AudioFX::AudioEqualizer::processStereo<double>(std::span<const double>, std::span<const double>,
-                                                   std::span<double>, std::span<double>, std::source_location);
+template void AudioFX::AudioEqualizer::process<float>(std::vector<const float>&, std::vector<float>&, std::source_location);
+template void AudioFX::AudioEqualizer::process<double>(std::vector<const double>&, std::vector<double>&, std::source_location);
+template void AudioFX::AudioEqualizer::processStereo<float>(std::vector<const float>&, std::vector<const float>&,
+                                                  std::vector<float>&, std::vector<float>&, std::source_location);
+template void AudioFX::AudioEqualizer::processStereo<double>(std::vector<const double>&, std::vector<const double>&,
+                                                   std::vector<double>&, std::vector<double>&, std::source_location);
 
-template bool AudioFX::AudioEqualizer::validateAudioBuffer<float>(std::span<const float>, std::source_location) const;
-template bool AudioFX::AudioEqualizer::validateAudioBuffer<double>(std::span<const double>, std::source_location) const;
+template bool AudioFX::AudioEqualizer::validateAudioBuffer<float>(std::vector<const float>&, std::source_location) const;
+template bool AudioFX::AudioEqualizer::validateAudioBuffer<double>(std::vector<const double>&, std::source_location) const;
 
 } // namespace AudioFX

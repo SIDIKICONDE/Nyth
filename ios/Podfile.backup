@@ -1,0 +1,159 @@
+# Resolve react_native_pods.rb with node to allow for hoisting
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native/scripts/react_native_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
+platform :ios, min_ios_version_supported
+prepare_react_native_project!
+
+# Configuration des permissions React Native
+# setup_permissions!
+
+$RNFirebaseAnalyticsWithoutAdIdSupport = true
+
+# Forcer l'utilisation de frameworks statiques pour les pods Swift (Firebase 12)
+use_frameworks! :linkage => :static
+
+# Ancienne logique par variable d'env supprimée
+
+# use_modular_headers! (désactivé globalement)
+
+target 'Nyth' do
+  config = use_native_modules!
+
+  # Modular headers sélectifs pour résoudre l’intégration Swift
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'FirebaseCore', :modular_headers => true
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  pod 'FirebaseCoreExtension', :modular_headers => true
+  pod 'FirebaseAppCheckInterop', :modular_headers => true
+  pod 'FirebaseAuthInterop', :modular_headers => true
+  pod 'FirebaseFirestoreInternal', :modular_headers => true
+  pod 'RecaptchaInterop', :modular_headers => true
+  # Pods principaux Firebase en Swift
+  pod 'FirebaseAuth', :modular_headers => true
+  pod 'FirebaseFirestore', :modular_headers => true
+  pod 'FirebaseStorage', :modular_headers => true
+  pod 'FirebaseMessaging', :modular_headers => true
+  pod 'FirebaseAnalytics', :modular_headers => true
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  post_install do |installer|
+    # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
+    )
+
+    # Configuration FFmpeg - Intégration des XCFrameworks locaux
+    project_root = File.dirname(__dir__)
+    ffmpeg_path = File.join(project_root, 'ios', 'FFmpeg')
+
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'Nyth'
+
+      target.build_configurations.each do |config|
+        # Ajouter les chemins d'inclusion FFmpeg
+        existing_headers = config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
+        ffmpeg_headers = File.join(ffmpeg_path, '**', '*.xcframework', '**', 'Headers')
+        config.build_settings['HEADER_SEARCH_PATHS'] = [existing_headers, ffmpeg_headers].join(' ')
+
+        # Ajouter les chemins de recherche de frameworks
+        existing_frameworks = config.build_settings['FRAMEWORK_SEARCH_PATHS'] || '$(inherited)'
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] = [existing_frameworks, ffmpeg_path].join(' ')
+
+        # Configuration des flags de compilation pour FFmpeg
+        existing_flags = config.build_settings['OTHER_CFLAGS'] || ''
+        config.build_settings['OTHER_CFLAGS'] = [existing_flags, '-D__STDC_CONSTANT_MACROS', '-D__STDC_FORMAT_MACROS'].join(' ')
+      end
+    end
+
+    # Ajouter les XCFrameworks FFmpeg au projet principal
+    main_target = installer.pods_project.targets.find { |t| t.name == 'Nyth' }
+    if main_target
+      # Liste des XCFrameworks FFmpeg à ajouter
+      ffmpeg_frameworks = [
+        'libavcodec.xcframework',
+        'libavfilter.xcframework',
+        'libavformat.xcframework',
+        'libavutil.xcframework',
+        'libswresample.xcframework',
+        'libswscale.xcframework'
+      ]
+
+      ffmpeg_frameworks.each do |framework_name|
+        framework_path = File.join(ffmpeg_path, framework_name)
+        if File.exist?(framework_path)
+          # Créer une référence au framework dans le projet
+          framework_ref = installer.pods_project.reference_for_path(framework_path)
+          main_target.frameworks_build_phase.add_file_reference(framework_ref) if framework_ref
+        end
+      end
+    end
+
+    # Assurer les chemins d'en-têtes FFmpeg sur la cible app (Nyth)
+    installer.aggregate_targets.each do |aggregate_target|
+      aggregate_target.user_targets.each do |user_target|
+        next unless user_target.name == 'Nyth'
+
+        user_target.build_configurations.each do |config|
+          existing_headers = config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
+          existing_frameworks = config.build_settings['FRAMEWORK_SEARCH_PATHS'] || '$(inherited)'
+          existing_flags = config.build_settings['OTHER_CFLAGS'] || ''
+
+          # Inclure tous les Headers des XCFrameworks FFmpeg (device + simulator)
+          ffmpeg_headers_glob = '"$(PROJECT_DIR)/FFmpeg/**/*.xcframework/**/Headers"'
+
+          config.build_settings['HEADER_SEARCH_PATHS'] = [existing_headers, ffmpeg_headers_glob].join(' ')
+          config.build_settings['FRAMEWORK_SEARCH_PATHS'] = [existing_frameworks, '"$(PROJECT_DIR)/FFmpeg"'].join(' ')
+          config.build_settings['OTHER_CFLAGS'] = [existing_flags, '-D__STDC_CONSTANT_MACROS', '-D__STDC_FORMAT_MACROS'].join(' ')
+
+          # Facultatif: activer les modules pour les modulemaps des XCFrameworks
+          config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+        end
+      end
+    end
+
+    # Corriger la résolution des en-têtes pour RNWorklets et RNReanimated
+    installer.pods_project.targets.each do |t|
+      next unless ['RNWorklets', 'RNReanimated'].include?(t.name)
+
+      t.build_configurations.each do |config|
+        existing = config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
+        # Crée un shim d'en-têtes ReactCommon -> React_runtimeexecutor
+        shim_root = File.join(Pod::Config.instance.installation_root, 'PodsHeadersShim')
+        shim_rc_dir = File.join(shim_root, 'ReactCommon')
+        FileUtils.mkdir_p(shim_rc_dir)
+        shim_header = File.join(shim_rc_dir, 'RuntimeExecutor.h')
+        File.write(shim_header, %(#include <React_runtimeexecutor/ReactCommon/RuntimeExecutor.h>)) unless File.exist?(shim_header)
+
+        extra_paths = [
+          '"' + shim_root + '"',
+          '"$(CONFIGURATION_BUILD_DIR)/React-runtimeexecutor/React_runtimeexecutor.framework/Headers"',
+          '"$(PODS_CONFIGURATION_BUILD_DIR)/React-runtimeexecutor/React_runtimeexecutor.framework/Headers"',
+          '"$(PODS_ROOT)/../../node_modules/react-native/ReactCommon"'
+        ]
+        config.build_settings['HEADER_SEARCH_PATHS'] = ([existing].flatten + extra_paths).join(' ')
+
+        existing_fw = config.build_settings['FRAMEWORK_SEARCH_PATHS'] || '$(inherited)'
+        extra_fw_paths = [
+          '"$(CONFIGURATION_BUILD_DIR)/React-runtimeexecutor"',
+          '"$(PODS_CONFIGURATION_BUILD_DIR)/React-runtimeexecutor"'
+        ]
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] = ([existing_fw].flatten + extra_fw_paths).join(' ')
+
+        # Réactiver les modules Clang pour permettre la résolution via les modulemaps
+        config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+      end
+    end
+  end
+end

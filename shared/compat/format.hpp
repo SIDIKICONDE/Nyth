@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include <cstring>
 
 #if defined(__has_include)
 #  if __has_include(<version>)

@@ -1,11 +1,25 @@
 #pragma once
 
+#include <string>
+#include <chrono>
 #include "ProductionConfig.hpp"
 #include "FilterManager.hpp"
 #include "MemoryManager.hpp"
 #include "SmartCache.hpp"
 
 namespace Camera {
+
+// Structure pour les capacités de l'appareil
+struct DeviceCapabilities {
+    size_t totalMemoryMB{0};
+    int cpuCores{0};
+    bool hasGPU{false};
+    std::string gpuVendor;
+    bool supportsOpenGLES3{false};
+    int screenWidth{0};
+    int screenHeight{0};
+    bool isLowPowerMode{false};
+};
 
 /**
  * Classe utilitaire pour configurer le système de filtres en production
@@ -38,17 +52,6 @@ private:
     static DeviceCapabilities detectDeviceCapabilities();
     static void applyDeviceSpecificOptimizations(FilterManager& filterManager, 
                                                 const DeviceCapabilities& caps);
-
-    struct DeviceCapabilities {
-        size_t totalMemoryMB{0};
-        int cpuCores{0};
-        bool hasGPU{false};
-        std::string gpuVendor;
-        bool supportsOpenGLES3{false};
-        int screenWidth{0};
-        int screenHeight{0};
-        bool isLowPowerMode{false};
-    };
 };
 
 /**

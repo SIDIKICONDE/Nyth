@@ -1,7 +1,7 @@
 #include "FilterFactory.hpp"
 #include "FFmpegFilterProcessor.hpp"
 #include "OpenGLFilterProcessor.hpp"
-#include <iostream>
+#include <cstdio>
 
 namespace Camera {
 

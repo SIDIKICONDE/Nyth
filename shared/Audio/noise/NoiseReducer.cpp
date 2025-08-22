@@ -1,10 +1,10 @@
 #include "NoiseReducer.hpp"
 #include <stdexcept>
 #include <algorithm>
-#include <vector>
+#include <array>
 #include <memory>
 #include <cmath>
-#include <span>
+#include <vector>
 #include "NoiseContants.hpp"
 
 namespace AudioNR {
@@ -139,8 +139,8 @@ void NoiseReducer::processStereo(const float* inL, const float* inR, float* outL
 void NoiseReducer::processChannel(const float* in, float* out, size_t n, ChannelState& st) {
     // Optional high-pass pre-filter to remove rumble
     if (st.highPass) {
-        std::span<const float> inputSpan(in, n);
-        std::span<float> outputSpan(out, n);
+        std::vector<const float>& inputSpan(in, n);
+        std::vector<float>& outputSpan(out, n);
         st.highPass->process(inputSpan, outputSpan); // use out as temp
         // Now 'out' contains filtered data, 'in' points to original
         in = out; // For in-place operation, update input pointer
@@ -151,7 +151,7 @@ void NoiseReducer::processChannel(const float* in, float* out, size_t n, Channel
 
     // Envelope follower and expander gain using C++20 ranges
     // Simple RMS-like envelope using absolute value smoothing (fast, low cost)
-    std::ranges::for_each(std::views::iota(size_t{0}, n),
+    std::for_each(std::views::iota(size_t{0}, n),
                          [&](size_t i) {
                              double x = static_cast<double>(out[i]);
                              double ax = std::abs(x);

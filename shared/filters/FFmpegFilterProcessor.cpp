@@ -1,10 +1,10 @@
 #include "FFmpegFilterProcessor.hpp"
-#include <iostream>
+#include <cstdio>
 #include <cstring>
 #include <cmath>
 #include <algorithm>
-#include <vector>
-#include <string>
+#include <array>
+#include <cstring>
 #ifdef __AVX2__
 #include <immintrin.h>
 #endif

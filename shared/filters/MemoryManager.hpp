@@ -1,11 +1,12 @@
 #pragma once
 
-#include <memory>
-#include <unordered_map>
-#include <mutex>
+#include <string>
 #include <vector>
+#include <unordered_map>
+#include <memory>
+#include <mutex>
 #include <atomic>
-#include <functional>
+#include <chrono>
 
 namespace Camera {
 

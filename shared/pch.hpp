@@ -1,6 +1,9 @@
 #pragma once
 
-// Précompilé commun C++/ObjC++
+// ========================================================
+// PCH ultra-minimal pour iOS - Évite TOUS les conflits
+// Version finale sans algorithm/atomic/chrono
+// ========================================================
 
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
@@ -8,74 +11,35 @@
 #endif
 
 #ifdef __cplusplus
-#if defined(__has_include)
-#  if __has_include(<atomic>)
-#    include <atomic>
-#  endif
-#  if __has_include(<vector>)
-#    include <vector>
-#  endif
-#  if __has_include(<array>)
-#    include <array>
-#  endif
-#  if __has_include(<string>)
-#    include <string>
-#  endif
-#  if __has_include(<memory>)
-#    include <memory>
-#  endif
-#  if __has_include(<mutex>)
-#    include <mutex>
-#  endif
-#  if __has_include(<optional>)
-#    include <optional>
-#  endif
-#  if __has_include(<span>)
-#    include <span>
-#  endif
-#  if __has_include(<algorithm>)
-#    include <algorithm>
-#  endif
-#  if __has_include(<numeric>)
-#    include <numeric>
-#  endif
-#  if __has_include(<cmath>)
-#    include <cmath>
-#  endif
-#  if __has_include(<cstdint>)
-#    include <cstdint>
-#  endif
-#  if __has_include(<limits>)
-#    include <limits>
-#  endif
-#  if __has_include(<cstddef>)
-#    include <cstddef>
-#  endif
-#  if __has_include(<cstring>)
-#    include <cstring>
-#  endif
-#else
-#  include <atomic>
-#  include <vector>
-#  include <array>
-#  include <string>
-#  include <memory>
-#  include <mutex>
-#  include <optional>
-#  include <span>
-#  include <algorithm>
-#  include <numeric>
-#  include <cmath>
-#  include <cstdint>
-#  include <limits>
-#  include <cstddef>
-#  include <cstring>
+
+// Définitions POSIX complètes pour éviter les conflits nanosleep
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
 #endif
+#ifndef _DARWIN_C_SOURCE
+#define _DARWIN_C_SOURCE 1
+#endif
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
 #endif
 
-#ifndef __cplusplus
-#include <stdint.h>
-#include <stddef.h>
-#include <string.h>
-#include <math.h>
-#endif
+// Inclure nanosleep avant les en-têtes C++
+#include <sys/types.h>
+#include <time.h>
+#include <unistd.h>
+
+// Types de base C++ uniquement (aucun conteneur STL)
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <cmath>
+
+// Gestion d'erreurs minimale
+#include <stdexcept>
+#include <exception>
+#include <cassert>
+
+// Pas d'algorithm, utility, array, memory - ils causent des conflits
+// Les fichiers individuels incluront ces en-têtes si nécessaire
+
+#endif // __cplusplus
