@@ -1,5 +1,6 @@
 #pragma once
 #include "EffectBase.hpp"
+#include "EffectConstants.hpp"
 #include <vector>
 #include <algorithm>
 #include <cmath>
@@ -15,9 +16,9 @@ public:
   using IAudioEffect::processMono;   // évite le masquage des surcharges (templates span)
   using IAudioEffect::processStereo; // idem
   void setParameters(double delayMs, double feedback, double mix) noexcept {
-    delayMs_ = std::max(0.0, delayMs);
-    feedback_ = std::clamp(feedback, 0.0, 0.95);
-    mix_ = std::clamp(mix, 0.0, 1.0);
+    delayMs_ = std::max(AudioFX::MIN_DELAY_VALUE, delayMs);
+    feedback_ = std::clamp(feedback, AudioFX::MIN_FEEDBACK, AudioFX::MAX_FEEDBACK);
+    mix_ = std::clamp(mix, AudioFX::MIN_MIX, AudioFX::MAX_MIX);
     updateBuffers();
   }
 
@@ -38,13 +39,24 @@ public:
   void processStereoModern(std::span<const T> inputL, std::span<const T> inputR,
                           std::span<T> outputL, std::span<T> outputR,
                           std::source_location location = std::source_location::current()) {
-    // Use the base class C++20 method
-    processStereo(inputL, inputR, outputL, outputR, location);
+    // Call our own stereo processing method
+    if constexpr (std::is_same_v<T, float>) {
+      processStereo(inputL.data(), inputR.data(), outputL.data(), outputR.data(), inputL.size());
+    } else {
+      // Convert to float for processing
+      std::vector<float> tempInputL(inputL.begin(), inputL.end());
+      std::vector<float> tempInputR(inputR.begin(), inputR.end());
+      std::vector<float> tempOutputL(outputL.size());
+      std::vector<float> tempOutputR(outputR.size());
+      processStereo(tempInputL.data(), tempInputR.data(), tempOutputL.data(), tempOutputR.data(), tempInputL.size());
+      std::ranges::copy(tempOutputL, outputL.begin());
+      std::ranges::copy(tempOutputR, outputR.begin());
+    }
   }
 
   // Legacy methods (call the modern versions for C++20)
   void processMono(const float* input, float* output, size_t numSamples) override {
-    if (!isEnabled() || mix_ <= 0.0001 || !input || !output || numSamples == 0) {
+    if (!isEnabled() || mix_ <= AudioFX::MIX_THRESHOLD || !input || !output || numSamples == 0) {
       if (output != input && input && output) {
         std::ranges::copy(std::span<const float>(input, numSamples),
                          std::span<float>(output, numSamples).begin());
@@ -59,7 +71,7 @@ public:
                          [&](size_t i) {
                              float x = input[i];
                              float d = buffer_[0][readIndex_];
-                             float y = static_cast<float>((1.0 - mix_) * x + mix_ * d);
+                             float y = static_cast<float>((AudioFX::MIX_INVERT_FACTOR - mix_) * x + mix_ * d);
                              output[i] = y;
                              // write with feedback
                              float w = static_cast<float>(x + feedback_ * d);
@@ -69,7 +81,7 @@ public:
   }
 
   void processStereo(const float* inL, const float* inR, float* outL, float* outR, size_t numSamples) override {
-    if (!isEnabled() || mix_ <= 0.0001 || !inL || !inR || !outL || !outR || numSamples == 0) {
+    if (!isEnabled() || mix_ <= AudioFX::MIX_THRESHOLD || !inL || !inR || !outL || !outR || numSamples == 0) {
       if (outL != inL && inL && outL) for (size_t i = 0; i < numSamples; ++i) outL[i] = inL[i];
       if (outR != inR && inR && outR) for (size_t i = 0; i < numSamples; ++i) outR[i] = inR[i];
       return;
@@ -81,8 +93,8 @@ public:
       float xr = inR[i];
       float dl = buffer_[0][readIndex_];
       float dr = buffer_[1][readIndex_];
-      outL[i] = static_cast<float>((1.0 - mix_) * xl + mix_ * dl);
-      outR[i] = static_cast<float>((1.0 - mix_) * xr + mix_ * dr);
+      outL[i] = static_cast<float>((AudioFX::MIX_INVERT_FACTOR - mix_) * xl + mix_ * dl);
+      outR[i] = static_cast<float>((AudioFX::MIX_INVERT_FACTOR - mix_) * xr + mix_ * dr);
       buffer_[0][writeIndex_] = static_cast<float>(xl + feedback_ * dl);
       buffer_[1][writeIndex_] = static_cast<float>(xr + feedback_ * dr);
       incrementIndices(maxN);
@@ -90,26 +102,28 @@ public:
   }
 
 private:
+  // All constants are now centralized in EffectConstants.hpp
+
   void updateBuffers() noexcept {
     ensureState(channels_);
-    size_t maxDelaySamples = static_cast<size_t>(std::round(delayMs_ * 0.001 * static_cast<double>(sampleRate_)));
-    if (maxDelaySamples < 1) maxDelaySamples = 1;
-    if (maxDelaySamples > 4 * 48000) maxDelaySamples = 4 * 48000; // clamp 4s max
+    size_t maxDelaySamples = static_cast<size_t>(std::round(delayMs_ * AudioFX::MS_TO_SECONDS_DELAY * static_cast<double>(sampleRate_)));
+    if (maxDelaySamples < AudioFX::MIN_DELAY_SAMPLES) maxDelaySamples = AudioFX::MIN_DELAY_SAMPLES;
+    if (maxDelaySamples > AudioFX::MAX_DELAY_SECONDS * AudioFX::REFERENCE_SAMPLE_RATE) maxDelaySamples = AudioFX::MAX_DELAY_SECONDS * AudioFX::REFERENCE_SAMPLE_RATE; // clamp 4s max
     std::ranges::for_each(std::views::iota(0, channels_),
                           [&](int ch) {
-                              buffer_[ch].assign(maxDelaySamples, 0.0f);
+                              buffer_[ch].assign(maxDelaySamples, AudioFX::BUFFER_INIT_VALUE);
                           });
     // set read/write offset
-    writeIndex_ = 0;
-    readIndex_ = (maxDelaySamples + writeIndex_ - 1) % maxDelaySamples; // ~delay of N-1 samples initially
+    writeIndex_ = AudioFX::DEFAULT_INDEX;
+    readIndex_ = (maxDelaySamples + writeIndex_ - AudioFX::MIN_DELAY_SAMPLES) % maxDelaySamples; // ~delay of N-1 samples initially
   }
 
   void ensureState(int requiredChannels) {
     if (static_cast<int>(buffer_.size()) != requiredChannels) {
       buffer_.assign(static_cast<size_t>(requiredChannels), std::vector<float>());
-      writeIndex_ = readIndex_ = 0;
+      writeIndex_ = readIndex_ = AudioFX::DEFAULT_INDEX;
     }
-    for (auto& b : buffer_) if (b.empty()) b.assign(1024, 0.0f);
+    for (auto& b : buffer_) if (b.empty()) b.assign(AudioFX::DEFAULT_BUFFER_SIZE, AudioFX::BUFFER_INIT_VALUE);
   }
 
   inline void incrementIndices(size_t maxN) noexcept {
@@ -118,14 +132,14 @@ private:
   }
 
   // params
-  double delayMs_ = 150.0;
-  double feedback_ = 0.3;
-  double mix_ = 0.25;
+  double delayMs_ = AudioFX::DEFAULT_DELAY_MS;
+  double feedback_ = AudioFX::DEFAULT_FEEDBACK;
+  double mix_ = AudioFX::DEFAULT_MIX;
 
   // state
   std::vector<std::vector<float>> buffer_;
-  size_t writeIndex_ = 0;
-  size_t readIndex_ = 0;
+  size_t writeIndex_ = AudioFX::DEFAULT_INDEX;
+  size_t readIndex_ = AudioFX::DEFAULT_INDEX;
 };
 
 } // namespace AudioFX

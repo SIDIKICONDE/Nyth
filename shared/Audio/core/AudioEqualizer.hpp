@@ -2,7 +2,6 @@
 #ifndef AUDIOEQUALIZER_HPP_INCLUDED
 #define AUDIOEQUALIZER_HPP_INCLUDED
 
-
 // C++20 standard headers
 #include <cstdint>
 #include <cstddef>
@@ -12,7 +11,6 @@
 #include <atomic>
 #include <mutex>
 #include <span>
-#include <format>
 #include <concepts>
 #include <ranges>
 #include <source_location>
@@ -20,16 +18,16 @@
 
 // Legacy headers
 #include "BiquadFilter.hpp"
-#include "../utils/Constants.hpp"
+#include "CoreConstants.hpp"
 
 // C++20 pure - no platform-specific SIMD optimizations
 
-namespace AudioEqualizer {
+namespace AudioFX {
 
-// C++20 Concepts for better type safety
-template<typename T>
-concept AudioSampleType = std::floating_point<T>;
+// Forward declaration
+struct EQBand;
 
+// C++20 Concepts for better type safety (use concepts from CoreConstants.hpp)
 template<typename T>
 concept AudioBufferType = std::is_pointer_v<T> || requires(T t) {
     typename T::value_type;
@@ -39,9 +37,6 @@ concept AudioBufferType = std::is_pointer_v<T> || requires(T t) {
 
 template<typename T>
 concept EqualizerBandType = std::same_as<T, EQBand>;
-
-// C++20 consteval utilities
-consteval size_t compute_max_bands() { return MAX_BANDS; }
 
 using enum FilterType; // C++20 using enum
 
@@ -54,7 +49,9 @@ struct EQBand {
     std::unique_ptr<BiquadFilter> filter;
     bool enabled;
     
-    EQBand() : frequency(1000.0), gain(0.0), q(DEFAULT_Q), 
+    EQBand() : frequency(EqualizerConstants::DEFAULT_CENTER_FREQUENCY), 
+               gain(EqualizerConstants::ZERO_GAIN), 
+               q(DEFAULT_Q), 
                type(FilterType::PEAK), enabled(true) {
         filter = std::make_unique<BiquadFilter>();
     }
@@ -68,7 +65,8 @@ struct EQPreset {
 
 class AudioEqualizer {
 public:
-    AudioEqualizer(size_t numBands = NUM_BANDS, uint32_t sampleRate = DEFAULT_SAMPLE_RATE);
+    AudioEqualizer(size_t numBands = NUM_BANDS, 
+                   uint32_t sampleRate = DEFAULT_SAMPLE_RATE);
     ~AudioEqualizer();
 
     // Initialize equalizer with specific parameters
@@ -196,6 +194,6 @@ public:
     static EQPreset createLoudnessPreset();
 };
 
-} // namespace AudioEqualizer
+} // namespace AudioFX
 
 #endif // AUDIOEQUALIZER_HPP_INCLUDED

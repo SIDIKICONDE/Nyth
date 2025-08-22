@@ -22,9 +22,7 @@ extern "C" {
     #include <libavutil/frame.h>
     #include <libavutil/imgutils.h>
     #include <libavutil/pixfmt.h>
-    #include <libavutil/opt.h>
-    #include <libavutil/pixdesc.h>
-}
+} // <= assurez-vous que cette accolade existe
 
 namespace Camera {
 

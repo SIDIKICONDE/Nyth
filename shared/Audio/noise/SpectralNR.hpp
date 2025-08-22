@@ -6,8 +6,13 @@
 #include <cmath>
 #include <algorithm>
 #include <complex>
+#include "NoiseContants.hpp"
+#include "../fft/FFTEngine.hpp"
 
 namespace AudioNR {
+
+// Import des constantes pour éviter la répétition des namespace
+using namespace SpectralNRConstants;
 
 /**
  * @brief Configuration for spectral noise reduction
@@ -16,12 +21,12 @@ namespace AudioNR {
  * spectral subtraction with noise estimation.
  */
 struct SpectralNRConfig {
-    uint32_t sampleRate = 48000;  ///< Sample rate in Hz
-    size_t fftSize = 1024;        ///< FFT size (must be power of 2). Larger = better frequency resolution
-    size_t hopSize = 256;         ///< Hop size for overlap-add (typically fftSize/4 for 75% overlap)
-    double beta = 1.5;            ///< Over-subtraction factor (1.0-3.0). Higher = more aggressive
-    double floorGain = 0.05;      ///< Spectral floor to prevent over-suppression (0.01-0.1 typical)
-    double noiseUpdate = 0.98;    ///< Noise estimation smoothing (0.9-0.99). Higher = slower adaptation
+    uint32_t sampleRate = DEFAULT_SAMPLE_RATE;  ///< Sample rate in Hz
+    size_t fftSize = DEFAULT_FFT_SIZE;        ///< FFT size (must be power of 2). Larger = better frequency resolution
+    size_t hopSize = DEFAULT_HOP_SIZE;         ///< Hop size for overlap-add (typically fftSize/4 for 75% overlap)
+    double beta = DEFAULT_BETA;            ///< Over-subtraction factor (1.0-3.0). Higher = more aggressive
+    double floorGain = DEFAULT_FLOOR_GAIN;      ///< Spectral floor to prevent over-suppression (0.01-0.1 typical)
+    double noiseUpdate = DEFAULT_NOISE_UPDATE;    ///< Noise estimation smoothing (0.9-0.99). Higher = slower adaptation
     bool enabled = false;         ///< Enable/disable spectral NR
 };
 
@@ -74,32 +79,24 @@ private:
     std::vector<float> window_;
     std::vector<float> inBuf_;
     std::vector<float> outBuf_;
-    size_t writePos_ = 0;
+    size_t writePos_ = INITIAL_WRITE_POSITION;
 
     // Noise magnitude estimate per bin
     std::vector<float> noiseMag_;
-    bool noiseInit_ = true;
+    bool noiseInit_ = INITIAL_NOISE_STATE;
 
     // Pre-allocated work buffers to avoid allocations in process()
     std::vector<float> frame_;
     std::vector<float> re_, im_;
     std::vector<float> mag_, ph_;
     std::vector<float> time_;
-    std::vector<std::complex<float>> fftData_;
 
-    // FFT implementation - Radix-2 Cooley-Tukey for efficiency
-    void fft(const std::vector<float>& in, std::vector<float>& re, std::vector<float>& im);
-    void ifft(const std::vector<float>& re, const std::vector<float>& im, std::vector<float>& out);
+    // FFT engine (pluggable: KissFFT or fallback radix-2)
+    std::unique_ptr<IFFTEngine> fftEngine_;
     void buildWindow();
     
-    // FFT helper functions
-    void fftRadix2(std::vector<std::complex<float>>& data, bool inverse = false);
-    size_t reverseBits(size_t x, size_t n);
+    // Helper
     bool isPowerOfTwo(size_t n) const { return n && !(n & (n - 1)); }
-    
-    // Pre-computed twiddle factors for FFT optimization
-    std::vector<std::complex<float>> twiddleFactors_;
-    void precomputeTwiddleFactors();
 };
 
 } // namespace AudioNR

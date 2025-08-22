@@ -5,8 +5,12 @@
 #include <memory>
 #include <cmath>
 #include "../core/BiquadFilter.hpp"
+#include "NoiseContants.hpp"
 
 namespace AudioNR {
+
+// Import des constantes pour éviter la répétition des namespace
+using namespace NoiseReducerConstants;
 
 /**
  * @brief Configuration for the NoiseReducer downward expander/gate
@@ -17,18 +21,18 @@ namespace AudioNR {
  */
 struct NoiseReducerConfig {
     // Gate/expander parameters
-    double thresholdDb = -50.0;   ///< Threshold in dBFS below which expansion starts (range: -80 to 0)
-    double ratio = 2.0;           ///< Downward expander ratio (>1). Higher = more aggressive noise reduction
-    double floorDb = -20.0;       ///< Maximum attenuation in dB. Limits how much signal is reduced
-    double attackMs = 5.0;        ///< Attack time in ms. How fast the gate opens (1-50ms typical)
-    double releaseMs = 60.0;      ///< Release time in ms. How fast the gate closes (10-200ms typical)
+    double thresholdDb = DEFAULT_THRESHOLD_DB;   ///< Threshold in dBFS below which expansion starts (range: MIN_THRESHOLD_DB to MAX_THRESHOLD_DB)
+    double ratio = DEFAULT_RATIO;           ///< Downward expander ratio (>1). Higher = more aggressive noise reduction
+    double floorDb = DEFAULT_FLOOR_DB;       ///< Maximum attenuation in dB. Limits how much signal is reduced
+    double attackMs = DEFAULT_ATTACK_MS;        ///< Attack time in ms. How fast the gate opens (MIN_ATTACK_MS to MAX_ATTACK_MS typical)
+    double releaseMs = DEFAULT_RELEASE_MS;      ///< Release time in ms. How fast the gate closes (MIN_RELEASE_MS to MAX_RELEASE_MS typical)
 
     // Pre-filter parameters
-    double highPassHz = 80.0;     ///< High-pass filter frequency for rumble removal (20-200Hz typical)
-    bool enableHighPass = true;   ///< Enable/disable the high-pass pre-filter
+    double highPassHz = DEFAULT_HIGHPASS_HZ;     ///< High-pass filter frequency for rumble removal (MIN_HIGHPASS_HZ to MAX_HIGHPASS_HZ typical)
+    bool enableHighPass = DEFAULT_ENABLE_HIGHPASS;   ///< Enable/disable the high-pass pre-filter
 
     // Enable/disable
-    bool enabled = false;         ///< Master enable/disable for the entire noise reduction
+    bool enabled = DEFAULT_ENABLED;         ///< Master enable/disable for the entire noise reduction
 };
 
 /**
@@ -48,7 +52,7 @@ public:
     /**
      * @brief Construct a new NoiseReducer
      * @param sampleRate Sample rate in Hz (e.g., 44100, 48000)
-     * @param numChannels Number of channels (1 for mono, 2 for stereo)
+     * @param numChannels Number of channels (MONO_CHANNELS for mono, STEREO_CHANNELS for stereo)
      */
     NoiseReducer(uint32_t sampleRate, int numChannels);
     ~NoiseReducer();
@@ -103,28 +107,28 @@ private:
 
     // Per-channel filters and states
     struct ChannelState {
-        std::unique_ptr<AudioEqualizer::BiquadFilter> highPass;
-        double env = 0.0;      // envelope follower (linear)
-        double gain = 1.0;     // smoothed gain (linear)
+        std::unique_ptr<AudioFX::BiquadFilter> highPass;
+        double env = INITIAL_ENVELOPE;      // envelope follower (linear)
+        double gain = INITIAL_GAIN;     // smoothed gain (linear)
     };
     std::vector<ChannelState> ch_;
 
     // Cached coefficients for performance
-    double threshLin_ = 0.003;       ///< Linear threshold (converted from dB)
-    double floorLin_ = 0.1;          ///< Linear floor (converted from dB)
-    double attackCoeffEnv_ = 0.9;    ///< Envelope follower attack coefficient
-    double releaseCoeffEnv_ = 0.99;  ///< Envelope follower release coefficient
-    double attackCoeffGain_ = 0.8;   ///< Gain smoothing attack coefficient
-    double releaseCoeffGain_ = 0.98; ///< Gain smoothing release coefficient
-    double expansionSlope_ = 0.5;    ///< Pre-calculated 1/ratio for expansion curve
-    double threshLin2_ = 0.000009;   ///< Pre-calculated threshold squared
+    double threshLin_ = DEFAULT_THRESH_LINEAR;       ///< Linear threshold (converted from dB)
+    double floorLin_ = DEFAULT_FLOOR_LINEAR;          ///< Linear floor (converted from dB)
+    double attackCoeffEnv_ = DEFAULT_ATTACK_COEFF_ENV;    ///< Envelope follower attack coefficient
+    double releaseCoeffEnv_ = DEFAULT_RELEASE_COEFF_ENV;  ///< Envelope follower release coefficient
+    double attackCoeffGain_ = DEFAULT_ATTACK_COEFF_GAIN;   ///< Gain smoothing attack coefficient
+    double releaseCoeffGain_ = DEFAULT_RELEASE_COEFF_GAIN; ///< Gain smoothing release coefficient
+    double expansionSlope_ = DEFAULT_EXPANSION_SLOPE;    ///< Pre-calculated 1/ratio for expansion curve
+    double threshLin2_ = DEFAULT_THRESH_LINEAR_SQUARED;   ///< Pre-calculated threshold squared
 
     void updateDerived();
-    inline double dbToLin(double dB) const { return std::pow(10.0, dB / 20.0); }
-    inline double linToDb(double lin) const { return 20.0 * std::log10(std::max(lin, 1e-10)); }
+    inline double dbToLin(double dB) const { return std::pow(DB_TO_LINEAR_BASE, dB / DB_TO_LINEAR_DIVISOR); }
+    inline double linToDb(double lin) const { return DB_TO_LINEAR_DIVISOR * std::log10(std::max(lin, LOG_PROTECTION_MIN)); }
     inline double coefForMs(double ms) const {
-        double T = std::max(ms, 0.1) / 1000.0;
-        return std::exp(-1.0 / (T * static_cast<double>(sampleRate_)));
+        double T = std::max(ms, MIN_MS_FOR_COEFF) / MS_TO_SECONDS_DIVISOR;
+        return std::exp(EXP_COEFFICIENT / (T * static_cast<double>(sampleRate_)));
     }
     void ensureFilters();
     void processChannel(const float* in, float* out, size_t n, ChannelState& st);

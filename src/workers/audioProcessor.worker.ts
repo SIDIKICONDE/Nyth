@@ -31,43 +31,89 @@ setInterval(() => {
   }
 }, 5000);
 
+// ====== FFT utilitaires (radix-2) ======
+function bitReverseIndex(x: number, bits: number): number {
+  let r = 0;
+  for (let i = 0; i < bits; i++) {
+    r = (r << 1) | (x & 1);
+    x >>= 1;
+  }
+  return r >>> 0;
+}
+
+function fftRadix2(re: Float32Array | Float64Array, im: Float32Array | Float64Array, inverse: boolean): void {
+  const N = re.length;
+  if (N !== im.length) throw new Error('re and im must have same length');
+  if ((N & (N - 1)) !== 0) throw new Error('FFT size must be power of 2');
+
+  // Bit-reversal permutation
+  let bits = 0;
+  for (let t = N; t > 1; t >>= 1) bits++;
+  for (let i = 0; i < N; i++) {
+    const j = bitReverseIndex(i, bits);
+    if (i < j) {
+      const tr = re[i]; re[i] = re[j]; re[j] = tr;
+      const ti = im[i]; im[i] = im[j]; im[j] = ti;
+    }
+  }
+
+  for (let size = 2; size <= N; size <<= 1) {
+    const half = size >> 1;
+    const ang = (inverse ? 2.0 : -2.0) * Math.PI / size;
+    for (let start = 0; start < N; start += size) {
+      for (let k = 0; k < half; k++) {
+        const wr = Math.cos(ang * k);
+        const wi = Math.sin(ang * k);
+        const i0 = start + k;
+        const i1 = i0 + half;
+        const tr = wr * re[i1] - wi * im[i1];
+        const ti = wr * im[i1] + wi * re[i1];
+        const ur = re[i0];
+        const ui = im[i0];
+        re[i0] = ur + tr;
+        im[i0] = ui + ti;
+        re[i1] = ur - tr;
+        im[i1] = ui - ti;
+      }
+    }
+  }
+
+  if (inverse) {
+    const scale = 1.0 / N;
+    for (let i = 0; i < N; i++) { re[i] *= scale; im[i] *= scale; }
+  }
+}
+
 /**
- * Calcul du spectre de fréquences avec FFT
+ * Calcul du spectre de fréquences avec FFT (radix-2) avec précision configurable
  */
-function processSpectrum(data: Float32Array, sampleRate: number): Float32Array {
+function processSpectrum(data: Float32Array | Float64Array, sampleRate: number, precision: 'fp32' | 'fp64' = 'fp64'): Float32Array | Float64Array {
   const fftSize = 2048;
   const frequencyBins = fftSize / 2;
-  const spectrum = new Float32Array(frequencyBins);
-  
-  // Fenêtre de Hann pour réduire les fuites spectrales
-  const window = new Float32Array(fftSize);
+  const use64 = precision === 'fp64';
+
+  const WindowArr = use64 ? Float64Array : Float32Array;
+  const RealArr = use64 ? Float64Array : Float32Array;
+
+  const window = new WindowArr(fftSize);
   for (let i = 0; i < fftSize; i++) {
     window[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (fftSize - 1));
   }
-  
-  // Appliquer la fenêtre
-  const windowedData = new Float32Array(fftSize);
-  for (let i = 0; i < Math.min(data.length, fftSize); i++) {
-    windowedData[i] = data[i] * window[i];
-  }
-  
-  // FFT simplifiée (dans la vraie vie, utiliser une librairie comme KissFFT)
-  // Ici on simule avec une analyse simplifiée
+
+  const re = new RealArr(fftSize);
+  const im = new RealArr(fftSize);
+  const count = Math.min(data.length, fftSize);
+  for (let i = 0; i < count; i++) re[i] = data[i] * window[i];
+  for (let i = count; i < fftSize; i++) re[i] = 0;
+  for (let i = 0; i < fftSize; i++) im[i] = 0;
+
+  fftRadix2(re, im, false);
+
+  const spectrum = new RealArr(frequencyBins);
   for (let k = 0; k < frequencyBins; k++) {
-    let real = 0;
-    let imag = 0;
-    
-    for (let n = 0; n < fftSize; n++) {
-      const angle = -2 * Math.PI * k * n / fftSize;
-      real += windowedData[n] * Math.cos(angle);
-      imag += windowedData[n] * Math.sin(angle);
-    }
-    
-    // Magnitude en dB
-    const magnitude = Math.sqrt(real * real + imag * imag);
-    spectrum[k] = 20 * Math.log10(Math.max(magnitude, 1e-10));
+    const mag = Math.hypot(re[k], im[k]);
+    spectrum[k] = 20 * Math.log10(Math.max(mag, 1e-12));
   }
-  
   return spectrum;
 }
 
@@ -176,7 +222,7 @@ function processBatch(operations: any[]): any[] {
   return operations.map(op => {
     switch (op.type) {
       case 'spectrum':
-        return processSpectrum(op.data, op.sampleRate);
+        return processSpectrum(op.data, op.sampleRate, op.precision ?? 'fp32');
       case 'rms':
         return calculateRMS(op.data, op.windowSize);
       case 'filter':
@@ -204,8 +250,9 @@ self.addEventListener('message', (event: MessageEvent<AudioProcessorMessage>) =>
       switch (type) {
         case 'PROCESS_SPECTRUM':
           result = processSpectrum(
-            new Float32Array(data.buffer),
-            data.sampleRate
+            data.precision === 'fp64' ? new Float64Array(data.buffer) : new Float32Array(data.buffer),
+            data.sampleRate,
+            data.precision
           );
           break;
           

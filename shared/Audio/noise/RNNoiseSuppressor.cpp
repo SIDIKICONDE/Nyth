@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdio>
 #include <stdexcept>
-#include <stdexcept>
+#include "NoiseContants.hpp"
 
 namespace {
 template <typename T>
@@ -12,6 +12,10 @@ inline T maxValue(const T& a, const T& b) { return (a < b) ? b : a; }
 
 template <typename T>
 inline T minValue(const T& a, const T& b) { return (b < a) ? b : a; }
+
+// Import des constantes pour éviter la répétition des namespace
+using namespace RNNoiseSuppressorConstants;
+using namespace SpectralNRConstants;
 }
 
 namespace AudioNR {
@@ -21,10 +25,10 @@ RNNoiseSuppressor::~RNNoiseSuppressor() = default;
 
 bool RNNoiseSuppressor::initialize(uint32_t sampleRate, int numChannels) {
     // Validate inputs
-    if (sampleRate < 8000 || sampleRate > 192000) {
+    if (sampleRate < RNNoiseSuppressorConstants::MIN_SAMPLE_RATE || sampleRate > RNNoiseSuppressorConstants::MAX_SAMPLE_RATE) {
         throw std::invalid_argument("Sample rate must be between 8000 and 192000 Hz");
     }
-    if (numChannels < 1 || numChannels > 2) {
+    if (numChannels < RNNoiseSuppressorConstants::MIN_CHANNELS || numChannels > RNNoiseSuppressorConstants::MAX_CHANNELS) {
         throw std::invalid_argument("Number of channels must be 1 or 2");
     }
 
@@ -34,14 +38,14 @@ bool RNNoiseSuppressor::initialize(uint32_t sampleRate, int numChannels) {
     // Configs par défaut
     gateCfg_ = NoiseReducerConfig{};
     gateCfg_.enabled = true;
-    gateCfg_.highPassHz = 80.0;
-    gateCfg_.enableHighPass = true;
+    gateCfg_.highPassHz = RNNoiseSuppressorConstants::DEFAULT_HIGHPASS_HZ;
+    gateCfg_.enableHighPass = RNNoiseSuppressorConstants::DEFAULT_ENABLE_HIGHPASS;
 
     spectralCfg_ = SpectralNRConfig{};
     spectralCfg_.enabled = true;
     spectralCfg_.sampleRate = sampleRate_;
-    spectralCfg_.fftSize = 1024;
-    spectralCfg_.hopSize = 256; // 75% overlap
+    spectralCfg_.fftSize = SpectralNRConstants::DEFAULT_FFT_SIZE;
+    spectralCfg_.hopSize = SpectralNRConstants::DEFAULT_HOP_SIZE; // 75% overlap
 
     // Instancier modules
     gate_ = std::make_unique<NoiseReducer>(sampleRate_, channels_);
@@ -59,9 +63,9 @@ bool RNNoiseSuppressor::initialize(uint32_t sampleRate, int numChannels) {
 bool RNNoiseSuppressor::isAvailable() const { return available_; }
 
 void RNNoiseSuppressor::setAggressiveness(double aggressiveness) {
-    // Clamp 0..3
-    if (aggressiveness < 0.0 || aggressiveness > 3.0) {
-        aggressiveness = maxValue(0.0, minValue(3.0, aggressiveness));
+    // Clamp within valid range
+    if (aggressiveness < MIN_AGGRESSIVENESS || aggressiveness > MAX_AGGRESSIVENESS) {
+        aggressiveness = maxValue(MIN_AGGRESSIVENESS, minValue(MAX_AGGRESSIVENESS, aggressiveness));
     }
     aggressiveness_ = aggressiveness;
     if (!available_) return;
@@ -114,7 +118,7 @@ void RNNoiseSuppressor::processStereo(const float* inL, const float* inR,
 
     // 2) Downmix vers mono pour réduction spectrale partagée
     for (size_t i = 0; i < numSamples; ++i) {
-        scratchMono_[i] = 0.5f * (scratchL_[i] + scratchR_[i]);
+        scratchMono_[i] = STEREO_DOWNMIX_FACTOR * (scratchL_[i] + scratchR_[i]);
     }
 
     // 3) Réduction spectrale
@@ -128,27 +132,27 @@ void RNNoiseSuppressor::processStereo(const float* inL, const float* inR,
 }
 
 void RNNoiseSuppressor::applyAggressivenessToConfigs() {
-    double a = maxValue(0.0, minValue(3.0, aggressiveness_));
-    double t = a / 3.0; // 0..1
+    double a = maxValue(MIN_AGGRESSIVENESS, minValue(MAX_AGGRESSIVENESS, aggressiveness_));
+    double t = a / AGGRESSIVENESS_NORMALIZATION; // 0..1
 
     // NoiseReducer mapping
-    gateCfg_.enabled = (a > 0.0);
-    gateCfg_.thresholdDb = -45.0 - 25.0 * t;        // -45 .. -70 dB
-    gateCfg_.ratio = 1.5 + 6.5 * t;                 // 1.5 .. 8.0
-    gateCfg_.floorDb = -12.0 - 23.0 * t;            // -12 .. -35 dB
-    gateCfg_.attackMs = 3.0 + 7.0 * t;              // 3 .. 10 ms
-    gateCfg_.releaseMs = 30.0 + 120.0 * t;          // 30 .. 150 ms
-    gateCfg_.highPassHz = 60.0 + 60.0 * t;          // 60 .. 120 Hz
+    gateCfg_.enabled = (a > MIN_AGGRESSIVENESS);
+    gateCfg_.thresholdDb = GateMapping::THRESHOLD_BASE_DB + GateMapping::THRESHOLD_RANGE_DB * t;
+    gateCfg_.ratio = GateMapping::RATIO_BASE + GateMapping::RATIO_RANGE * t;
+    gateCfg_.floorDb = GateMapping::FLOOR_BASE_DB + GateMapping::FLOOR_RANGE_DB * t;
+    gateCfg_.attackMs = GateMapping::ATTACK_BASE_MS + GateMapping::ATTACK_RANGE_MS * t;
+    gateCfg_.releaseMs = GateMapping::RELEASE_BASE_MS + GateMapping::RELEASE_RANGE_MS * t;
+    gateCfg_.highPassHz = GateMapping::HIGHPASS_BASE_HZ + GateMapping::HIGHPASS_RANGE_HZ * t;
     gateCfg_.enableHighPass = true;
 
     // SpectralNR mapping
-    spectralCfg_.enabled = (a > 0.0);
+    spectralCfg_.enabled = (a > MIN_AGGRESSIVENESS);
     spectralCfg_.sampleRate = sampleRate_;
-    spectralCfg_.fftSize = 1024;                     // fixe et robuste
-    spectralCfg_.hopSize = 256;                      // 75% overlap
-    spectralCfg_.beta = 1.2 + 1.6 * t;               // 1.2 .. 2.8
-    spectralCfg_.floorGain = 0.10 - 0.07 * t;        // 0.10 .. 0.03
-    spectralCfg_.noiseUpdate = 0.95 + 0.035 * t;     // 0.95 .. 0.985
+    spectralCfg_.fftSize = SpectralMapping::FFT_SIZE;                     // fixe et robuste
+    spectralCfg_.hopSize = SpectralMapping::HOP_SIZE;                      // 75% overlap
+    spectralCfg_.beta = SpectralMapping::BETA_BASE + SpectralMapping::BETA_RANGE * t;
+    spectralCfg_.floorGain = SpectralMapping::FLOOR_GAIN_BASE + SpectralMapping::FLOOR_GAIN_RANGE * t;
+    spectralCfg_.noiseUpdate = SpectralMapping::NOISE_UPDATE_BASE + SpectralMapping::NOISE_UPDATE_RANGE * t;
 }
 
 } // namespace AudioNR

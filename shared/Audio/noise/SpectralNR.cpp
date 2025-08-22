@@ -1,21 +1,20 @@
-#include "SpectralNR.h"
+#include "SpectralNR.hpp"
 #include <algorithm>
 #include <vector>
 #include <complex>
 #include <stdexcept>
-#include <stdexcept>
 #include <cmath>
 #include <ranges>
 #include <iterator>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#include "NoiseContants.hpp"
 
 namespace AudioNR {
 
+// Import des constantes pour éviter la répétition des namespace
+using namespace SpectralNRConstants;
+
 static inline float hann(size_t n, size_t N) {
-    return 0.5f * (1.0f - std::cos(2.0f * static_cast<float>(M_PI) * static_cast<float>(n) / static_cast<float>(N - 1)));
+    return HANN_AMPLITUDE * (HANN_FACTOR - std::cos(HANN_FREQUENCY_FACTOR * static_cast<float>(M_PI) * static_cast<float>(n) / static_cast<float>(N - HANN_LENGTH_OFFSET)));
 }
 
 SpectralNR::SpectralNR(const SpectralNRConfig& cfg) { setConfig(cfg); }
@@ -26,101 +25,64 @@ void SpectralNR::setConfig(const SpectralNRConfig& cfg) {
     if (!isPowerOfTwo(cfg.fftSize)) {
         throw std::invalid_argument("FFT size must be a power of 2");
     }
-    if (cfg.fftSize < 64 || cfg.fftSize > 8192) {
+    if (cfg.fftSize < MIN_FFT_SIZE || cfg.fftSize > MAX_FFT_SIZE) {
         throw std::invalid_argument("FFT size must be between 64 and 8192");
     }
-    if (cfg.hopSize == 0 || cfg.hopSize > cfg.fftSize) {
+    if (cfg.hopSize < MIN_HOP_SIZE || cfg.hopSize > cfg.fftSize) {
         throw std::invalid_argument("Hop size must be between 1 and FFT size");
     }
-    if (cfg.beta < 0.5 || cfg.beta > 5.0) {
+    if (cfg.beta < MIN_BETA || cfg.beta > MAX_BETA) {
         throw std::invalid_argument("Beta must be between 0.5 and 5.0");
     }
-    if (cfg.floorGain < 0.0 || cfg.floorGain > 1.0) {
+    if (cfg.floorGain < MIN_FLOOR_GAIN || cfg.floorGain > MAX_FLOOR_GAIN) {
         throw std::invalid_argument("Floor gain must be between 0.0 and 1.0");
     }
-    if (cfg.noiseUpdate < 0.0 || cfg.noiseUpdate > 1.0) {
+    if (cfg.noiseUpdate < MIN_NOISE_UPDATE || cfg.noiseUpdate > MAX_NOISE_UPDATE) {
         throw std::invalid_argument("Noise update must be between 0.0 and 1.0");
     }
     
     cfg_ = cfg;
     buildWindow();
-    precomputeTwiddleFactors();  // Pre-compute FFT coefficients
-    inBuf_.assign(cfg_.fftSize, 0.0f);
-    outBuf_.assign(cfg_.fftSize, 0.0f);
-    noiseMag_.assign(cfg_.fftSize / 2 + 1, 0.0f);
+    // Init FFT engine
+    fftEngine_ = createFFTEngine(cfg_.fftSize);
+    inBuf_.assign(cfg_.fftSize, ZERO);
+    outBuf_.assign(cfg_.fftSize, ZERO);
+    noiseMag_.assign(cfg_.fftSize / FFT_HALF_DIVISOR + SPECTRUM_NYQUIST_OFFSET, ZERO);
     
     // Pre-allocate work buffers
     frame_.resize(cfg_.fftSize);
     re_.resize(cfg_.fftSize);
     im_.resize(cfg_.fftSize);
-    mag_.resize(cfg_.fftSize / 2 + 1);
-    ph_.resize(cfg_.fftSize / 2 + 1);
+    mag_.resize(cfg_.fftSize / FFT_HALF_DIVISOR + SPECTRUM_NYQUIST_OFFSET);
+    ph_.resize(cfg_.fftSize / FFT_HALF_DIVISOR + SPECTRUM_NYQUIST_OFFSET);
     time_.resize(cfg_.fftSize);
-    fftData_.resize(cfg_.fftSize);
     
-    writePos_ = 0;
+    writePos_ = SPECTRUM_DC_INDEX;
     noiseInit_ = true;
 }
 
 void SpectralNR::buildWindow() {
     window_.resize(cfg_.fftSize);
-    std::ranges::for_each(std::views::iota(size_t{0}, cfg_.fftSize),
+    std::ranges::for_each(std::views::iota(size_t{SPECTRUM_DC_INDEX}, cfg_.fftSize),
                          [this](size_t n) {
                              window_[n] = hann(n, cfg_.fftSize);
                          });
 }
 
 void SpectralNR::fft(const std::vector<float>& in, std::vector<float>& re, std::vector<float>& im) {
-    size_t N = cfg_.fftSize;
-    if (!isPowerOfTwo(N)) {
-        // Fallback to DFT for non-power-of-2 sizes (should not happen with proper config)
-        throw std::runtime_error("FFT size must be a power of 2");
-    }
-    
-    // Convert to complex format - use pre-allocated buffer
-    for (size_t i = 0; i < N; ++i) {
-        fftData_[i] = std::complex<float>(in[i], 0.0f);
-    }
-    
-    // Perform FFT
-    fftRadix2(fftData_, false);
-    
-    // Extract real and imaginary parts
-    re.resize(N);
-    im.resize(N);
-    for (size_t i = 0; i < N; ++i) {
-        re[i] = fftData_[i].real();
-        im[i] = fftData_[i].imag();
-    }
+    fftEngine_->forwardR2C(in.data(), re, im);
 }
 
 void SpectralNR::ifft(const std::vector<float>& re, const std::vector<float>& im, std::vector<float>& out) {
-    size_t N = cfg_.fftSize;
-    if (!isPowerOfTwo(N)) {
-        throw std::runtime_error("IFFT size must be a power of 2");
-    }
-    
-    // Convert to complex format - use pre-allocated buffer
-    for (size_t i = 0; i < N; ++i) {
-        fftData_[i] = std::complex<float>(re[i], im[i]);
-    }
-    
-    // Perform inverse FFT
-    fftRadix2(fftData_, true);
-    
-    // Extract real part and normalize
-    out.resize(N);
-    float scale = 1.0f / static_cast<float>(N);
-    for (size_t i = 0; i < N; ++i) {
-        out[i] = fftData_[i].real() * scale;
-    }
+    out.resize(cfg_.fftSize);
+    fftEngine_->inverseC2R(re, im, out.data());
 }
 
 void SpectralNR::process(const float* input, float* output, size_t numSamples) {
     if (!input || !output) {
         throw std::invalid_argument("Input and output buffers must not be null");
     }
-    if (numSamples == 0) return;
+    if (numSamples == SPECTRUM_DC_INDEX) return;
     
     if (!cfg_.enabled) {
         // Avoid copy if processing in-place
@@ -129,7 +91,7 @@ void SpectralNR::process(const float* input, float* output, size_t numSamples) {
         }
         return;
     }
-    size_t pos = 0;
+    size_t pos = SPECTRUM_DC_INDEX;
     while (pos < numSamples) {
         size_t toCopy = std::min(cfg_.hopSize, numSamples - pos);
         // Shift buffer left by hop
@@ -143,14 +105,14 @@ void SpectralNR::process(const float* input, float* output, size_t numSamples) {
         }
 
         // Window - use pre-allocated buffer
-        for (size_t i = 0; i < cfg_.fftSize; ++i) frame_[i] = inBuf_[i] * window_[i];
+        for (size_t i = SPECTRUM_DC_INDEX; i < cfg_.fftSize; ++i) frame_[i] = inBuf_[i] * window_[i];
 
         // FFT - use pre-allocated buffers
         fft(frame_, re_, im_);
 
         // Magnitude and phase - use pre-allocated buffers
-        size_t half = cfg_.fftSize / 2;
-        for (size_t k = 0; k <= half; ++k) {
+        size_t half = cfg_.fftSize / FFT_HALF_DIVISOR;
+        for (size_t k = SPECTRUM_DC_INDEX; k <= half; ++k) {
             float r = re_[k]; float ii = im_[k];
             mag_[k] = std::sqrt(r * r + ii * ii);
             ph_[k] = std::atan2(ii, r);
@@ -158,25 +120,25 @@ void SpectralNR::process(const float* input, float* output, size_t numSamples) {
 
         // Noise estimate (MCRA-like)
         if (noiseInit_) {
-            for (size_t k = 0; k <= half; ++k) noiseMag_[k] = mag_[k];
+            for (size_t k = SPECTRUM_DC_INDEX; k <= half; ++k) noiseMag_[k] = mag_[k];
             noiseInit_ = false;
         } else {
-            for (size_t k = 0; k <= half; ++k) noiseMag_[k] = static_cast<float>(cfg_.noiseUpdate * noiseMag_[k] + (1.0 - cfg_.noiseUpdate) * mag_[k]);
+            for (size_t k = SPECTRUM_DC_INDEX; k <= half; ++k) noiseMag_[k] = static_cast<float>(cfg_.noiseUpdate * noiseMag_[k] + (NOISE_UPDATE_COMPLEMENT - cfg_.noiseUpdate) * mag_[k]);
         }
 
         // Spectral subtraction with floor
-        for (size_t k = 0; k <= half; ++k) {
+        for (size_t k = SPECTRUM_DC_INDEX; k <= half; ++k) {
             float sub = mag_[k] - static_cast<float>(cfg_.beta) * noiseMag_[k];
             if (sub < cfg_.floorGain * noiseMag_[k]) sub = static_cast<float>(cfg_.floorGain * noiseMag_[k]);
             mag_[k] = sub;
         }
 
         // Reconstruct full spectrum (Hermitian for real signal)
-        for (size_t k = 0; k <= half; ++k) {
+        for (size_t k = SPECTRUM_DC_INDEX; k <= half; ++k) {
             re_[k] = mag_[k] * std::cos(ph_[k]);
             im_[k] = mag_[k] * std::sin(ph_[k]);
         }
-        for (size_t k = half + 1; k < cfg_.fftSize; ++k) {
+        for (size_t k = half + SPECTRUM_NYQUIST_OFFSET; k < cfg_.fftSize; ++k) {
             size_t kr = cfg_.fftSize - k;
             re_[k] = re_[kr];
             im_[k] = -im_[kr];
@@ -186,83 +148,17 @@ void SpectralNR::process(const float* input, float* output, size_t numSamples) {
         ifft(re_, im_, time_);
 
         // Overlap-add
-        if (outBuf_.size() != cfg_.fftSize) outBuf_.assign(cfg_.fftSize, 0.0f);
-        for (size_t i = 0; i < cfg_.fftSize; ++i) outBuf_[i] += time_[i] * window_[i];
+        if (outBuf_.size() != cfg_.fftSize) outBuf_.assign(cfg_.fftSize, ZERO);
+        for (size_t i = SPECTRUM_DC_INDEX; i < cfg_.fftSize; ++i) outBuf_[i] += time_[i] * window_[i];
 
         // Output hop segment
         size_t outCount = std::min(cfg_.hopSize, numSamples - pos);
         std::copy(outBuf_.data(), outBuf_.data() + outCount, output + pos);
         // Shift out buffer left
         std::shift_left(outBuf_.begin(), outBuf_.end(), static_cast<long long>(cfg_.hopSize));
-        std::fill(outBuf_.end() - static_cast<long long>(cfg_.hopSize), outBuf_.end(), 0.0f);
+        std::fill(outBuf_.end() - static_cast<long long>(cfg_.hopSize), outBuf_.end(), ZERO);
 
         pos += toCopy;
-    }
-}
-
-size_t SpectralNR::reverseBits(size_t x, size_t n) {
-    size_t result = 0;
-    for (size_t i = 0; i < n; ++i) {
-        result = (result << 1) | (x & 1);
-        x >>= 1;
-    }
-    return result;
-}
-
-void SpectralNR::fftRadix2(std::vector<std::complex<float>>& data, bool inverse) {
-    size_t N = data.size();
-    if (N <= 1) return;
-    
-    // Bit-reversal permutation
-    size_t bits = 0;
-    size_t temp = N;
-    while (temp > 1) {
-        bits++;
-        temp >>= 1;
-    }
-    
-    for (size_t i = 0; i < N; ++i) {
-        size_t j = reverseBits(i, bits);
-        if (i < j) {
-            std::swap(data[i], data[j]);
-        }
-    }
-    
-    // Cooley-Tukey FFT using pre-computed twiddle factors
-    size_t twiddleOffset = 0;
-    for (size_t size = 2; size <= N; size *= 2) {
-        size_t halfSize = size / 2;
-        
-        for (size_t start = 0; start < N; start += size) {
-            for (size_t k = 0; k < halfSize; ++k) {
-                // Use pre-computed twiddle factor
-                std::complex<float> w = twiddleFactors_[twiddleOffset + k];
-                if (inverse) w = std::conj(w);
-                
-                std::complex<float> t = w * data[start + k + halfSize];
-                std::complex<float> u = data[start + k];
-                
-                data[start + k] = u + t;
-                data[start + k + halfSize] = u - t;
-            }
-        }
-        twiddleOffset += halfSize;
-    }
-}
-
-void SpectralNR::precomputeTwiddleFactors() {
-    twiddleFactors_.clear();
-    size_t N = cfg_.fftSize;
-    
-    // Pre-compute twiddle factors for all stages
-    for (size_t size = 2; size <= N; size *= 2) {
-        size_t halfSize = size / 2;
-        float angle = 2.0f * static_cast<float>(M_PI) / static_cast<float>(size);
-        
-        for (size_t k = 0; k < halfSize; ++k) {
-            float phase = angle * static_cast<float>(k);
-            twiddleFactors_.emplace_back(std::cos(phase), std::sin(phase));
-        }
     }
 }
 

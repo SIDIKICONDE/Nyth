@@ -10,26 +10,23 @@
 #include <type_traits>
 #include <algorithm>
 #include <numeric>
-#include <format>
+#include "../../compat/format.hpp"
 #include <source_location>
 #include <ranges>
 #include <stdexcept>
-#include "Constants.hpp"
+#include "utilsConstants.hpp"
 
-namespace AudioEqualizer {
+namespace AudioUtils {
 
-// C++20 Concepts for better type safety
+// Import des constantes pour éviter la répétition des namespace
+using namespace UtilsConstants;
+
+// Type aliases for compatibility (concepts fallback)
 template<typename T>
-concept AudioSampleType = std::floating_point<T>;
+using AudioSampleType = T; // Accept any type for now
 
-template<typename T>
-concept BufferOperation = requires(T op, std::span<const float> buffer) {
-    { op(buffer) } -> std::same_as<void>;
-};
-
-// C++20 consteval utilities
-consteval size_t compute_max_channels() { return MAX_CHANNELS; }
-consteval size_t compute_max_samples() { return MAX_SAMPLES; }
+template<typename T>  
+using BufferOperation = T; // Accept any callable type
 
 class AudioBuffer {
 public:
@@ -83,8 +80,23 @@ public:
     float getMagnitude(size_t channel, size_t startSample, size_t numSamples) const;
     float getRMSLevel(size_t channel, size_t startSample, size_t numSamples) const;
 
-    // C++20 modernized methods
-    template<AudioSampleType T = float>
+    // C++20 modernized methods - simplified for compatibility
+    std::span<float> getChannelSpan(size_t channel) {
+        if (channel >= m_numChannels) {
+            return std::span<float>();
+        }
+        return std::span<float>(m_channels[channel], m_numSamples);
+    }
+
+    std::span<const float> getChannelSpan(size_t channel) const {
+        if (channel >= m_numChannels) {
+            return std::span<const float>();
+        }
+        return std::span<const float>(m_channels[channel], m_numSamples);
+    }
+
+    // Template versions for compatibility
+    template<typename T>
     std::span<T> getChannelSpan(size_t channel) {
         if (channel >= m_numChannels) {
             return std::span<T>();
@@ -92,7 +104,7 @@ public:
         return std::span<T>(reinterpret_cast<T*>(m_channels[channel]), m_numSamples);
     }
 
-    template<AudioSampleType T = float>
+    template<typename T>
     std::span<const T> getChannelSpan(size_t channel) const {
         if (channel >= m_numChannels) {
             return std::span<const T>();
@@ -100,26 +112,34 @@ public:
         return std::span<const T>(reinterpret_cast<const T*>(m_channels[channel]), m_numSamples);
     }
 
-    // C++20 range-based operations
-    template<AudioSampleType T = float>
-    void applyOperation(BufferOperation auto&& operation) {
-        for (size_t ch = 0; ch < m_numChannels; ++ch) {
-            auto channelSpan = getChannelSpan<T>(ch);
-            operation(channelSpan);
-        }
-    }
-
     // C++20 enhanced copy operations
-    template<AudioSampleType T = float>
-    void copyFromSpan(size_t destChannel, std::span<const T> source,
+    void copyFromSpan(size_t destChannel, std::span<const float> source,
                      std::source_location location = std::source_location::current()) {
         if (destChannel >= m_numChannels) {
-            throw std::out_of_range(std::format("Channel {} out of range [0, {}) [{}:{}]",
+            throw std::out_of_range(nyth::format("Channel {} out of range [0, {}) [{}:{}]",
                 destChannel, m_numChannels, location.file_name(), location.line()));
         }
 
         if (source.size() > m_numSamples) {
-            throw std::invalid_argument(std::format("Source span too large: {} > {} [{}:{}]",
+            throw std::invalid_argument(nyth::format("Source span too large: {} > {} [{}:{}]",
+                source.size(), m_numSamples, location.file_name(), location.line()));
+        }
+
+        auto destSpan = getChannelSpan(destChannel);
+        std::ranges::copy(source, destSpan.begin());
+    }
+
+    // Template version for compatibility
+    template<typename T>
+    void copyFromSpan(size_t destChannel, std::span<const T> source,
+                     std::source_location location = std::source_location::current()) {
+        if (destChannel >= m_numChannels) {
+            throw std::out_of_range(nyth::format("Channel {} out of range [0, {}) [{}:{}]",
+                destChannel, m_numChannels, location.file_name(), location.line()));
+        }
+
+        if (source.size() > m_numSamples) {
+            throw std::invalid_argument(nyth::format("Source span too large: {} > {} [{}:{}]",
                 source.size(), m_numSamples, location.file_name(), location.line()));
         }
 
@@ -130,12 +150,6 @@ public:
     // C++20 validation
     bool validateBuffer(std::source_location location = std::source_location::current()) const;
     std::string getDebugInfo(std::source_location location = std::source_location::current()) const;
-
-    // C++20 range access
-    auto getChannels() const {
-        return std::ranges::views::iota(size_t(0), m_numChannels) |
-               std::ranges::views::transform([this](size_t ch) { return getChannelSpan(ch); });
-    }
 
 private:
     size_t m_numChannels;
@@ -160,7 +174,7 @@ inline const float* AudioBuffer::getChannel(size_t channel) const {
     return (channel < m_numChannels) ? m_channels[channel] : nullptr;
 }
 
-} // namespace AudioEqualizer
+} // namespace AudioUtils
 
 #else
 /* Ce header contient uniquement des déclarations C++.

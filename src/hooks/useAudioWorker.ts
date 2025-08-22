@@ -94,14 +94,16 @@ export const useAudioWorker = () => {
 
   // Méthodes spécifiques pour chaque type de traitement
   const processSpectrum = useCallback(async (
-    audioData: Float32Array,
-    sampleRate: number
-  ): Promise<Float32Array> => {
+    audioData: Float32Array | Float64Array,
+    sampleRate: number,
+    precision: 'fp32' | 'fp64' = 'fp64'
+  ): Promise<Float32Array | Float64Array> => {
     const result = await sendMessage<ArrayBuffer>('PROCESS_SPECTRUM', {
       buffer: audioData.buffer,
-      sampleRate
+      sampleRate,
+      precision
     });
-    return new Float32Array(result);
+    return precision === 'fp64' ? new Float64Array(result) : new Float32Array(result);
   }, [sendMessage]);
 
   const calculateRMS = useCallback(async (

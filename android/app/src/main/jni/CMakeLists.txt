@@ -180,6 +180,7 @@ endif()
 # Audio System C++20 Sources
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/NativeAudioEqualizerModule.cpp
+    ../../../../../shared/Audio/fft/FFTEngine.hpp
     ../../../../../shared/Audio/core/AudioEqualizer.cpp
     ../../../../../shared/Audio/core/BiquadFilter.cpp
     ../../../../../shared/Audio/noise/NoiseReducer.cpp
@@ -216,6 +217,15 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
     ../../../../../shared/Audio/effects
     ../../../../../shared/filters
     ../../../../../shared/filters/common
+)
+
+# =============================================================================
+# Precompiled Header (PCH)
+# =============================================================================
+
+# Active le PCH pour les compilations C++ de cette cible
+target_precompile_headers(${CMAKE_PROJECT_NAME} PRIVATE
+    "$<$<COMPILE_LANGUAGE:CXX>:../../../../../shared/pch.hpp>"
 )
 
 # =============================================================================

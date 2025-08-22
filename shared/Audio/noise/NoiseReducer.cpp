@@ -3,23 +3,27 @@
 #include <algorithm>
 #include <vector>
 #include <memory>
-#include <stdexcept>
 #include <cmath>
+#include <span>
+#include "NoiseContants.hpp"
 
 namespace AudioNR {
+
+// Import des constantes pour éviter la répétition des namespace
+using namespace NoiseReducerConstants;
 
 NoiseReducer::NoiseReducer(uint32_t sampleRate, int numChannels)
     : sampleRate_(sampleRate), channels_(numChannels) {
     // Validate and clamp inputs
-    if (sampleRate_ < 8000) {
+    if (sampleRate_ < MIN_SAMPLE_RATE) {
         throw std::invalid_argument("Sample rate must be at least 8000 Hz");
     }
-    if (sampleRate_ > 192000) {
+    if (sampleRate_ > MAX_SAMPLE_RATE) {
         throw std::invalid_argument("Sample rate must not exceed 192000 Hz");
     }
-    
-    if (channels_ < 1) channels_ = 1;
-    if (channels_ > 2) channels_ = 2;
+
+    if (channels_ < MIN_CHANNELS) channels_ = MIN_CHANNELS;
+    if (channels_ > MAX_CHANNELS) channels_ = MAX_CHANNELS;
     
     ch_.resize(static_cast<size_t>(channels_));
     ensureFilters();
@@ -29,7 +33,15 @@ NoiseReducer::NoiseReducer(uint32_t sampleRate, int numChannels)
 NoiseReducer::~NoiseReducer() = default;
 
 void NoiseReducer::setSampleRate(uint32_t sampleRate) {
-    if (sampleRate_ == sampleRate) return;
+    // Validate sample rate (same as constructor)
+    if (sampleRate < MIN_SAMPLE_RATE) {
+        throw std::invalid_argument("Sample rate must be at least 8000 Hz");
+    }
+    if (sampleRate > MAX_SAMPLE_RATE) {
+        throw std::invalid_argument("Sample rate must not exceed 192000 Hz");
+    }
+    
+    if (sampleRate_ == sampleRate) return; // Optimization: no change needed
     sampleRate_ = sampleRate;
     ensureFilters();
     updateDerived();
@@ -37,22 +49,22 @@ void NoiseReducer::setSampleRate(uint32_t sampleRate) {
 
 void NoiseReducer::setConfig(const NoiseReducerConfig& cfg) {
     // Validate configuration parameters
-    if (cfg.thresholdDb > 0.0 || cfg.thresholdDb < -80.0) {
+    if (cfg.thresholdDb > MAX_THRESHOLD_DB || cfg.thresholdDb < MIN_THRESHOLD_DB) {
         throw std::invalid_argument("Threshold must be between -80 and 0 dB");
     }
-    if (cfg.ratio < 1.0 || cfg.ratio > 20.0) {
+    if (cfg.ratio < MIN_RATIO || cfg.ratio > MAX_RATIO) {
         throw std::invalid_argument("Ratio must be between 1.0 and 20.0");
     }
-    if (cfg.floorDb > 0.0 || cfg.floorDb < -60.0) {
+    if (cfg.floorDb > MAX_FLOOR_DB || cfg.floorDb < MIN_FLOOR_DB) {
         throw std::invalid_argument("Floor must be between -60 and 0 dB");
     }
-    if (cfg.attackMs < 0.1 || cfg.attackMs > 100.0) {
+    if (cfg.attackMs < MIN_ATTACK_MS || cfg.attackMs > MAX_ATTACK_MS) {
         throw std::invalid_argument("Attack time must be between 0.1 and 100 ms");
     }
-    if (cfg.releaseMs < 1.0 || cfg.releaseMs > 1000.0) {
+    if (cfg.releaseMs < MIN_RELEASE_MS || cfg.releaseMs > MAX_RELEASE_MS) {
         throw std::invalid_argument("Release time must be between 1 and 1000 ms");
     }
-    if (cfg.highPassHz < 20.0 || cfg.highPassHz > 1000.0) {
+    if (cfg.highPassHz < MIN_HIGHPASS_HZ || cfg.highPassHz > MAX_HIGHPASS_HZ) {
         throw std::invalid_argument("High-pass frequency must be between 20 and 1000 Hz");
     }
     
@@ -73,20 +85,20 @@ void NoiseReducer::updateDerived() {
     
     // Gain smoothing coefficients (slightly faster attack than release)
     // Attack is faster to open the gate quickly
-    attackCoeffGain_ = coefForMs(std::max(1.0, config_.attackMs * 0.5));
-    releaseCoeffGain_ = coefForMs(std::max(5.0, config_.releaseMs));
+    attackCoeffGain_ = coefForMs(std::max(UNITY_GAIN, config_.attackMs * ATTACK_GAIN_FACTOR));
+    releaseCoeffGain_ = coefForMs(std::max(MIN_RELEASE_GAIN_MS, config_.releaseMs));
     
     // Pre-calculate common values for the expander curve
     // This avoids repeated calculations in the process loop
-    expansionSlope_ = 1.0 / config_.ratio;
+    expansionSlope_ = UNITY_RECIPROCAL / config_.ratio;
     threshLin2_ = threshLin_ * threshLin_;  // For faster comparison
 }
 
 void NoiseReducer::ensureFilters() {
     for (auto& st : ch_) {
         if (config_.enableHighPass) {
-            if (!st.highPass) st.highPass = std::make_unique<AudioEqualizer::BiquadFilter>();
-            st.highPass->calculateHighpass(config_.highPassHz, sampleRate_, 0.707);
+            if (!st.highPass) st.highPass = std::make_unique<AudioFX::BiquadFilter>();
+            st.highPass->calculateHighpass(config_.highPassHz, sampleRate_, BUTTERWORTH_Q_FACTOR);
         } else {
             st.highPass.reset();
         }
@@ -97,21 +109,21 @@ void NoiseReducer::processMono(const float* input, float* output, size_t numSamp
     if (!input || !output) {
         throw std::invalid_argument("Input and output buffers must not be null");
     }
-    if (numSamples == 0) return;
+    if (numSamples == ZERO_SAMPLES_CHECK) return;
     
     if (!config_.enabled) {
         if (output != input) std::copy_n(input, numSamples, output);
         return;
     }
-    processChannel(input, output, numSamples, ch_[0]);
+    processChannel(input, output, numSamples, ch_[FIRST_CHANNEL_INDEX]);
 }
 
 void NoiseReducer::processStereo(const float* inL, const float* inR, float* outL, float* outR, size_t numSamples) {
     if (!inL || !inR || !outL || !outR) {
         throw std::invalid_argument("All input and output buffers must not be null");
     }
-    if (numSamples == 0) return;
-    if (channels_ < 2) {
+    if (numSamples == ZERO_SAMPLES_CHECK) return;
+    if (channels_ < STEREO_REQUIRED_CHANNELS) {
         throw std::runtime_error("Stereo processing requires 2 channels");
     }
     
@@ -120,14 +132,16 @@ void NoiseReducer::processStereo(const float* inL, const float* inR, float* outL
         if (outR != inR) std::copy_n(inR, numSamples, outR);
         return;
     }
-    processChannel(inL, outL, numSamples, ch_[0]);
-    processChannel(inR, outR, numSamples, ch_[1]);
+    processChannel(inL, outL, numSamples, ch_[FIRST_CHANNEL_INDEX]);
+    processChannel(inR, outR, numSamples, ch_[SECOND_CHANNEL_INDEX]);
 }
 
 void NoiseReducer::processChannel(const float* in, float* out, size_t n, ChannelState& st) {
     // Optional high-pass pre-filter to remove rumble
     if (st.highPass) {
-        st.highPass->process(in, out, n); // use out as temp
+        std::span<const float> inputSpan(in, n);
+        std::span<float> outputSpan(out, n);
+        st.highPass->process(inputSpan, outputSpan); // use out as temp
         // Now 'out' contains filtered data, 'in' points to original
         in = out; // For in-place operation, update input pointer
     } else if (out != in) {
@@ -142,11 +156,11 @@ void NoiseReducer::processChannel(const float* in, float* out, size_t n, Channel
                              double x = static_cast<double>(out[i]);
                              double ax = std::abs(x);
                              // Envelope
-                             if (ax > st.env) st.env = attackCoeffEnv_ * st.env + (1.0 - attackCoeffEnv_) * ax;
-                             else             st.env = releaseCoeffEnv_ * st.env + (1.0 - releaseCoeffEnv_) * ax;
+                             if (ax > st.env) st.env = attackCoeffEnv_ * st.env + (UNITY_GAIN - attackCoeffEnv_) * ax;
+                             else             st.env = releaseCoeffEnv_ * st.env + (UNITY_GAIN - releaseCoeffEnv_) * ax;
 
                              // Compute static curve for downward expander
-                             double gTarget = 1.0;
+                             double gTarget = UNITY_GAIN;
                              if (st.env < threshLin_) {
                                  // Below threshold: apply expansion
                                  // Simplified calculation using pre-computed values
@@ -161,8 +175,8 @@ void NoiseReducer::processChannel(const float* in, float* out, size_t n, Channel
                              }
 
                              // Smooth gain (avoid pumping)
-                             if (gTarget > st.gain) st.gain = attackCoeffGain_ * st.gain + (1.0 - attackCoeffGain_) * gTarget;
-                             else                   st.gain = releaseCoeffGain_ * st.gain + (1.0 - releaseCoeffGain_) * gTarget;
+                             if (gTarget > st.gain) st.gain = attackCoeffGain_ * st.gain + (UNITY_GAIN - attackCoeffGain_) * gTarget;
+                             else                   st.gain = releaseCoeffGain_ * st.gain + (UNITY_GAIN - releaseCoeffGain_) * gTarget;
 
                              out[i] = static_cast<float>(out[i] * st.gain);
                          });

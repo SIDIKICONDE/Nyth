@@ -3,15 +3,19 @@
 #include <cstddef>
 #include <algorithm>
 #include <span>
-#include <format>
+#include "../../compat/format.hpp"
 #include <concepts>
 #include <source_location>
 #include <type_traits>
 #include <vector>
 #include <ranges>
 #include <stdexcept>
+#include "../utils/utilsConstants.hpp"
+#include "EffectConstants.hpp"
 
 namespace AudioFX {
+
+// All constants are now centralized in EffectConstants.hpp
 
 // C++20 Concepts for better type safety
 template<typename T>
@@ -29,8 +33,8 @@ public:
   virtual ~IAudioEffect() noexcept = default;
 
   virtual void setSampleRate(uint32_t sampleRate, int numChannels) noexcept {
-    sampleRate_ = sampleRate > 0 ? sampleRate : 48000;
-    channels_ = (numChannels == 1 || numChannels == 2) ? numChannels : 2;
+    sampleRate_ = sampleRate > AudioFX::MINIMUM_SAMPLE_RATE ? sampleRate : AudioFX::DEFAULT_SAMPLE_RATE;
+    channels_ = (numChannels == AudioFX::MONO_CHANNELS || numChannels == AudioFX::STEREO_CHANNELS) ? numChannels : AudioFX::DEFAULT_CHANNELS;
   }
 
   virtual void setEnabled(bool enabled) noexcept { enabled_ = enabled; }
@@ -38,7 +42,7 @@ public:
 
   // Legacy methods for backward compatibility
   virtual void processMono(const float* input, float* output, size_t numSamples) {
-    if (!enabled_ || !input || !output || numSamples == 0) {
+    if (!enabled_ || !input || !output || numSamples == AudioFX::ZERO_SAMPLES) {
       if (output && input && output != input) {
         std::copy_n(input, numSamples, output);
       }
@@ -52,7 +56,7 @@ public:
 
   virtual void processStereo(const float* inL, const float* inR,
                              float* outL, float* outR, size_t numSamples) {
-    if (!enabled_ || !inL || !inR || !outL || !outR || numSamples == 0) {
+    if (!enabled_ || !inL || !inR || !outL || !outR || numSamples == AudioFX::ZERO_SAMPLES) {
       if (outL && inL && outL != inL) { std::copy_n(inL, numSamples, outL); }
       if (outR && inR && outR != inR) { std::copy_n(inR, numSamples, outR); }
       return;
@@ -68,7 +72,7 @@ public:
                    std::source_location location = std::source_location::current()) {
     // C++20 validation
     if (input.size() != output.size()) {
-      throw std::invalid_argument(std::format(
+      throw std::invalid_argument(nyth::format(
           "Input and output spans must have the same size. Input: {}, Output: {} [{}:{}]",
           input.size(), output.size(), location.file_name(), location.line()));
     }
@@ -91,7 +95,7 @@ public:
                      std::source_location location = std::source_location::current()) {
     // C++20 validation
     if (inputL.size() != inputR.size() || inputL.size() != outputL.size() || inputR.size() != outputR.size()) {
-      throw std::invalid_argument(std::format(
+      throw std::invalid_argument(nyth::format(
           "All spans must have the same size [{}:{}]", location.file_name(), location.line()));
     }
 
@@ -126,9 +130,9 @@ public:
   }
 
 protected:
-  uint32_t sampleRate_ = 48000;
-  int channels_ = 2;
-  bool enabled_ = true;
+  uint32_t sampleRate_ = AudioFX::DEFAULT_SAMPLE_RATE;
+  int channels_ = AudioFX::DEFAULT_CHANNELS;
+  bool enabled_ = AudioFX::DEFAULT_ENABLED_STATE;
 };
 
 } // namespace AudioFX

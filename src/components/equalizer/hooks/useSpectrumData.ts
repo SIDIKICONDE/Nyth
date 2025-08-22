@@ -11,6 +11,7 @@ interface UseSpectrumDataOptions {
   minDecibels?: number;
   maxDecibels?: number;
   useWebWorker?: boolean; // Utiliser le Web Worker pour les calculs lourds
+  precision?: 'fp32' | 'fp64';
 }
 
 // Cache pour les calculs de normalisation
@@ -22,7 +23,8 @@ export const useSpectrumData = (options: UseSpectrumDataOptions = {}) => {
     smoothingFactor = 0.8,
     minDecibels = -60,
     maxDecibels = 0,
-    useWebWorker = true // Nouvelle option pour utiliser le Web Worker
+    useWebWorker = true, // Nouvelle option pour utiliser le Web Worker
+    precision = 'fp64'
   } = options;
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -89,8 +91,9 @@ export const useSpectrumData = (options: UseSpectrumDataOptions = {}) => {
         if (useWebWorker && workerReady && rawData.length > 64) {
           try {
             const processedData = await processSpectrum(
-              new Float32Array(rawData),
-              48000 // Sample rate par défaut, à adapter selon votre config
+              precision === 'fp64' ? new Float64Array(rawData) : new Float32Array(rawData),
+              48000, // Sample rate par défaut, à adapter selon votre config
+              precision
             );
             
             const normalized = Array.from(processedData).map(normalizeMagnitude);

@@ -12,37 +12,24 @@
 #include <cmath>
 #include <span>
 #include <concepts>
-#include <format>
+#include "../../compat/format.hpp"
 #include <source_location>
 #include <type_traits>
 
 // Legacy constants header
-#include "../utils/Constants.hpp"
+#include "CoreConstants.hpp"
 
 // C++20 pure - no platform-specific SIMD optimizations
 
-namespace AudioEqualizer {
+namespace AudioFX {
 
-// C++20 Concepts for type safety
-template<typename T>
-concept Arithmetic = std::is_arithmetic_v<T>;
-
-template<typename T>
-concept FloatingPoint = std::is_floating_point_v<T>;
-
-template<typename T>
-concept AudioSampleType = FloatingPoint<T> && (sizeof(T) == 4 || sizeof(T) == 8);
-
+// C++20 Concepts for type safety (use concepts from CoreConstants.hpp)
 template<typename T>
 concept AudioBuffer = std::is_pointer_v<T> || requires(T t) {
     typename T::value_type;
     { t.data() } -> std::same_as<typename T::pointer>;
     { t.size() } -> std::same_as<typename T::size_type>;
 };
-
-// C++20 consteval for compile-time calculations
-consteval double compute_pi() { return 3.14159265358979323846; }
-consteval double compute_two_pi() { return 2.0 * compute_pi(); }
 
 using enum FilterType; // C++20 using enum
 
@@ -110,7 +97,7 @@ private:
     
     // Prevent denormal numbers
     inline double preventDenormal(double x) {
-        return (std::abs(x) < EPSILON) ? 0.0 : x;
+        return (std::abs(x) < EPSILON) ? BiquadConstants::DENORMAL_RESET_VALUE : x;
     }
     
     // Normalize coefficients
@@ -122,7 +109,7 @@ private:
 
 // C++20 consteval helper functions
 consteval double compute_frequency_response(double frequency, double sampleRate) {
-    return 2.0 * compute_pi() * frequency / sampleRate;
+    return BiquadConstants::TWO_PI_MULTIPLIER * BiquadConstants::PI_PRECISE * frequency / sampleRate;
 }
 
 // C++20 concept-based validation
@@ -141,16 +128,16 @@ inline T process_sample_implementation(double a0, double a1, double a2, double b
 
     // Update state variables
     y2 = y1;
-    y1 = (std::abs(w) < EPSILON) ? 0.0 : w; // Prevent denormal numbers
+    y1 = (std::abs(w) < EPSILON) ? BiquadConstants::DENORMAL_RESET_VALUE : w; // Prevent denormal numbers
 
     return static_cast<T>(y);
 }
 
-} // namespace AudioEqualizer
+} // namespace AudioFX
 
 // C++20 template implementations
-template<AudioEqualizer::AudioSampleType T>
-inline T AudioEqualizer::BiquadFilter::processSample(T input) {
+template<AudioFX::AudioSampleType T>
+inline T AudioFX::BiquadFilter::processSample(T input) {
     return process_sample_implementation(m_a0, m_a1, m_a2, m_b1, m_b2, input, m_y1, m_y2);
 }
 

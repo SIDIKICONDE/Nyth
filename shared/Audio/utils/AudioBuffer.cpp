@@ -15,7 +15,12 @@
 #include <emmintrin.h>
 #endif
 
-namespace AudioEqualizer {
+#include "utilsConstants.hpp"
+
+namespace AudioUtils {
+
+// Import des constantes pour éviter la répétition des namespace
+using namespace UtilsConstants;
 
 AudioBuffer::AudioBuffer(size_t numChannels, size_t numSamples)
     : m_numChannels(numChannels)
@@ -36,7 +41,7 @@ void AudioBuffer::allocateChannels() {
     m_channels = std::make_unique<float*[]>(m_numChannels);
     size_t alignedSamples = getAlignedSize(m_numSamples);
 
-    std::ranges::for_each(std::views::iota(size_t{0}, m_numChannels),
+    std::ranges::for_each(std::views::iota(size_t{ZERO_INDEX}, m_numChannels),
                          [this, alignedSamples](size_t ch) {
                              m_channels[ch] = m_data.get() + (ch * alignedSamples);
                          });
@@ -44,7 +49,7 @@ void AudioBuffer::allocateChannels() {
 
 size_t AudioBuffer::getAlignedSize(size_t size) {
     // Align to 16-byte boundary for SIMD
-    return (size + 3) & ~3;  // Align to 4 floats (16 bytes)
+    return (size + SIMD_ALIGNMENT_MASK) & SIMD_ALIGNMENT_INVERSE_MASK;  // Align to 4 floats (16 bytes)
 }
 
 float** AudioBuffer::getArrayOfWritePointers() {
@@ -57,19 +62,19 @@ const float* const* AudioBuffer::getArrayOfReadPointers() const {
 
 void AudioBuffer::clear() {
     size_t totalSamples = m_numChannels * getAlignedSize(m_numSamples);
-    std::fill_n(m_data.get(), totalSamples, 0.0f);
+    std::fill_n(m_data.get(), totalSamples, ZERO_FLOAT);
 }
 
 void AudioBuffer::clear(size_t channel) {
     if (channel < m_numChannels) {
-        std::fill_n(m_channels[channel], m_numSamples, 0.0f);
+        std::fill_n(m_channels[channel], m_numSamples, ZERO_FLOAT);
     }
 }
 
 void AudioBuffer::clear(size_t startSample, size_t numSamples) {
-    for (size_t ch = 0; ch < m_numChannels; ++ch) {
+    for (size_t ch = FIRST_CHANNEL; ch < m_numChannels; ++ch) {
         if (startSample + numSamples <= m_numSamples) {
-            std::fill_n(m_channels[ch] + startSample, numSamples, 0.0f);
+            std::fill_n(m_channels[ch] + startSample, numSamples, ZERO_FLOAT);
         }
     }
 }
@@ -78,7 +83,7 @@ void AudioBuffer::copyFrom(const AudioBuffer& source) {
     size_t channelsToCopy = std::min(m_numChannels, source.getNumChannels());
     size_t samplesToCopy = std::min(m_numSamples, source.getNumSamples());
     
-    for (size_t ch = 0; ch < channelsToCopy; ++ch) {
+    for (size_t ch = FIRST_CHANNEL; ch < channelsToCopy; ++ch) {
         std::copy_n(source.getChannel(ch), samplesToCopy, m_channels[ch]);
     }
 }
@@ -95,12 +100,12 @@ void AudioBuffer::copyFrom(size_t destChannel, size_t destStartSample,
                           size_t sourceStartSample, size_t numSamples) {
     if (destChannel < m_numChannels && sourceChannel < source.getNumChannels()) {
         size_t maxDestSamples = (destStartSample < m_numSamples) ? 
-                                m_numSamples - destStartSample : 0;
+                                m_numSamples - destStartSample : ZERO_SAMPLES;
         size_t maxSourceSamples = (sourceStartSample < source.getNumSamples()) ?
-                                  source.getNumSamples() - sourceStartSample : 0;
+                                  source.getNumSamples() - sourceStartSample : ZERO_SAMPLES;
         size_t samplesToCopy = std::min({numSamples, maxDestSamples, maxSourceSamples});
         
-        if (samplesToCopy > 0) {
+        if (samplesToCopy > ZERO_SAMPLES) {
             std::copy_n(source.getChannel(sourceChannel) + sourceStartSample,
                         samplesToCopy,
                         m_channels[destChannel] + destStartSample);
@@ -116,10 +121,10 @@ void AudioBuffer::addFrom(size_t destChannel, const float* source, size_t numSam
     
 #ifdef __ARM_NEON
     // NEON optimized version
-    size_t simdSamples = samplesToProcess & ~3;
+    size_t simdSamples = samplesToProcess & SIMD_MASK_FOR_BLOCK;
     float32x4_t gainVec = vdupq_n_f32(gain);
     
-    for (size_t i = 0; i < simdSamples; i += 4) {
+    for (size_t i = ZERO_INDEX; i < simdSamples; i += SIMD_BLOCK_SIZE) {
         float32x4_t srcVec = vld1q_f32(&source[i]);
         float32x4_t destVec = vld1q_f32(&dest[i]);
         destVec = vmlaq_f32(destVec, srcVec, gainVec);
@@ -132,10 +137,10 @@ void AudioBuffer::addFrom(size_t destChannel, const float* source, size_t numSam
     }
 #elif defined(__SSE2__)
     // SSE2 optimized version
-    size_t simdSamples = samplesToProcess & ~3;
+    size_t simdSamples = samplesToProcess & SIMD_MASK_FOR_BLOCK;
     __m128 gainVec = _mm_set1_ps(gain);
     
-    for (size_t i = 0; i < simdSamples; i += 4) {
+    for (size_t i = ZERO_INDEX; i < simdSamples; i += SIMD_BLOCK_SIZE) {
         __m128 srcVec = _mm_loadu_ps(&source[i]);
         __m128 destVec = _mm_loadu_ps(&dest[i]);
         srcVec = _mm_mul_ps(srcVec, gainVec);
@@ -149,12 +154,12 @@ void AudioBuffer::addFrom(size_t destChannel, const float* source, size_t numSam
     }
 #else
     // Scalar version
-    if (gain == 1.0f) {
-        for (size_t i = 0; i < samplesToProcess; ++i) {
+    if (gain == UNITY_GAIN) {
+        for (size_t i = ZERO_INDEX; i < samplesToProcess; ++i) {
             dest[i] += source[i];
         }
     } else {
-        for (size_t i = 0; i < samplesToProcess; ++i) {
+        for (size_t i = ZERO_INDEX; i < samplesToProcess; ++i) {
             dest[i] += source[i] * gain;
         }
     }
@@ -164,20 +169,20 @@ void AudioBuffer::addFrom(size_t destChannel, const float* source, size_t numSam
 void AudioBuffer::addFrom(const AudioBuffer& source, float gain) {
     size_t channelsToAdd = std::min(m_numChannels, source.getNumChannels());
     
-    for (size_t ch = 0; ch < channelsToAdd; ++ch) {
+    for (size_t ch = FIRST_CHANNEL; ch < channelsToAdd; ++ch) {
         addFrom(ch, source.getChannel(ch), source.getNumSamples(), gain);
     }
 }
 
 void AudioBuffer::applyGain(float gain) {
-    for (size_t ch = 0; ch < m_numChannels; ++ch) {
+    for (size_t ch = FIRST_CHANNEL; ch < m_numChannels; ++ch) {
         applyGain(ch, gain);
     }
 }
 
 void AudioBuffer::applyGain(size_t channel, float gain) {
     if (channel < m_numChannels) {
-        applyGain(channel, 0, m_numSamples, gain);
+        applyGain(channel, FIRST_SAMPLE, m_numSamples, gain);
     }
 }
 
@@ -189,10 +194,10 @@ void AudioBuffer::applyGain(size_t channel, size_t startSample, size_t numSample
     
 #ifdef __ARM_NEON
     // NEON optimized version
-    size_t simdSamples = samplesToProcess & ~3;
+    size_t simdSamples = samplesToProcess & SIMD_MASK_FOR_BLOCK;
     float32x4_t gainVec = vdupq_n_f32(gain);
     
-    for (size_t i = 0; i < simdSamples; i += 4) {
+    for (size_t i = ZERO_INDEX; i < simdSamples; i += SIMD_BLOCK_SIZE) {
         float32x4_t vec = vld1q_f32(&data[i]);
         vec = vmulq_f32(vec, gainVec);
         vst1q_f32(&data[i], vec);
@@ -204,10 +209,10 @@ void AudioBuffer::applyGain(size_t channel, size_t startSample, size_t numSample
     }
 #elif defined(__SSE2__)
     // SSE2 optimized version
-    size_t simdSamples = samplesToProcess & ~3;
+    size_t simdSamples = samplesToProcess & SIMD_MASK_FOR_BLOCK;
     __m128 gainVec = _mm_set1_ps(gain);
     
-    for (size_t i = 0; i < simdSamples; i += 4) {
+    for (size_t i = ZERO_INDEX; i < simdSamples; i += SIMD_BLOCK_SIZE) {
         __m128 vec = _mm_loadu_ps(&data[i]);
         vec = _mm_mul_ps(vec, gainVec);
         _mm_storeu_ps(&data[i], vec);
@@ -219,7 +224,7 @@ void AudioBuffer::applyGain(size_t channel, size_t startSample, size_t numSample
     }
 #else
     // Scalar version
-    for (size_t i = 0; i < samplesToProcess; ++i) {
+    for (size_t i = ZERO_INDEX; i < samplesToProcess; ++i) {
         data[i] *= gain;
     }
 #endif
@@ -232,31 +237,31 @@ void AudioBuffer::applyGainRamp(size_t channel, size_t startSample, size_t numSa
     float* data = m_channels[channel] + startSample;
     size_t samplesToProcess = std::min(numSamples, m_numSamples - startSample);
     
-    if (samplesToProcess == 0) return;
+    if (samplesToProcess == ZERO_SAMPLES) return;
     
     float gainIncrement = (endGain - startGain) / static_cast<float>(samplesToProcess);
     float currentGain = startGain;
     
-    for (size_t i = 0; i < samplesToProcess; ++i) {
+    for (size_t i = ZERO_INDEX; i < samplesToProcess; ++i) {
         data[i] *= currentGain;
         currentGain += gainIncrement;
     }
 }
 
 float AudioBuffer::getMagnitude(size_t channel, size_t startSample, size_t numSamples) const {
-    if (channel >= m_numChannels) return 0.0f;
+    if (channel >= m_numChannels) return ZERO_FLOAT;
     
     const float* data = m_channels[channel] + startSample;
     size_t samplesToProcess = std::min(numSamples, m_numSamples - startSample);
     
-    float maxMagnitude = 0.0f;
+    float maxMagnitude = INITIAL_MAX_MAGNITUDE;
     
 #ifdef __ARM_NEON
     // NEON optimized version
-    size_t simdSamples = samplesToProcess & ~3;
-    float32x4_t maxVec = vdupq_n_f32(0.0f);
+    size_t simdSamples = samplesToProcess & SIMD_MASK_4;
+    float32x4_t maxVec = vdupq_n_f32(INITIAL_MAX_MAGNITUDE);
     
-    for (size_t i = 0; i < simdSamples; i += 4) {
+    for (size_t i = 0; i < simdSamples; i += SIMD_INCREMENT_4) {
         float32x4_t vec = vld1q_f32(&data[i]);
         vec = vabsq_f32(vec);
         maxVec = vmaxq_f32(maxVec, vec);
@@ -281,19 +286,19 @@ float AudioBuffer::getMagnitude(size_t channel, size_t startSample, size_t numSa
 }
 
 float AudioBuffer::getRMSLevel(size_t channel, size_t startSample, size_t numSamples) const {
-    if (channel >= m_numChannels || numSamples == 0) return 0.0f;
+    if (channel >= m_numChannels || numSamples == 0) return DEFAULT_RETURN_VALUE;
     
     const float* data = m_channels[channel] + startSample;
     size_t samplesToProcess = std::min(numSamples, m_numSamples - startSample);
     
-    double sum = 0.0;
+    double sum = INITIAL_SUM;
     
 #ifdef __ARM_NEON
     // NEON optimized version
-    size_t simdSamples = samplesToProcess & ~3;
-    float32x4_t sumVec = vdupq_n_f32(0.0f);
+    size_t simdSamples = samplesToProcess & SIMD_MASK_4;
+    float32x4_t sumVec = vdupq_n_f32(INITIAL_MAX_MAGNITUDE);
     
-    for (size_t i = 0; i < simdSamples; i += 4) {
+    for (size_t i = 0; i < simdSamples; i += SIMD_INCREMENT_4) {
         float32x4_t vec = vld1q_f32(&data[i]);
         vec = vmulq_f32(vec, vec);  // Square the values
         sumVec = vaddq_f32(sumVec, vec);
@@ -317,4 +322,56 @@ float AudioBuffer::getRMSLevel(size_t channel, size_t startSample, size_t numSam
     return static_cast<float>(std::sqrt(sum / samplesToProcess));
 }
 
-} // namespace AudioEqualizer
+// Move constructor
+AudioBuffer::AudioBuffer(AudioBuffer&& other) noexcept
+    : m_numChannels(other.m_numChannels)
+    , m_numSamples(other.m_numSamples)
+    , m_data(std::move(other.m_data))
+    , m_channels(std::move(other.m_channels)) {
+    other.m_numChannels = RESET_CHANNELS;
+    other.m_numSamples = RESET_SAMPLES;
+}
+
+// Move assignment
+AudioBuffer& AudioBuffer::operator=(AudioBuffer&& other) noexcept {
+    if (this != &other) {
+        m_numChannels = other.m_numChannels;
+        m_numSamples = other.m_numSamples;
+        m_data = std::move(other.m_data);
+        m_channels = std::move(other.m_channels);
+        
+        other.m_numChannels = RESET_CHANNELS;
+        other.m_numSamples = RESET_SAMPLES;
+    }
+    return *this;
+}
+
+// Validation
+bool AudioBuffer::validateBuffer(std::source_location location) const {
+    if (m_numChannels == RESET_CHANNELS || m_numSamples == RESET_SAMPLES) {
+        return false;
+    }
+    
+    if (!m_data || !m_channels) {
+        return false;
+    }
+    
+    for (size_t ch = 0; ch < m_numChannels; ++ch) {
+        if (!m_channels[ch]) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+// Debug info
+std::string AudioBuffer::getDebugInfo(std::source_location location) const {
+    return nyth::format("AudioBuffer [{}:{}] - channels: {}, samples: {}, data: {}, channels_ptr: {}", 
+                       location.file_name(), location.line(),
+                       m_numChannels, m_numSamples, 
+                       m_data ? "valid" : "null", 
+                       m_channels ? "valid" : "null");
+}
+
+} // namespace AudioUtils

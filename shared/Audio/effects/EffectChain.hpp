@@ -1,9 +1,10 @@
 #pragma once
 #include "EffectBase.hpp"
+#include "EffectConstants.hpp"
 #include <memory>
 #include <vector>
 #include <span>
-#include <format>
+#include "../../compat/format.hpp"
 #include <source_location>
 #include <ranges>
 #include <stdexcept>
@@ -19,8 +20,8 @@ public:
   [[nodiscard]] bool isEnabled() const noexcept { return enabled_; }
 
   void setSampleRate(uint32_t sampleRate, int numChannels) noexcept {
-    sampleRate_ = sampleRate > 0 ? sampleRate : 48000;
-    channels_ = (numChannels == 1 || numChannels == 2) ? numChannels : 2;
+    sampleRate_ = sampleRate >= AudioFX::MIN_SAMPLE_RATE ? sampleRate : AudioFX::DEFAULT_SAMPLE_RATE;
+    channels_ = (numChannels == AudioFX::MONO_CHANNELS || numChannels == AudioFX::STEREO_CHANNELS) ? numChannels : AudioFX::DEFAULT_CHANNELS;
     std::ranges::for_each(effects_, [&](const auto& e) {
         if (e) e->setSampleRate(sampleRate_, channels_);
     });
@@ -50,7 +51,7 @@ public:
 
     // C++20 validation
     if (input.size() != output.size()) {
-      throw std::invalid_argument(std::format(
+      throw std::invalid_argument(nyth::format(
           "Input and output spans must have the same size [{}:{}]", location.file_name(), location.line()));
     }
 
@@ -59,17 +60,17 @@ public:
 
     // First effect - try modern method, fallback to legacy
     if constexpr (std::is_same_v<T, float>) {
-      effects_[0]->processMono(input.data(), output.data(), input.size());
+      effects_[AudioFX::FIRST_EFFECT_INDEX]->processMono(input.data(), output.data(), input.size());
     } else {
       // Convert for processing
       std::vector<float> tempInput(input.begin(), input.end());
       std::vector<float> tempOutput(output.size());
-      effects_[0]->processMono(tempInput.data(), tempOutput.data(), tempInput.size());
+      effects_[AudioFX::FIRST_EFFECT_INDEX]->processMono(tempInput.data(), tempOutput.data(), tempInput.size());
       std::ranges::copy(tempOutput, output.begin());
     }
 
     // Chain remaining effects in-place
-    for (size_t i = 1; i < effects_.size(); ++i) {
+    for (size_t i = AudioFX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
       if constexpr (std::is_same_v<T, float>) {
         effects_[i]->processMono(output.data(), output.data(), output.size());
       } else {
@@ -96,14 +97,14 @@ public:
 
     // C++20 validation
     if (inputL.size() != inputR.size() || inputL.size() != outputL.size() || inputR.size() != outputR.size()) {
-      throw std::invalid_argument(std::format(
+      throw std::invalid_argument(nyth::format(
           "All spans must have the same size [{}:{}]", location.file_name(), location.line()));
     }
 
     // Process chain using modern methods
     if constexpr (std::is_same_v<T, float>) {
-      effects_[0]->processStereo(inputL.data(), inputR.data(), outputL.data(), outputR.data(), inputL.size());
-      for (size_t i = 1; i < effects_.size(); ++i) {
+      effects_[AudioFX::FIRST_EFFECT_INDEX]->processStereo(inputL.data(), inputR.data(), outputL.data(), outputR.data(), inputL.size());
+      for (size_t i = AudioFX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
         effects_[i]->processStereo(outputL.data(), outputR.data(), outputL.data(), outputR.data(), outputL.size());
       }
     } else {
@@ -113,8 +114,8 @@ public:
       std::vector<float> tempOutputL(outputL.size());
       std::vector<float> tempOutputR(outputR.size());
 
-      effects_[0]->processStereo(tempInputL.data(), tempInputR.data(), tempOutputL.data(), tempOutputR.data(), tempInputL.size());
-      for (size_t i = 1; i < effects_.size(); ++i) {
+      effects_[AudioFX::FIRST_EFFECT_INDEX]->processStereo(tempInputL.data(), tempInputR.data(), tempOutputL.data(), tempOutputR.data(), tempInputL.size());
+      for (size_t i = AudioFX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
         effects_[i]->processStereo(tempOutputL.data(), tempOutputR.data(), tempOutputL.data(), tempOutputR.data(), tempOutputL.size());
       }
 
@@ -132,9 +133,9 @@ public:
     // first effect reads input, others in-place on tmp buffer
     if (!scratch_.size()) scratch_.resize(numSamples);
     // run first
-    effects_[0]->processMono(input, output, numSamples);
+    effects_[AudioFX::FIRST_EFFECT_INDEX]->processMono(input, output, numSamples);
     // then chain in-place
-    for (size_t i = 1; i < effects_.size(); ++i) {
+    for (size_t i = AudioFX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
       effects_[i]->processMono(output, output, numSamples);
     }
   }
@@ -145,16 +146,18 @@ public:
       if (outR != inR && inR && outR) for (size_t i = 0; i < numSamples; ++i) outR[i] = inR[i];
       return;
     }
-    effects_[0]->processStereo(inL, inR, outL, outR, numSamples);
-    for (size_t i = 1; i < effects_.size(); ++i) {
+    effects_[AudioFX::FIRST_EFFECT_INDEX]->processStereo(inL, inR, outL, outR, numSamples);
+    for (size_t i = AudioFX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
       effects_[i]->processStereo(outL, outR, outL, outR, numSamples);
     }
   }
 
 private:
-  bool enabled_ = true;
-  uint32_t sampleRate_ = 48000;
-  int channels_ = 2;
+  // All constants are now centralized in EffectConstants.hpp
+
+  bool enabled_ = AudioFX::DEFAULT_ENABLED;
+  uint32_t sampleRate_ = AudioFX::DEFAULT_SAMPLE_RATE;
+  int channels_ = AudioFX::DEFAULT_CHANNELS;
   std::vector<std::unique_ptr<IAudioEffect>> effects_;
   std::vector<float> scratch_;
 };

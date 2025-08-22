@@ -70,7 +70,7 @@ export const useOptimizedAudioProcessor = (config: AudioProcessorConfig) => {
       
       // Utiliser le Web Worker si disponible et activé
       if (enableWebWorker && workerReady) {
-        result = await processSpectrum(inputBuffer, sampleRate);
+        result = (await processSpectrum(inputBuffer, sampleRate, 'fp64')) as Float32Array;
       } else {
         // Traitement sur le thread principal (fallback)
         const buffer = audioBufferPool.acquire();
@@ -113,7 +113,8 @@ export const useOptimizedAudioProcessor = (config: AudioProcessorConfig) => {
         const operations = batch.map(buffer => ({
           type: 'spectrum',
           data: buffer,
-          sampleRate
+          sampleRate,
+          precision: 'fp64'
         }));
         await processBatch(operations);
       } else {

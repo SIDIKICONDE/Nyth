@@ -16,8 +16,12 @@
 
 #include "SpectralNR.hpp"
 #include "NoiseReducer.hpp"
+#include "NoiseContants.hpp"
 
 namespace AudioNR {
+
+// Import des constantes pour éviter la répétition des namespace
+using namespace RNNoiseSuppressorConstants;
 
 /**
  * @brief Suppresseur de bruit C++20 pur (pipeline NoiseReducer + SpectralNR)
@@ -64,9 +68,9 @@ public:
 
 private:
     bool available_{false};
-    uint32_t sampleRate_{48000};
-    int channels_{1};
-    double aggressiveness_{1.0};
+    uint32_t sampleRate_{RNNoiseSuppressorConstants::DEFAULT_SAMPLE_RATE};
+    int channels_{RNNoiseSuppressorConstants::DEFAULT_CHANNELS};
+    double aggressiveness_{RNNoiseSuppressorConstants::DEFAULT_AGGRESSIVENESS};
 
     // Modules C++20
     std::unique_ptr<NoiseReducer> gate_;

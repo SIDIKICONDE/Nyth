@@ -1,7 +1,6 @@
 import * as admin from "firebase-admin";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import crypto from "crypto";
-import { UserSubscription } from "../../src/types/subscription";
 import { assertSuperAdmin, serverLogAdminAccess } from "./utils/adminAuth";
 import { createLogger } from "../../src/utils/optimizedLogger";
 
@@ -356,12 +355,6 @@ export const saveSubscription = onCall(async (request) => {
     }
 
     logger.info("✅ Abonnement sauvegardé pour:", userId);
-    return { success: true };
-  } catch (error) {
-    if (error instanceof HttpsError) {
-      throw error;
-    }
-
     throw new HttpsError(
       "internal",
       "Erreur lors de la sauvegarde de l'abonnement"
@@ -377,21 +370,24 @@ export const revenuecatWebhook = onRequest(async (req, res) => {
   try {
     // Vérifier la méthode HTTP
     if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed' });
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
     }
 
     // Vérifier la signature RevenueCat (sécurité)
     const signature = req.headers['x-revenuecat-signature'] as string;
     if (!signature) {
       logger.warn('⚠️ Webhook RevenueCat sans signature');
-      return res.status(401).json({ error: 'Missing signature' });
+      res.status(401).json({ error: 'Missing signature' });
+      return;
     }
 
     // Vérifier la signature (implémenter la logique selon la doc RevenueCat)
     const isValidSignature = await validateRevenueCatSignature(req.body, signature);
     if (!isValidSignature) {
       logger.error('❌ Signature RevenueCat invalide');
-      return res.status(401).json({ error: 'Invalid signature' });
+      res.status(401).json({ error: 'Invalid signature' });
+      return;
     }
 
     const event = req.body;
@@ -509,7 +505,7 @@ async function handleSubscriptionActivated(event: any): Promise<void> {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    logger.info('✅ Abonnement activé via webhook:', app_user_id, planId);
+    logger.info('✅ Abonnement activé via webhook:', { app_user_id, planId });
 
   } catch (error) {
     logger.error('❌ Erreur activation abonnement:', error);
@@ -886,52 +882,7 @@ export const revenueCatWebhook = onRequest(async (req, res) => {
   }
 });
 
-// Fonctions helper pour les webhooks
-async function handleSubscriptionActivated(payload: unknown) {
-  const evt = (
-    payload as {
-      event: {
-        app_user_id: string;
-        product_id: string;
-        expiration_at_ms?: number;
-        store?: string;
-      };
-    }
-  ).event;
-  const userId = evt.app_user_id;
-  const productId = evt.product_id;
-  const expirationDate =
-    typeof evt.expiration_at_ms === "number"
-      ? new Date(evt.expiration_at_ms)
-      : undefined;
-  const planId = productId.replace("_monthly", "").replace("_yearly", "");
 
-  const subscription: ServerSubscription = {
-    planId,
-    status: "active",
-    startDate: new Date().toISOString(),
-    endDate: expirationDate ? expirationDate.toISOString() : undefined,
-    usage: {
-      daily: 0,
-      monthly: 0,
-      total: 0,
-      lastReset: new Date().toISOString(),
-    },
-    paymentMethod: { type: evt.store === "app_store" ? "apple" : "google" },
-  };
-
-  await db
-    .collection("subscriptions")
-    .doc(userId)
-    .set(
-      {
-        ...subscription,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        serverValidated: true,
-      },
-      { merge: true }
-    );
-}
 
 async function handleSubscriptionDeactivated(payload: unknown) {
   const evt = (payload as { event: { app_user_id: string } }).event;

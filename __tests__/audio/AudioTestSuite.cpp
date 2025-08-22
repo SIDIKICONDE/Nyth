@@ -13,6 +13,7 @@
 // Headers AudioEqualizer
 #include "shared/Audio/core/AudioEqualizer.hpp"
 #include "shared/Audio/core/BiquadFilter.hpp"
+#include "shared/Audio/fft/FFTEngine.hpp"
 #include "shared/Audio/utils/AudioBuffer.hpp"
 #include "shared/Audio/utils/Constants.hpp"
 
@@ -107,6 +108,38 @@ public:
 };
 
 } // namespace AudioTest
+
+// ===== Tests FFT Engine =====
+TEST(FFTEngineSmoke, RoundTripAccuracyFp32) {
+    const size_t N = 1024;
+    auto engine = AudioNR::createFFTEngine(N);
+    std::vector<float> input(N);
+    for (size_t i = 0; i < N; ++i) input[i] = std::sin(2.0 * M_PI * 123.0 * (double)i / 48000.0);
+    std::vector<float> re, im, recon(N);
+    engine->forwardR2C(input.data(), re, im);
+    engine->inverseC2R(re, im, recon.data());
+    double err2 = 0.0;
+    for (size_t i = 0; i < N; ++i) { const double d = (double)recon[i] - (double)input[i]; err2 += d*d; }
+    const double rms = std::sqrt(err2 / (double)N);
+    EXPECT_LT(rms, 1e-4);
+}
+
+TEST(FFTEngineSmoke, WindowLeakageHannFinite) {
+    const size_t N = 1024;
+    auto engine = AudioNR::createFFTEngine(N);
+    std::vector<float> x(N);
+    const double freq = 1000.5;
+    for (size_t i = 0; i < N; ++i) {
+        const double w = 0.5 - 0.5 * std::cos(2.0 * M_PI * (double)i / (double)(N - 1));
+        x[i] = (float)(w * std::sin(2.0 * M_PI * freq * (double)i / 48000.0));
+    }
+    std::vector<float> re, im;
+    engine->forwardR2C(x.data(), re, im);
+    for (size_t k = 0; k < N/2; ++k) {
+        const double mag = std::hypot((double)re[k], (double)im[k]);
+        EXPECT_TRUE(std::isfinite(mag));
+    }
+}
 
 // Tests pour AudioEqualizer
 class AudioEqualizerTest : public ::testing::Test {
