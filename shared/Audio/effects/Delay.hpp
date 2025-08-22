@@ -1,13 +1,16 @@
 #pragma once
-#include "EffectBase.hpp"
-#include "EffectConstants.hpp"
-#include <vector>
+
+// C++17 compatible headers
+#include <array>
 #include <algorithm>
 #include <cmath>
-#include <span>
-#include <format>
-#include <source_location>
-#include <ranges>
+#include <vector>
+#include <string>
+#include <cstdint>
+#include <cstddef>
+
+#include "EffectBase.hpp"
+#include "EffectConstants.hpp"
 
 namespace AudioFX {
 
@@ -16,9 +19,11 @@ public:
   using IAudioEffect::processMono;   // évite le masquage des surcharges (templates span)
   using IAudioEffect::processStereo; // idem
   void setParameters(double delayMs, double feedback, double mix) noexcept {
-    delayMs_ = std::max(AudioFX::MIN_DELAY_VALUE, delayMs);
-    feedback_ = std::clamp(feedback, AudioFX::MIN_FEEDBACK, AudioFX::MAX_FEEDBACK);
-    mix_ = std::clamp(mix, AudioFX::MIN_MIX, AudioFX::MAX_MIX);
+    delayMs_ = (delayMs > AudioFX::MIN_DELAY_VALUE) ? delayMs : AudioFX::MIN_DELAY_VALUE;
+    feedback_ = (feedback < AudioFX::MIN_FEEDBACK) ? AudioFX::MIN_FEEDBACK :
+                (feedback > AudioFX::MAX_FEEDBACK) ? AudioFX::MAX_FEEDBACK : feedback;
+    mix_ = (mix < AudioFX::MIN_MIX) ? AudioFX::MIN_MIX :
+           (mix > AudioFX::MAX_MIX) ? AudioFX::MAX_MIX : mix;
     updateBuffers();
   }
 
@@ -27,20 +32,22 @@ public:
     updateBuffers();
   }
 
-  // C++20 modernized processing methods
-  template<AudioSampleType T = float>
-  void processMonoModern(std::span<const T> input, std::span<T> output,
-                        std::source_location location = std::source_location::current()) {
-    // Use the base class C++20 method
+  // C++17 modernized processing methods
+  template<typename T = float>
+  typename std::enable_if<std::is_floating_point<T>::value>::type
+  processMonoModern(std::vector<T>& input, std::vector<T>& output,
+                   const std::string& location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
+    // Use the base class C++17 method
     processMono(input, output, location);
   }
 
-  template<AudioSampleType T = float>
-  void processStereoModern(std::span<const T> inputL, std::span<const T> inputR,
-                          std::span<T> outputL, std::span<T> outputR,
-                          std::source_location location = std::source_location::current()) {
+  template<typename T = float>
+  typename std::enable_if<std::is_floating_point<T>::value>::type
+  processStereoModern(std::vector<T>& inputL, std::vector<T>& inputR,
+                     std::vector<T>& outputL, std::vector<T>& outputR,
+                     const std::string& location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
     // Call our own stereo processing method
-    if constexpr (std::is_same_v<T, float>) {
+    if (std::is_same<T, float>::value) {
       processStereo(inputL.data(), inputR.data(), outputL.data(), outputR.data(), inputL.size());
     } else {
       // Convert to float for processing
@@ -49,35 +56,33 @@ public:
       std::vector<float> tempOutputL(outputL.size());
       std::vector<float> tempOutputR(outputR.size());
       processStereo(tempInputL.data(), tempInputR.data(), tempOutputL.data(), tempOutputR.data(), tempInputL.size());
-      std::ranges::copy(tempOutputL, outputL.begin());
-      std::ranges::copy(tempOutputR, outputR.begin());
+      std::copy(tempOutputL.begin(), tempOutputL.end(), outputL.begin());
+      std::copy(tempOutputR.begin(), tempOutputR.end(), outputR.begin());
     }
   }
 
-  // Legacy methods (call the modern versions for C++20)
+  // Legacy methods (call the modern versions for C++17)
   void processMono(const float* input, float* output, size_t numSamples) override {
     if (!isEnabled() || mix_ <= AudioFX::MIX_THRESHOLD || !input || !output || numSamples == 0) {
       if (output != input && input && output) {
-        std::ranges::copy(std::span<const float>(input, numSamples),
-                         std::span<float>(output, numSamples).begin());
+        std::copy_n(input, numSamples, output);
       }
       return;
     }
     ensureState(1);
     size_t maxN = buffer_[0].size();
 
-    // C++20 ranges-based processing
-    std::ranges::for_each(std::views::iota(size_t{0}, numSamples),
-                         [&](size_t i) {
-                             float x = input[i];
-                             float d = buffer_[0][readIndex_];
-                             float y = static_cast<float>((AudioFX::MIX_INVERT_FACTOR - mix_) * x + mix_ * d);
-                             output[i] = y;
-                             // write with feedback
-                             float w = static_cast<float>(x + feedback_ * d);
-                             buffer_[0][writeIndex_] = w;
-                             incrementIndices(maxN);
-                         });
+    // C++17 traditional loop processing
+    for (size_t i = 0; i < numSamples; ++i) {
+      float x = input[i];
+      float d = buffer_[0][readIndex_];
+      float y = static_cast<float>((AudioFX::MIX_INVERT_FACTOR - mix_) * x + mix_ * d);
+      output[i] = y;
+      // write with feedback
+      float w = static_cast<float>(x + feedback_ * d);
+      buffer_[0][writeIndex_] = w;
+      incrementIndices(maxN);
+    }
   }
 
   void processStereo(const float* inL, const float* inR, float* outL, float* outR, size_t numSamples) override {
@@ -109,10 +114,9 @@ private:
     size_t maxDelaySamples = static_cast<size_t>(std::round(delayMs_ * AudioFX::MS_TO_SECONDS_DELAY * static_cast<double>(sampleRate_)));
     if (maxDelaySamples < AudioFX::MIN_DELAY_SAMPLES) maxDelaySamples = AudioFX::MIN_DELAY_SAMPLES;
     if (maxDelaySamples > AudioFX::MAX_DELAY_SECONDS * AudioFX::REFERENCE_SAMPLE_RATE) maxDelaySamples = AudioFX::MAX_DELAY_SECONDS * AudioFX::REFERENCE_SAMPLE_RATE; // clamp 4s max
-    std::ranges::for_each(std::views::iota(0, channels_),
-                          [&](int ch) {
-                              buffer_[ch].assign(maxDelaySamples, AudioFX::BUFFER_INIT_VALUE);
-                          });
+    for (int ch = 0; ch < channels_; ++ch) {
+      buffer_[ch].assign(maxDelaySamples, AudioFX::BUFFER_INIT_VALUE);
+    }
     // set read/write offset
     writeIndex_ = AudioFX::DEFAULT_INDEX;
     readIndex_ = (maxDelaySamples + writeIndex_ - AudioFX::MIN_DELAY_SAMPLES) % maxDelaySamples; // ~delay of N-1 samples initially

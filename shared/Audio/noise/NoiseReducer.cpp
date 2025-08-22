@@ -1,10 +1,10 @@
 #include "NoiseReducer.hpp"
 #include <stdexcept>
 #include <algorithm>
-#include <vector>
+#include <array>
 #include <memory>
 #include <cmath>
-#include <span>
+#include <vector>
 #include "NoiseContants.hpp"
 
 namespace AudioNR {
@@ -24,7 +24,7 @@ NoiseReducer::NoiseReducer(uint32_t sampleRate, int numChannels)
 
     if (channels_ < MIN_CHANNELS) channels_ = MIN_CHANNELS;
     if (channels_ > MAX_CHANNELS) channels_ = MAX_CHANNELS;
-    
+
     ch_.resize(static_cast<size_t>(channels_));
     ensureFilters();
     updateDerived();
@@ -40,7 +40,7 @@ void NoiseReducer::setSampleRate(uint32_t sampleRate) {
     if (sampleRate > MAX_SAMPLE_RATE) {
         throw std::invalid_argument("Sample rate must not exceed 192000 Hz");
     }
-    
+
     if (sampleRate_ == sampleRate) return; // Optimization: no change needed
     sampleRate_ = sampleRate;
     ensureFilters();
@@ -67,7 +67,7 @@ void NoiseReducer::setConfig(const NoiseReducerConfig& cfg) {
     if (cfg.highPassHz < MIN_HIGHPASS_HZ || cfg.highPassHz > MAX_HIGHPASS_HZ) {
         throw std::invalid_argument("High-pass frequency must be between 20 and 1000 Hz");
     }
-    
+
     config_ = cfg;
     ensureFilters();
     updateDerived();
@@ -77,17 +77,17 @@ void NoiseReducer::updateDerived() {
     // Pre-calculate linear values from dB (avoid repeated pow() calls)
     threshLin_ = dbToLin(config_.thresholdDb);
     floorLin_ = dbToLin(config_.floorDb);
-    
+
     // Pre-calculate envelope follower coefficients
     // These use exp() which is expensive, so we cache them
     attackCoeffEnv_ = coefForMs(config_.attackMs);
     releaseCoeffEnv_ = coefForMs(config_.releaseMs);
-    
+
     // Gain smoothing coefficients (slightly faster attack than release)
     // Attack is faster to open the gate quickly
     attackCoeffGain_ = coefForMs(std::max(UNITY_GAIN, config_.attackMs * ATTACK_GAIN_FACTOR));
     releaseCoeffGain_ = coefForMs(std::max(MIN_RELEASE_GAIN_MS, config_.releaseMs));
-    
+
     // Pre-calculate common values for the expander curve
     // This avoids repeated calculations in the process loop
     expansionSlope_ = UNITY_RECIPROCAL / config_.ratio;
@@ -110,7 +110,7 @@ void NoiseReducer::processMono(const float* input, float* output, size_t numSamp
         throw std::invalid_argument("Input and output buffers must not be null");
     }
     if (numSamples == ZERO_SAMPLES_CHECK) return;
-    
+
     if (!config_.enabled) {
         if (output != input) std::copy_n(input, numSamples, output);
         return;
@@ -126,7 +126,7 @@ void NoiseReducer::processStereo(const float* inL, const float* inR, float* outL
     if (channels_ < STEREO_REQUIRED_CHANNELS) {
         throw std::runtime_error("Stereo processing requires 2 channels");
     }
-    
+
     if (!config_.enabled) {
         if (outL != inL) std::copy_n(inL, numSamples, outL);
         if (outR != inR) std::copy_n(inR, numSamples, outR);
@@ -139,49 +139,47 @@ void NoiseReducer::processStereo(const float* inL, const float* inR, float* outL
 void NoiseReducer::processChannel(const float* in, float* out, size_t n, ChannelState& st) {
     // Optional high-pass pre-filter to remove rumble
     if (st.highPass) {
-        std::span<const float> inputSpan(in, n);
-        std::span<float> outputSpan(out, n);
-        st.highPass->process(inputSpan, outputSpan); // use out as temp
-        // Now 'out' contains filtered data, 'in' points to original
+        std::vector<float> inputVec(in, in + n);
+        std::vector<float> outputVec(n);
+        st.highPass->process(inputVec, outputVec);
+        // Copy filtered data back
+        std::copy(outputVec.begin(), outputVec.end(), out);
         in = out; // For in-place operation, update input pointer
     } else if (out != in) {
         // Only copy if buffers are different
         std::copy_n(in, n, out);
     }
 
-    // Envelope follower and expander gain using C++20 ranges
+    // Envelope follower and expander gain using C++17 loop
     // Simple RMS-like envelope using absolute value smoothing (fast, low cost)
-    std::ranges::for_each(std::views::iota(size_t{0}, n),
-                         [&](size_t i) {
-                             double x = static_cast<double>(out[i]);
-                             double ax = std::abs(x);
-                             // Envelope
-                             if (ax > st.env) st.env = attackCoeffEnv_ * st.env + (UNITY_GAIN - attackCoeffEnv_) * ax;
-                             else             st.env = releaseCoeffEnv_ * st.env + (UNITY_GAIN - releaseCoeffEnv_) * ax;
+    for (size_t i = 0; i < n; ++i) {
+        double x = static_cast<double>(out[i]);
+        double ax = std::abs(x);
+        // Envelope
+        if (ax > st.env) st.env = attackCoeffEnv_ * st.env + (UNITY_GAIN - attackCoeffEnv_) * ax;
+        else             st.env = releaseCoeffEnv_ * st.env + (UNITY_GAIN - releaseCoeffEnv_) * ax;
 
-                             // Compute static curve for downward expander
-                             double gTarget = UNITY_GAIN;
-                             if (st.env < threshLin_) {
-                                 // Below threshold: apply expansion
-                                 // Simplified calculation using pre-computed values
-                                 double ratio = st.env / threshLin_;
+        // Compute static curve for downward expander
+        double gTarget = UNITY_GAIN;
+        if (st.env < threshLin_) {
+            // Below threshold: apply expansion
+            // Simplified calculation using pre-computed values
+            double ratio = st.env / threshLin_;
 
-                                 // Apply expansion curve: output = input^(1/ratio)
-                                 // This gives a smooth transition at the threshold
-                                 gTarget = std::pow(ratio, expansionSlope_);
+            // Apply expansion curve: output = input^(1/ratio)
+            // This gives a smooth transition at the threshold
+            gTarget = std::pow(ratio, expansionSlope_);
 
-                                 // Apply floor limit
-                                 if (gTarget < floorLin_) gTarget = floorLin_;
-                             }
+            // Apply floor limit
+            if (gTarget < floorLin_) gTarget = floorLin_;
+        }
 
-                             // Smooth gain (avoid pumping)
-                             if (gTarget > st.gain) st.gain = attackCoeffGain_ * st.gain + (UNITY_GAIN - attackCoeffGain_) * gTarget;
-                             else                   st.gain = releaseCoeffGain_ * st.gain + (UNITY_GAIN - releaseCoeffGain_) * gTarget;
+        // Smooth gain (avoid pumping)
+        if (gTarget > st.gain) st.gain = attackCoeffGain_ * st.gain + (UNITY_GAIN - attackCoeffGain_) * gTarget;
+        else                   st.gain = releaseCoeffGain_ * st.gain + (UNITY_GAIN - releaseCoeffGain_) * gTarget;
 
-                             out[i] = static_cast<float>(out[i] * st.gain);
-                         });
+        out[i] = static_cast<float>(out[i] * st.gain);
+    }
 }
 
 } // namespace AudioNR
-
-

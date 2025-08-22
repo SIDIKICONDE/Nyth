@@ -1,6 +1,6 @@
 #pragma once
 
-// C++20 standard headers
+// C++17 standard headers - Nettoyés et organisés
 #include <cstdint>
 #include <cstddef>
 #include <cmath>
@@ -8,40 +8,57 @@
 #include <chrono>
 #include <array>
 #include <algorithm>
-#include <ranges>
-#include <concepts>
 #include <type_traits>
-#include <string>
+#include <cstring>
 #include <stdexcept>
-#include <vector>
 #include <memory>
 #include <atomic>
 #include <mutex>
-#include <span>
-#include <source_location>
+#include <vector>
 #include <iterator>
+#include <string>
 
 namespace AudioFX {
 
-// C++20 Concepts for better type safety
-template<typename T>
-concept AudioSampleType = std::floating_point<T>;
+// ============================================================================
+// C++17 TYPE TRAITS - Remplace les concepts C++20
+// ============================================================================
 
+// Type traits simplifiés pour C++17
 template<typename T>
-concept FrequencyValue = std::floating_point<T> && requires(T freq) {
-    freq > 0.0;
+struct is_audio_sample_type {
+    static constexpr bool value = std::is_floating_point<T>::value;
 };
 
-// C++20 consteval utilities for compile-time computation
-consteval double compute_pi() { return 3.14159265358979323846; }
-consteval double compute_two_pi() { return 2.0 * compute_pi(); }
+template<typename T>
+constexpr bool is_audio_sample_type_v = is_audio_sample_type<T>::value;
 
-consteval size_t compute_max_channels() { return 32; }
-consteval size_t compute_max_bands() { return 31; }
+template<typename T>
+struct is_frequency_value {
+    static constexpr bool value = std::is_floating_point<T>::value;
+};
 
-// Audio processing constants (now using consteval)
+template<typename T>
+constexpr bool is_frequency_value_v = is_frequency_value<T>::value;
+
+// ============================================================================
+// CONSTANTES MATHÉMATIQUES GLOBALES
+// ============================================================================
+
+// C++17 constexpr utilities
+constexpr double compute_pi() { return 3.14159265358979323846; }
+constexpr double compute_two_pi() { return 2.0 * compute_pi(); }
+
+constexpr size_t compute_max_channels() { return 32; }
+constexpr size_t compute_max_bands() { return 31; }
+
+// Audio processing constants (constexpr in C++17)
 constexpr double PI = compute_pi();
 constexpr double TWO_PI = compute_two_pi();
+
+// ============================================================================
+// CONSTANTES AUDIO GLOBALES
+// ============================================================================
 
 // Sample rates
 constexpr uint32_t SAMPLE_RATE_44100 = 44100;
@@ -57,20 +74,6 @@ constexpr size_t MIN_BLOCK_SIZE = 64;
 // Equalizer bands
 constexpr size_t NUM_BANDS = 10;
 constexpr size_t MAX_BANDS = 31;
-
-// Default frequency bands for 10-band EQ (Hz)
-constexpr double DEFAULT_FREQUENCIES[NUM_BANDS] = {
-    31.25,   // Sub-bass
-    62.5,    // Bass
-    125.0,   // Low-mid
-    250.0,   // Mid
-    500.0,   // Mid
-    1000.0,  // Mid-high
-    2000.0,  // High-mid
-    4000.0,  // Presence
-    8000.0,  // Brilliance
-    16000.0  // Air
-};
 
 // Q factor ranges
 constexpr double MIN_Q = 0.1;
@@ -98,14 +101,20 @@ enum class FilterType {
 constexpr double EPSILON = 1e-10;
 constexpr double DENORMAL_THRESHOLD = 1e-15;
 
-// AudioEqualizer specific constants
+// SIMD alignment
+constexpr size_t SIMD_ALIGNMENT = 16;
+
+// ============================================================================
+// NAMESPACE EQUALIZER - Constantes spécifiques à l'égaliseur
+// ============================================================================
+
 namespace EqualizerConstants {
     // Default values
     constexpr double DEFAULT_MASTER_GAIN = 1.0;
     constexpr double ZERO_GAIN = 0.0;
     constexpr float ZERO_GAIN_F = 0.0f;
     constexpr float UNITY_GAIN_F = 1.0f;
-    constexpr double DEFAULT_CENTER_FREQUENCY = 1000.0;  // Hz - Default frequency for EQ bands
+    constexpr double DEFAULT_CENTER_FREQUENCY = 1000.0;  // Hz
 
     // Thresholds
     constexpr double ACTIVE_GAIN_THRESHOLD = 0.01;
@@ -141,6 +150,20 @@ namespace EqualizerConstants {
     // Reset and initialization values
     constexpr size_t STEP_INCREMENT = 1;
     constexpr double LOGARITHMIC_BASE = 10.0;
+
+    // Default frequency bands for 10-band EQ (Hz)
+    constexpr double DEFAULT_FREQUENCIES[NUM_BANDS] = {
+        31.25,   // Sub-bass
+        62.5,    // Bass
+        125.0,   // Low-mid
+        250.0,   // Mid
+        500.0,   // Mid
+        1000.0,  // Mid-high
+        2000.0,  // High-mid
+        4000.0,  // Presence
+        8000.0,  // Brilliance
+        16000.0  // Air
+    };
 
     // Preset gain values (organized by preset type)
     namespace PresetGains {
@@ -205,7 +228,7 @@ namespace BiquadConstants {
     // PREFETCH_READ, PREFETCH_WRITE, PREFETCH_LOCALITY already available
 
     // Mathematical constants for header file
-    constexpr double PI_PRECISE = 3.14159265358979323846;  // High precision Pi for consteval functions
+    constexpr double PI_PRECISE = 3.14159265358979323846;  // High precision Pi for constexpr functions
     constexpr double TWO_PI_MULTIPLIER = 2.0;             // Multiplier for 2*Pi calculations
 
     // Audio type size constants (in bytes)
@@ -232,7 +255,7 @@ namespace EffectConstants {
     constexpr uint32_t MINIMUM_SAMPLE_RATE = 8000;       // Minimum valid sample rate (8kHz minimum)
 
     // Buffer and processing (moved to utils/utilsConstants.hpp)
-    
+
     // Time conversion constants
     constexpr double MS_TO_SECONDS = 0.001;              // Milliseconds to seconds conversion
 }
@@ -240,7 +263,7 @@ namespace EffectConstants {
 // SIMD alignment
 constexpr size_t SIMD_ALIGNMENT = 16;
 
-// C++20 modernized frequency bands using std::array
+// C++17 modernized frequency bands using std::array
 constexpr std::array<double, NUM_BANDS> DEFAULT_FREQUENCY_BANDS = {
     31.25,   // Sub-bass
     62.5,    // Bass
@@ -254,57 +277,63 @@ constexpr std::array<double, NUM_BANDS> DEFAULT_FREQUENCY_BANDS = {
     16000.0  // Air
 };
 
-// C++20 consteval functions for validation
-consteval bool is_valid_frequency(double freq) {
+// C++17 constexpr functions for validation
+constexpr bool is_valid_frequency(double freq) {
     return freq > 0.0 && freq <= 22050.0; // Nyquist limit for 44.1kHz
 }
 
-consteval bool is_valid_q(double q) {
+constexpr bool is_valid_q(double q) {
     return q >= MIN_Q && q <= MAX_Q;
 }
 
-consteval bool is_valid_gain_db(double gain_db) {
+constexpr bool is_valid_gain_db(double gain_db) {
     return gain_db >= MIN_GAIN_DB && gain_db <= MAX_GAIN_DB;
 }
 
-// C++20 template for frequency validation at compile time
-template<FrequencyValue T>
-consteval bool validate_frequency(T freq) {
+// C++17 template for frequency validation at compile time
+template<typename T>
+constexpr typename std::enable_if<is_frequency_value_v<T>, bool>::type validate_frequency(T freq) {
     return is_valid_frequency(static_cast<double>(freq));
 }
 
-// C++20 utility functions
-template<AudioSampleType T = double>
-constexpr T db_to_linear(T db) {
+// C++17 utility functions
+template<typename T = double>
+constexpr typename std::enable_if<is_audio_sample_type_v<T>, T>::type db_to_linear(T db) {
     return static_cast<T>(std::pow(10.0, db / 20.0));
 }
 
-template<AudioSampleType T = double>
-constexpr T linear_to_db(T linear) {
+template<typename T = double>
+constexpr typename std::enable_if<is_audio_sample_type_v<T>, T>::type linear_to_db(T linear) {
     return static_cast<T>(20.0 * std::log10(linear));
 }
 
-// C++20 enhanced validation with source_location
-bool validate_frequency_range(double freq,
-                            std::source_location location = std::source_location::current());
+// C++17 enhanced validation without source_location
+inline bool validate_frequency_range(double freq, const std::string& /*location*/ = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
+    return freq >= EqualizerConstants::MIN_FREQUENCY_HZ && freq <= EqualizerConstants::MAX_FREQUENCY_HZ;
+}
 
-bool validate_q_range(double q,
-                    std::source_location location = std::source_location::current());
+inline bool validate_q_range(double q, const std::string& /*location*/ = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
+    return q >= MIN_Q && q <= MAX_Q;
+}
 
-bool validate_gain_range(double gain_db,
-                        std::source_location location = std::source_location::current());
+inline bool validate_gain_range(double gain_db, const std::string& /*location*/ = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
+    return gain_db >= MIN_GAIN_DB && gain_db <= MAX_GAIN_DB;
+}
 
-// C++20 formatted error messages
-std::string format_frequency_error(double freq,
-                                 std::source_location location = std::source_location::current());
+// C++17 formatted error messages (basic string versions)
+inline std::string format_frequency_error(double freq, const std::string& location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
+    return std::string("Invalid frequency: ") + std::to_string(freq) + " at " + location;
+}
 
-std::string format_q_error(double q,
-                         std::source_location location = std::source_location::current());
+inline std::string format_q_error(double q, const std::string& location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
+    return std::string("Invalid Q: ") + std::to_string(q) + " at " + location;
+}
 
-std::string format_gain_error(double gain_db,
-                            std::source_location location = std::source_location::current());
+inline std::string format_gain_error(double gain_db, const std::string& location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
+    return std::string("Invalid gain: ") + std::to_string(gain_db) + " at " + location;
+}
 
-// Temporisation portable en C++20 (évite les APIs C spécifiques plateforme)
+// Temporisation portable en C++17 (évite les APIs C spécifiques plateforme)
 inline void portable_sleep_ms(long milliseconds) {
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 }

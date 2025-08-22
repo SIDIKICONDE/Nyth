@@ -1,6 +1,6 @@
-# Audio Noise Reduction - C++20 Modern Implementation
+# Audio Noise Reduction - C++17 Modern Implementation
 
-## 🎯 C++20 Features Used (100% Migration Completed)
+## 🎯 C++17 Features Used (100% Compatible)
 
 ### ✅ **Core C++20 Features**
 - **Concepts**: Type-safe audio processing constraints

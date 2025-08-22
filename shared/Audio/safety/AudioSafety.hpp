@@ -2,7 +2,7 @@
 
 #ifdef __cplusplus
 
-// C++20 standard headers - Robust compatibility
+// C++17 standard headers - Robust compatibility
 #if defined(__has_include)
 #  if __has_include(<cstdint>)
 #    include <cstdint>
@@ -96,30 +96,30 @@ private:
     double limiterThresholdLin_ = DEFAULT_LIMITER_THRESHOLD_LINEAR; // from dB
 
     // Helpers - Conversion dB vers linéaire sans nombres magiques
-    inline double dbToLin(double dB) const { 
+    inline double dbToLin(double dB) const {
         double x = dB / DB_TO_LINEAR_DIVISOR;
-        
+
         // Cas simples sans calculs
         if (x == ZERO_POWER_EXP) return UNITY_POWER;
         if (x == POSITIVE_UNIT_EXP) return LOG_BASE_10;
         if (x == NEGATIVE_UNIT_EXP) return LOG_BASE_10_INV;
-        
+
         // Implémentation sans pow() pour éviter les dépendances
         double result = UNITY_POWER;
         double base = (x > ZERO_POWER_EXP) ? LOG_BASE_10 : LOG_BASE_10_INV;
         double absX = (x > ZERO_POWER_EXP) ? x : -x;
-        
+
         // Partie entière
         for (int i = 0; i < (int)absX; ++i) {
             result *= base;
         }
-        
+
         // Approximation pour partie fractionnaire
         double frac = absX - (int)absX;
         if (frac > FRACTIONAL_THRESHOLD) {
             result *= (x > ZERO_POWER_EXP) ? SQRT_10_APPROX : SQRT_10_INV_APPROX;
         }
-        
+
         return result;
     }
     // Analyse + nettoyage d'un canal. Retourne un rapport pour ce canal

@@ -1,232 +1,185 @@
 #pragma once
 
 #ifdef __cplusplus
+#pragma once
+
+#ifdef __cplusplus
+
+// C++17 standard headers ONLY - No C++20 features
 #include <cstddef>
+#include <cstdint>
 #include <complex>
 #include <memory>
+#include <array>
 #include <vector>
 #include <stdexcept>
 #include <cmath>
+#include <algorithm>
+#include <type_traits>
 
-// Try to detect KissFFT headers. Users can also define KISSFFT_AVAILABLE=1 via build flags.
-#if !defined(KISSFFT_AVAILABLE)
-  #if defined(__has_include)
-    #if __has_include(<kissfft/kiss_fftr.h>)
-      #define KISSFFT_AVAILABLE 1
-    #else
-      #define KISSFFT_AVAILABLE 0
-    #endif
-  #else
-    #define KISSFFT_AVAILABLE 0
-  #endif
-#endif
+namespace AudioFX {
 
-namespace AudioNR {
+// C++17 constexpr constants for FFT
+namespace FFTConstants {
+    constexpr size_t MIN_FFT_SIZE = 64;
+    constexpr size_t MAX_FFT_SIZE = 8192;
+    constexpr size_t DEFAULT_FFT_SIZE = 1024;
+    constexpr double PI = 3.14159265358979323846;
+    constexpr double TWO_PI = 2.0 * PI;
+}
+
+// C++17 type traits for validation
+template<typename T>
+struct is_fft_float_type {
+    static constexpr bool value = std::is_same_v<T, float> || std::is_same_v<T, double>;
+};
+
+template<typename T>
+constexpr bool is_fft_float_type_v = is_fft_float_type<T>::value;
 
 /**
- * Abstract FFT engine for real-valued signals.
- * Implementations may use KissFFT (if available) or a fallback radix-2 FFT.
- * All methods operate on length-N buffers where N is the configured fftSize.
+ * @brief Interface for FFT engines - C++17 pure implementation
  */
 class IFFTEngine {
 public:
     virtual ~IFFTEngine() = default;
 
-    /**
-     * @return FFT size configured for this engine.
-     */
-    virtual std::size_t getFftSize() const noexcept = 0;
-
-    /**
-     * Real-to-complex forward FFT.
-     * - timeIn: pointer to N real samples (length = N)
-     * - reOut, imOut: output arrays (length will be set to N)
-     */
-    virtual void forwardR2C(const float* timeIn,
-                            std::vector<float>& reOut,
-                            std::vector<float>& imOut) = 0;
-
-    /**
-     * Complex-to-real inverse FFT.
-     * - reIn, imIn: input arrays (length = N)
-     * - timeOut: pointer to output buffer (length = N)
-     *
-     * Implementations must apply the 1/N scale so that forward followed by
-     * inverse reconstructs the original signal (within numeric error).
-     */
-    virtual void inverseC2R(const std::vector<float>& reIn,
-                            const std::vector<float>& imIn,
-                            float* timeOut) = 0;
+    virtual void forwardR2C(const float* real, std::vector<float>& realOut, std::vector<float>& imagOut) = 0;
+    virtual void inverseC2R(const std::vector<float>& realIn, const std::vector<float>& imagIn, float* real) = 0;
+    virtual size_t getSize() const = 0;
 };
 
-/** Factory that returns KissFFT-based engine if available, otherwise a radix-2 engine. */
-std::unique_ptr<IFFTEngine> createFFTEngine(std::size_t fftSize);
-
-} // namespace AudioNR
-#endif // __cplusplus
-
-// ====== Header-only fallback implementation (Radix-2 Cooley-Tukey) ======
-#ifdef __cplusplus
-namespace AudioNR {
-
-class Radix2FFTEngine final : public IFFTEngine {
+/**
+ * @brief Simple radix-2 FFT implementation - C++17 compliant
+ * No external dependencies, pure C++17
+ */
+class SimpleFFT : public IFFTEngine {
 public:
-    explicit Radix2FFTEngine(std::size_t fftSize)
-        : fftSize_(fftSize) {
-        if (fftSize_ == 0 || (fftSize_ & (fftSize_ - 1)) != 0) {
-            throw std::invalid_argument("FFTEngine: fftSize must be power of two and > 0");
+    explicit SimpleFFT(size_t size) : size_(size) {
+        if (!isPowerOfTwo(size)) {
+            throw std::invalid_argument("FFT size must be a power of 2");
         }
-        precomputeTwiddles();
-        work_.resize(fftSize_);
+        if (size < FFTConstants::MIN_FFT_SIZE || size > FFTConstants::MAX_FFT_SIZE) {
+            throw std::invalid_argument("FFT size out of range");
+        }
+
+        // Precompute twiddle factors
+        computeTwiddleFactors();
     }
 
-    std::size_t getFftSize() const noexcept override { return fftSize_; }
+    void forwardR2C(const float* real, std::vector<float>& realOut, std::vector<float>& imagOut) override {
+        // Copy input to complex array
+        realOut.resize(size_);
+        imagOut.resize(size_);
 
-    void forwardR2C(const float* timeIn,
-                    std::vector<float>& reOut,
-                    std::vector<float>& imOut) override {
-        const std::size_t N = fftSize_;
-        reOut.resize(N);
-        imOut.resize(N);
-        for (std::size_t i = 0; i < N; ++i) {
-            work_[i] = { static_cast<float>(timeIn[i]), 0.0f };
+        for (size_t i = 0; i < size_; ++i) {
+            realOut[i] = real[i];
+            imagOut[i] = 0.0f;
         }
-        fftInPlace(work_, /*inverse=*/false);
-        for (std::size_t i = 0; i < N; ++i) {
-            reOut[i] = work_[i].real();
-            imOut[i] = work_[i].imag();
+
+        // Perform FFT
+        fftRadix2(realOut, imagOut, false);
+    }
+
+    void inverseC2R(const std::vector<float>& realIn, const std::vector<float>& imagIn, float* real) override {
+        std::vector<float> tempReal = realIn;
+        std::vector<float> tempImag = imagIn;
+
+        // Perform inverse FFT
+        fftRadix2(tempReal, tempImag, true);
+
+        // Copy real part and normalize
+        float norm = 1.0f / static_cast<float>(size_);
+        for (size_t i = 0; i < size_; ++i) {
+            real[i] = tempReal[i] * norm;
         }
     }
 
-    void inverseC2R(const std::vector<float>& reIn,
-                    const std::vector<float>& imIn,
-                    float* timeOut) override {
-        const std::size_t N = fftSize_;
-        if (reIn.size() < N || imIn.size() < N) {
-            throw std::invalid_argument("FFTEngine: input spectrum size mismatch");
-        }
-        for (std::size_t i = 0; i < N; ++i) {
-            work_[i] = { reIn[i], imIn[i] };
-        }
-        fftInPlace(work_, /*inverse=*/true);
-        const float scale = 1.0f / static_cast<float>(N);
-        for (std::size_t i = 0; i < N; ++i) timeOut[i] = work_[i].real() * scale;
-    }
+    size_t getSize() const override { return size_; }
 
 private:
-    std::size_t fftSize_;
-    std::vector<std::complex<float>> work_;
-    std::vector<std::complex<float>> twiddles_;
+    size_t size_;
+    std::vector<float> twiddleReal_;
+    std::vector<float> twiddleImag_;
 
-    static std::size_t reverseBits(std::size_t x, std::size_t nBits) {
-        std::size_t r = 0;
-        for (std::size_t i = 0; i < nBits; ++i) {
-            r = (r << 1) | (x & 1);
-            x >>= 1;
-        }
-        return r;
+    static bool isPowerOfTwo(size_t n) {
+        return n && !(n & (n - 1));
     }
 
-    void precomputeTwiddles() {
-        twiddles_.clear();
-        for (std::size_t size = 2; size <= fftSize_; size <<= 1) {
-            const std::size_t half = size >> 1;
-            const float angle = 2.0f * static_cast<float>(M_PI) / static_cast<float>(size);
-            for (std::size_t k = 0; k < half; ++k) {
-                const float phase = angle * static_cast<float>(k);
-                twiddles_.emplace_back(std::cos(phase), std::sin(phase));
-            }
+    void computeTwiddleFactors() {
+        twiddleReal_.resize(size_ / 2);
+        twiddleImag_.resize(size_ / 2);
+
+        for (size_t i = 0; i < size_ / 2; ++i) {
+            double angle = -FFTConstants::TWO_PI * static_cast<double>(i) / static_cast<double>(size_);
+            twiddleReal_[i] = static_cast<float>(std::cos(angle));
+            twiddleImag_[i] = static_cast<float>(std::sin(angle));
         }
     }
 
-    void fftInPlace(std::vector<std::complex<float>>& data, bool inverse) const {
-        const std::size_t N = data.size();
-        if (N <= 1) return;
-        // Bit-reversal permutation
-        std::size_t nBits = 0, t = N;
-        while (t > 1) { ++nBits; t >>= 1; }
-        for (std::size_t i = 0; i < N; ++i) {
-            const std::size_t j = reverseBits(i, nBits);
-            if (i < j) std::swap(data[i], data[j]);
-        }
-        // Iterative Cooley-Tukey using precomputed twiddles
-        std::size_t twiddleOffset = 0;
-        for (std::size_t size = 2; size <= N; size <<= 1) {
-            const std::size_t half = size >> 1;
-            for (std::size_t start = 0; start < N; start += size) {
-                for (std::size_t k = 0; k < half; ++k) {
-                    std::complex<float> w = twiddles_[twiddleOffset + k];
-                    if (inverse) w = std::conj(w);
-                    const std::complex<float> tVal = w * data[start + k + half];
-                    const std::complex<float> uVal = data[start + k];
-                    data[start + k] = uVal + tVal;
-                    data[start + k + half] = uVal - tVal;
+    void fftRadix2(std::vector<float>& real, std::vector<float>& imag, bool inverse) {
+        // Bit reversal
+        bitReverse(real, imag);
+
+        // FFT computation
+        for (size_t stage = 2; stage <= size_; stage *= 2) {
+            size_t halfStage = stage / 2;
+            size_t twiddleStep = size_ / stage;
+
+            for (size_t k = 0; k < size_; k += stage) {
+                for (size_t j = 0; j < halfStage; ++j) {
+                    size_t idx1 = k + j;
+                    size_t idx2 = idx1 + halfStage;
+                    size_t twiddleIdx = j * twiddleStep;
+
+                    float tReal = inverse ? -twiddleImag_[twiddleIdx] : twiddleImag_[twiddleIdx];
+                    float tImag = twiddleReal_[twiddleIdx];
+
+                    if (inverse) {
+                        tReal = -tReal;
+                    }
+
+                    float tempReal = real[idx2] * twiddleReal_[twiddleIdx] - imag[idx2] * tReal;
+                    float tempImag = real[idx2] * tReal + imag[idx2] * twiddleReal_[twiddleIdx];
+
+                    real[idx2] = real[idx1] - tempReal;
+                    imag[idx2] = imag[idx1] - tempImag;
+                    real[idx1] += tempReal;
+                    imag[idx1] += tempImag;
                 }
             }
-            twiddleOffset += half;
         }
-        // Note: scaling is applied in inverseC2R()
+    }
+
+    void bitReverse(std::vector<float>& real, std::vector<float>& imag) {
+        size_t bits = 0;
+        size_t temp = size_;
+        while (temp > 1) {
+            temp >>= 1;
+            bits++;
+        }
+
+        for (size_t i = 1; i < size_ - 1; ++i) {
+            size_t rev = 0;
+            size_t val = i;
+            for (size_t j = 0; j < bits; ++j) {
+                rev = (rev << 1) | (val & 1);
+                val >>= 1;
+            }
+
+            if (i < rev) {
+                std::swap(real[i], real[rev]);
+                std::swap(imag[i], imag[rev]);
+            }
+        }
     }
 };
 
-inline std::unique_ptr<IFFTEngine> createFFTEngine(std::size_t fftSize) {
-    // Hook: prefer KissFFT if available at compile time
-#if KISSFFT_AVAILABLE
-    struct KissEngine final : public IFFTEngine {
-        explicit KissEngine(std::size_t N)
-            : N_(N) {
-            if (N_ == 0 || (N_ & (N_ - 1)) != 0) {
-                throw std::invalid_argument("KissFFTEngine: fftSize must be power of two and > 0");
-            }
-            cfgFwd_ = kiss_fftr_alloc(static_cast<int>(N_), 0, nullptr, nullptr);
-            cfgInv_ = kiss_fftr_alloc(static_cast<int>(N_), 1, nullptr, nullptr);
-            if (!cfgFwd_ || !cfgInv_) throw std::runtime_error("KissFFTEngine: allocation failed");
-            tmpRe_.resize(N_);
-            tmpIm_.resize(N_);
-            tmpSpec_.resize(N_/2 + 1);
-        }
-        ~KissEngine() override {
-            if (cfgFwd_) free(cfgFwd_);
-            if (cfgInv_) free(cfgInv_);
-        }
-        std::size_t getFftSize() const noexcept override { return N_; }
-        void forwardR2C(const float* timeIn, std::vector<float>& reOut, std::vector<float>& imOut) override {
-            reOut.resize(N_); imOut.resize(N_);
-            kiss_fftr(cfgFwd_, timeIn, tmpSpec_.data());
-            // tmpSpec_ has N/2+1 bins (DC..Nyquist). Mirror to full complex spectrum (Hermitian)
-            reOut[0] = tmpSpec_[0].r; imOut[0] = tmpSpec_[0].i;
-            for (std::size_t k = 1; k < N_/2; ++k) {
-                reOut[k] = tmpSpec_[k].r; imOut[k] = tmpSpec_[k].i;
-                reOut[N_-k] = tmpSpec_[k].r; imOut[N_-k] = -tmpSpec_[k].i;
-            }
-            reOut[N_/2] = tmpSpec_[N_/2].r; imOut[N_/2] = tmpSpec_[N_/2].i; // Nyquist
-        }
-        void inverseC2R(const std::vector<float>& reIn, const std::vector<float>& imIn, float* timeOut) override {
-            if (reIn.size() < N_ || imIn.size() < N_) throw std::invalid_argument("KissFFTEngine: spectrum size mismatch");
-            // Pack Hermitian half into tmpSpec_
-            tmpSpec_[0].r = reIn[0]; tmpSpec_[0].i = imIn[0];
-            for (std::size_t k = 1; k < N_/2; ++k) {
-                tmpSpec_[k].r = reIn[k]; tmpSpec_[k].i = imIn[k];
-            }
-            tmpSpec_[N_/2].r = reIn[N_/2]; tmpSpec_[N_/2].i = imIn[N_/2];
-            kiss_fftri(cfgInv_, tmpSpec_.data(), timeOut);
-            const float scale = 1.0f / static_cast<float>(N_);
-            for (std::size_t i = 0; i < N_; ++i) timeOut[i] *= scale;
-        }
-    private:
-        std::size_t N_{};
-        kiss_fftr_cfg cfgFwd_{};
-        kiss_fftr_cfg cfgInv_{};
-        std::vector<float> tmpRe_, tmpIm_;
-        std::vector<kiss_fft_cpx> tmpSpec_;
-    };
-    return std::make_unique<KissEngine>(fftSize);
-#else
-    return std::make_unique<Radix2FFTEngine>(fftSize);
-#endif
+// Factory function - C++17 style
+inline std::unique_ptr<IFFTEngine> createFFTEngine(size_t size) {
+    return std::make_unique<SimpleFFT>(size);
 }
 
-} // namespace AudioNR
+} // namespace AudioFX
+
 #endif // __cplusplus
-
-

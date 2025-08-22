@@ -1,21 +1,16 @@
 #pragma once
 
-// C++20 standard headers
+// C++17 standard headers
 #include <cstdint>
+#include <cstddef>
 #include <algorithm>
 #include <cmath>
-#include <span>
-#include "../../compat/format.hpp"
-#include <source_location>
-#include <ranges>
-#include <concepts>
+#include <vector>
+#include <string>
 #include <type_traits>
 
-// Legacy headers
 #include "EffectBase.hpp"
 #include "EffectConstants.hpp"
-
-// Concepts fournis par EffectBase.hpp (éviter les redéfinitions locales)
 
 namespace AudioFX {
 
@@ -39,20 +34,22 @@ public:
     gainL_ = gainR_ = DEFAULT_GAIN;
   }
 
-  // C++20 modernized processing methods
-  template<AudioSampleType T = float>
-  void processMonoModern(std::span<const T> input, std::span<T> output,
-                        std::source_location location = std::source_location::current()) {
-    // Use the base class C++20 method
+  // C++17 modernized processing methods
+  template<typename T = float>
+  typename std::enable_if<std::is_floating_point<T>::value>::type
+  processMonoModern(std::vector<T>& input, std::vector<T>& output,
+                   const std::string& location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
+    // Use the base class C++17 method
     processMono(input, output, location);
   }
 
-  template<AudioSampleType T = float>
-  void processStereoModern(std::span<const T> inputL, std::span<const T> inputR,
-                          std::span<T> outputL, std::span<T> outputR,
-                          std::source_location location = std::source_location::current()) {
+  template<typename T = float>
+  typename std::enable_if<std::is_floating_point<T>::value>::type
+  processStereoModern(std::vector<T>& inputL, std::vector<T>& inputR,
+                     std::vector<T>& outputL, std::vector<T>& outputR,
+                     const std::string& location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
     // Call our own stereo processing method
-    if constexpr (std::is_same_v<T, float>) {
+    if (std::is_same<T, float>::value) {
       processStereo(inputL.data(), inputR.data(), outputL.data(), outputR.data(), inputL.size());
     } else {
       // Convert to float for processing
@@ -61,24 +58,23 @@ public:
       std::vector<float> tempOutputL(outputL.size());
       std::vector<float> tempOutputR(outputR.size());
       processStereo(tempInputL.data(), tempInputR.data(), tempOutputL.data(), tempOutputR.data(), tempInputL.size());
-      std::ranges::copy(tempOutputL, outputL.begin());
-      std::ranges::copy(tempOutputR, outputR.begin());
+      std::copy(tempOutputL.begin(), tempOutputL.end(), outputL.begin());
+      std::copy(tempOutputR.begin(), tempOutputR.end(), outputR.begin());
     }
   }
 
-  // Legacy methods (call the modern versions for C++20)
+  // Legacy methods (call the modern versions for C++17)
   void processMono(const float* input, float* output, size_t numSamples) override {
     if (!isEnabled() || !input || !output || numSamples == 0) {
       if (output != input && input && output) {
-        std::ranges::copy(std::span<const float>(input, numSamples),
-                         std::span<float>(output, numSamples).begin());
+        std::copy_n(input, numSamples, output);
       }
       return;
     }
 
     // Optimized processing with loop unrolling
     size_t i = 0;
-    
+
     // Process samples in blocks for better pipelining
     for (; i + (AudioFX::UNROLL_BLOCK_SIZE - 1) < numSamples; i += AudioFX::UNROLL_BLOCK_SIZE) {
       // Prefetch next block
@@ -96,7 +92,7 @@ public:
       double ax1 = std::abs(x1) + AudioFX::EPSILON_DB;
       double ax2 = std::abs(x2) + AudioFX::EPSILON_DB;
       double ax3 = std::abs(x3) + AudioFX::EPSILON_DB;
-      
+
       // Envelope follower for each sample
       double coeff0 = (ax0 > envL_) ? attackCoeff_ : releaseCoeff_;
       envL_ = coeff0 * envL_ + (AudioFX::DEFAULT_GAIN - coeff0) * ax0;
@@ -113,24 +109,24 @@ public:
       double coeff3 = (ax3 > envL_) ? attackCoeff_ : releaseCoeff_;
       envL_ = coeff3 * envL_ + (AudioFX::DEFAULT_GAIN - coeff3) * ax3;
       double levelDb3 = AudioFX::DB_CONVERSION_FACTOR * std::log10(envL_);
-      
+
       // Apply compression curve
       double outDb0 = (levelDb0 > thresholdDb_) ? thresholdDb_ + (levelDb0 - thresholdDb_) / ratio_ : levelDb0;
       double outDb1 = (levelDb1 > thresholdDb_) ? thresholdDb_ + (levelDb1 - thresholdDb_) / ratio_ : levelDb1;
       double outDb2 = (levelDb2 > thresholdDb_) ? thresholdDb_ + (levelDb2 - thresholdDb_) / ratio_ : levelDb2;
       double outDb3 = (levelDb3 > thresholdDb_) ? thresholdDb_ + (levelDb3 - thresholdDb_) / ratio_ : levelDb3;
-      
+
       // Calculate gains
       double gainDb0 = (outDb0 - levelDb0) + makeupDb_;
       double gainDb1 = (outDb1 - levelDb1) + makeupDb_;
       double gainDb2 = (outDb2 - levelDb2) + makeupDb_;
       double gainDb3 = (outDb3 - levelDb3) + makeupDb_;
-      
+
       double gTarget0 = std::pow(AudioFX::POWER_CONVERSION_BASE, gainDb0 / AudioFX::DB_CONVERSION_FACTOR);
       double gTarget1 = std::pow(AudioFX::POWER_CONVERSION_BASE, gainDb1 / AudioFX::DB_CONVERSION_FACTOR);
       double gTarget2 = std::pow(AudioFX::POWER_CONVERSION_BASE, gainDb2 / AudioFX::DB_CONVERSION_FACTOR);
       double gTarget3 = std::pow(AudioFX::POWER_CONVERSION_BASE, gainDb3 / AudioFX::DB_CONVERSION_FACTOR);
-      
+
       // Smooth gains
       double gCoeff0 = (gTarget0 > gainL_) ? gainAttackCoeff_ : gainReleaseCoeff_;
       gainL_ = gCoeff0 * gainL_ + (AudioFX::DEFAULT_GAIN - gCoeff0) * gTarget0;
@@ -148,7 +144,7 @@ public:
       gainL_ = gCoeff3 * gainL_ + (AudioFX::DEFAULT_GAIN - gCoeff3) * gTarget3;
       output[i + 3] = static_cast<float>(x3 * gainL_);
     }
-    
+
     // Process remaining samples
     for (; i < numSamples; ++i) {
       double x = static_cast<double>(input[i]);

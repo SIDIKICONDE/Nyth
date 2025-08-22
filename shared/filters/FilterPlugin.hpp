@@ -1,11 +1,12 @@
 #pragma once
 
 #include "common/FilterTypes.hpp"
-#include <memory>
 #include <string>
 #include <vector>
-#include <unordered_map>
+#include <memory>
 #include <functional>
+#include <unordered_map>
+#include <cstring>
 
 namespace Camera {
 

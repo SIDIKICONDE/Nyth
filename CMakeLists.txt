@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(AudioEqualizerProject)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable testing for the entire project
@@ -34,8 +34,8 @@ if(LCOV)
 endif()
 
 # Print configuration summary
-message(STATUS "=== Audio Equalizer Project Configuration ===")
-message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "=== Audio Equalizer Project Configuration (C++17) ===")
+message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD} (C++17)")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Testing: Enabled")
 if(LCOV)

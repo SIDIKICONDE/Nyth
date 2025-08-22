@@ -2,22 +2,16 @@
 
 #ifdef __cplusplus
 
-// C++20 standard headers - Robust compatibility
-#if defined(__has_include)
-#  if __has_include(<cstdint>)
-#    include <cstdint>
-#  else
-#    include <stdint.h>
-#  endif
-#  if __has_include(<cstddef>)
-#    include <cstddef>
-#  else
-#    include <stddef.h>
-#  endif
-#else
-#  include <stdint.h>
-#  include <stddef.h>
-#endif
+// C++17 standard headers - Robust compatibility
+#include <cstdint>
+#include <cstddef>
+#include <array>
+#include <vector>
+#include <string>
+#include <type_traits>
+#include <limits>
+#include <cmath>
+#include <algorithm>
 
 // Audio Utils Constants - Centralized for all utility functions
 namespace AudioUtils {
@@ -33,16 +27,16 @@ static constexpr size_t DEFAULT_BUFFER_SIZE = 1024;     // Default buffer size i
 static constexpr size_t INVALID_BUFFER_SIZE = 0;        // Invalid buffer size indicator
 
 // === ALIGNEMENT SIMD ===
-static constexpr size_t SIMD_ALIGNMENT_BYTES = 16;      // 16-byte boundary alignment
-static constexpr size_t SIMD_ALIGNMENT_FLOATS = 4;      // 4 floats = 16 bytes
-static constexpr size_t SIMD_ALIGNMENT_MASK = 3;        // For (size + 3) & ~3 alignment
-static constexpr size_t SIMD_ALIGNMENT_INVERSE_MASK = ~3; // ~3 for masking
-static constexpr size_t SIMD_BLOCK_SIZE = 4;            // Process 4 samples at a time
-static constexpr size_t SIMD_MASK_FOR_BLOCK = ~3;       // Mask for SIMD blocks
+static constexpr size_t SIMD_ALIGNMENT_BYTES = 16;      // 16-byte boundary alignment for SSE/NEON
+static constexpr size_t SIMD_ALIGNMENT_FLOATS = 4;      // 4 floats = 16 bytes (SSE/NEON vector size)
+static constexpr size_t SIMD_ALIGNMENT_MASK = 3;        // For (size + 3) & ~3 alignment calculation
+static constexpr size_t SIMD_ALIGNMENT_INVERSE_MASK = ~3; // ~3 for masking (inverse of mask)
+static constexpr size_t SIMD_BLOCK_SIZE = 4;            // Process 4 samples at a time (vector width)
+static constexpr size_t SIMD_MASK_FOR_BLOCK = ~3;       // Mask for SIMD blocks (4-sample alignment)
 
 // === VALEURS D'INITIALISATION ===
 static constexpr float ZERO_FLOAT = 0.0f;               // Float zero value
-static constexpr double ZERO_DOUBLE = 0.0;              // Double zero value  
+static constexpr double ZERO_DOUBLE = 0.0;              // Double zero value
 static constexpr float UNITY_GAIN = 1.0f;               // Unity gain (no change)
 static constexpr size_t ZERO_INDEX = 0;                 // Zero index for arrays
 static constexpr size_t ZERO_SAMPLES = 0;               // Zero samples count
@@ -72,11 +66,11 @@ static constexpr float MAX_DB_VALUE = 120.0f;           // Maximum dB value to c
 static constexpr float MIN_DB_VALUE = -120.0f;          // Minimum dB value to clamp
 
 // === CONSTANTES DE CONVERSION ===
-static constexpr float DB_TO_LINEAR_FACTOR = 20.0f;     // Factor for dB to linear conversion
-static constexpr float LINEAR_TO_DB_FACTOR = 20.0f;     // Factor for linear to dB conversion
-static constexpr float LOG10_BASE = 10.0f;              // Base for log10 calculations
-static constexpr float SQRT_2 = 1.4142135623730951f;    // Square root of 2
-static constexpr float INV_SQRT_2 = 0.7071067811865476f; // 1/sqrt(2) for pan laws
+static constexpr float DB_TO_LINEAR_FACTOR = 20.0f;     // Factor for dB to linear conversion (20*log10)
+static constexpr float LINEAR_TO_DB_FACTOR = 20.0f;     // Factor for linear to dB conversion (20*log10)
+static constexpr float LOG10_BASE = 10.0f;              // Base for log10 calculations (10^x)
+static constexpr float SQRT_2 = 1.4142135623730951f;    // Square root of 2 (√2)
+static constexpr float INV_SQRT_2 = 0.7071067811865476f; // 1/sqrt(2) for pan laws (1/√2)
 
 // === CONSTANTES DE PERFORMANCE ===
 static constexpr size_t CACHE_LINE_SIZE = 64;           // CPU cache line size in bytes
@@ -91,7 +85,7 @@ static constexpr double SAMPLE_RATE_96000 = 96000.0;    // High-quality sample r
 static constexpr double MS_TO_SAMPLES_AT_44100 = 44.1;  // Milliseconds to samples at 44.1kHz
 static constexpr double MS_TO_SAMPLES_AT_48000 = 48.0;  // Milliseconds to samples at 48kHz
 
-// === CONSTANTES DE VALIDATION C++20 ===
+// === CONSTANTES DE VALIDATION C++17 ===
 static constexpr size_t MAX_STACK_BUFFER_SIZE = 8192;   // Maximum size for stack-allocated buffers
 static constexpr size_t SPAN_SAFETY_MARGIN = 1;         // Safety margin for span operations
 
@@ -116,7 +110,7 @@ using namespace UtilsConstants;
 
 } // namespace AudioUtils
 
-// C++20 constexpr utilities (consteval fallback)
+// C++17 constexpr utilities
 namespace AudioUtils {
     constexpr size_t compute_max_channels() { return MAX_CHANNELS; }
     constexpr size_t compute_max_samples() { return MAX_SAMPLES; }

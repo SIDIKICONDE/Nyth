@@ -2,22 +2,16 @@
 
 #ifdef __cplusplus
 
-// C++20 standard headers - Robust compatibility
-#if defined(__has_include)
-#  if __has_include(<cstdint>)
-#    include <cstdint>
-#  else
-#    include <stdint.h>
-#  endif
-#  if __has_include(<cstddef>)
-#    include <cstddef>
-#  else
-#    include <stddef.h>
-#  endif
-#else
-#  include <stdint.h>
-#  include <stddef.h>
-#endif
+// C++17 standard headers - Robust compatibility
+#include <cstdint>
+#include <cstddef>
+#include <array>
+#include <vector>
+#include <string>
+#include <type_traits>
+#include <limits>
+#include <cmath>
+#include <algorithm>
 
 namespace AudioSafety {
 
@@ -64,10 +58,10 @@ static constexpr double NEGATIVE_UNIT_EXP = -1.0;        // Exposant -1
 static constexpr double FRACTIONAL_THRESHOLD = 0.5;      // Seuil pour partie fractionnaire
 
 // === LIMITES DE VALIDATION ===
-static constexpr uint32_t MIN_SAMPLE_RATE = 8000;
-static constexpr uint32_t MAX_SAMPLE_RATE = 192000;
-static constexpr int MIN_CHANNELS = 1;
-static constexpr int MAX_CHANNELS = 2;
+static constexpr uint32_t MIN_SAMPLE_RATE = 8000;        // Minimum sample rate (8kHz)
+static constexpr uint32_t MAX_SAMPLE_RATE = 192000;       // Maximum sample rate (192kHz)
+static constexpr int MIN_CHANNELS = 1;                    // Minimum number of channels
+static constexpr int MAX_CHANNELS = 2;                    // Maximum number of channels
 static constexpr double MIN_LIMITER_THRESHOLD_DB = -20.0;
 static constexpr double MAX_LIMITER_THRESHOLD_DB = 0.0;
 static constexpr double MIN_KNEE_WIDTH_DB = 0.0;
@@ -85,11 +79,11 @@ static constexpr double MIN_ENERGY_THRESHOLD = 1e-9;
 static constexpr size_t ZERO_SAMPLES = 0;
 
 // === CONSTANTES DE CLIPPING ===
-static constexpr float CLIP_THRESHOLD_HIGH = 1.0f;
-static constexpr float CLIP_THRESHOLD_LOW = -1.0f;
-static constexpr float CLIP_CORRECTION_HIGH = 1.0f;
-static constexpr float CLIP_CORRECTION_LOW = -1.0f;
-static constexpr float NAN_REPLACEMENT = 0.0f;
+static constexpr float CLIP_THRESHOLD_HIGH = 1.0f;       // Upper clipping threshold
+static constexpr float CLIP_THRESHOLD_LOW = -1.0f;       // Lower clipping threshold
+static constexpr float CLIP_CORRECTION_HIGH = 1.0f;      // Upper clipping correction value
+static constexpr float CLIP_CORRECTION_LOW = -1.0f;      // Lower clipping correction value
+static constexpr float NAN_REPLACEMENT = 0.0f;           // Replacement value for NaN/Inf
 
 // === CONSTANTES D'INITIALISATION ===
 static constexpr double INITIAL_SUM = 0.0;

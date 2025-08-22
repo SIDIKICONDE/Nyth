@@ -1,8 +1,9 @@
 #pragma once
 
-
 #include <string>
 #include <vector>
+#include <cstring>
+#include <array>
 
 namespace Camera {
 

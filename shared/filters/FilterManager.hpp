@@ -1,21 +1,21 @@
 #pragma once
 
-#include <chrono>
-#include "common/FilterTypes.hpp"
-#include "MemoryManager.hpp"
-#include <memory>
-#include <vector>
-#include <unordered_map>
-#include <mutex>
-#include <thread>
-#include <future>
-#include <queue>
-#include <condition_variable>
-#include <functional>
 #include <string>
-#include <chrono>
+#include <vector>
+#include <queue>
+#include <memory>
+#include <functional>
+#include <future>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <stdexcept>
 #include <cstdint>
+#include <cstring>
+#include <time.h>
+
+#include "common/FilterTypes.hpp"
+#include "MemoryManager.hpp"
 
 namespace Camera {
 

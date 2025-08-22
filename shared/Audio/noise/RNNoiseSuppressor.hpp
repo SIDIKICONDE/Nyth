@@ -11,7 +11,7 @@
 #else
 #include <stdint.h>
 #endif
-#include <vector>
+#include <array>
 #include <memory>
 
 #include "SpectralNR.hpp"
@@ -24,7 +24,7 @@ namespace AudioNR {
 using namespace RNNoiseSuppressorConstants;
 
 /**
- * @brief Suppresseur de bruit C++20 pur (pipeline NoiseReducer + SpectralNR)
+ * @brief Suppresseur de bruit C++17 pur (pipeline NoiseReducer + SpectralNR)
  *
  * Implémentation sans dépendances C. Compose un expander temporel (NoiseReducer)
  * et une réduction spectrale (SpectralNR) pour un résultat robuste et portable.
@@ -57,7 +57,7 @@ public:
      * @brief Traiter un flux mono
      */
     void processMono(const float* input, float* output, size_t numSamples);
-    
+
     /**
      * @brief Traiter un flux stéréo
      * @note Downmix vers mono pour la réduction spectrale puis upmix
@@ -72,7 +72,7 @@ private:
     int channels_{RNNoiseSuppressorConstants::DEFAULT_CHANNELS};
     double aggressiveness_{RNNoiseSuppressorConstants::DEFAULT_AGGRESSIVENESS};
 
-    // Modules C++20
+    // Modules C++17
     std::unique_ptr<NoiseReducer> gate_;
     std::unique_ptr<SpectralNR> spectral_;
 
@@ -91,5 +91,3 @@ private:
 
 } // namespace AudioNR
 #endif // __cplusplus
-
-

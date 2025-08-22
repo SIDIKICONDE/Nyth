@@ -1,0 +1,23 @@
+// Configuration pour corriger les erreurs de compilation C++
+// Flags POSIX pour résoudre les conflits d'en-têtes
+
+// Définitions POSIX pour timespec, time_t, etc.
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) _POSIX_C_SOURCE=200809L _DARWIN_C_SOURCE=1 HAVE_STRUCT_TIMESPEC=1
+
+// Flags de compilation C++ supplémentaires
+OTHER_CFLAGS = $(inherited) -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D_POSIX_C_SOURCE=200809L -D_DARWIN_C_SOURCE=1 -DHAVE_STRUCT_TIMESPEC=1
+
+// Standard C++20
+CLANG_CXX_LANGUAGE_STANDARD = c++20
+
+// Bibliothèque C++ standard
+CLANG_CXX_LIBRARY = libc++
+
+// Désactiver les extensions C++0x pour éviter les conflits
+CLANG_WARN_CXX0X_EXTENSIONS = NO
+
+// Chemins d'inclusion système
+HEADER_SEARCH_PATHS = $(inherited) "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/usr/include" "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/usr/include/c++/v1"
+
+// Flags de compilation spécifiques au SDK
+OTHER_CPLUSPLUSFLAGS = $(inherited) -isysroot "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk" -D_POSIX_C_SOURCE=200809L -D_DARWIN_C_SOURCE=1

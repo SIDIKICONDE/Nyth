@@ -2,8 +2,6 @@
 
 #include "common/FilterTypes.hpp"
 #include <string>
-#include <vector>
-#include <memory>
 #include <unordered_map>
 
 // Forward declarations OpenGL

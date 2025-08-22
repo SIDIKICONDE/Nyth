@@ -1,8 +1,8 @@
 #include "NativeCameraFiltersModule.h"
 #include <cstdint>
 #include <mutex>
-#include <string>
-#include <chrono>
+#include <cstring>
+#include <time.h>
 #include <thread>
 #include <memory>
 

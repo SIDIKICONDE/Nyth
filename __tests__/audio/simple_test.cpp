@@ -4,6 +4,10 @@
 #include <chrono>
 #include <cmath>
 #include <algorithm>
+#include <limits>
+#include "../../shared/Audio/core/CoreConstants.hpp"
+
+using namespace AudioFX;
 
 // Tests simples pour valider les concepts de base
 namespace SimpleTest {
@@ -33,16 +37,15 @@ bool testAudioMath() {
 bool testSignalGeneration() {
     std::cout << "🎵 Test de génération de signal...\n";
 
-    const int sampleRate = 44100;
-    const double frequency = 440.0;
-    const double duration = 0.1; // 100ms
-    const int numSamples = static_cast<int>(duration * sampleRate);
+    const int numSamples = 1000;
+    const double sampleRate = 44100.0;
+    const double frequency = 440.0; // La note A4
 
     std::vector<double> sineWave(numSamples);
 
     for (int i = 0; i < numSamples; ++i) {
         double t = static_cast<double>(i) / sampleRate;
-        sineWave[i] = std::sin(2.0 * M_PI * frequency * t);
+        sineWave[i] = std::sin(2.0 * PI * frequency * t);
     }
 
     // Vérifier que le signal est dans les limites
@@ -91,7 +94,7 @@ bool testBasicPerformance() {
     auto start = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < iterations; ++i) {
-        signal[i] = std::sin(2.0 * M_PI * 440.0 * i / 44100.0);
+        signal[i] = std::sin(2.0 * PI * 440.0 * i / 44100.0);
     }
 
     auto end = std::chrono::high_resolution_clock::now();

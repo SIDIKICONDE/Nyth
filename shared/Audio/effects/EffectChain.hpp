@@ -1,13 +1,20 @@
 #pragma once
+
+// C++17 standard headers
+#include <cstdint>
+#include <cstddef>
+#include <memory>
+#include <array>
+#include <vector>
+#include <algorithm>
+#include <stdexcept>
+#include <sstream>
+#include <string>
+#include <type_traits>
+#include <utility>
+
 #include "EffectBase.hpp"
 #include "EffectConstants.hpp"
-#include <memory>
-#include <vector>
-#include <span>
-#include "../../compat/format.hpp"
-#include <source_location>
-#include <ranges>
-#include <stdexcept>
 
 namespace AudioFX {
 
@@ -22,7 +29,7 @@ public:
   void setSampleRate(uint32_t sampleRate, int numChannels) noexcept {
     sampleRate_ = sampleRate >= AudioFX::MIN_SAMPLE_RATE ? sampleRate : AudioFX::DEFAULT_SAMPLE_RATE;
     channels_ = (numChannels == AudioFX::MONO_CHANNELS || numChannels == AudioFX::STEREO_CHANNELS) ? numChannels : AudioFX::DEFAULT_CHANNELS;
-    std::ranges::for_each(effects_, [&](const auto& e) {
+    std::for_each(effects_, [&](const auto& e) {
         if (e) e->setSampleRate(sampleRate_, channels_);
     });
   }
@@ -38,71 +45,75 @@ public:
 
   void clear() noexcept { effects_.clear(); }
 
-  // C++20 modernized processing methods
-  template<AudioSampleType T = float>
-  void processMono(std::span<const T> input, std::span<T> output,
-                   std::source_location location = std::source_location::current()) {
+  // C++17 modernized processing methods
+  template<typename T = float>
+  typename std::enable_if<std::is_floating_point<T>::value>::type
+  processMono(std::vector<T>& input, std::vector<T>& output,
+             const std::string& location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
     if (!enabled_ || effects_.empty()) {
       if (output.data() != input.data() && !input.empty() && !output.empty()) {
-        std::ranges::copy(input, output.begin());
+        std::copy(input.begin(), input.end(), output.begin());
       }
       return;
     }
 
-    // C++20 validation
+    // C++17 validation
     if (input.size() != output.size()) {
-      throw std::invalid_argument(nyth::format(
-          "Input and output spans must have the same size [{}:{}]", location.file_name(), location.line()));
+      std::ostringstream oss;
+      oss << "Input and output vectors must have the same size [" << location << "]";
+      throw std::invalid_argument(oss.str());
     }
 
     // Process chain using modern methods if available
     if (!scratch_.size()) scratch_.resize(input.size());
 
     // First effect - try modern method, fallback to legacy
-    if constexpr (std::is_same_v<T, float>) {
+    if (std::is_same<T, float>::value) {
       effects_[AudioFX::FIRST_EFFECT_INDEX]->processMono(input.data(), output.data(), input.size());
     } else {
       // Convert for processing
       std::vector<float> tempInput(input.begin(), input.end());
       std::vector<float> tempOutput(output.size());
       effects_[AudioFX::FIRST_EFFECT_INDEX]->processMono(tempInput.data(), tempOutput.data(), tempInput.size());
-      std::ranges::copy(tempOutput, output.begin());
+      std::copy(tempOutput.begin(), tempOutput.end(), output.begin());
     }
 
     // Chain remaining effects in-place
     for (size_t i = AudioFX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
-      if constexpr (std::is_same_v<T, float>) {
+      if (std::is_same<T, float>::value) {
         effects_[i]->processMono(output.data(), output.data(), output.size());
       } else {
         std::vector<float> tempOutput(output.begin(), output.end());
         effects_[i]->processMono(tempOutput.data(), tempOutput.data(), tempOutput.size());
-        std::ranges::copy(tempOutput, output.begin());
+        std::copy(tempOutput.begin(), tempOutput.end(), output.begin());
       }
     }
   }
 
-  template<AudioSampleType T = float>
-  void processStereo(std::span<const T> inputL, std::span<const T> inputR,
-                     std::span<T> outputL, std::span<T> outputR,
-                     std::source_location location = std::source_location::current()) {
+  template<typename T = float>
+  typename std::enable_if<std::is_floating_point<T>::value>::type
+  processStereo(std::vector<T>& inputL, std::vector<T>& inputR,
+               std::vector<T>& outputL, std::vector<T>& outputR,
+               const std::string& location = std::string(__FILE__) + ":" + std::to_string(__LINE__)) {
     if (!enabled_ || effects_.empty()) {
       if (outputL.data() != inputL.data() && !inputL.empty() && !outputL.empty()) {
-        std::ranges::copy(inputL, outputL.begin());
+        std::copy(inputL.begin(), inputL.end(), outputL.begin());
       }
       if (outputR.data() != inputR.data() && !inputR.empty() && !outputR.empty()) {
-        std::ranges::copy(inputR, outputR.begin());
+        std::copy(inputR.begin(), inputR.end(), outputR.begin());
       }
       return;
     }
 
-    // C++20 validation
+    // C++17 validation
     if (inputL.size() != inputR.size() || inputL.size() != outputL.size() || inputR.size() != outputR.size()) {
-      throw std::invalid_argument(nyth::format(
-          "All spans must have the same size [{}:{}]", location.file_name(), location.line()));
+      std::ostringstream oss;
+      oss << "All vectors must have the same size [" << location << "]";
+      throw std::invalid_argument(oss.str());
     }
 
     // Process chain using modern methods
-    if constexpr (std::is_same_v<T, float>) {
+    if (std::is_same<T, float>::value) {
       effects_[AudioFX::FIRST_EFFECT_INDEX]->processStereo(inputL.data(), inputR.data(), outputL.data(), outputR.data(), inputL.size());
       for (size_t i = AudioFX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
         effects_[i]->processStereo(outputL.data(), outputR.data(), outputL.data(), outputR.data(), outputL.size());
@@ -119,8 +130,8 @@ public:
         effects_[i]->processStereo(tempOutputL.data(), tempOutputR.data(), tempOutputL.data(), tempOutputR.data(), tempOutputL.size());
       }
 
-      std::ranges::copy(tempOutputL, outputL.begin());
-      std::ranges::copy(tempOutputR, outputR.begin());
+      std::copy(tempOutputL.begin(), tempOutputL.end(), outputL.begin());
+      std::copy(tempOutputR.begin(), tempOutputR.end(), outputR.begin());
     }
   }
 

@@ -1,35 +1,33 @@
-Modern C++20 audio effects engine for Nyth with zero-cost abstractions.
+Modern C++17 audio effects engine for Nyth with zero-cost abstractions.
 
-🎯 **C++20 Features Used (100% Migration Completed):**
-- ✅ **Concepts**: Type-safe constraints for audio processing
-- ✅ **std::span**: Safe buffer management (replaces raw pointers)
-- ✅ **std::format**: Type-safe string formatting for errors/debug
-- ✅ **std::source_location**: Enhanced debugging with file/line info
-- ✅ **std::ranges**: Functional programming for audio operations
-- ✅ **std::ranges::transform**: Modern audio processing loops
-- ✅ **std::ranges::copy**: Safe buffer operations
-- ✅ **std::ranges::for_each**: Modern iteration patterns
-- ✅ **std::views::iota**: Range-based indexing
-- ✅ **consteval**: Compile-time computation of audio constants
-- ✅ **using enum**: Cleaner enum access patterns
+🎯 **C++17 Features Used:**
+- ✅ **SFINAE & std::enable_if_t**: Type-safe template constraints
+- ✅ **std::vector**: Safe buffer management
+- ✅ **constexpr extended**: Compile-time computations
+- ✅ **std::is_same_v**: Type traits for validation
+- ✅ **if constexpr**: Compile-time branching
+- ✅ **std::unique_ptr**: Smart pointer memory management
+- ✅ **std::atomic**: Thread-safe operations
+- ✅ **std::mutex**: Thread synchronization
+- ✅ **Structured bindings**: Clean tuple/pair handling
+- ✅ **Class template argument deduction**: Simplified syntax
 
-📦 **Components (100% C++20 Modernized):**
-- ✅ `EffectBase.hpp`: Pure C++20 base interface with concepts and modern processing
-- ✅ `Compressor.hpp`: Feed-forward compressor with C++20 ranges-based processing
-- ✅ `Delay.hpp`: Delay effect with modern buffer management using ranges
-- ✅ `EffectChain.hpp`: Effect chaining with pure C++20 range-based processing
+📦 **Components (100% C++17 Compatible):**
+- ✅ `EffectBase.hpp`: Pure C++17 base interface with SFINAE
+- ✅ `Compressor.hpp`: Feed-forward compressor with optimized loops
+- ✅ `Delay.hpp`: Delay effect with circular buffer management
+- ✅ `EffectChain.hpp`: Effect chaining with C++17 algorithms
 
-🔧 **Integration (Modernized):**
-- ✅ Android: Modern AudioEQBridge with C++20 features
-- ✅ iOS: Enhanced VideoCaptureIOS with zero-cost abstractions
-- ✅ **No legacy methods**: All deprecated methods removed, pure C++20 implementation
+🔧 **Integration:**
+- ✅ Android: AudioEQBridge compatible C++17
+- ✅ iOS: VideoCaptureIOS with zero-cost abstractions
+- ✅ **Clean implementation**: Pure C++17 without C++20 dependencies
 
-⚡ **Performance (C++20 Optimized):**
-- ✅ Zero-cost abstractions through concepts and constexpr
-- ✅ Type-safe at compile time with concepts
-- ✅ Enhanced error messages with source locations
-- ✅ Range-based algorithms for better optimization
-- ✅ Modern audio processing with std::ranges::transform
-- ✅ Safe buffer management with std::span
-- ✅ Functional programming patterns throughout
-
+⚡ **Performance (C++17 Optimized):**
+- ✅ Zero-cost abstractions through templates and constexpr
+- ✅ Type-safe at compile time with SFINAE
+- ✅ Clear error messages with static_assert
+- ✅ STL algorithms for optimization opportunities
+- ✅ Modern audio processing with std::transform
+- ✅ Safe buffer management with std::vector
+- ✅ Functional programming patterns with lambdas

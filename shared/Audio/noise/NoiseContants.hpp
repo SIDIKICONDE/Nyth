@@ -1,24 +1,19 @@
 #pragma once
 
+// C++17 standard headers - Compatibility garantie
+#include <cstdint>
+#include <cstddef>
+#include <array>
+#include <vector>
+#include <string>
+#include <type_traits>
+#include <limits>
+#include <cmath>
+#include <algorithm>
+
 // Constantes mathématiques universelles
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
-#endif
-
-#if defined(__has_include)
-#  if __has_include(<cstdint>)
-#    include <cstdint>
-#  else
-#    include <stdint.h>
-#  endif
-#  if __has_include(<cstddef>)
-#    include <cstddef>
-#  else
-#    include <stddef.h>
-#  endif
-#else
-#  include <stdint.h>
-#  include <stddef.h>
 #endif
 
 // NoiseReducer specific constants
@@ -120,14 +115,12 @@ namespace NoiseReducerConstants {
 namespace RNNoiseSuppressorConstants {
     // Validation des paramètres audio
     // Bornes d'entrée globales pour l'API publique
-    constexpr uint32_t MIN_SAMPLE_RATE = 8000;           // Minimum sample rate in Hz
     constexpr uint32_t MAX_SAMPLE_RATE = 192000;         // Maximum sample rate in Hz
     constexpr int MIN_CHANNELS = 1;                      // Minimum number of channels
     constexpr int MAX_CHANNELS = 2;                      // Maximum number of channels
     constexpr int STEREO_REQUIRED_CHANNELS = 2;          // Channels required for stereo processing
 
-    // Paramètres audio par défaut
-    constexpr uint32_t DEFAULT_SAMPLE_RATE = 48000;      // Default sample rate in Hz
+    // Paramètres audio par défaut (utilise les constantes globales)
     constexpr int DEFAULT_CHANNELS = 1;                  // Default number of channels (mono)
     constexpr int MONO_CHANNELS = 1;                     // Mono channel count
     constexpr int STEREO_CHANNELS = 2;                   // Stereo channel count
@@ -179,8 +172,7 @@ namespace RNNoiseSuppressorConstants {
 
 // SpectralNR specific constants
 namespace SpectralNRConstants {
-    // Paramètres audio par défaut
-    constexpr uint32_t DEFAULT_SAMPLE_RATE = 48000;      // Default sample rate in Hz
+    // Paramètres audio par défaut (utilise les constantes globales)
 
     // Paramètres FFT / overlap
     constexpr size_t DEFAULT_FFT_SIZE = 1024;             // Default FFT size (must be power of 2)

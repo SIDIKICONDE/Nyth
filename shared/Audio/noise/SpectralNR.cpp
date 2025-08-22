@@ -1,10 +1,10 @@
 #include "SpectralNR.hpp"
 #include <algorithm>
-#include <vector>
+#include <array>
 #include <complex>
 #include <stdexcept>
 #include <cmath>
-#include <ranges>
+#include <algorithm>
 #include <iterator>
 #include "NoiseContants.hpp"
 
@@ -40,7 +40,7 @@ void SpectralNR::setConfig(const SpectralNRConfig& cfg) {
     if (cfg.noiseUpdate < MIN_NOISE_UPDATE || cfg.noiseUpdate > MAX_NOISE_UPDATE) {
         throw std::invalid_argument("Noise update must be between 0.0 and 1.0");
     }
-    
+
     cfg_ = cfg;
     buildWindow();
     // Init FFT engine
@@ -48,7 +48,7 @@ void SpectralNR::setConfig(const SpectralNRConfig& cfg) {
     inBuf_.assign(cfg_.fftSize, ZERO);
     outBuf_.assign(cfg_.fftSize, ZERO);
     noiseMag_.assign(cfg_.fftSize / FFT_HALF_DIVISOR + SPECTRUM_NYQUIST_OFFSET, ZERO);
-    
+
     // Pre-allocate work buffers
     frame_.resize(cfg_.fftSize);
     re_.resize(cfg_.fftSize);
@@ -56,17 +56,16 @@ void SpectralNR::setConfig(const SpectralNRConfig& cfg) {
     mag_.resize(cfg_.fftSize / FFT_HALF_DIVISOR + SPECTRUM_NYQUIST_OFFSET);
     ph_.resize(cfg_.fftSize / FFT_HALF_DIVISOR + SPECTRUM_NYQUIST_OFFSET);
     time_.resize(cfg_.fftSize);
-    
+
     writePos_ = SPECTRUM_DC_INDEX;
     noiseInit_ = true;
 }
 
 void SpectralNR::buildWindow() {
     window_.resize(cfg_.fftSize);
-    std::ranges::for_each(std::views::iota(size_t{SPECTRUM_DC_INDEX}, cfg_.fftSize),
-                         [this](size_t n) {
-                             window_[n] = hann(n, cfg_.fftSize);
-                         });
+    for (size_t n = SPECTRUM_DC_INDEX; n < cfg_.fftSize; ++n) {
+        window_[n] = hann(n, cfg_.fftSize);
+    }
 }
 
 void SpectralNR::fft(const std::vector<float>& in, std::vector<float>& re, std::vector<float>& im) {
@@ -83,7 +82,7 @@ void SpectralNR::process(const float* input, float* output, size_t numSamples) {
         throw std::invalid_argument("Input and output buffers must not be null");
     }
     if (numSamples == SPECTRUM_DC_INDEX) return;
-    
+
     if (!cfg_.enabled) {
         // Avoid copy if processing in-place
         if (output != input) {

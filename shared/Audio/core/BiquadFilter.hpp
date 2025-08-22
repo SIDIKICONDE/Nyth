@@ -2,36 +2,48 @@
 #ifndef BIQUADFILTER_HPP_INCLUDED
 #define BIQUADFILTER_HPP_INCLUDED
 
-// 🎯 C++20 PURE - 100% standard C++20, no platform-specific extensions
-// ✅ Concepts, std::span, std::format, std::source_location, consteval
+// 🎯 C++17 PURE - 100% standard C++17, no platform-specific extensions
+// ✅ SFINAE, std::string, std::ostringstream, constexpr
 // ❌ No SIMD, no platform-specific optimizations
 
-// C++20 standard headers
+// C++17 standard headers
 #include <cstdint>
 #include <cstddef>
 #include <cmath>
-#include <span>
-#include <concepts>
-#include "../../compat/format.hpp"
-#include <source_location>
+#include <vector>
+#include <string>
 #include <type_traits>
 
 // Legacy constants header
 #include "CoreConstants.hpp"
 
-// C++20 pure - no platform-specific SIMD optimizations
+// C++17 pure - no platform-specific SIMD optimizations
 
 namespace AudioFX {
 
-// C++20 Concepts for type safety (use concepts from CoreConstants.hpp)
+// C++17 SFINAE-based type traits to replace concepts
 template<typename T>
-concept AudioBuffer = std::is_pointer_v<T> || requires(T t) {
-    typename T::value_type;
-    { t.data() } -> std::same_as<typename T::pointer>;
-    { t.size() } -> std::same_as<typename T::size_type>;
+struct is_audio_buffer_type {
+    template<typename U>
+    static auto test_data(int) -> decltype(std::declval<U>().data(), std::true_type{});
+    template<typename>
+    static std::false_type test_data(...);
+
+    template<typename U>
+    static auto test_size(int) -> decltype(std::declval<U>().size(), std::true_type{});
+    template<typename>
+    static std::false_type test_size(...);
+
+    static constexpr bool value = std::is_pointer_v<T> ||
+                                 (decltype(test_data<T>(0))::value &&
+                                  decltype(test_size<T>(0))::value);
 };
 
-using enum FilterType; // C++20 using enum
+template<typename T>
+constexpr bool is_audio_buffer_type_v = is_audio_buffer_type<T>::value;
+
+// Macro pour remplacer source_location
+#define NYTH_SOURCE_LOCATION (std::string(__FILE__) + ":" + std::to_string(__LINE__))
 
 class BiquadFilter {
 public:
@@ -40,7 +52,7 @@ public:
 
     // Configure filter coefficients
     void setCoefficients(double a0, double a1, double a2, double b0, double b1, double b2);
-    
+
     // Calculate coefficients for different filter types
     void calculateLowpass(double frequency, double sampleRate, double q);
     void calculateHighpass(double frequency, double sampleRate, double q);
@@ -51,26 +63,29 @@ public:
     void calculateHighShelf(double frequency, double sampleRate, double q, double gainDB);
     void calculateAllpass(double frequency, double sampleRate, double q);
 
-    // C++20 modernized processing methods
-    template<AudioSampleType T = float>
-    void process(std::span<const T> input, std::span<T> output,
-                std::source_location location = std::source_location::current());
+    // C++17 modernized processing methods with SFINAE
+    template<typename T = float,
+             typename = std::enable_if_t<std::is_floating_point_v<T>>>
+    void process(const std::vector<T>& input, std::vector<T>& output,
+                const std::string& location = NYTH_SOURCE_LOCATION);
 
-    template<AudioSampleType T = float>
-    void processStereo(std::span<const T> inputL, std::span<const T> inputR,
-                      std::span<T> outputL, std::span<T> outputR,
-                      std::source_location location = std::source_location::current());
+    template<typename T = float,
+             typename = std::enable_if_t<std::is_floating_point_v<T>>>
+    void processStereo(const std::vector<T>& inputL, const std::vector<T>& inputR,
+                      std::vector<T>& outputL, std::vector<T>& outputR,
+                      const std::string& location = NYTH_SOURCE_LOCATION);
 
-    // Legacy methods for backward compatibility (deprecated in C++20)
-    [[deprecated("Use std::span version instead")]]
+    // Legacy methods for backward compatibility
+    [[deprecated("Use vector version instead")]]
     void process(const float* input, float* output, size_t numSamples);
 
-    [[deprecated("Use std::span version instead")]]
+    [[deprecated("Use vector version instead")]]
     void processStereo(const float* inputL, const float* inputR,
                       float* outputL, float* outputR, size_t numSamples);
 
     // Process single sample (for real-time processing)
-    template<AudioSampleType T = float>
+    template<typename T = float,
+             typename = std::enable_if_t<std::is_floating_point_v<T>>>
     inline T processSample(T input);
 
     // Reset filter state
@@ -80,44 +95,44 @@ public:
     void getCoefficients(double& a0, double& a1, double& a2,
                         double& b0, double& b1, double& b2) const;
 
-    // C++20 formatted debugging
-    std::string getDebugInfo(std::source_location location = std::source_location::current()) const;
+    // C++17 formatted debugging
+    std::string getDebugInfo(const std::string& location = NYTH_SOURCE_LOCATION) const;
 
 private:
     // Filter coefficients
     double m_a0, m_a1, m_a2;  // Feedforward coefficients
     double m_b1, m_b2;        // Feedback coefficients (b0 is normalized to 1)
-    
+
     // Filter state (Direct Form II)
     double m_y1, m_y2;        // Previous outputs for left/mono channel
     double m_y1R, m_y2R;      // Previous outputs for right channel
-    
+
     // Helper function
-    
-    
+
+
     // Prevent denormal numbers
     inline double preventDenormal(double x) {
         return (std::abs(x) < EPSILON) ? BiquadConstants::DENORMAL_RESET_VALUE : x;
     }
-    
+
     // Normalize coefficients
-    void normalizeCoefficients(double& a0, double& a1, double& a2, 
+    void normalizeCoefficients(double& a0, double& a1, double& a2,
                               double& b0, double& b1, double& b2);
-    
-    // C++20 pure implementation - no SIMD optimizations
+
+    // C++17 pure implementation - no SIMD optimizations
 };
 
-// C++20 consteval helper functions
-consteval double compute_frequency_response(double frequency, double sampleRate) {
+// C++17 constexpr helper functions
+constexpr double compute_frequency_response(double frequency, double sampleRate) {
     return BiquadConstants::TWO_PI_MULTIPLIER * BiquadConstants::PI_PRECISE * frequency / sampleRate;
 }
 
-// C++20 concept-based validation
+// C++17 type-trait based validation
 template<typename T>
-requires AudioSampleType<T>
-inline T process_sample_implementation(double a0, double a1, double a2, double b1, double b2,
+inline typename std::enable_if<std::is_floating_point_v<T>, T>::type
+process_sample_implementation(double a0, double a1, double a2, double b1, double b2,
                                       T input, double& y1, double& y2) {
-    // Direct Form II implementation with C++20 concepts
+    // Direct Form II implementation
     double x = static_cast<double>(input);
 
     // Apply input side
@@ -135,8 +150,8 @@ inline T process_sample_implementation(double a0, double a1, double a2, double b
 
 } // namespace AudioFX
 
-// C++20 template implementations
-template<AudioFX::AudioSampleType T>
+// C++17 template implementations
+template<typename T, typename>
 inline T AudioFX::BiquadFilter::processSample(T input) {
     return process_sample_implementation(m_a0, m_a1, m_a2, m_b1, m_b2, input, m_y1, m_y2);
 }
