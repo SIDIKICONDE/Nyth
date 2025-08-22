@@ -16,3 +16,5 @@ export {
   UltraModernToast,
   SkiaUltraModernDemo,
 } from './UltraModernUI';
+export { default as RippleButton, useMicroInteractions } from './RippleButton';
+export { default as MicroInteractionsDemo } from './MicroInteractionsDemo';
