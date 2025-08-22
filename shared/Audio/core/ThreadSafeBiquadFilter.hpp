@@ -3,8 +3,10 @@
 #define THREADSAFE_BIQUADFILTER_HPP
 
 #include "BiquadFilter.hpp"
+#include "AudioError.hpp"
 #include <atomic>
 #include <mutex>
+#include <cstring>  // for memcpy
 
 namespace AudioFX {
 
@@ -62,18 +64,24 @@ public:
         m_filter->calculateAllpass(frequency, sampleRate, q);
     }
     
-    // Thread-safe processing
-    void process(const float* input, float* output, size_t numSamples) {
+    // Thread-safe processing with error handling
+    AudioError process(const float* input, float* output, size_t numSamples) noexcept {
+        // Validate inputs first
+        AUDIO_RETURN_IF_ERROR(AudioValidator::validateBuffer(input, numSamples));
+        AUDIO_RETURN_IF_ERROR(AudioValidator::validateBuffer(output, numSamples));
+        
         // Use try_lock for processing to avoid blocking audio thread
         std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
         if (lock.owns_lock()) {
             m_filter->process(input, output, numSamples);
+            return AudioError::OK;
         } else {
             // If can't acquire lock, pass through unprocessed
             // This prevents audio dropouts in real-time context
             if (input != output) {
                 std::copy(input, input + numSamples, output);
             }
+            return AudioError::RESOURCE_BUSY;
         }
     }
     
