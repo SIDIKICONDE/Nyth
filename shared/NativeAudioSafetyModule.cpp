@@ -10,47 +10,69 @@
 #include <cmath>
 
 // === Instance globale pour l'API C ===
-static std::unique_ptr<AudioSafety::AudioSafetyEngine> g_safetyEngine;
-static std::unique_ptr<AudioSafety::AudioSafetyEngineOptimized> g_optimizedEngine;
-static std::mutex g_globalMutex;
-static NythSafetyConfig g_currentConfig = {};
-static NythSafetyOptimizationConfig g_optimizationConfig = {};
-static NythSafetyState g_currentState = SAFETY_STATE_UNINITIALIZED;
-static NythSafetyReport g_lastReport = {0};
+// Singleton pour encapsuler toutes les variables globales
+class SafetyModuleGlobals {
+public:
+    static SafetyModuleGlobals& getInstance() {
+        static SafetyModuleGlobals instance;
+        return instance;
+    }
+
+    // Variables précédemment globales
+    std::unique_ptr<AudioSafety::AudioSafetyEngine> safetyEngine;
+    std::unique_ptr<AudioSafety::AudioSafetyEngineOptimized> optimizedEngine;
+    std::mutex globalMutex;
+    NythSafetyConfig currentConfig = {};
+    NythSafetyOptimizationConfig optimizationConfig = {};
+    std::atomic<NythSafetyState> currentState{SAFETY_STATE_UNINITIALIZED};
+    NythSafetyReport lastReport = {0};
+    
+    // Callbacks
+    NythSafetyDataCallback dataCallback = nullptr;
+    NythSafetyErrorCallback errorCallback = nullptr;
+    NythSafetyStateChangeCallback stateChangeCallback = nullptr;
+
+private:
+    SafetyModuleGlobals() = default;
+    ~SafetyModuleGlobals() = default;
+    SafetyModuleGlobals(const SafetyModuleGlobals&) = delete;
+    SafetyModuleGlobals& operator=(const SafetyModuleGlobals&) = delete;
+};
 
 // === Implémentation de l'API C ===
 extern "C" {
 
 bool NythSafety_Initialize(uint32_t sampleRate, int channels) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
 
     try {
         AudioSafety::SafetyError error;
 
         // Initialize main engine
-        g_safetyEngine = std::make_unique<AudioSafety::AudioSafetyEngine>(
+        globals.safetyEngine = std::make_unique<AudioSafety::AudioSafetyEngine>(
             sampleRate, channels, &error);
 
         if (error != AudioSafety::SafetyError::OK) {
-            g_currentState = SAFETY_STATE_ERROR;
+            globals.currentState = SAFETY_STATE_ERROR;
             return false;
         }
 
         // Initialize optimized engine if requested
-        if (g_optimizationConfig.useOptimizedEngine) {
-            g_optimizedEngine = std::make_unique<AudioSafety::AudioSafetyEngineOptimized>(
+        if (globals.optimizationConfig.useOptimizedEngine) {
+            globals.optimizedEngine = std::make_unique<AudioSafety::AudioSafetyEngineOptimized>(
                 sampleRate, channels, &error);
 
             if (error != AudioSafety::SafetyError::OK) {
-                g_optimizedEngine.reset();
+                globals.optimizedEngine.reset();
                 // Continue without optimized engine
             }
         }
 
         // Apply current configuration
-        if (!g_currentConfig.enabled) {
+        if (!globals.currentConfig.enabled) {
             // Set default config if not set
-            g_currentConfig = {
+            globals.currentConfig = {
                 true,   // enabled
                 true,   // dcRemovalEnabled
                 0.002,  // dcThreshold
@@ -64,51 +86,54 @@ bool NythSafety_Initialize(uint32_t sampleRate, int channels) {
         }
 
         AudioSafety::SafetyConfig nativeConfig = {
-            g_currentConfig.enabled,
-            g_currentConfig.dcRemovalEnabled,
-            g_currentConfig.dcThreshold,
-            g_currentConfig.limiterEnabled,
-            g_currentConfig.limiterThresholdDb,
-            g_currentConfig.softKneeLimiter,
-            g_currentConfig.kneeWidthDb,
-            g_currentConfig.feedbackDetectEnabled,
-            g_currentConfig.feedbackCorrThreshold
+            globals.currentConfig.enabled,
+            globals.currentConfig.dcRemovalEnabled,
+            globals.currentConfig.dcThreshold,
+            globals.currentConfig.limiterEnabled,
+            globals.currentConfig.limiterThresholdDb,
+            globals.currentConfig.softKneeLimiter,
+            globals.currentConfig.kneeWidthDb,
+            globals.currentConfig.feedbackDetectEnabled,
+            globals.currentConfig.feedbackCorrThreshold
         };
 
-        if (g_safetyEngine->setConfig(nativeConfig) != AudioSafety::SafetyError::OK) {
-            g_currentState = SAFETY_STATE_ERROR;
+        if (globals.safetyEngine->setConfig(nativeConfig) != AudioSafety::SafetyError::OK) {
+            globals.currentState = SAFETY_STATE_ERROR;
             return false;
         }
 
-        if (g_optimizedEngine) {
-            g_optimizedEngine->setConfig(nativeConfig);
+        if (globals.optimizedEngine) {
+            globals.optimizedEngine->setConfig(nativeConfig);
         }
 
-        g_currentState = SAFETY_STATE_INITIALIZED;
+        globals.currentState = SAFETY_STATE_INITIALIZED;
         return true;
     } catch (...) {
-        g_currentState = SAFETY_STATE_ERROR;
+        globals.currentState = SAFETY_STATE_ERROR;
         return false;
     }
 }
 
 bool NythSafety_IsInitialized(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentState == SAFETY_STATE_INITIALIZED ||
-           g_currentState == SAFETY_STATE_PROCESSING;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    return globals.currentState == SAFETY_STATE_INITIALIZED ||
+           globals.currentState == SAFETY_STATE_PROCESSING;
 }
 
 void NythSafety_Release(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    g_safetyEngine.reset();
-    g_optimizedEngine.reset();
-    g_currentState = SAFETY_STATE_UNINITIALIZED;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    globals.safetyEngine.reset();
+    globals.optimizedEngine.reset();
+    globals.currentState = SAFETY_STATE_UNINITIALIZED;
 }
 
 // === État et informations ===
 NythSafetyState NythSafety_GetState(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentState;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    return globals.currentState;
 }
 
 const char* NythSafety_GetErrorString(NythSafetyError error) {
@@ -140,11 +165,12 @@ const char* NythSafety_GetErrorString(NythSafetyError error) {
 bool NythSafety_SetConfig(const NythSafetyConfig* config) {
     if (!config) return false;
 
-    std::lock_guard<std::mutex> lock(g_globalMutex);
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
 
-    if (g_currentState == SAFETY_STATE_UNINITIALIZED) return false;
+    if (globals.currentState == SAFETY_STATE_UNINITIALIZED) return false;
 
-    g_currentConfig = *config;
+    globals.currentConfig = *config;
 
     AudioSafety::SafetyConfig nativeConfig = {
         config->enabled,
@@ -159,11 +185,11 @@ bool NythSafety_SetConfig(const NythSafetyConfig* config) {
     };
 
     bool success = true;
-    if (g_safetyEngine) {
-        success &= (g_safetyEngine->setConfig(nativeConfig) == AudioSafety::SafetyError::OK);
+    if (globals.safetyEngine) {
+        success &= (globals.safetyEngine->setConfig(nativeConfig) == AudioSafety::SafetyError::OK);
     }
-    if (g_optimizedEngine) {
-        success &= (g_optimizedEngine->setConfig(nativeConfig) == AudioSafety::SafetyError::OK);
+    if (globals.optimizedEngine) {
+        success &= (globals.optimizedEngine->setConfig(nativeConfig) == AudioSafety::SafetyError::OK);
     }
 
     return success;
@@ -172,24 +198,27 @@ bool NythSafety_SetConfig(const NythSafetyConfig* config) {
 void NythSafety_GetConfig(NythSafetyConfig* config) {
     if (!config) return;
 
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    *config = g_currentConfig;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    *config = globals.currentConfig;
 }
 
 bool NythSafety_SetOptimizationConfig(const NythSafetyOptimizationConfig* config) {
     if (!config) return false;
 
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    g_optimizationConfig = *config;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    globals.optimizationConfig = *config;
     return true;
 }
 
 // === Traitement audio ===
 NythSafetyError NythSafety_ProcessMono(float* buffer, size_t numSamples) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
 
-    if (g_currentState != SAFETY_STATE_PROCESSING &&
-        g_currentState != SAFETY_STATE_INITIALIZED) {
+    if (globals.currentState != SAFETY_STATE_PROCESSING &&
+        globals.currentState != SAFETY_STATE_INITIALIZED) {
         return SAFETY_ERROR_PROCESSING_FAILED;
     }
 
@@ -198,20 +227,20 @@ NythSafetyError NythSafety_ProcessMono(float* buffer, size_t numSamples) {
 
     AudioSafety::SafetyError error;
 
-    if (g_optimizationConfig.useOptimizedEngine && g_optimizedEngine) {
-        error = g_optimizedEngine->processMono(buffer, numSamples);
-    } else if (g_safetyEngine) {
-        error = g_safetyEngine->processMono(buffer, numSamples);
+    if (globals.optimizationConfig.useOptimizedEngine && globals.optimizedEngine) {
+        error = globals.optimizedEngine->processMono(buffer, numSamples);
+    } else if (globals.safetyEngine) {
+        error = globals.safetyEngine->processMono(buffer, numSamples);
     } else {
         return SAFETY_ERROR_PROCESSING_FAILED;
     }
 
     // Update state and report
     if (error == AudioSafety::SafetyError::OK) {
-        g_currentState = SAFETY_STATE_PROCESSING;
-        if (g_optimizationConfig.useOptimizedEngine && g_optimizedEngine) {
-            auto report = g_optimizedEngine->getLastReport();
-            g_lastReport = {
+        globals.currentState = SAFETY_STATE_PROCESSING;
+        if (globals.optimizationConfig.useOptimizedEngine && globals.optimizedEngine) {
+            auto report = globals.optimizedEngine->getLastReport();
+            globals.lastReport = {
                 report.peak,
                 report.rms,
                 report.dcOffset,
@@ -221,9 +250,9 @@ NythSafetyError NythSafety_ProcessMono(float* buffer, size_t numSamples) {
                 report.hasNaN,
                 report.feedbackLikely
             };
-        } else if (g_safetyEngine) {
-            auto report = g_safetyEngine->getLastReport();
-            g_lastReport = {
+        } else if (globals.safetyEngine) {
+            auto report = globals.safetyEngine->getLastReport();
+            globals.lastReport = {
                 report.peak,
                 report.rms,
                 report.dcOffset,
@@ -242,10 +271,11 @@ NythSafetyError NythSafety_ProcessMono(float* buffer, size_t numSamples) {
 }
 
 NythSafetyError NythSafety_ProcessStereo(float* left, float* right, size_t numSamples) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
 
-    if (g_currentState != SAFETY_STATE_PROCESSING &&
-        g_currentState != SAFETY_STATE_INITIALIZED) {
+    if (globals.currentState != SAFETY_STATE_PROCESSING &&
+        globals.currentState != SAFETY_STATE_INITIALIZED) {
         return SAFETY_ERROR_PROCESSING_FAILED;
     }
 
@@ -254,20 +284,20 @@ NythSafetyError NythSafety_ProcessStereo(float* left, float* right, size_t numSa
 
     AudioSafety::SafetyError error;
 
-    if (g_optimizationConfig.useOptimizedEngine && g_optimizedEngine) {
-        error = g_optimizedEngine->processStereo(left, right, numSamples);
-    } else if (g_safetyEngine) {
-        error = g_safetyEngine->processStereo(left, right, numSamples);
+    if (globals.optimizationConfig.useOptimizedEngine && globals.optimizedEngine) {
+        error = globals.optimizedEngine->processStereo(left, right, numSamples);
+    } else if (globals.safetyEngine) {
+        error = globals.safetyEngine->processStereo(left, right, numSamples);
     } else {
         return SAFETY_ERROR_PROCESSING_FAILED;
     }
 
     // Update state and report
     if (error == AudioSafety::SafetyError::OK) {
-        g_currentState = SAFETY_STATE_PROCESSING;
-        if (g_optimizationConfig.useOptimizedEngine && g_optimizedEngine) {
-            auto report = g_optimizedEngine->getLastReport();
-            g_lastReport = {
+        globals.currentState = SAFETY_STATE_PROCESSING;
+        if (globals.optimizationConfig.useOptimizedEngine && globals.optimizedEngine) {
+            auto report = globals.optimizedEngine->getLastReport();
+            globals.lastReport = {
                 report.peak,
                 report.rms,
                 report.dcOffset,
@@ -277,9 +307,9 @@ NythSafetyError NythSafety_ProcessStereo(float* left, float* right, size_t numSa
                 report.hasNaN,
                 report.feedbackLikely
             };
-        } else if (g_safetyEngine) {
-            auto report = g_safetyEngine->getLastReport();
-            g_lastReport = {
+        } else if (globals.safetyEngine) {
+            auto report = globals.safetyEngine->getLastReport();
+            globals.lastReport = {
                 report.peak,
                 report.rms,
                 report.dcOffset,
@@ -301,28 +331,33 @@ NythSafetyError NythSafety_ProcessStereo(float* left, float* right, size_t numSa
 void NythSafety_GetLastReport(NythSafetyReport* report) {
     if (!report) return;
 
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    *report = g_lastReport;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    *report = globals.lastReport;
 }
 
 bool NythSafety_IsOverloadActive(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_lastReport.overloadActive;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    return globals.lastReport.overloadActive;
 }
 
 bool NythSafety_HasFeedbackLikely(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_lastReport.feedbackLikely;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    return globals.lastReport.feedbackLikely;
 }
 
 double NythSafety_GetCurrentPeak(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_lastReport.peak;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    return globals.lastReport.peak;
 }
 
 double NythSafety_GetCurrentRMS(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_lastReport.rms;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    return globals.lastReport.rms;
 }
 
 // === Contrôle avancé ===
@@ -336,33 +371,38 @@ double NythSafety_LinearToDb(double linear) {
 }
 
 void NythSafety_ResetStatistics(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    memset(&g_lastReport, 0, sizeof(NythSafetyReport));
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    memset(&globals.lastReport, 0, sizeof(NythSafetyReport));
 }
 
 void NythSafety_GetStatistics(NythSafetyReport* min, NythSafetyReport* max, NythSafetyReport* avg) {
     // This would require tracking statistics over time
     // For now, just return the last report
-    if (min) *min = g_lastReport;
-    if (max) *max = g_lastReport;
-    if (avg) *avg = g_lastReport;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    if (min) *min = globals.lastReport;
+    if (max) *max = globals.lastReport;
+    if (avg) *avg = globals.lastReport;
 }
 
 // === Callbacks ===
-static NythSafetyDataCallback g_dataCallback = nullptr;
-static NythSafetyErrorCallback g_errorCallback = nullptr;
-static NythSafetyStateChangeCallback g_stateChangeCallback = nullptr;
-
 void NythSafety_SetAudioDataCallback(NythSafetyDataCallback callback) {
-    g_dataCallback = callback;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    globals.dataCallback = callback;
 }
 
 void NythSafety_SetErrorCallback(NythSafetyErrorCallback callback) {
-    g_errorCallback = callback;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    globals.errorCallback = callback;
 }
 
 void NythSafety_SetStateChangeCallback(NythSafetyStateChangeCallback callback) {
-    g_stateChangeCallback = callback;
+    auto& globals = SafetyModuleGlobals::getInstance();
+    std::lock_guard<std::mutex> lock(globals.globalMutex);
+    globals.stateChangeCallback = callback;
 }
 
 } // extern "C"

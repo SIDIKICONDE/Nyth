@@ -194,14 +194,30 @@ private:
 } // namespace facebook
 
 // Instance globale de l'analyseur
-static facebook::react::SpectrumAnalyzer g_spectrumAnalyzer;
-static std::atomic<NythSpectrumState> g_currentState{SPECTRUM_STATE_UNINITIALIZED};
-static NythSpectrumConfig g_currentConfig;
+// Singleton pour encapsuler toutes les variables globales
+class SpectrumModuleGlobals {
+public:
+    static SpectrumModuleGlobals& getInstance() {
+        static SpectrumModuleGlobals instance;
+        return instance;
+    }
 
-// Callbacks globaux
-static NythSpectrumDataCallback g_dataCallback = nullptr;
-static NythSpectrumErrorCallback g_errorCallback = nullptr;
-static NythSpectrumStateCallback g_stateCallback = nullptr;
+    // Variables précédemment globales
+    facebook::react::SpectrumAnalyzer spectrumAnalyzer;
+    std::atomic<NythSpectrumState> currentState{SPECTRUM_STATE_UNINITIALIZED};
+    NythSpectrumConfig currentConfig;
+    
+    // Callbacks
+    NythSpectrumDataCallback dataCallback = nullptr;
+    NythSpectrumErrorCallback errorCallback = nullptr;
+    NythSpectrumStateCallback stateCallback = nullptr;
+
+private:
+    SpectrumModuleGlobals() = default;
+    ~SpectrumModuleGlobals() = default;
+    SpectrumModuleGlobals(const SpectrumModuleGlobals&) = delete;
+    SpectrumModuleGlobals& operator=(const SpectrumModuleGlobals&) = delete;
+};
 
 // === Implémentation de l'API C ===
 
@@ -211,36 +227,36 @@ bool NythSpectrum_Initialize(const NythSpectrumConfig* config) {
     if (!config)
         return false;
 
-    if (g_currentState.load() != SPECTRUM_STATE_UNINITIALIZED) {
+    if (SpectrumModuleGlobals::getInstance().currentState.load() != SPECTRUM_STATE_UNINITIALIZED) {
         return false;
     }
 
-    g_currentConfig = *config;
+    SpectrumModuleGlobals::getInstance().currentConfig = *config;
 
     // Configuration par défaut
-    if (g_currentConfig.fftSize == 0) {
-        g_currentConfig.fftSize = 1024; // DEFAULT_FFT_SIZE
+    if (SpectrumModuleGlobals::getInstance().currentConfig.fftSize == 0) {
+        SpectrumModuleGlobals::getInstance().currentConfig.fftSize = 1024; // DEFAULT_FFT_SIZE
     }
-    if (g_currentConfig.numBands == 0) {
-        g_currentConfig.numBands = 32; // DEFAULT_NUM_BANDS
+    if (SpectrumModuleGlobals::getInstance().currentConfig.numBands == 0) {
+        SpectrumModuleGlobals::getInstance().currentConfig.numBands = 32; // DEFAULT_NUM_BANDS
     }
-    if (g_currentConfig.minFreq <= 0.0) {
-        g_currentConfig.minFreq = 20.0; // DEFAULT_MIN_FREQ
+    if (SpectrumModuleGlobals::getInstance().currentConfig.minFreq <= 0.0) {
+        SpectrumModuleGlobals::getInstance().currentConfig.minFreq = 20.0; // DEFAULT_MIN_FREQ
     }
-    if (g_currentConfig.maxFreq <= 0.0) {
-        g_currentConfig.maxFreq = 20000.0; // DEFAULT_MAX_FREQ
+    if (SpectrumModuleGlobals::getInstance().currentConfig.maxFreq <= 0.0) {
+        SpectrumModuleGlobals::getInstance().currentConfig.maxFreq = 20000.0; // DEFAULT_MAX_FREQ
     }
 
-    bool success = g_spectrumAnalyzer.initialize(&g_currentConfig);
+    bool success = SpectrumModuleGlobals::getInstance().spectrumAnalyzer.initialize(&SpectrumModuleGlobals::getInstance().currentConfig);
     if (success) {
-        g_currentState.store(SPECTRUM_STATE_INITIALIZED);
-        if (g_stateCallback) {
-            g_stateCallback(SPECTRUM_STATE_UNINITIALIZED, SPECTRUM_STATE_INITIALIZED);
+        SpectrumModuleGlobals::getInstance().currentState.store(SPECTRUM_STATE_INITIALIZED);
+        if (SpectrumModuleGlobals::getInstance().stateCallback) {
+            SpectrumModuleGlobals::getInstance().stateCallback(SPECTRUM_STATE_UNINITIALIZED, SPECTRUM_STATE_INITIALIZED);
         }
     } else {
-        g_currentState.store(SPECTRUM_STATE_ERROR);
-        if (g_errorCallback) {
-            g_errorCallback(SPECTRUM_ERROR_FFT_FAILED, "Failed to initialize FFT engine");
+        SpectrumModuleGlobals::getInstance().currentState.store(SPECTRUM_STATE_ERROR);
+        if (SpectrumModuleGlobals::getInstance().errorCallback) {
+            SpectrumModuleGlobals::getInstance().errorCallback(SPECTRUM_ERROR_FFT_FAILED, "Failed to initialize FFT engine");
         }
     }
 
@@ -248,21 +264,21 @@ bool NythSpectrum_Initialize(const NythSpectrumConfig* config) {
 }
 
 bool NythSpectrum_IsInitialized(void) {
-    return g_spectrumAnalyzer.isInitialized();
+    return SpectrumModuleGlobals::getInstance().spectrumAnalyzer.isInitialized();
 }
 
 void NythSpectrum_Release(void) {
-    NythSpectrumState oldState = g_currentState.load();
-    g_spectrumAnalyzer.release();
-    g_currentState.store(SPECTRUM_STATE_UNINITIALIZED);
+    NythSpectrumState oldState = SpectrumModuleGlobals::getInstance().currentState.load();
+    SpectrumModuleGlobals::getInstance().spectrumAnalyzer.release();
+    SpectrumModuleGlobals::getInstance().currentState.store(SPECTRUM_STATE_UNINITIALIZED);
 
-    if (g_stateCallback) {
-        g_stateCallback(oldState, SPECTRUM_STATE_UNINITIALIZED);
+    if (SpectrumModuleGlobals::getInstance().stateCallback) {
+        SpectrumModuleGlobals::getInstance().stateCallback(oldState, SPECTRUM_STATE_UNINITIALIZED);
     }
 }
 
 NythSpectrumState NythSpectrum_GetState(void) {
-    return g_currentState.load();
+    return SpectrumModuleGlobals::getInstance().currentState.load();
 }
 
 const char* NythSpectrum_GetErrorString(NythSpectrumError error) {
@@ -292,72 +308,72 @@ bool NythSpectrum_SetConfig(const NythSpectrumConfig* config) {
     if (!config)
         return false;
 
-    g_currentConfig = *config;
-    return g_spectrumAnalyzer.initialize(&g_currentConfig);
+    SpectrumModuleGlobals::getInstance().currentConfig = *config;
+    return SpectrumModuleGlobals::getInstance().spectrumAnalyzer.initialize(&SpectrumModuleGlobals::getInstance().currentConfig);
 }
 
 void NythSpectrum_GetConfig(NythSpectrumConfig* config) {
     if (config) {
-        *config = g_currentConfig;
+        *config = SpectrumModuleGlobals::getInstance().currentConfig;
     }
 }
 
 bool NythSpectrum_StartAnalysis(void) {
-    if (g_currentState.load() != SPECTRUM_STATE_INITIALIZED) {
+    if (SpectrumModuleGlobals::getInstance().currentState.load() != SPECTRUM_STATE_INITIALIZED) {
         return false;
     }
 
-    g_currentState.store(SPECTRUM_STATE_ANALYZING);
-    if (g_stateCallback) {
-        g_stateCallback(SPECTRUM_STATE_INITIALIZED, SPECTRUM_STATE_ANALYZING);
+    SpectrumModuleGlobals::getInstance().currentState.store(SPECTRUM_STATE_ANALYZING);
+    if (SpectrumModuleGlobals::getInstance().stateCallback) {
+        SpectrumModuleGlobals::getInstance().stateCallback(SPECTRUM_STATE_INITIALIZED, SPECTRUM_STATE_ANALYZING);
     }
     return true;
 }
 
 bool NythSpectrum_StopAnalysis(void) {
-    if (g_currentState.load() != SPECTRUM_STATE_ANALYZING) {
+    if (SpectrumModuleGlobals::getInstance().currentState.load() != SPECTRUM_STATE_ANALYZING) {
         return false;
     }
 
-    g_currentState.store(SPECTRUM_STATE_INITIALIZED);
-    if (g_stateCallback) {
-        g_stateCallback(SPECTRUM_STATE_ANALYZING, SPECTRUM_STATE_INITIALIZED);
+    SpectrumModuleGlobals::getInstance().currentState.store(SPECTRUM_STATE_INITIALIZED);
+    if (SpectrumModuleGlobals::getInstance().stateCallback) {
+        SpectrumModuleGlobals::getInstance().stateCallback(SPECTRUM_STATE_ANALYZING, SPECTRUM_STATE_INITIALIZED);
     }
     return true;
 }
 
 bool NythSpectrum_IsAnalyzing(void) {
-    return g_currentState.load() == SPECTRUM_STATE_ANALYZING;
+    return SpectrumModuleGlobals::getInstance().currentState.load() == SPECTRUM_STATE_ANALYZING;
 }
 
 bool NythSpectrum_ProcessAudioBuffer(const float* audioBuffer, size_t numSamples) {
-    if (g_currentState.load() != SPECTRUM_STATE_ANALYZING) {
+    if (SpectrumModuleGlobals::getInstance().currentState.load() != SPECTRUM_STATE_ANALYZING) {
         return false;
     }
 
-    if (!g_spectrumAnalyzer.processAudioBuffer(audioBuffer, numSamples)) {
-        if (g_errorCallback) {
-            g_errorCallback(SPECTRUM_ERROR_FFT_FAILED, "Failed to process audio buffer");
+    if (!SpectrumModuleGlobals::getInstance().spectrumAnalyzer.processAudioBuffer(audioBuffer, numSamples)) {
+        if (SpectrumModuleGlobals::getInstance().errorCallback) {
+            SpectrumModuleGlobals::getInstance().errorCallback(SPECTRUM_ERROR_FFT_FAILED, "Failed to process audio buffer");
         }
         return false;
     }
 
     // Notification des données si callback défini
-    if (g_dataCallback) {
+    if (SpectrumModuleGlobals::getInstance().dataCallback) {
         NythSpectrumData data;
-        data.numBands = g_currentConfig.numBands;
+        data.numBands = SpectrumModuleGlobals::getInstance().currentConfig.numBands;
         data.timestamp = static_cast<double>(
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
                 .count());
 
         // Allocation temporaire pour les données
-        std::vector<float> magnitudes = g_spectrumAnalyzer.getMagnitudes();
-        std::vector<float> frequencies = g_spectrumAnalyzer.getFrequencyBands();
+        std::vector<float> magnitudes = SpectrumModuleGlobals::getInstance().spectrumAnalyzer.getMagnitudes();
+        std::vector<float> frequencies = SpectrumModuleGlobals::getInstance().spectrumAnalyzer.getFrequencyBands();
 
         data.magnitudes = magnitudes.data();
         data.frequencies = frequencies.data();
 
-        g_dataCallback(&data);
+        SpectrumModuleGlobals::getInstance().dataCallback(&data);
     }
 
     return true;
@@ -377,14 +393,14 @@ bool NythSpectrum_GetSpectrumData(NythSpectrumData* data) {
     if (!data)
         return false;
 
-    data->numBands = g_currentConfig.numBands;
+    data->numBands = SpectrumModuleGlobals::getInstance().currentConfig.numBands;
     data->timestamp = static_cast<double>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count());
 
     // Copie des données
-    const auto& magnitudes = g_spectrumAnalyzer.getMagnitudes();
-    const auto& frequencies = g_spectrumAnalyzer.getFrequencyBands();
+    const auto& magnitudes = SpectrumModuleGlobals::getInstance().spectrumAnalyzer.getMagnitudes();
+    const auto& frequencies = SpectrumModuleGlobals::getInstance().spectrumAnalyzer.getFrequencyBands();
 
     // Allocation des tableaux (l'appelant doit les libérer)
     data->magnitudes = new float[magnitudes.size()];
@@ -406,15 +422,15 @@ void NythSpectrum_ReleaseSpectrumData(NythSpectrumData* data) {
 }
 
 void NythSpectrum_SetDataCallback(NythSpectrumDataCallback callback) {
-    g_dataCallback = callback;
+    SpectrumModuleGlobals::getInstance().dataCallback = callback;
 }
 
 void NythSpectrum_SetErrorCallback(NythSpectrumErrorCallback callback) {
-    g_errorCallback = callback;
+    SpectrumModuleGlobals::getInstance().errorCallback = callback;
 }
 
 void NythSpectrum_SetStateCallback(NythSpectrumStateCallback callback) {
-    g_stateCallback = callback;
+    SpectrumModuleGlobals::getInstance().stateCallback = callback;
 }
 
 size_t NythSpectrum_CalculateFFTSize(size_t desiredSize) {
