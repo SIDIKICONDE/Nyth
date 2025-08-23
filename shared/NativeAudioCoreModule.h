@@ -378,6 +378,9 @@ private:
     uint32_t currentSampleRate_;
     int currentChannels_;
 
+    // Runtime JSI pour les callbacks
+    jsi::Runtime* m_runtime{nullptr};
+
     // Méthodes privées
     void initializeEqualizer();
     NythCoreError convertError(const std::string& error) const;
@@ -416,6 +419,9 @@ private:
 
     // Gestion d'erreurs avancée avec AudioError
     void handleErrorWithAudioError(AudioFX::AudioError error, const std::string& context);
+    
+    // Traitement audio avec sélection automatique du meilleur algorithme
+    void processAudioWithBestAlgorithm(const float* input, float* output, size_t numSamples);
 };
 
 // === Fonction d'enregistrement du module ===

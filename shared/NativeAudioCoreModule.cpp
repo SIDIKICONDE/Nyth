@@ -774,9 +774,9 @@ bool NythCore_FilterReset(int64_t filterId) {
     auto it = g_activeFilters.find(filterId);
     if (it != g_activeFilters.end()) {
         try {
-            return jsi::Value(NythCoreImpl::filterReset(it->second.get()));
+            return NythCoreImpl::filterReset(it->second.get());
         } catch (...) {
-            return jsi::Value(false);
+            return false;
         }
     }
     return false;
@@ -944,7 +944,7 @@ void NativeAudioCoreModule::handleAudioData(const float* data, size_t frameCount
 
 void NativeAudioCoreModule::handleError(NythCoreError error, const std::string& message) {
     std::lock_guard<std::mutex> lock(m_coreMutex);
-    if (m_jsCallbacks.errorCallback) {
+    if (m_jsCallbacks.errorCallback && m_runtime) {
         // Invoke error callback with error details
         try {
             jsi::Runtime& rt = *m_runtime;
@@ -965,7 +965,7 @@ void NativeAudioCoreModule::handleError(NythCoreError error, const std::string& 
 
 void NativeAudioCoreModule::handleStateChange(NythCoreState oldState, NythCoreState newState) {
     std::lock_guard<std::mutex> lock(m_coreMutex);
-    if (m_jsCallbacks.stateCallback) {
+    if (m_jsCallbacks.stateCallback && m_runtime) {
         // Invoke state change callback
         try {
             jsi::Runtime& rt = *m_runtime;
@@ -1840,18 +1840,21 @@ jsi::Value NativeAudioCoreModule::memoryGetUsed(jsi::Runtime& rt) {
 
 jsi::Value NativeAudioCoreModule::setAudioCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(m_coreMutex);
+    m_runtime = &rt;
     m_jsCallbacks.audioCallback = std::make_shared<jsi::Function>(callback);
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioCoreModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(m_coreMutex);
+    m_runtime = &rt;
     m_jsCallbacks.errorCallback = std::make_shared<jsi::Function>(callback);
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioCoreModule::setStateCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(m_coreMutex);
+    m_runtime = &rt;
     m_jsCallbacks.stateCallback = std::make_shared<jsi::Function>(callback);
     return jsi::Value(true);
 }
