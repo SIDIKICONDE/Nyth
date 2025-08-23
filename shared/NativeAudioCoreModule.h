@@ -193,6 +193,9 @@ private:
 
     // Runtime JSI pour les callbacks
     jsi::Runtime* m_runtime{nullptr};
+    
+    // Cache des presets
+    std::unordered_map<std::string, AudioFX::EQPreset> m_presetCache;
 
     // Méthodes privées
     void initializeEqualizer();
