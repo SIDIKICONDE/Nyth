@@ -1,6 +1,17 @@
+/**
+ * Hook Égaliseur - Version Originale (Conservée pour Compatibilité)
+ *
+ * ⚠️ ATTENTION: Cette version originale est conservée pour compatibilité.
+ *    Pour bénéficier des optimisations de performance, utilisez useEqualizerOptimized.
+ *
+ * 🚀 MIGRATION RECOMMANDÉE:
+ *    Remplacez: import { useEqualizer } from './useEqualizer';
+ *    Par:       import { useEqualizerOptimized } from './useEqualizerOptimized';
+ */
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { BandConfig, EqualizerConfig, FilterType } from '../types';
-import NativeAudioEqualizerModule from '../../../../specs/NativeAudioEqualizerModule';
+import NativeAudioCoreModule from '../../../../specs/NativeAudioCoreModule';
 
 // Fréquences par défaut pour un égaliseur 10 bandes
 const DEFAULT_FREQUENCIES = [
@@ -28,22 +39,51 @@ export const useEqualizer = (numBands: number = 10, sampleRate: number = 48000) 
   useEffect(() => {
     const initEqualizer = async () => {
       try {
-        if (!NativeAudioEqualizerModule) {
-          console.error('NativeAudioEqualizerModule not available');
+        if (!NativeAudioCoreModule) {
+          console.error('NativeAudioCoreModule not available');
           return;
         }
 
-        // Créer l'instance d'égaliseur native
-        const eqId = await NativeAudioEqualizerModule.createEqualizer(numBands, sampleRate);
-        equalizerIdRef.current = eqId;
+        // Initialiser le module core
+        const success = await NativeAudioCoreModule.initialize();
+        if (!success) {
+          console.error('Failed to initialize core module');
+          return;
+        }
 
-        // Initialiser les bandes
+        // Initialiser l'égaliseur avec la configuration
+        const equalizerConfig = {
+          numBands: numBands,
+          sampleRate: sampleRate,
+          masterGainDB: 0.0,
+          bypass: false
+        };
+
+        const initSuccess = await NativeAudioCoreModule.equalizerInitialize(equalizerConfig);
+        if (!initSuccess) {
+          console.error('Failed to initialize equalizer');
+          return;
+        }
+
+        // Initialiser les bandes avec les fréquences par défaut
         const initialBands: BandConfig[] = [];
         for (let i = 0; i < numBands; i++) {
-          const frequency = i < DEFAULT_FREQUENCIES.length 
-            ? DEFAULT_FREQUENCIES[i] 
+          const frequency = i < DEFAULT_FREQUENCIES.length
+            ? DEFAULT_FREQUENCIES[i]
             : DEFAULT_FREQUENCIES[DEFAULT_FREQUENCIES.length - 1] * Math.pow(2, i - DEFAULT_FREQUENCIES.length + 1);
-          
+
+          // Configurer chaque bande
+          const bandConfig = {
+            bandIndex: i,
+            frequency: frequency,
+            gainDB: 0.0,
+            q: 0.707,
+            type: i === 0 ? 'lowshelf' as const : (i === numBands - 1 ? 'highshelf' as const : 'peak' as const),
+            enabled: true
+          };
+
+          await NativeAudioCoreModule.equalizerSetBand(i, bandConfig);
+
           initialBands.push({
             frequency,
             gain: 0,
@@ -57,10 +97,9 @@ export const useEqualizer = (numBands: number = 10, sampleRate: number = 48000) 
         setIsInitialized(true);
 
         // Récupérer l'état actuel
-        const currentEnabled = await NativeAudioEqualizerModule.getEQEnabled();
-        const currentMasterGain = await NativeAudioEqualizerModule.getMasterGain();
-        setEnabled(currentEnabled);
-        setMasterGain(currentMasterGain);
+        const equalizerInfo = await NativeAudioCoreModule.equalizerGetInfo();
+        setEnabled(!equalizerInfo.bypass);
+        setMasterGain(equalizerInfo.masterGainDB);
 
       } catch (error) {
         console.error('Failed to initialize equalizer:', error);
@@ -71,19 +110,19 @@ export const useEqualizer = (numBands: number = 10, sampleRate: number = 48000) 
 
     // Cleanup
     return () => {
-      if (equalizerIdRef.current !== null && NativeAudioEqualizerModule) {
-        NativeAudioEqualizerModule.destroyEqualizer(equalizerIdRef.current);
+      if (NativeAudioCoreModule) {
+        NativeAudioCoreModule.dispose();
       }
     };
   }, [numBands, sampleRate]);
 
   // Activer/Désactiver l'égaliseur
   const toggleEnabled = useCallback(async () => {
-    if (!isInitialized || !NativeAudioEqualizerModule) return;
-    
+    if (!isInitialized || !NativeAudioCoreModule) return;
+
     try {
       const newEnabled = !enabled;
-      await NativeAudioEqualizerModule.setEQEnabled(newEnabled);
+      await NativeAudioCoreModule.equalizerSetBypass(!newEnabled);
       setEnabled(newEnabled);
     } catch (error) {
       console.error('Failed to toggle equalizer:', error);
@@ -92,16 +131,16 @@ export const useEqualizer = (numBands: number = 10, sampleRate: number = 48000) 
 
   // Modifier le gain d'une bande
   const setBandGain = useCallback(async (bandIndex: number, gain: number) => {
-    if (!isInitialized || !NativeAudioEqualizerModule || bandIndex < 0 || bandIndex >= bands.length) return;
+    if (!isInitialized || !NativeAudioCoreModule || bandIndex < 0 || bandIndex >= bands.length) return;
 
     try {
       setIsProcessing(true);
-      
+
       // Limiter le gain entre -24 et +24 dB
       const clampedGain = Math.max(-24, Math.min(24, gain));
-      
-      await NativeAudioEqualizerModule.setBandGain(bandIndex, clampedGain);
-      
+
+      await NativeAudioCoreModule.equalizerSetBandGain(bandIndex, clampedGain);
+
       setBands(prevBands => {
         const newBands = [...prevBands];
         newBands[bandIndex] = { ...newBands[bandIndex], gain: clampedGain };
@@ -116,11 +155,11 @@ export const useEqualizer = (numBands: number = 10, sampleRate: number = 48000) 
 
   // Modifier le gain master
   const updateMasterGain = useCallback(async (gain: number) => {
-    if (!isInitialized || !NativeAudioEqualizerModule) return;
+    if (!isInitialized || !NativeAudioCoreModule) return;
 
     try {
       const clampedGain = Math.max(-24, Math.min(24, gain));
-      await NativeAudioEqualizerModule.setMasterGain(clampedGain);
+      await NativeAudioCoreModule.equalizerSetMasterGain(clampedGain);
       setMasterGain(clampedGain);
     } catch (error) {
       console.error('Failed to set master gain:', error);
@@ -129,24 +168,18 @@ export const useEqualizer = (numBands: number = 10, sampleRate: number = 48000) 
 
   // Réinitialiser toutes les bandes
   const resetAllBands = useCallback(async () => {
-    if (!isInitialized || !NativeAudioEqualizerModule || equalizerIdRef.current === null) return;
+    if (!isInitialized || !NativeAudioCoreModule) return;
 
     try {
       setIsProcessing(true);
-      
-      await NativeAudioEqualizerModule.beginBatch();
-      
-      // Réinitialiser toutes les bandes à 0 dB
-      for (let i = 0; i < bands.length; i++) {
-        await NativeAudioEqualizerModule.setBandGain(i, 0);
-      }
-      
-      await NativeAudioEqualizerModule.endBatch();
-      
-      setBands(prevBands => 
+
+      // Utiliser la méthode de réinitialisation directe de l'égaliseur
+      await NativeAudioCoreModule.equalizerResetAllBands();
+
+      setBands(prevBands =>
         prevBands.map(band => ({ ...band, gain: 0 }))
       );
-      
+
       // Réinitialiser le gain master
       await updateMasterGain(0);
     } catch (error) {
@@ -158,22 +191,18 @@ export const useEqualizer = (numBands: number = 10, sampleRate: number = 48000) 
 
   // Mise à jour groupée des gains (pour les presets)
   const updateAllBandGains = useCallback(async (gains: number[]) => {
-    if (!isInitialized || !NativeAudioEqualizerModule || equalizerIdRef.current === null) return;
+    if (!isInitialized || !NativeAudioCoreModule) return;
 
     try {
       setIsProcessing(true);
-      
-      await NativeAudioEqualizerModule.beginBatch();
-      
+
       const numBandsToUpdate = Math.min(gains.length, bands.length);
       for (let i = 0; i < numBandsToUpdate; i++) {
         const clampedGain = Math.max(-24, Math.min(24, gains[i]));
-        await NativeAudioEqualizerModule.setBandGain(i, clampedGain);
+        await NativeAudioCoreModule.equalizerSetBandGain(i, clampedGain);
       }
-      
-      await NativeAudioEqualizerModule.endBatch();
-      
-      setBands(prevBands => 
+
+      setBands(prevBands =>
         prevBands.map((band, index) => ({
           ...band,
           gain: index < gains.length ? Math.max(-24, Math.min(24, gains[index])) : band.gain

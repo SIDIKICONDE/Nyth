@@ -1,6 +1,12 @@
 #include "AudioPipeline.hpp"
+#include "capture/AudioCapture.hpp"
 #include "capture/AudioCaptureSIMD.hpp"
 #include "noise/NoiseReducer.hpp"
+#include "core/AudioEqualizer.hpp"
+#include "effects/EffectChain.hpp"
+#include "safety/AudioSafety.hpp"
+#include "capture/AudioFileWriter.hpp"
+#include "utils/AudioBuffer.hpp"
 
 #include <chrono>
 #include <cstring>
@@ -24,7 +30,7 @@ bool AudioPipeline::initialize(const Config& config) {
     config_ = config;
     
     // 1. Initialiser la capture audio
-    capture_ = AudioCapture::create(config.captureConfig);
+    capture_ = ::Audio::capture::AudioCapture::create(config.captureConfig);
     if (!capture_) {
         return false;
     }
@@ -38,7 +44,7 @@ bool AudioPipeline::initialize(const Config& config) {
     
     // 2. Initialiser l'equalizer si activé
     if (config.enableEqualizer) {
-        equalizer_ = std::make_unique<AudioFX::AudioEqualizer>();
+        equalizer_ = std::make_unique<::Audio::core::AudioEqualizer>();
         equalizer_->initialize(10, config.captureConfig.sampleRate);
     }
     
@@ -330,7 +336,7 @@ void AudioPipeline::updateLevels(const float* data, size_t sampleCount) {
 void AudioPipeline::setEqualizerEnabled(bool enabled) {
     config_.enableEqualizer = enabled;
     if (enabled && !equalizer_) {
-        equalizer_ = std::make_unique<AudioFX::AudioEqualizer>();
+        equalizer_ = std::make_unique<::Audio::core::AudioEqualizer>();
         equalizer_->initialize(10, config_.captureConfig.sampleRate);
     }
 }
@@ -454,7 +460,7 @@ bool AudioPipeline::startRecording(const std::string& filename) {
     writerConfig.channelCount = config_.captureConfig.channelCount;
     writerConfig.bitsPerSample = config_.captureConfig.bitsPerSample;
     
-    if (recorder_->initialize(std::shared_ptr<AudioCapture>(capture_.get()), writerConfig)) {
+    if (recorder_->initialize(std::shared_ptr<::Audio::capture::AudioCapture>(capture_.get()), writerConfig)) {
         return recorder_->startRecording();
     }
     
@@ -594,14 +600,14 @@ void AudioIntegrationUtils::convertCaptureToEffectsFormat(const float* captureDa
     std::memcpy(effectsData, captureData, frameCount * channels * sizeof(float));
 }
 
-void AudioIntegrationUtils::syncModuleTiming(AudioCapture* capture,
+void AudioIntegrationUtils::syncModuleTiming(::Audio::capture::AudioCapture* capture,
                                             AudioFX::EffectChain* effects) {
     // Synchroniser les timestamps entre modules
     // À implémenter selon les besoins
 }
 
-bool AudioIntegrationUtils::areModulesCompatible(const AudioCaptureConfig& captureConfig,
-                                                const AudioFX::AudioEqualizer& eq) {
+bool AudioIntegrationUtils::areModulesCompatible(const ::Audio::capture::AudioCaptureConfig& captureConfig,
+                                                const ::Audio::core::AudioEqualizer& eq) {
     // Vérifier la compatibilité des configurations
     return captureConfig.sampleRate == eq.getSampleRate();
 }

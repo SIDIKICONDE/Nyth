@@ -9,8 +9,8 @@
 #include <atomic>
 #include <chrono>
 
-namespace Nyth {
 namespace Audio {
+namespace capture {
 
 // Configuration de la capture audio
 struct AudioCaptureConfig {
@@ -219,5 +219,5 @@ public:
     void resetPeakLevel() override { peakLevel_ = 0.0f; }
 };
 
+} // namespace capture
 } // namespace Audio
-} // namespace Nyth

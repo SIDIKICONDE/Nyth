@@ -54,19 +54,9 @@ export const LibraryWithUX: React.FC<LibraryWithUXProps> = ({
     }
   }, [isLoading]);
 
-  // Déterminer la variante selon le mode de vue
-  const getVariantForViewMode = () => {
-    switch (viewMode) {
-      case 'compact':
-        return 'compact';
-      case 'list':
-        return 'list';
-      default:
-        return showTooltips ? 'interactive' : 'default';
-    }
-  };
-
-  const variant = getVariantForViewMode();
+  // Utiliser le hook pour déterminer la variante selon le contexte
+  const variant = useBookItemVariant(viewMode === 'compact' ? 'grid' : viewMode as 'grid' | 'list');
+  const effectiveVariant = showTooltips && variant === 'interactive' ? 'interactive' : variant;
 
   // Fonction pour créer un script avec tooltips
   const createScriptWithTooltips = (script: Script, index: number) => {
@@ -81,10 +71,10 @@ export const LibraryWithUX: React.FC<LibraryWithUXProps> = ({
     };
 
     // Ajouter des tooltips selon le contexte
-    if (showTooltips && variant === 'interactive') {
+    if (showTooltips && effectiveVariant === 'interactive') {
       return (
         <View key={script.id}>
-          {createBookItemVariant(variant, {
+          {createBookItemVariant(effectiveVariant, {
             ...baseProps,
             onScriptShare: (id) => console.log('Share', id),
             onScriptDuplicate: (id) => console.log('Duplicate', id),
@@ -97,7 +87,7 @@ export const LibraryWithUX: React.FC<LibraryWithUXProps> = ({
 
     return (
       <View key={script.id}>
-        {createBookItemVariant(variant, baseProps)}
+        {createBookItemVariant(effectiveVariant, baseProps)}
       </View>
     );
   };

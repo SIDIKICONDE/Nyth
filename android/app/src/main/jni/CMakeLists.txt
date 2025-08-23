@@ -247,6 +247,8 @@ endif()
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/NativeAudioEqualizerModule.cpp
     ../../../../../shared/NativeAudioCaptureModule.cpp
+    ../../../../../shared/NativeAudioSpectrumModule.cpp
+    ../../../../../shared/NativeAudioCoreModule.cpp
     ../../../../../shared/Audio/fft/FFTEngine.hpp
     ../../../../../shared/Audio/core/AudioEqualizer.cpp
     ../../../../../shared/Audio/core/AudioEqualizerTemplates.hpp
@@ -272,9 +274,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 #Audio Pipeline Integration System
     ../../../../../shared/Audio/AudioPipeline.hpp
     ../../../../../shared/Audio/AudioPipeline.cpp
-    ../../../../../shared/Audio/examples/integrated_audio_example.cpp
-    ../../../../../shared/Audio/examples/android_audio_pipeline_example.cpp
-#
+    
 #New Enhanced Features:
 #- AudioCaptureException.hpp : Structured error handling with typed exceptions
 #- AudioCaptureMetrics.hpp : Real - time performance monitoring and profiling

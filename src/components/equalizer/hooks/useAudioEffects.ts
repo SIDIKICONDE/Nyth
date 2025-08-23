@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import NativeAudioEqualizerModule from '../../../../specs/NativeAudioEqualizerModule';
+import NativeAudioEffectsModule from '../../../../specs/NativeAudioEffectsModule';
 import { AudioComputationCache, useAudioDebounce } from '../../../utils/audioPerformanceOptimizations';
 
 export interface CompressorConfig {
@@ -41,7 +41,7 @@ export const useAudioEffects = () => {
   useEffect(() => {
     const loadState = async () => {
       try {
-        const enabled = await NativeAudioEqualizerModule.fxGetEnabled();
+        const enabled = true; // Le module est activé si on peut le configurer
         setIsEnabled(enabled);
       } catch (error) {
         console.error('Failed to load FX state:', error);
@@ -55,7 +55,7 @@ export const useAudioEffects = () => {
   const toggleEnabled = useCallback(async () => {
     try {
       const newEnabled = !isEnabled;
-      await NativeAudioEqualizerModule.fxSetEnabled(newEnabled);
+      // Note: Le module n'a pas de méthode setEnabled, on utilise un flag local
       setIsEnabled(newEnabled);
     } catch (error) {
       console.error('Failed to toggle FX:', error);
@@ -71,7 +71,8 @@ export const useAudioEffects = () => {
         
         // Appel natif en dehors du setState
         try {
-          NativeAudioEqualizerModule.fxSetCompressor(
+          NativeAudioEffectsModule.setCompressorParameters(
+            0, // effectId
             updatedConfig.thresholdDb,
             updatedConfig.ratio,
             updatedConfig.attackMs,
@@ -98,7 +99,8 @@ export const useAudioEffects = () => {
         
         // Appel natif en dehors du setState
         try {
-          NativeAudioEqualizerModule.fxSetDelay(
+          NativeAudioEffectsModule.setDelayParameters(
+            0, // effectId
             updatedConfig.delayMs,
             updatedConfig.feedback,
             updatedConfig.mix
@@ -130,11 +132,21 @@ export const useAudioEffects = () => {
       mix: 0.25
     };
     
-    // Exécuter les mises à jour en parallèle pour améliorer les performances
-    await Promise.all([
-      updateCompressor(defaultCompressor),
-      updateDelay(defaultDelay)
-    ]);
+          // Exécuter les mises à jour
+      NativeAudioEffectsModule.setCompressorParameters(
+        0,
+        defaultCompressor.thresholdDb,
+        defaultCompressor.ratio,
+        defaultCompressor.attackMs,
+        defaultCompressor.releaseMs,
+        defaultCompressor.makeupDb
+      );
+      NativeAudioEffectsModule.setDelayParameters(
+        0,
+        defaultDelay.delayMs,
+        defaultDelay.feedback,
+        defaultDelay.mix
+      );
   }, [updateCompressor, updateDelay]);
 
   // Calculer la réduction de gain du compresseur - optimisé

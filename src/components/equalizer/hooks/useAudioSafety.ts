@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import NativeAudioEqualizerModule from '../../../../specs/NativeAudioEqualizerModule';
+import NativeAudioSafetyModule from '../../../../specs/NativeAudioSafetyModule';
+
+
 
 export interface AudioSafetyConfig {
   enabled: boolean;
@@ -53,17 +55,7 @@ export const useAudioSafety = (pollInterval: number = 250) => {
     try {
       const updatedConfig = { ...config, ...newConfig };
       
-      await NativeAudioEqualizerModule.safetySetConfig(
-        updatedConfig.enabled,
-        updatedConfig.dcRemovalEnabled,
-        updatedConfig.dcThreshold,
-        updatedConfig.limiterEnabled,
-        updatedConfig.limiterThresholdDb,
-        updatedConfig.softKneeLimiter,
-        updatedConfig.kneeWidthDb,
-        updatedConfig.feedbackDetectEnabled,
-        updatedConfig.feedbackCorrThreshold
-      );
+      await NativeAudioSafetyModule.setConfig(updatedConfig);
       
       setConfig(updatedConfig);
     } catch (error) {
@@ -74,20 +66,31 @@ export const useAudioSafety = (pollInterval: number = 250) => {
   // Récupérer le rapport de sécurité avec optimisation
   const fetchReport = useCallback(async () => {
     try {
-      const safetyReport = await NativeAudioEqualizerModule.safetyGetReport();
+      const safetyReport = await NativeAudioSafetyModule.getStatistics();
       
-      // Ne mettre à jour que si les valeurs ont changé significativement
+      // Utiliser les statistiques moyennes pour les métriques
+      const avgReport = safetyReport.avg;
       const lastReport = lastReportRef.current;
+
+      const mappedReport: AudioSafetyReport = {
+        peak: avgReport.peak,
+        rms: avgReport.rms,
+        dcOffset: avgReport.dcOffset,
+        clippedSamples: avgReport.clippedSamples,
+        feedbackScore: avgReport.feedbackScore,
+        overload: false // Valeur par défaut pour compatibilité
+      };
+
       if (
-        Math.abs(safetyReport.peak - lastReport.peak) > 0.001 ||
-        Math.abs(safetyReport.rms - lastReport.rms) > 0.001 ||
-        Math.abs(safetyReport.dcOffset - lastReport.dcOffset) > 0.0001 ||
-        safetyReport.clippedSamples !== lastReport.clippedSamples ||
-        Math.abs(safetyReport.feedbackScore - lastReport.feedbackScore) > 0.01 ||
-        safetyReport.overload !== lastReport.overload
+        Math.abs(mappedReport.peak - lastReport.peak) > 0.001 ||
+        Math.abs(mappedReport.rms - lastReport.rms) > 0.001 ||
+        Math.abs(mappedReport.dcOffset - lastReport.dcOffset) > 0.0001 ||
+        mappedReport.clippedSamples !== lastReport.clippedSamples ||
+        Math.abs(mappedReport.feedbackScore - lastReport.feedbackScore) > 0.01 ||
+        mappedReport.overload !== lastReport.overload
       ) {
-        lastReportRef.current = safetyReport;
-        setReport(safetyReport);
+        lastReportRef.current = mappedReport;
+        setReport(mappedReport);
       }
     } catch (error) {
       console.error('Failed to get safety report:', error);

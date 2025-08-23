@@ -1,5 +1,6 @@
 
 #include "AudioEqualizer.hpp"
+#include "EQPreset.hpp"
 
 // Headers système C++ standard
 #include <algorithm>
@@ -11,10 +12,12 @@
 #include <stdexcept>
 #include <vector>
 
-namespace AudioFX {
+namespace Audio {
+namespace core {
 
 // Import des constantes pour éviter la répétition des namespace
-using namespace EqualizerConstants;
+using namespace AudioFX;
+using namespace AudioFX::EqualizerConstants;
 
 AudioEqualizer::AudioEqualizer(size_t numBands, uint32_t sampleRate)
     : m_sampleRate(sampleRate)
@@ -535,14 +538,15 @@ std::string AudioEqualizer::getDebugInfo(const std::string& location) const {
 // Les définitions de validateAudioBuffer sont dans AudioEqualizer.inl
 
 // Explicit template instantiations
-template void AudioFX::AudioEqualizer::process<float>(const std::vector<float>&, std::vector<float>&, const std::string&);
-template void AudioFX::AudioEqualizer::process<double>(const std::vector<double>&, std::vector<double>&, const std::string&);
-template void AudioFX::AudioEqualizer::processStereo<float>(const std::vector<float>&, const std::vector<float>&,
+template void Audio::core::AudioEqualizer::process<float>(const std::vector<float>&, std::vector<float>&, const std::string&);
+template void Audio::core::AudioEqualizer::process<double>(const std::vector<double>&, std::vector<double>&, const std::string&);
+template void Audio::core::AudioEqualizer::processStereo<float>(const std::vector<float>&, const std::vector<float>&,
                                                   std::vector<float>&, std::vector<float>&, const std::string&);
-template void AudioFX::AudioEqualizer::processStereo<double>(const std::vector<double>&, const std::vector<double>&,
+template void Audio::core::AudioEqualizer::processStereo<double>(const std::vector<double>&, const std::vector<double>&,
                                                    std::vector<double>&, std::vector<double>&, const std::string&);
 
-template bool AudioFX::AudioEqualizer::validateAudioBuffer<float>(const std::vector<float>&, const std::string&) const;
-template bool AudioFX::AudioEqualizer::validateAudioBuffer<double>(const std::vector<double>&, const std::string&) const;
+template bool Audio::core::AudioEqualizer::validateAudioBuffer<float>(const std::vector<float>&, const std::string&) const;
+template bool Audio::core::AudioEqualizer::validateAudioBuffer<double>(const std::vector<double>&, const std::string&) const;
 
-} // namespace AudioFX
+} // namespace core
+} // namespace Audio

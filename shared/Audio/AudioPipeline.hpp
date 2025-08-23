@@ -29,7 +29,7 @@ class AudioPipeline {
 public:
     // Configuration du pipeline
     struct Config {
-        AudioCaptureConfig captureConfig;
+        ::Audio::capture::AudioCaptureConfig captureConfig;
 
         // Activation des modules
         bool enableEqualizer = false;
@@ -105,13 +105,13 @@ public:
 
 private:
     // Modules
-    std::unique_ptr<AudioCapture> capture_;
-    std::unique_ptr<AudioFX::AudioEqualizer> equalizer_;
+    std::unique_ptr<::Audio::capture::AudioCapture> capture_;
+    std::unique_ptr<::Audio::core::AudioEqualizer> equalizer_;
     std::unique_ptr<AudioNR::NoiseReducer> noiseReduction_;
     std::unique_ptr<AudioFX::EffectChain> effectsChain_;
     std::unique_ptr<AudioSafety::AudioSafetyEngine> safetyLimiter_;
     std::unique_ptr<AudioFX::SimpleFFT> fftAnalyzer_;
-    std::unique_ptr<AudioRecorder> recorder_;
+    std::unique_ptr<Nyth::Audio::AudioRecorder> recorder_;
 
     // Buffers de traitement
     std::unique_ptr<AudioUtils::AudioBuffer> processBuffer_;
@@ -236,10 +236,10 @@ public:
                                               int channels);
 
     // Synchronisation entre modules
-    static void syncModuleTiming(AudioCapture* capture, AudioFX::EffectChain* effects);
+    static void syncModuleTiming(::Audio::capture::AudioCapture* capture, AudioFX::EffectChain* effects);
 
     // Validation de compatibilité
-    static bool areModulesCompatible(const AudioCaptureConfig& captureConfig, const AudioFX::AudioEqualizer& eq);
+    static bool areModulesCompatible(const ::Audio::capture::AudioCaptureConfig& captureConfig, const ::Audio::core::AudioEqualizer& eq);
 
     // Optimisation de la latence
     static void optimizeLatency(AudioPipeline* pipeline);

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { EqualizerPreset } from '../types';
-import NativeAudioEqualizerModule from '../../../../specs/NativeAudioEqualizerModule';
+import NativeAudioCoreModule from '../../../../specs/NativeAudioCoreModule';
 
 // Presets prédéfinis
 const BUILT_IN_PRESETS: EqualizerPreset[] = [
@@ -71,27 +71,27 @@ export const useEqualizerPresets = () => {
 
   // Appliquer un preset
   const applyPreset = useCallback(async (presetName: string): Promise<number[] | null> => {
-    if (!NativeAudioEqualizerModule) {
-      console.error('NativeAudioEqualizerModule not available');
+    if (!NativeAudioCoreModule) {
+      console.error('NativeAudioCoreModule not available');
       return null;
     }
 
     try {
       setIsLoading(true);
-      
+
       // Chercher le preset dans les presets intégrés et personnalisés
       const allPresets = [...BUILT_IN_PRESETS, ...customPresets];
       const preset = allPresets.find(p => p.name === presetName);
-      
+
       if (!preset) {
         console.error(`Preset "${presetName}" not found`);
         return null;
       }
 
-      // Appliquer le preset via le module natif
-      await NativeAudioEqualizerModule.setPreset(presetName);
+      // Appliquer le preset via le module natif - utiliser loadPreset au lieu de setPreset
+      await NativeAudioCoreModule.equalizerLoadPreset(presetName);
       setCurrentPreset(presetName);
-      
+
       return preset.gains;
     } catch (error) {
       console.error('Failed to apply preset:', error);

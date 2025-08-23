@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { SpectrumData } from '../types';
-import NativeAudioEqualizerModule from '../../../../specs/NativeAudioEqualizerModule';
+import NativeAudioCoreModule from '../../../../specs/NativeAudioCoreModule';
+import NativeAudioSpectrumModule from '../../../../specs/NativeAudioSpectrumModule';
 import { useAudioWorker } from '../../../hooks/useAudioWorker';
 import { AudioComputationCache, useAudioAnimationFrame } from '../../../utils/audioPerformanceOptimizations';
 
@@ -37,6 +38,39 @@ export const useSpectrumData = (options: UseSpectrumDataOptions = {}) => {
   
   // Utiliser le Web Worker pour les calculs lourds
   const { processSpectrum, isReady: workerReady } = useAudioWorker();
+
+  // État du module d'analyse spectrale
+  const spectrumModuleReady = useRef(false);
+
+  // Initialiser le module d'analyse spectrale
+  const initializeSpectrumModule = useCallback(async () => {
+    if (!NativeAudioSpectrumModule || spectrumModuleReady.current) return true;
+
+    try {
+      const config = {
+        sampleRate: 48000,
+        fftSize: 1024,
+        hopSize: 512,
+        numBands: 32,
+        minFreq: 20,
+        maxFreq: 20000,
+        useWindowing: true,
+        useSIMD: true
+      };
+
+      const success = NativeAudioSpectrumModule.initialize(config);
+      if (success) {
+        spectrumModuleReady.current = true;
+        return true;
+      } else {
+        console.error('Failed to initialize spectrum module');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error initializing spectrum module:', error);
+      return false;
+    }
+  }, []);
 
   // Normaliser les données de magnitude (dB vers 0-1) avec cache
   const normalizeMagnitude = useCallback((magnitude: number): number => {
@@ -76,58 +110,30 @@ export const useSpectrumData = (options: UseSpectrumDataOptions = {}) => {
 
   // Mettre à jour les données du spectre - optimisée avec Web Worker
   const updateSpectrum = useCallback(async () => {
-    if (!NativeAudioEqualizerModule || !isAnalyzing) return;
+    if (!isAnalyzing || !spectrumModuleReady.current) return;
 
     const now = Date.now();
     if (now - lastUpdateRef.current < updateInterval) return;
     lastUpdateRef.current = now;
 
     try {
-      const rawData = await NativeAudioEqualizerModule.getSpectrumData();
-      
-      if (Array.isArray(rawData) && rawData.length > 0) {
-        // Utiliser le Web Worker pour les calculs lourds si disponible
-        if (useWebWorker && workerReady && rawData.length > 64) {
-          try {
-            const processedData = await processSpectrum(
-              precision === 'fp64' ? new Float64Array(rawData) : new Float32Array(rawData),
-              48000, // Sample rate par défaut, à adapter selon votre config
-              precision
-            );
-            
-            const normalized = Array.from(processedData).map(normalizeMagnitude);
-            const smoothed = smoothMagnitudes(normalized);
-            
-            setSpectrumData({
-              magnitudes: smoothed,
-              timestamp: now
-            });
-          } catch (workerError) {
-            console.warn('Worker processing failed, falling back to main thread:', workerError);
-            // Fallback au traitement sur le thread principal
-            const normalized = rawData.map(normalizeMagnitude);
-            const smoothed = smoothMagnitudes(normalized);
-            
-            setSpectrumData({
-              magnitudes: smoothed,
-              timestamp: now
-            });
-          }
-        } else {
-          // Traitement normal pour les petites données
-          const normalized = rawData.map(normalizeMagnitude);
-          const smoothed = smoothMagnitudes(normalized);
-          
-          setSpectrumData({
-            magnitudes: smoothed,
-            timestamp: now
-          });
-        }
+      // Récupérer les données spectrales du module natif
+      const spectrumData = NativeAudioSpectrumModule.getSpectrumData();
+
+      if (spectrumData && spectrumData.magnitudes && spectrumData.magnitudes.length > 0) {
+        // Les données sont déjà normalisées par le module natif (0-1)
+        const normalized = spectrumData.magnitudes.map(normalizeMagnitude);
+        const smoothed = smoothMagnitudes(normalized);
+
+        setSpectrumData({
+          magnitudes: smoothed,
+          timestamp: now
+        });
       }
     } catch (error) {
       console.error('Failed to get spectrum data:', error);
     }
-  }, [isAnalyzing, updateInterval, normalizeMagnitude, smoothMagnitudes, useWebWorker, workerReady, processSpectrum]);
+  }, [isAnalyzing, updateInterval, normalizeMagnitude, smoothMagnitudes, spectrumModuleReady]);
 
   // Utiliser notre hook optimisé pour l'animation
   const { pause: pauseAnimation, resume: resumeAnimation } = useAudioAnimationFrame(
@@ -140,42 +146,55 @@ export const useSpectrumData = (options: UseSpectrumDataOptions = {}) => {
 
   // Démarrer l'analyse
   const startAnalysis = useCallback(async () => {
-    if (!NativeAudioEqualizerModule) {
-      console.error('NativeAudioEqualizerModule not available');
+    // Initialiser le module d'analyse spectrale si nécessaire
+    const moduleInitialized = await initializeSpectrumModule();
+    if (!moduleInitialized) {
+      console.error('Failed to initialize spectrum module');
       return;
     }
 
     try {
-      await NativeAudioEqualizerModule.startSpectrumAnalysis();
+      // Démarrer l'analyse spectrale via le module natif
+      const success = NativeAudioSpectrumModule.startAnalysis();
+      if (!success) {
+        console.error('Failed to start spectrum analysis');
+        return;
+      }
+
       setIsAnalyzing(true);
-      
+
       // Réinitialiser les données
       previousMagnitudesRef.current = new Array(32).fill(0);
       lastUpdateRef.current = 0;
-      
+
       // Démarrer l'animation avec notre hook optimisé
       resumeAnimation();
     } catch (error) {
       console.error('Failed to start spectrum analysis:', error);
     }
-  }, [resumeAnimation]);
+  }, [resumeAnimation, initializeSpectrumModule]);
 
   // Arrêter l'analyse
   const stopAnalysis = useCallback(async () => {
-    if (!NativeAudioEqualizerModule) return;
+    if (!spectrumModuleReady.current) return;
 
     try {
-      await NativeAudioEqualizerModule.stopSpectrumAnalysis();
+      // Arrêter l'analyse spectrale via le module natif
+      const success = NativeAudioSpectrumModule.stopAnalysis();
+      if (!success) {
+        console.error('Failed to stop spectrum analysis');
+      }
+
       setIsAnalyzing(false);
-      
+
       // Arrêter l'animation avec notre hook optimisé
       pauseAnimation();
-      
+
       // Réinitialiser les données à zéro avec animation
       const fadeOut = () => {
         const current = previousMagnitudesRef.current;
         const faded = current.map(mag => mag * 0.9);
-        
+
         if (Math.max(...faded) > 0.01) {
           previousMagnitudesRef.current = faded;
           setSpectrumData({
@@ -194,7 +213,7 @@ export const useSpectrumData = (options: UseSpectrumDataOptions = {}) => {
     } catch (error) {
       console.error('Failed to stop spectrum analysis:', error);
     }
-  }, []);
+  }, [pauseAnimation]);
 
   // Basculer l'analyse
   const toggleAnalysis = useCallback(() => {
@@ -209,11 +228,23 @@ export const useSpectrumData = (options: UseSpectrumDataOptions = {}) => {
   useEffect(() => {
     return () => {
       pauseAnimation();
-      if (isAnalyzing && NativeAudioEqualizerModule) {
-        NativeAudioEqualizerModule.stopSpectrumAnalysis();
+      if (isAnalyzing && spectrumModuleReady.current) {
+        NativeAudioSpectrumModule.stopAnalysis();
       }
     };
   }, [isAnalyzing, pauseAnimation]);
+
+  // Initialiser le module d'analyse spectrale au montage
+  useEffect(() => {
+    initializeSpectrumModule();
+
+    return () => {
+      if (spectrumModuleReady.current) {
+        NativeAudioSpectrumModule.dispose();
+        spectrumModuleReady.current = false;
+      }
+    };
+  }, [initializeSpectrumModule]);
 
   // Redémarrer l'animation si nécessaire
   useEffect(() => {

@@ -21,7 +21,7 @@
 		SA2000052F5A6B8C0099AABB /* SpectralNR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000132F5A6B8C0099AABB /* SpectralNR.cpp */; };
 		SA2000062F5A6B8C0099AABB /* AudioSafety.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000152F5A6B8C0099AABB /* AudioSafety.cpp */; };
 		SA2000072F5A6B8C0099AABB /* AudioBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000172F5A6B8C0099AABB /* AudioBuffer.cpp */; };
-		SA2000082F5A6B8C0099AABB /* NativeAudioEqualizerModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000202F5A6B8C0099AABB /* NativeAudioEqualizerModule.cpp */; };
+		SA2000082F5A6B8C0099AABB /* NativeAudioCoreModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000202F5A6B8C0099AABB /* NativeAudioCoreModule.cpp */; };
 		SA2000092F5A6B8C0099AABB /* EQPresetFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000072F5A6B8C0099AABB /* EQPresetFactory.cpp */; };
 		SF2000022F5A6B8C0099AABB /* FilterFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000052F5A6B8C0099AABB /* FilterFactory.cpp */; };
 		SF2000032F5A6B8C0099AABB /* FilterManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000072F5A6B8C0099AABB /* FilterManager.cpp */; };
@@ -30,6 +30,8 @@
 		SF2000072F5A6B8C0099AABB /* MemoryManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000142F5A6B8C0099AABB /* MemoryManager.cpp */; };
 		SF2000082F5A6B8C0099AABB /* ProductionConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000152F5A6B8C0099AABB /* ProductionConfig.cpp */; };
 		SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */; };
+		SA2000102F5A6B8C0099AABB /* AudioFileWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000192F5A6B8C0099AABB /* AudioFileWriter.cpp */; };
+		SS2000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SS1000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -54,7 +56,7 @@
 		SA1000132F5A6B8C0099AABB /* SpectralNR.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SpectralNR.cpp; path = ../shared/Audio/noise/SpectralNR.cpp; sourceTree = SOURCE_ROOT; };
 		SA1000152F5A6B8C0099AABB /* AudioSafety.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioSafety.cpp; path = ../shared/Audio/safety/AudioSafety.cpp; sourceTree = SOURCE_ROOT; };
 		SA1000172F5A6B8C0099AABB /* AudioBuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioBuffer.cpp; path = ../shared/Audio/utils/AudioBuffer.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000202F5A6B8C0099AABB /* NativeAudioEqualizerModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeAudioEqualizerModule.cpp; path = ../shared/NativeAudioEqualizerModule.cpp; sourceTree = SOURCE_ROOT; };
+		SA1000202F5A6B8C0099AABB /* NativeAudioCoreModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeAudioCoreModule.cpp; path = ../shared/NativeAudioCoreModule.cpp; sourceTree = SOURCE_ROOT; };
 		SF1000052F5A6B8C0099AABB /* FilterFactory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FilterFactory.cpp; path = ../shared/filters/FilterFactory.cpp; sourceTree = SOURCE_ROOT; };
 		SF1000072F5A6B8C0099AABB /* FilterManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FilterManager.cpp; path = ../shared/filters/FilterManager.cpp; sourceTree = SOURCE_ROOT; };
 		SF1000102F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeCameraFiltersModule.cpp; path = ../shared/NativeCameraFiltersModule.cpp; sourceTree = SOURCE_ROOT; };
@@ -62,6 +64,8 @@
 		SF1000142F5A6B8C0099AABB /* MemoryManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryManager.cpp; path = ../shared/filters/MemoryManager.cpp; sourceTree = SOURCE_ROOT; };
 		SF1000152F5A6B8C0099AABB /* ProductionConfig.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ProductionConfig.cpp; path = ../shared/filters/ProductionConfig.cpp; sourceTree = SOURCE_ROOT; };
 		SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioPipeline.cpp; path = ../shared/Audio/AudioPipeline.cpp; sourceTree = SOURCE_ROOT; };
+		SA1000192F5A6B8C0099AABB /* AudioFileWriter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioFileWriter.cpp; path = ../shared/Audio/capture/AudioFileWriter.cpp; sourceTree = SOURCE_ROOT; };
+		SS1000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeAudioSpectrumModule.cpp; path = ../shared/NativeAudioSpectrumModule.cpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -311,7 +315,7 @@
 				SA2000052F5A6B8C0099AABB /* SpectralNR.cpp in Sources */,
 				SA2000062F5A6B8C0099AABB /* AudioSafety.cpp in Sources */,
 				SA2000072F5A6B8C0099AABB /* AudioBuffer.cpp in Sources */,
-				SA2000082F5A6B8C0099AABB /* NativeAudioEqualizerModule.cpp in Sources */,
+				SA2000082F5A6B8C0099AABB /* NativeAudioCoreModule.cpp in Sources */,
 				SF2000022F5A6B8C0099AABB /* FilterFactory.cpp in Sources */,
 				SF2000032F5A6B8C0099AABB /* FilterManager.cpp in Sources */,
 				SF2000052F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp in Sources */,
@@ -319,6 +323,8 @@
 				SF2000072F5A6B8C0099AABB /* MemoryManager.cpp in Sources */,
 				SF2000082F5A6B8C0099AABB /* ProductionConfig.cpp in Sources */,
 				SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */,
+				SA2000102F5A6B8C0099AABB /* AudioFileWriter.cpp in Sources */,
+				SS2000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -330,7 +336,7 @@
 			baseConfigurationReference = 43AFF0FBAE6378C4759709ED /* Pods-Nyth.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = NO;
 				CODE_SIGN_ENTITLEMENTS = Nyth/Nyth.entitlements;
@@ -353,11 +359,6 @@
 					"$(inherited)",
 					"-ObjC",
 					"-lc++",
-					"-lavfilter",
-					"-lavformat",
-					"-lavutil",
-					"-lswresample",
-					"-lswscale",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.nyth.bundle;
 				PRODUCT_NAME = Nyth;
@@ -372,7 +373,7 @@
 			baseConfigurationReference = 5C1BB482126F685642D298BD /* Pods-Nyth.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = NO;
 				CODE_SIGN_ENTITLEMENTS = Nyth/NythRelease.entitlements;
@@ -394,11 +395,6 @@
 					"$(inherited)",
 					"-ObjC",
 					"-lc++",
-					"-lavfilter",
-					"-lavformat",
-					"-lavutil",
-					"-lswresample",
-					"-lswscale",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.nyth.bundle;
 				PRODUCT_NAME = Nyth;
@@ -412,7 +408,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -527,7 +523,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;

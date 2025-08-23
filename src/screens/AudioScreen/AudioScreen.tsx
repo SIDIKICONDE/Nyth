@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList, Alert } from 'react-native';
+import { View, FlatList, Alert, Text, TouchableOpacity } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import tw from 'twrnc';
 import { useNavigation } from '@react-navigation/native';
@@ -23,6 +23,8 @@ import AudioLevelIndicator from './components/AudioLevelIndicator';
 import { useAudioFolders } from './hooks/useAudioFolders';
 import { useAudioScreenState } from './hooks/useAudioScreenState';
 import { useAudioCapture } from './hooks/useAudioCapture';
+import { useEqualizer } from '../../components/equalizer/hooks/useEqualizer';
+import { useNoiseReduction } from '../../components/equalizer/hooks/useNoiseReduction';
 
 // Types
 import { AudioFolder } from './types';
@@ -53,22 +55,130 @@ export default function AudioScreen() {
     recordingInfo,
     currentLevel,
     peakLevel,
+    rmsLevel,
+    rmsLevelDB,
+    isSilent,
+    hasClipping,
+    availableDevices,
+    currentDevice,
+    statistics,
     hasPermission,
+    lastError,
+    errorCount,
+    isRecovering,
+    retryCount,
     startRecording: startNativeRecording,
     stopRecording: stopNativeRecording,
     pauseRecording: pauseNativeRecording,
     resumeRecording: resumeNativeRecording,
+    selectDevice,
+    updateConfig,
+    resetStatistics,
+    resetPeakLevel,
     analyzeAudioFile,
   } = useAudioCapture({
     onError: error => {
-      Alert.alert(t('audio.error'), error);
-      logger.error('🎤 Erreur audio:', error);
+      Alert.alert(t('audio.error'), error.message);
+      logger.error('🎤 Erreur audio:', error.message);
     },
     onAnalysis: analysis => {
       // Mise à jour en temps réel des niveaux audio
       logger.debug('📊 Analyse audio:', analysis);
     },
   });
+
+  // Hook pour l'égaliseur (amélioration automatique)
+  const {
+    isInitialized: equalizerInitialized,
+    enabled: equalizerEnabled,
+    masterGain,
+    bands,
+    setBandGain,
+    updateMasterGain,
+    toggleEnabled,
+    resetAllBands,
+    isProcessing: equalizerProcessing,
+  } = useEqualizer(10, 48000);
+
+  // Hook pour la réduction de bruit (amélioration automatique)
+  const {
+    isEnabled: noiseReductionEnabled,
+    mode: noiseReductionMode,
+    rnnoiseAggressiveness,
+    config: noiseReductionConfig,
+    toggleEnabled: toggleNoiseReduction,
+    changeMode: setNoiseReductionMode,
+    setAggressiveness: setNoiseReductionAggressiveness,
+    updateConfig: setNoiseReductionConfig,
+  } = useNoiseReduction();
+
+  // Activation automatique de l'égaliseur lors de l'enregistrement
+  React.useEffect(() => {
+    if (equalizerInitialized && isNativeRecording && !equalizerEnabled) {
+      // Activer l'égaliseur automatiquement
+      toggleEnabled();
+      // Appliquer un preset optimisé automatiquement (reset des bandes)
+      setTimeout(() => resetAllBands(), 500);
+      logger.debug('🎛️ Égaliseur activé automatiquement pour l\'enregistrement');
+    }
+  }, [equalizerInitialized, isNativeRecording, equalizerEnabled, toggleEnabled, resetAllBands]);
+
+  // Activation automatique de la réduction de bruit lors de l'enregistrement
+  React.useEffect(() => {
+    if (isNativeRecording && !noiseReductionEnabled) {
+      // Activer la réduction de bruit automatiquement
+      toggleNoiseReduction();
+      // Configurer un mode agressif pour les environnements bruyants
+      setNoiseReductionMode('rnnoise');
+      setNoiseReductionAggressiveness(1.5); // Agressivité modérée
+
+      // Configurer les paramètres avancés de réduction de bruit
+      setNoiseReductionConfig({
+        enabled: true,
+        mode: 'rnnoise',
+        rnnoiseAggressiveness: 1.5,
+        highPassEnabled: true,
+        highPassHz: 80, // Coupe-bas à 80Hz
+        thresholdDb: -20,
+        ratio: 4.0,
+        floorDb: -40,
+        attackMs: 10,
+        releaseMs: 100,
+      });
+      logger.debug('🔇 Réduction de bruit activée automatiquement');
+    }
+  }, [isNativeRecording, noiseReductionEnabled, toggleNoiseReduction, setNoiseReductionMode, setNoiseReductionAggressiveness, setNoiseReductionConfig]);
+
+  // Ajustement automatique du gain selon les niveaux audio
+  React.useEffect(() => {
+    if (equalizerEnabled && currentLevel > 0.8) {
+      // Réduire le gain si le niveau est trop élevé
+      const newGain = Math.max(-6, masterGain - 2);
+      updateMasterGain(newGain);
+    } else if (equalizerEnabled && currentLevel < 0.3 && masterGain < 6) {
+      // Augmenter le gain si le niveau est trop faible
+      const newGain = Math.min(6, masterGain + 1);
+      updateMasterGain(newGain);
+    }
+  }, [currentLevel, equalizerEnabled, masterGain, updateMasterGain]);
+
+  // Ajustement automatique de la réduction de bruit selon les conditions
+  React.useEffect(() => {
+    if (noiseReductionEnabled) {
+      // Si le signal est très faible, réduire l'agressivité pour éviter les artefacts
+      if (isSilent) {
+        setNoiseReductionAggressiveness(Math.max(0.5, rnnoiseAggressiveness - 0.3));
+      }
+      // Si le niveau est très élevé, augmenter légèrement l'agressivité
+      else if (currentLevel > 0.7) {
+        setNoiseReductionAggressiveness(Math.min(2.5, rnnoiseAggressiveness + 0.2));
+      }
+      // Ajustement selon le bruit de fond estimé
+      else if (hasClipping) {
+        setNoiseReductionAggressiveness(Math.min(3.0, rnnoiseAggressiveness + 0.5));
+      }
+    }
+  }, [noiseReductionEnabled, isSilent, currentLevel, hasClipping, rnnoiseAggressiveness, setNoiseReductionAggressiveness]);
 
   // État d'enregistrement (utilise maintenant le module natif)
   const [recordingDuration, setRecordingDuration] = React.useState(0);
@@ -387,9 +497,97 @@ export default function AudioScreen() {
       <AudioLevelIndicator
         currentLevel={currentLevel}
         peakLevel={peakLevel}
+        rmsLevel={rmsLevel}
+        rmsLevelDB={rmsLevelDB}
         isRecording={isNativeRecording}
         isPaused={isRecordingPaused}
+        isSilent={isSilent}
+        hasClipping={hasClipping}
+        statistics={statistics}
+        equalizerEnabled={equalizerEnabled}
+        equalizerProcessing={equalizerProcessing}
+        masterGain={masterGain}
+        equalizerAutoMode={true}
       />
+
+      {/* Affichage des erreurs du module natif */}
+      {(lastError || isRecovering) && (
+        <View
+          style={tw`mx-4 mb-4 p-3 rounded-lg ${
+            lastError ? 'bg-red-50 dark:bg-red-900/20' : 'bg-yellow-50 dark:bg-yellow-900/20'
+          }`}
+        >
+          {lastError && (
+            <View style={tw`flex-row items-start mb-2`}>
+              <Text style={tw`text-red-500 mr-2`}>⚠️</Text>
+              <View style={tw`flex-1`}>
+                <Text style={tw`text-red-700 dark:text-red-300 font-medium`}>
+                  Erreur Audio
+                </Text>
+                <Text style={tw`text-red-600 dark:text-red-400 text-sm mt-1`}>
+                  {lastError.message}
+                </Text>
+                <Text style={tw`text-red-500 dark:text-red-500 text-xs mt-1`}>
+                  Code: {lastError.code}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {isRecovering && (
+            <View style={tw`flex-row items-center`}>
+              <Text style={tw`text-yellow-500 mr-2`}>🔄</Text>
+              <Text style={tw`text-yellow-700 dark:text-yellow-300 text-sm`}>
+                Tentative de récupération... ({retryCount}/3)
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Boutons d'outils audio (uniquement pendant l'enregistrement) */}
+      {isNativeRecording && (
+        <View style={tw`mx-4 mb-4 flex-row justify-center space-x-2 flex-wrap`}>
+          <TouchableOpacity
+            onPress={resetStatistics}
+            style={tw`bg-blue-500 px-3 py-2 rounded-lg mb-2`}
+          >
+            <Text style={tw`text-white text-sm font-medium`}>📊 Reset Stats</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={resetPeakLevel}
+            style={tw`bg-orange-500 px-3 py-2 rounded-lg mb-2`}
+          >
+            <Text style={tw`text-white text-sm font-medium`}>🔝 Reset Peak</Text>
+          </TouchableOpacity>
+
+          {availableDevices && availableDevices.length > 1 && (
+            <TouchableOpacity
+              onPress={() => {
+                const nextDevice = availableDevices.find(d => d.id !== currentDevice?.id);
+                if (nextDevice) {
+                  selectDevice(nextDevice.id);
+                  Alert.alert('✅', `Périphérique changé: ${nextDevice.name}`);
+                }
+              }}
+              style={tw`bg-green-500 px-3 py-2 rounded-lg mb-2`}
+            >
+              <Text style={tw`text-white text-sm font-medium`}>🎤 Changer Périphérique</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            onPress={() => {
+              updateConfig({ sampleRate: 48000 }); // Exemple de changement de config
+              Alert.alert('✅', 'Configuration mise à jour (48kHz)');
+            }}
+            style={tw`bg-purple-500 px-3 py-2 rounded-lg mb-2`}
+          >
+            <Text style={tw`text-white text-sm font-medium`}>⚙️ Mettre à jour Config</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Liste des dossiers */}
       <FlatList

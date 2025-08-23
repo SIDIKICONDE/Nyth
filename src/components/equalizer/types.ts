@@ -66,3 +66,22 @@ export interface EqualizerTheme {
     border: string;
   };
 }
+
+// === Performance Types ===
+
+export interface PerformanceMetrics {
+  averageLatency: number;
+  peakLatency: number;
+  memoryUsage: number;
+  cacheHitRate: number;
+  batchEfficiency: number;
+  lastUpdate: number;
+}
+
+export interface PerformanceConfig {
+  debounceDelay?: number;
+  maxPoolSize?: number;
+  cacheSize?: number;
+  enablePredictiveCaching?: boolean;
+  enableBatchUpdates?: boolean;
+}

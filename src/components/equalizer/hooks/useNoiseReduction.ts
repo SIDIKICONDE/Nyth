@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import NativeAudioEqualizerModule from '../../../../specs/NativeAudioEqualizerModule';
+import NativeAudioNoiseModule from '../../../../specs/NativeAudioNoiseModule';
 
 export interface NoiseReductionConfig {
   enabled: boolean;
@@ -60,11 +60,10 @@ export const useNoiseReduction = () => {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const enabled = await NativeAudioEqualizerModule.nrGetEnabled();
-        const modeNumber = await NativeAudioEqualizerModule.nrGetMode();
-        const mode = modeNumber === 0 ? 'expander' : modeNumber === 1 ? 'rnnoise' : 'off';
-        const aggressiveness = await NativeAudioEqualizerModule.rnnsGetAggressiveness();
-        const nrConfig = await NativeAudioEqualizerModule.nrGetConfig();
+        const nrConfig = await NativeAudioNoiseModule.getConfig();
+        const enabled = true; // Le module est activé si on peut le configurer
+        const mode = (nrConfig.algorithm as string) === 'expander' ? 'expander' : (nrConfig.algorithm as string) === 'rnnoise' ? 'rnnoise' : 'off';
+        const aggressiveness = nrConfig.aggressiveness || 1.0;
 
         setIsEnabled(enabled);
         setMode(mode);
@@ -73,7 +72,13 @@ export const useNoiseReduction = () => {
           enabled,
           mode,
           rnnoiseAggressiveness: aggressiveness,
-          ...nrConfig
+          highPassEnabled: false,
+          highPassHz: 80,
+          thresholdDb: -45,
+          ratio: 2.5,
+          floorDb: -18,
+          attackMs: 3,
+          releaseMs: 80
         });
       } catch (error) {
         console.error('Failed to load NR config:', error);
@@ -85,57 +90,65 @@ export const useNoiseReduction = () => {
 
   // Activer/Désactiver la réduction de bruit
   const toggleEnabled = useCallback(async () => {
-    try {
-      const newEnabled = !isEnabled;
-      await NativeAudioEqualizerModule.nrSetEnabled(newEnabled);
-      setIsEnabled(newEnabled);
-      setConfig(prev => ({ ...prev, enabled: newEnabled }));
-    } catch (error) {
+          try {
+        const newEnabled = !isEnabled;
+        await NativeAudioNoiseModule.updateConfig({
+          algorithm: config.mode as any,
+          aggressiveness: config.rnnoiseAggressiveness,
+          enableMultiband: false,
+          preserveTransients: true,
+          reduceMusicalNoise: true
+        });
+        setIsEnabled(newEnabled);
+        setConfig(prev => ({ ...prev, enabled: newEnabled }));
+      } catch (error) {
       console.error('Failed to toggle NR:', error);
     }
   }, [isEnabled]);
 
   // Changer le mode
   const changeMode = useCallback(async (newMode: 'expander' | 'rnnoise' | 'off') => {
-    try {
-      const modeNumber = newMode === 'expander' ? 0 : newMode === 'rnnoise' ? 1 : 2;
-      await NativeAudioEqualizerModule.nrSetMode(modeNumber);
-      setMode(newMode);
-      setConfig(prev => ({ ...prev, mode: newMode }));
-    } catch (error) {
+          try {
+        await NativeAudioNoiseModule.setAlgorithm(newMode as any);
+        setMode(newMode);
+        setConfig(prev => ({ ...prev, mode: newMode }));
+      } catch (error) {
       console.error('Failed to set NR mode:', error);
     }
   }, []);
 
   // Définir l'agressivité RNNoise
   const setAggressiveness = useCallback(async (value: number) => {
-    try {
-      const clamped = Math.max(0, Math.min(3, value));
-      await NativeAudioEqualizerModule.rnnsSetAggressiveness(clamped);
-      setRnnoiseAggressiveness(clamped);
-      setConfig(prev => ({ ...prev, rnnoiseAggressiveness: clamped }));
-    } catch (error) {
+          try {
+        const clamped = Math.max(0, Math.min(3, value));
+        await NativeAudioNoiseModule.setAggressiveness(clamped);
+        await NativeAudioNoiseModule.updateConfig({
+          ...config,
+          aggressiveness: clamped
+        });
+        setRnnoiseAggressiveness(clamped);
+        setConfig(prev => ({ ...prev, rnnoiseAggressiveness: clamped }));
+      } catch (error) {
       console.error('Failed to set RNNoise aggressiveness:', error);
     }
   }, []);
 
   // Mettre à jour la configuration complète
   const updateConfig = useCallback(async (newConfig: Partial<NoiseReductionConfig>) => {
-    try {
-      const updatedConfig = { ...config, ...newConfig };
-      
-      await NativeAudioEqualizerModule.nrSetConfig(
-        updatedConfig.highPassEnabled,
-        updatedConfig.highPassHz,
-        updatedConfig.thresholdDb,
-        updatedConfig.ratio,
-        updatedConfig.floorDb,
-        updatedConfig.attackMs,
-        updatedConfig.releaseMs
-      );
-      
-      setConfig(updatedConfig);
-    } catch (error) {
+          try {
+        const updatedConfig = { ...config, ...newConfig };
+
+        const nativeConfig = {
+          algorithm: updatedConfig.mode as any,
+          aggressiveness: updatedConfig.rnnoiseAggressiveness,
+          enableMultiband: updatedConfig.highPassEnabled,
+          preserveTransients: true,
+          reduceMusicalNoise: true
+        };
+        await NativeAudioNoiseModule.updateConfig(nativeConfig);
+
+        setConfig(updatedConfig);
+      } catch (error) {
       console.error('Failed to update NR config:', error);
     }
   }, [config]);

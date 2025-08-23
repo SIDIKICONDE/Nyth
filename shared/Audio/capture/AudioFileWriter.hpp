@@ -113,7 +113,7 @@ public:
     ~AudioRecorder();
     
     // Configure l'enregistreur
-    bool initialize(std::shared_ptr<AudioCapture> capture,
+    bool initialize(std::shared_ptr<::Audio::capture::AudioCapture> capture,
                    const AudioFileWriterConfig& writerConfig);
     
     // Démarre l'enregistrement
@@ -151,7 +151,7 @@ public:
     void setRecordingCallback(RecordingCallback callback) { recordingCallback_ = callback; }
     
 private:
-    std::shared_ptr<AudioCapture> capture_;
+    std::shared_ptr<::Audio::capture::AudioCapture> capture_;
     AudioFileWriter writer_;
     AudioFileWriterConfig writerConfig_;
     
@@ -201,7 +201,7 @@ public:
     ~MultiFileRecorder();
     
     // Initialise avec une capture et une configuration
-    bool initialize(std::shared_ptr<AudioCapture> capture,
+    bool initialize(std::shared_ptr<::Audio::capture::AudioCapture> capture,
                    const SplitConfig& config,
                    const AudioFileWriterConfig& writerConfig);
     
@@ -228,7 +228,7 @@ public:
     void setFileSplitCallback(FileSplitCallback callback) { fileSplitCallback_ = callback; }
     
 private:
-    std::shared_ptr<AudioCapture> capture_;
+    std::shared_ptr<::Audio::capture::AudioCapture> capture_;
     std::unique_ptr<AudioRecorder> currentRecorder_;
     SplitConfig splitConfig_;
     AudioFileWriterConfig writerConfig_;

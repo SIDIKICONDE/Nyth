@@ -19,13 +19,14 @@
 #include "EQBand.hpp"
 #include "EQPreset.hpp"
 
-namespace AudioFX {
+namespace Audio {
+namespace core {
 
 class AudioEqualizer {
 public:
   // Constructor and destructor
-  AudioEqualizer(size_t numBands = NUM_BANDS,
-                 uint32_t sampleRate = DEFAULT_SAMPLE_RATE);
+  AudioEqualizer(size_t numBands = AudioFX::NUM_BANDS,
+                 uint32_t sampleRate = AudioFX::DEFAULT_SAMPLE_RATE);
   ~AudioEqualizer();
 
   // Initialize equalizer with specific parameters
@@ -47,14 +48,14 @@ public:
   void setBandGain(size_t bandIndex, double gainDB);
   void setBandFrequency(size_t bandIndex, double frequency);
   void setBandQ(size_t bandIndex, double q);
-  void setBandType(size_t bandIndex, FilterType type);
+  void setBandType(size_t bandIndex, AudioFX::FilterType type);
   void setBandEnabled(size_t bandIndex, bool enabled);
 
   // Get band parameters
   double getBandGain(size_t bandIndex) const;
   double getBandFrequency(size_t bandIndex) const;
   double getBandQ(size_t bandIndex) const;
-  FilterType getBandType(size_t bandIndex) const;
+  AudioFX::FilterType getBandType(size_t bandIndex) const;
   bool isBandEnabled(size_t bandIndex) const;
 
   // Global controls
@@ -64,8 +65,8 @@ public:
   bool isBypassed() const;
 
   // Preset management
-  void loadPreset(const EQPreset &preset);
-  void savePreset(EQPreset &preset) const;
+  void loadPreset(const AudioFX::EQPreset &preset);
+  void savePreset(AudioFX::EQPreset &preset) const;
   void resetAllBands();
 
   // Sample rate
@@ -104,9 +105,9 @@ public:
                       const std::string &location = NYTH_SOURCE_LOCATION) const;
 
   // Filter operations
-  std::vector<std::reference_wrapper<const EQBand>> getActiveBands() const;
-  std::vector<std::reference_wrapper<const EQBand>>
-  getBandsByType(FilterType type) const;
+    std::vector<std::reference_wrapper<const AudioFX::EQBand>> getActiveBands() const;
+  std::vector<std::reference_wrapper<const AudioFX::EQBand>>
+      getBandsByType(AudioFX::FilterType type) const;
 
 private:
   // Implementation details
@@ -125,7 +126,7 @@ private:
   double linearToDb(double linear) const;
 
   // Member variables
-  std::vector<EQBand> m_bands;
+  std::vector<AudioFX::EQBand> m_bands;
   uint32_t m_sampleRate;
   std::atomic<double> m_masterGain;
   std::atomic<bool> m_bypass;
@@ -257,7 +258,8 @@ AudioEqualizer::validateAudioBuffer(const std::vector<T> &buffer,
                      [](const T &sample) { return std::isfinite(sample); });
 }
 
-} // namespace AudioFX
+} // namespace core
+} // namespace Audio
 
 // Include preset factory
 #include "EQPresetFactory.hpp"
