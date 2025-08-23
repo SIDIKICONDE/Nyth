@@ -303,10 +303,13 @@ private:
         std::shared_ptr<jsi::Function> stateChangeCallback;
     } jsCallbacks_;
 
+    // Runtime JSI pour les callbacks
+    jsi::Runtime* runtime_{nullptr};
+
     // Configuration actuelle
     NythNoiseConfig currentConfig_;
     std::atomic<NythNoiseState> currentState_{NOISE_STATE_UNINITIALIZED};
-
+    
     // Buffers de traitement
     std::vector<float> inputBuffer_;
     std::vector<float> outputBuffer_;
