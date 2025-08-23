@@ -2,18 +2,18 @@
 
 // Includes conditionnels pour la compatibilité
 #if defined(__has_include)
-  #if __has_include(<NythJSI.h>)
-    #include <NythJSI.h>
-  #endif
+#if __has_include(<NythJSI.h>)
+#include <NythJSI.h>
+#endif
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
 
 // Vérification de la disponibilité de TurboModule
-#if defined(__has_include) && \
-    __has_include(<ReactCommon/TurboModule.h>) && \
+#if defined(__has_include) && __has_include(<ReactCommon/TurboModule.h>) && \
     __has_include(<ReactCommon/TurboModuleUtils.h>)
 #define NYTH_AUDIO_CORE_ENABLED 1
 #else
@@ -86,9 +86,9 @@ typedef struct {
 
 // === Informations sur un filtre ===
 typedef struct {
-    double a0, a1, a2;  // Coefficients feedforward
-    double b1, b2;      // Coefficients feedback
-    double y1, y2;      // État du filtre
+    double a0, a1, a2; // Coefficients feedforward
+    double b1, b2;     // Coefficients feedback
+    double y1, y2;     // État du filtre
 } NythCoreFilterInfo;
 
 // === Informations sur l'égaliseur ===
@@ -138,8 +138,8 @@ size_t NythCore_EqualizerGetNumBands(void);
 
 // Processing
 bool NythCore_EqualizerProcessMono(const float* input, float* output, size_t numSamples);
-bool NythCore_EqualizerProcessStereo(const float* inputL, const float* inputR,
-                                   float* outputL, float* outputR, size_t numSamples);
+bool NythCore_EqualizerProcessStereo(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                     size_t numSamples);
 
 // Presets
 bool NythCore_EqualizerLoadPreset(const char* presetName);
@@ -168,8 +168,8 @@ bool NythCore_FilterSetAllpass(int64_t filterId, double frequency, double sample
 
 // Processing
 bool NythCore_FilterProcessMono(int64_t filterId, const float* input, float* output, size_t numSamples);
-bool NythCore_FilterProcessStereo(int64_t filterId, const float* inputL, const float* inputR,
-                                float* outputL, float* outputR, size_t numSamples);
+bool NythCore_FilterProcessStereo(int64_t filterId, const float* inputL, const float* inputR, float* outputL,
+                                  float* outputR, size_t numSamples);
 
 // Informations
 bool NythCore_FilterGetInfo(int64_t filterId, NythCoreFilterInfo* info);
@@ -211,20 +211,22 @@ void NythCore_SetStateCallback(NythCoreStateCallback callback);
 #if NYTH_AUDIO_CORE_ENABLED && defined(__cplusplus)
 
 // Includes C++ nécessaires pour TurboModule
-#include <string>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <string>
 #include <vector>
 
-#include <jsi/jsi.h>
-#include <ReactCommon/TurboModule.h>
-#include <ReactCommon/TurboModuleUtils.h>
+
 #include "Audio/core/AudioEqualizer.hpp"
 #include "Audio/core/BiquadFilter.hpp"
 #include "Audio/core/MemoryPool.hpp"
-#include <mutex>
+#include <ReactCommon/TurboModule.h>
+#include <ReactCommon/TurboModuleUtils.h>
 #include <atomic>
+#include <jsi/jsi.h>
+#include <mutex>
 #include <unordered_map>
+
 
 namespace facebook {
 namespace react {
@@ -301,14 +303,18 @@ public:
     jsi::Value filterSetHighpass(jsi::Runtime& rt, int64_t filterId, double frequency, double sampleRate, double q);
     jsi::Value filterSetBandpass(jsi::Runtime& rt, int64_t filterId, double frequency, double sampleRate, double q);
     jsi::Value filterSetNotch(jsi::Runtime& rt, int64_t filterId, double frequency, double sampleRate, double q);
-    jsi::Value filterSetPeaking(jsi::Runtime& rt, int64_t filterId, double frequency, double sampleRate, double q, double gainDB);
-    jsi::Value filterSetLowShelf(jsi::Runtime& rt, int64_t filterId, double frequency, double sampleRate, double q, double gainDB);
-    jsi::Value filterSetHighShelf(jsi::Runtime& rt, int64_t filterId, double frequency, double sampleRate, double q, double gainDB);
+    jsi::Value filterSetPeaking(jsi::Runtime& rt, int64_t filterId, double frequency, double sampleRate, double q,
+                                double gainDB);
+    jsi::Value filterSetLowShelf(jsi::Runtime& rt, int64_t filterId, double frequency, double sampleRate, double q,
+                                 double gainDB);
+    jsi::Value filterSetHighShelf(jsi::Runtime& rt, int64_t filterId, double frequency, double sampleRate, double q,
+                                  double gainDB);
     jsi::Value filterSetAllpass(jsi::Runtime& rt, int64_t filterId, double frequency, double sampleRate, double q);
 
     // Processing
     jsi::Value filterProcessMono(jsi::Runtime& rt, int64_t filterId, const jsi::Array& input);
-    jsi::Value filterProcessStereo(jsi::Runtime& rt, int64_t filterId, const jsi::Array& inputL, const jsi::Array& inputR);
+    jsi::Value filterProcessStereo(jsi::Runtime& rt, int64_t filterId, const jsi::Array& inputL,
+                                   const jsi::Array& inputR);
 
     // Informations
     jsi::Value filterGetInfo(jsi::Runtime& rt, int64_t filterId);
@@ -373,10 +379,13 @@ private:
 
     // État actuel
     std::atomic<NythCoreState> m_currentState{CORE_STATE_UNINITIALIZED};
-    
+
     // Variables de configuration audio
     uint32_t currentSampleRate_;
     int currentChannels_;
+
+    // Runtime JSI pour les callbacks
+    jsi::Runtime* m_runtime{nullptr};
 
     // Méthodes privées
     void initializeEqualizer();
@@ -416,11 +425,13 @@ private:
 
     // Gestion d'erreurs avancée avec AudioError
     void handleErrorWithAudioError(AudioFX::AudioError error, const std::string& context);
+
+    // Traitement audio avec sélection automatique du meilleur algorithme
+    void processAudioWithBestAlgorithm(const float* input, float* output, size_t numSamples);
 };
 
 // === Fonction d'enregistrement du module ===
-JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioCoreModuleProvider(
-    std::shared_ptr<CallInvoker> jsInvoker);
+JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioCoreModuleProvider(std::shared_ptr<CallInvoker> jsInvoker);
 
 } // namespace react
 } // namespace facebook

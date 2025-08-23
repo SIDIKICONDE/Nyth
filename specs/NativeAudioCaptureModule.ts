@@ -10,7 +10,6 @@ export interface AudioCaptureConfig {
   enableEchoCancellation?: boolean;
   enableNoiseSuppression?: boolean;
   enableAutoGainControl?: boolean;
-  requestPermissionOnInit?: boolean;
 }
 
 export type CaptureState =
@@ -81,6 +80,58 @@ export type StateChangeCallback = (
 export type AnalysisCallback = (analysis: AudioAnalysis) => void;
 
 export type PermissionCallback = (granted: boolean) => void;
+
+// === Types utilitaires ===
+
+export interface AudioFormatConversionParams {
+  inputFormat: 'wav' | 'raw' | 'mp3' | 'aac';
+  outputFormat: 'wav' | 'raw' | 'mp3' | 'aac';
+  inputData: number[] | string; // Données audio ou chemin de fichier
+  sampleRate?: number;
+  channels?: number;
+  bitsPerSample?: number;
+}
+
+export interface AudioFormatConversionResult {
+  success: boolean;
+  data?: number[];
+  filePath?: string;
+  error?: string;
+  duration?: number;
+  sampleRate?: number;
+  channels?: number;
+  bitsPerSample?: number;
+}
+
+export interface AudioFileAnalysisParams {
+  filePath: string;
+  analyzeLevels?: boolean;
+  analyzeSpectrum?: boolean;
+  analyzeDuration?: boolean;
+  analyzeFormat?: boolean;
+}
+
+export interface AudioFileAnalysisResult {
+  success: boolean;
+  error?: string;
+  format?: {
+    type: string;
+    sampleRate: number;
+    channels: number;
+    bitsPerSample: number;
+    duration: number;
+  };
+  levels?: {
+    average: number;
+    peak: number;
+    rms: number;
+    rmsDb: number;
+  };
+  spectrum?: {
+    frequencies: number[];
+    magnitudes: number[];
+  };
+}
 
 // === Interface du module ===
 
@@ -169,7 +220,7 @@ export interface Spec extends TurboModule {
   readonly hasPermission: () => boolean;
 
   // Demande les permissions nécessaires
-  readonly requestPermission: (callback: PermissionCallback) => void;
+  readonly requestPermission: () => Promise<boolean>;
 
   // === Enregistrement ===
 
@@ -214,25 +265,14 @@ export interface Spec extends TurboModule {
   // === Méthodes utilitaires ===
 
   // Convertit des données audio entre différents formats
-  readonly convertAudioFormat: (params: {
-    input: number[];
-    inputFormat: 'int16' | 'int32' | 'float32';
-    outputFormat: 'int16' | 'int32' | 'float32';
-    sampleRate?: number;
-    channels?: number;
-  }) => number[];
+  readonly convertAudioFormat: (
+    params: AudioFormatConversionParams,
+  ) => AudioFormatConversionResult;
 
   // Analyse un fichier audio existant
-  readonly analyzeAudioFile: (filePath: string, callback: (result: {
-    duration: number;
-    sampleRate: number;
-    channels: number;
-    bitDepth: number;
-    format: string;
-    averageLevel: number;
-    peakLevel: number;
-    hasClipping: boolean;
-  }) => void) => void;
+  readonly analyzeAudioFile: (
+    params: AudioFileAnalysisParams,
+  ) => AudioFileAnalysisResult;
 
   // === Installation du module (pour JSI direct) ===
 
