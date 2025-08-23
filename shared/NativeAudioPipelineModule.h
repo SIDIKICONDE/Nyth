@@ -215,7 +215,7 @@ namespace react {
 class JSI_EXPORT NativeAudioPipelineModule : public TurboModule {
 public:
     explicit NativeAudioPipelineModule(std::shared_ptr<CallInvoker> jsInvoker)
-        : TurboModule("NativeAudioPipelineModule", jsInvoker) {
+        : TurboModule("NativeAudioPipelineModule", jsInvoker), jsInvoker_(jsInvoker) {
         currentSampleRate_ = 44100;
         currentChannels_ = 2;
     }
@@ -298,6 +298,12 @@ public:
 private:
     // Pipeline audio principal
     std::unique_ptr<Nyth::Audio::AudioPipeline> audioPipeline_;
+
+    // CallInvoker pour l'invocation asynchrone
+    std::shared_ptr<CallInvoker> jsInvoker_;
+    
+    // Runtime JavaScript (stocké lors de l'initialisation)
+    jsi::Runtime* runtime_ = nullptr;
 
     // Mutex pour la thread safety
     mutable std::mutex pipelineMutex_;
