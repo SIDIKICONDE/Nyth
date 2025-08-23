@@ -1,5 +1,5 @@
-#CMakeLists.txt - Configuration C++ 20 pour Android NDK
-cmake_minimum_required(VERSION 3.18.1) # Minimum pour C++20 support complet
+#CMakeLists.txt - Configuration C++17 pour Android NDK
+cmake_minimum_required(VERSION 3.18.1) # Minimum pour C++17
 
 #Define the library name here.
 project(appmodules
@@ -12,10 +12,10 @@ project(appmodules
 include(${REACT_ANDROID_DIR}/cmake-utils/ReactNative-application.cmake)
 
 #== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
-#C++ 20 Configuration
+#C++17 Configuration
 #== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
 
-#Force C++ 20 standard
+#Force C++17 standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -29,9 +29,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         -fexperimental-library # Pour les nouvelles features de la stdlib
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-#GCC - specific C++ 20 flags
+#GCC - specific C++ 17 flags
     add_compile_options(
-        -std=c++20
+        -std=c++17
         -lstdc++fs # Pour filesystem si nécessaire
     )
 endif()
@@ -54,7 +54,7 @@ add_definitions(-DRELEASE_PERFORMANCE_MONITORING)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
 
-#Release configuration avec optimisations C++ 20 production
+#Release configuration avec optimisations C++17 production
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -DPRODUCTION_BUILD")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG -DPRODUCTION_BUILD")
 
@@ -95,10 +95,10 @@ add_compile_options(
 )
 
 #== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
-#C++ 20 Standard Library Configuration
+#C++17 Standard Library Configuration
 #== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
 
-#Link against libc++ for NDK(C++ 20 compatible)
+#Link against libc++ for NDK (C++17 compatible)
 find_library(CPP_SHARED_LIB c++_shared NAMES c++_shared)
 if(CPP_SHARED_LIB)
     target_link_libraries(${CMAKE_PROJECT_NAME} ${CPP_SHARED_LIB})
@@ -315,6 +315,13 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 #```
 )
 
+# Explicitly enforce C++17 for NativeAudioEqualizerModule.cpp
+set_source_files_properties(
+    ../../../../../shared/NativeAudioEqualizerModule.cpp
+    PROPERTIES
+        COMPILE_OPTIONS "-std=c++17"
+)
+
 #Camera Filters System C++ Sources
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/NativeCameraFiltersModule.cpp
@@ -359,8 +366,8 @@ target_precompile_headers(${CMAKE_PROJECT_NAME} PRIVATE
 #Build Summary
 #== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
 
-message(STATUS "🔧 C++20 Configuration Summary:")
-message(STATUS "  - Standard: C++20")
+message(STATUS "🔧 C++17 Configuration Summary:")
+message(STATUS "  - Standard: C++17")
 message(STATUS "  - Extensions: ${CMAKE_CXX_EXTENSIONS}")
 message(STATUS "  - Compiler: ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "  - Version: ${CMAKE_CXX_COMPILER_VERSION}")
