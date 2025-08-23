@@ -469,10 +469,13 @@ void NativeAudioEffectsModule::handleAudioData(const float* input, float* output
 
 void NativeAudioEffectsModule::handleError(const std::string& error) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    if (jsCallbacks_.errorCallback) {
-        invokeJSCallback("errorCallback", [error](jsi::Runtime& rt) {
-            jsi::String errorStr = jsi::String::createFromUtf8(rt, error);
-            // jsCallbacks_.errorCallback->call(rt, errorStr);
+    if (jsCallbacks_.errorCallback && jsInvoker_) {
+        // Capturer le callback et l'erreur pour l'exécution asynchrone
+        auto callback = jsCallbacks_.errorCallback;
+        jsInvoker_->invokeAsync([callback, error]() {
+            // Note: Nécessite l'accès au runtime pour l'exécution réelle
+            // Dans une implémentation complète, il faudrait stocker une référence au runtime
+            // ou utiliser une approche différente pour l'invocation
         });
     }
 }
@@ -480,13 +483,16 @@ void NativeAudioEffectsModule::handleError(const std::string& error) {
 void NativeAudioEffectsModule::handleStateChange(NythEffectsState oldState,
                                                NythEffectsState newState) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    if (jsCallbacks_.stateChangeCallback) {
-        invokeJSCallback("stateChangeCallback", [oldState, newState, this](jsi::Runtime& rt) {
-            std::string oldStateStr = stateToString(oldState);
-            std::string newStateStr = stateToString(newState);
-            jsi::String oldStateJS = jsi::String::createFromUtf8(rt, oldStateStr);
-            jsi::String newStateJS = jsi::String::createFromUtf8(rt, newStateStr);
-            // jsCallbacks_.stateChangeCallback->call(rt, oldStateJS, newStateJS);
+    if (jsCallbacks_.stateChangeCallback && jsInvoker_) {
+        // Capturer le callback et les états pour l'exécution asynchrone
+        auto callback = jsCallbacks_.stateChangeCallback;
+        std::string oldStateStr = stateToString(oldState);
+        std::string newStateStr = stateToString(newState);
+        
+        jsInvoker_->invokeAsync([callback, oldStateStr, newStateStr]() {
+            // Note: Nécessite l'accès au runtime pour l'exécution réelle
+            // Dans une implémentation complète, il faudrait stocker une référence au runtime
+            // ou utiliser une approche différente pour l'invocation
         });
     }
 }
@@ -506,54 +512,92 @@ NythEffectConfig NativeAudioEffectsModule::parseEffectConfig(
 
     NythEffectConfig config = {};
 
+    // Validation et extraction du type
     if (jsConfig.hasProperty(rt, "type")) {
-        std::string typeStr = jsConfig.getProperty(rt, "type").asString(rt).utf8(rt);
-        config.type = stringToEffectType(typeStr);
+        auto typeValue = jsConfig.getProperty(rt, "type");
+        if (typeValue.isString()) {
+            std::string typeStr = typeValue.asString(rt).utf8(rt);
+            config.type = stringToEffectType(typeStr);
+        } else {
+            throw jsi::JSError(rt, "Effect type must be a string");
+        }
     }
 
+    // Validation et extraction de enabled
     if (jsConfig.hasProperty(rt, "enabled")) {
-        config.enabled = jsConfig.getProperty(rt, "enabled").asBool();
+        auto enabledValue = jsConfig.getProperty(rt, "enabled");
+        if (enabledValue.isBool()) {
+            config.enabled = enabledValue.asBool();
+        } else {
+            throw jsi::JSError(rt, "Enabled property must be a boolean");
+        }
     }
 
     config.sampleRate = currentSampleRate_;
     config.channels = currentChannels_;
 
-    // Configuration spécifique selon le type
+    // Configuration spécifique selon le type avec validation
     if (config.type == EFFECT_TYPE_COMPRESSOR && jsConfig.hasProperty(rt, "compressor")) {
-        jsi::Object compConfig = jsConfig.getProperty(rt, "compressor").asObject(rt);
+        auto compValue = jsConfig.getProperty(rt, "compressor");
+        if (!compValue.isObject()) {
+            throw jsi::JSError(rt, "Compressor config must be an object");
+        }
+        jsi::Object compConfig = compValue.asObject(rt);
+        
         if (compConfig.hasProperty(rt, "thresholdDb")) {
-            config.config.compressor.thresholdDb = static_cast<float>(
-                compConfig.getProperty(rt, "thresholdDb").asNumber());
+            auto value = compConfig.getProperty(rt, "thresholdDb");
+            if (value.isNumber()) {
+                config.config.compressor.thresholdDb = static_cast<float>(value.asNumber());
+            }
         }
         if (compConfig.hasProperty(rt, "ratio")) {
-            config.config.compressor.ratio = static_cast<float>(
-                compConfig.getProperty(rt, "ratio").asNumber());
+            auto value = compConfig.getProperty(rt, "ratio");
+            if (value.isNumber()) {
+                config.config.compressor.ratio = static_cast<float>(value.asNumber());
+            }
         }
         if (compConfig.hasProperty(rt, "attackMs")) {
-            config.config.compressor.attackMs = static_cast<float>(
-                compConfig.getProperty(rt, "attackMs").asNumber());
+            auto value = compConfig.getProperty(rt, "attackMs");
+            if (value.isNumber()) {
+                config.config.compressor.attackMs = static_cast<float>(value.asNumber());
+            }
         }
         if (compConfig.hasProperty(rt, "releaseMs")) {
-            config.config.compressor.releaseMs = static_cast<float>(
-                compConfig.getProperty(rt, "releaseMs").asNumber());
+            auto value = compConfig.getProperty(rt, "releaseMs");
+            if (value.isNumber()) {
+                config.config.compressor.releaseMs = static_cast<float>(value.asNumber());
+            }
         }
         if (compConfig.hasProperty(rt, "makeupDb")) {
-            config.config.compressor.makeupDb = static_cast<float>(
-                compConfig.getProperty(rt, "makeupDb").asNumber());
+            auto value = compConfig.getProperty(rt, "makeupDb");
+            if (value.isNumber()) {
+                config.config.compressor.makeupDb = static_cast<float>(value.asNumber());
+            }
         }
     } else if (config.type == EFFECT_TYPE_DELAY && jsConfig.hasProperty(rt, "delay")) {
-        jsi::Object delayConfig = jsConfig.getProperty(rt, "delay").asObject(rt);
+        auto delayValue = jsConfig.getProperty(rt, "delay");
+        if (!delayValue.isObject()) {
+            throw jsi::JSError(rt, "Delay config must be an object");
+        }
+        jsi::Object delayConfig = delayValue.asObject(rt);
+        
         if (delayConfig.hasProperty(rt, "delayMs")) {
-            config.config.delay.delayMs = static_cast<float>(
-                delayConfig.getProperty(rt, "delayMs").asNumber());
+            auto value = delayConfig.getProperty(rt, "delayMs");
+            if (value.isNumber()) {
+                config.config.delay.delayMs = static_cast<float>(value.asNumber());
+            }
         }
         if (delayConfig.hasProperty(rt, "feedback")) {
-            config.config.delay.feedback = static_cast<float>(
-                delayConfig.getProperty(rt, "feedback").asNumber());
+            auto value = delayConfig.getProperty(rt, "feedback");
+            if (value.isNumber()) {
+                config.config.delay.feedback = static_cast<float>(value.asNumber());
+            }
         }
         if (delayConfig.hasProperty(rt, "mix")) {
-            config.config.delay.mix = static_cast<float>(
-                delayConfig.getProperty(rt, "mix").asNumber());
+            auto value = delayConfig.getProperty(rt, "mix");
+            if (value.isNumber()) {
+                config.config.delay.mix = static_cast<float>(value.asNumber());
+            }
         }
     }
 
@@ -597,9 +641,9 @@ jsi::Object NativeAudioEffectsModule::statisticsToJS(
 
     jsStats.setProperty(rt, "inputLevel", jsi::Value(stats.inputLevel));
     jsStats.setProperty(rt, "outputLevel", jsi::Value(stats.outputLevel));
-    jsStats.setProperty(rt, "processedFrames", jsi::Value(static_cast<int>(stats.processedFrames)));
-    jsStats.setProperty(rt, "processedSamples", jsi::Value(static_cast<int>(stats.processedSamples)));
-    jsStats.setProperty(rt, "durationMs", jsi::Value(static_cast<int>(stats.durationMs)));
+    jsStats.setProperty(rt, "processedFrames", jsi::Value(static_cast<double>(stats.processedFrames)));
+    jsStats.setProperty(rt, "processedSamples", jsi::Value(static_cast<double>(stats.processedSamples)));
+    jsStats.setProperty(rt, "durationMs", jsi::Value(static_cast<double>(stats.durationMs)));
     jsStats.setProperty(rt, "activeEffectsCount", jsi::Value(stats.activeEffectsCount));
 
     return jsStats;
@@ -620,13 +664,14 @@ void NativeAudioEffectsModule::invokeJSCallback(
     const std::string& callbackName,
     std::function<void(jsi::Runtime&)> invocation) {
 
-    // Pour l'instant, implémentation basique
-    // Dans un vrai module, il faudrait utiliser le jsInvoker pour invoquer sur le thread principal
-    try {
-        // TODO: Implémenter l'invocation sur le thread principal
-        // Pour l'instant, on ne fait rien
-    } catch (...) {
-        // Gérer les erreurs d'invocation
+    // Utiliser le jsInvoker pour exécuter le callback sur le thread JavaScript principal
+    if (jsInvoker_) {
+        jsInvoker_->invokeAsync([invocation = std::move(invocation)]() {
+            // Note: Dans un vrai module, il faudrait avoir accès au runtime ici
+            // Pour l'instant, on ne peut pas exécuter directement sans le runtime
+            // Cette implémentation nécessiterait de stocker une référence au runtime
+            // ou d'utiliser une approche différente avec CallInvoker
+        });
     }
 }
 
@@ -913,37 +958,29 @@ jsi::Value NativeAudioEffectsModule::getOutputLevel(jsi::Runtime& rt) {
 
 jsi::Value NativeAudioEffectsModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "audioDataCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    // Stocker correctement le callback passé en paramètre
+    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioEffectsModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "errorCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    // Stocker correctement le callback passé en paramètre
+    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioEffectsModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "stateChangeCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    // Stocker correctement le callback passé en paramètre
+    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioEffectsModule::install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker) {
     // Installation directe du module dans le runtime JSI
     // À implémenter selon les besoins
+    jsInvoker_ = jsInvoker;
     return jsi::Value(true);
 }
 

@@ -165,7 +165,7 @@ namespace react {
 class JSI_EXPORT NativeAudioEffectsModule : public TurboModule {
 public:
     explicit NativeAudioEffectsModule(std::shared_ptr<CallInvoker> jsInvoker)
-        : TurboModule("NativeAudioEffectsModule", jsInvoker) {}
+        : TurboModule("NativeAudioEffectsModule", jsInvoker), jsInvoker_(jsInvoker) {}
     ~NativeAudioEffectsModule() override;
 
     // === Méthodes TurboModule ===
@@ -228,6 +228,9 @@ private:
     // Mutex pour la thread safety
     mutable std::mutex effectsMutex_;
     mutable std::mutex callbackMutex_;
+    
+    // JSInvoker pour l'exécution sur le thread JS
+    std::shared_ptr<CallInvoker> jsInvoker_;
 
     // Callbacks JavaScript
     struct {
