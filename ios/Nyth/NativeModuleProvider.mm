@@ -1,4 +1,4 @@
-#import "NativeAudioModuleProvider.h"
+#import "NativeModuleProvider.h"
 #import <ReactCommon/CallInvoker.h>
 #import <ReactCommon/TurboModule.h>
 #import "../../shared/NativeAudioEffectsModule.h"
