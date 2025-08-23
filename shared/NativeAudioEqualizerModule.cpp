@@ -3,6 +3,10 @@
 #include <mutex>
 #include <algorithm>
 #include <iostream>
+#include <vector>
+#include <string>
+#include <cmath>
+#include <cstring>
 
 // === API C globale (accessible depuis ObjC/Java) pour l'état EQ par défaut ===
 // Ces symboles existent toujours (stubs si NAAYA_AUDIO_EQ_ENABLED=0)
@@ -171,12 +175,28 @@ extern "C" void NaayaFX_GetDelay(double* delayMs,
   if (mix)      *mix      = g_naaya_fx_delay_mix;
 }
 
+// === Safety C API to update metrics from platform recorders ===
+extern "C" void NaayaSafety_UpdateReport(double peak,
+                                          double rms,
+                                          double dcOffset,
+                                          uint32_t clippedSamples,
+                                          double feedbackScore,
+                                          bool overload) {
+  std::lock_guard<std::mutex> lk(g_naaya_safety_mutex);
+  g_naaya_safety_last_peak = peak;
+  g_naaya_safety_last_rms = rms;
+  g_naaya_safety_last_dc = dcOffset;
+  g_naaya_safety_last_clipped = clippedSamples;
+  g_naaya_safety_last_feedback = feedbackScore;
+  g_naaya_safety_last_overload = overload;
+}
+
 #if NAAYA_AUDIO_EQ_ENABLED
-#include <cmath>
-#include <cstring>
+
 #ifndef NAAYA_HAS_SPECTRUM
 #define NAAYA_HAS_SPECTRUM 1
 #endif
+
 #if NAAYA_HAS_SPECTRUM
 extern "C" {
 void NaayaAudioSpectrumStart(void);
@@ -195,845 +215,361 @@ NativeAudioEqualizerModule::NativeAudioEqualizerModule()
     , bypassed_(true)
     , currentPresetName_("flat")
     , analysisRunning_(false) {
-
     std::cout << "[NativeAudioEqualizerModule] C++17 constructor completed" << std::endl;
 }
 
+// Destructor
 NativeAudioEqualizerModule::~NativeAudioEqualizerModule() {
     std::cout << "[NativeAudioEqualizerModule] C++17 destructor" << std::endl;
 }
 
+// Equalizer management - Pure C++17 implementation
 int32_t NativeAudioEqualizerModule::createEqualizer(size_t numBands, double sampleRate) {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.destroyEqualizer(rt, args[0].asNumber());
-        return jsi::Value::undefined();
-    }};
-    
-    methodMap_["processAudio"] = MethodMetadata{2, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return self.processAudio(rt, args[0].asNumber(), args[1].asObject(rt));
-    }};
-    
-    methodMap_["processAudioStereo"] = MethodMetadata{3, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return self.processAudioStereo(rt, args[0].asNumber(), args[1].asObject(rt), args[2].asObject(rt));
-    }};
-    
-    // Band control methods
-    methodMap_["setBandGain"] = MethodMetadata{3, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.setBandGain(rt, args[0].asNumber(), args[1].asNumber(), args[2].asNumber());
-        return jsi::Value::undefined();
-    }};
-    
-    methodMap_["setBandFrequency"] = MethodMetadata{3, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.setBandFrequency(rt, args[0].asNumber(), args[1].asNumber(), args[2].asNumber());
-        return jsi::Value::undefined();
-    }};
-    
-    methodMap_["setBandQ"] = MethodMetadata{3, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.setBandQ(rt, args[0].asNumber(), args[1].asNumber(), args[2].asNumber());
-        return jsi::Value::undefined();
-    }};
-    
-    methodMap_["setBandType"] = MethodMetadata{3, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.setBandType(rt, args[0].asNumber(), args[1].asNumber(), args[2].asNumber());
-        return jsi::Value::undefined();
-    }};
-    
-    methodMap_["setBandEnabled"] = MethodMetadata{3, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.setBandEnabled(rt, args[0].asNumber(), args[1].asNumber(), args[2].asBool());
-        return jsi::Value::undefined();
-    }};
-    
-    // Get band parameters
-    methodMap_["getBandGain"] = MethodMetadata{2, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return jsi::Value(self.getBandGain(rt, args[0].asNumber(), args[1].asNumber()));
-    }};
-    
-    methodMap_["getBandFrequency"] = MethodMetadata{2, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return jsi::Value(self.getBandFrequency(rt, args[0].asNumber(), args[1].asNumber()));
-    }};
-    
-    methodMap_["getBandQ"] = MethodMetadata{2, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return jsi::Value(self.getBandQ(rt, args[0].asNumber(), args[1].asNumber()));
-    }};
-    
-    methodMap_["getBandType"] = MethodMetadata{2, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return jsi::Value(self.getBandType(rt, args[0].asNumber(), args[1].asNumber()));
-    }};
-    
-    methodMap_["isBandEnabled"] = MethodMetadata{2, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return jsi::Value(self.isBandEnabled(rt, args[0].asNumber(), args[1].asNumber()));
-    }};
-    
-    // Global controls (compat couche JS: pas d'ID requis)
-    methodMap_["setMasterGain"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.ensureDefaultEqualizer(rt);
-        double gainDb = args[0].asNumber();
-        self.setMasterGain(rt, self.defaultEqualizerId_, gainDb);
-        {
-          std::lock_guard<std::mutex> lk(g_naaya_eq_mutex);
-          g_naaya_eq_master_gain = gainDb;
-          g_naaya_eq_dirty.store(true);
-        }
-        return jsi::Value::undefined();
-    }};
-    
-    methodMap_["getMasterGain"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.ensureDefaultEqualizer(rt);
-        return jsi::Value(self.getMasterGain(rt, self.defaultEqualizerId_));
-    }};
-    
-    methodMap_["setBypass"] = MethodMetadata{2, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.setBypass(rt, args[0].asNumber(), args[1].asBool());
-        return jsi::Value::undefined();
-    }};
-    
-    methodMap_["isBypassed"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return jsi::Value(self.isBypassed(rt, args[0].asNumber()));
-    }};
-    
-    // Preset management
-    methodMap_["loadPreset"] = MethodMetadata{2, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.loadPreset(rt, args[0].asNumber(), args[1].asObject(rt));
-        return jsi::Value::undefined();
-    }};
-    
-    methodMap_["savePreset"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return self.savePreset(rt, args[0].asNumber());
-    }};
-    
-    methodMap_["resetAllBands"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.resetAllBands(rt, args[0].asNumber());
-        return jsi::Value::undefined();
-    }};
-    
-    methodMap_["getAvailablePresets"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return self.getAvailablePresets(rt);
-    }};
-    
-    methodMap_["loadPresetByName"] = MethodMetadata{2, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.loadPresetByName(rt, args[0].asNumber(), args[1].asString(rt));
-        return jsi::Value::undefined();
-    }};
-    
-    // Utility
-    methodMap_["getNumBands"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return jsi::Value(self.getNumBands(rt, args[0].asNumber()));
-    }};
-    
-    methodMap_["setSampleRate"] = MethodMetadata{2, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.setSampleRate(rt, args[0].asNumber(), args[1].asNumber());
-        return jsi::Value::undefined();
-    }};
-    
-    methodMap_["getSampleRate"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return jsi::Value(self.getSampleRate(rt, args[0].asNumber()));
-    }};
-    
-    methodMap_["beginParameterUpdate"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.beginParameterUpdate(rt, args[0].asNumber());
-        return jsi::Value::undefined();
-    }};
-    
-    methodMap_["endParameterUpdate"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.endParameterUpdate(rt, args[0].asNumber());
-        return jsi::Value::undefined();
-    }};
-
-    // Compat helpers without passing equalizerId from JS
-    methodMap_["beginBatch"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.ensureDefaultEqualizer(rt);
-        self.beginParameterUpdate(rt, self.defaultEqualizerId_);
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["endBatch"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.ensureDefaultEqualizer(rt);
-        self.endParameterUpdate(rt, self.defaultEqualizerId_);
-        return jsi::Value::undefined();
-    }};
-
-    // ==== WRAPPERS SIMPLES POUR L'API JS EXISTANTE ====
-    methodMap_["setEQEnabled"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.ensureDefaultEqualizer(rt);
-        bool enabled = args[0].getBool();
-        self.setBypass(rt, self.defaultEqualizerId_, !enabled);
-        self.bypassed_ = !enabled;
-        {
-          std::lock_guard<std::mutex> lk(g_naaya_eq_mutex);
-          g_naaya_eq_enabled = enabled;
-          g_naaya_eq_dirty.store(true);
-        }
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["getEQEnabled"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return jsi::Value(!self.bypassed_);
-    }};
-
-    methodMap_["setBandGain"] = MethodMetadata{2, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.ensureDefaultEqualizer(rt);
-        double idx = args[0].asNumber();
-        if (idx < 0) idx = 0;
-        if (idx > 31) idx = 31;
-        self.setBandGain(rt, self.defaultEqualizerId_, idx, args[1].asNumber());
-        {
-          std::lock_guard<std::mutex> lk(g_naaya_eq_mutex);
-          size_t sidx = static_cast<size_t>(idx);
-          if (sidx < 32) g_naaya_eq_band_gains[sidx] = args[1].asNumber();
-          g_naaya_eq_dirty.store(true);
-        }
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["getBandGain"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.ensureDefaultEqualizer(rt);
-        return jsi::Value(self.getBandGain(rt, self.defaultEqualizerId_, args[0].asNumber()));
-    }};
-
-    methodMap_["setPreset"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.ensureDefaultEqualizer(rt);
-        auto name = args[0].asString(rt).utf8(rt);
-        self.loadPresetByName(rt, self.defaultEqualizerId_, args[0].asString(rt));
-        self.currentPresetName_ = name;
-        // Synchroniser gains globaux
-        {
-          std::lock_guard<std::mutex> lk(g_naaya_eq_mutex);
-          auto* eq = self.getEqualizer(self.defaultEqualizerId_);
-          if (eq) {
-            size_t n = eq->getNumBands();
-            g_naaya_eq_num_bands = n <= 32 ? n : 32;
-            for (size_t i = 0; i < g_naaya_eq_num_bands; ++i) {
-              g_naaya_eq_band_gains[i] = eq->getBandGain(i);
-            }
-          }
-          g_naaya_eq_dirty.store(true);
-        }
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["getCurrentPreset"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return jsi::String::createFromUtf8(rt, self.currentPresetName_);
-    }};
-
-    methodMap_["startSpectrumAnalysis"] = MethodMetadata{0, [](jsi::Runtime& /*rt*/, TurboModule& turboModule, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.analysisRunning_ = true;
-#if NAAYA_HAS_SPECTRUM
-        NaayaAudioSpectrumStart();
-#endif 
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["stopSpectrumAnalysis"] = MethodMetadata{0, [](jsi::Runtime& /*rt*/, TurboModule& turboModule, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        self.analysisRunning_ = false;
-#if NAAYA_HAS_SPECTRUM
-        NaayaAudioSpectrumStop();
-#endif 
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["getSpectrumData"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& /*turboModule*/, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        const size_t numBars = 32;
-        jsi::Array result(rt, numBars);
-#if NAAYA_HAS_SPECTRUM
-        float buffer[64];
-        size_t n = NaayaAudioSpectrumCopyMagnitudes(buffer, 64);
-        size_t count = std::min(numBars, n);
-        for (size_t i = 0; i < count; ++i) {
-            result.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(buffer[i])));
-        }
-        for (size_t i = count; i < numBars; ++i) {
-            result.setValueAtIndex(rt, i, jsi::Value(0));
-        }
-#else
-        for (size_t i = 0; i < numBars; ++i) {
-            result.setValueAtIndex(rt, i, jsi::Value(0));
-        }
-#endif
-        return result;
-    }};
-
-    // ===== Noise Reduction (NR) controls exposed to JS =====
-    methodMap_["nrSetEnabled"] = MethodMetadata{1, [](jsi::Runtime& /*rt*/, TurboModule& /*turboModule*/, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
-        bool en = args[0].getBool();
-        {
-          std::lock_guard<std::mutex> lk(g_naaya_nr_mutex);
-          g_naaya_nr_enabled = en;
-          g_naaya_nr_dirty.store(true);
-        }
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["nrGetEnabled"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& /*turboModule*/, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        std::lock_guard<std::mutex> lk(g_naaya_nr_mutex);
-        return jsi::Value(g_naaya_nr_enabled);
-    }};
-
-    // NR mode: 'expander' | 'rnnoise' | 'off' (ou 0/1/2)
-    methodMap_["nrSetMode"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& /*turboModule*/, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
-        int mode = 0;
-        if (args[0].isString()) {
-          auto m = args[0].asString(rt).utf8(rt);
-          if (m == "expander") mode = 0; else if (m == "rnnoise") mode = 1; else if (m == "off") mode = 2;
-        } else if (args[0].isNumber()) {
-          mode = (int)args[0].asNumber();
-          if (mode < 0) mode = 0; if (mode > 2) mode = 2;
-        }
-        {
-          std::lock_guard<std::mutex> lk(g_naaya_nr_mutex);
-          g_naaya_nr_mode = mode;
-          // Activer/désactiver global selon mode 'off'
-          g_naaya_nr_enabled = (mode != 2);
-          g_naaya_nr_dirty.store(true);
-        }
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["nrGetMode"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& /*turboModule*/, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        std::lock_guard<std::mutex> lk(g_naaya_nr_mutex);
-        return jsi::Value((double)g_naaya_nr_mode);
-    }};
-
-    methodMap_["rnnsSetAggressiveness"] = MethodMetadata{1, [](jsi::Runtime& /*rt*/, TurboModule& /*turboModule*/, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
-        double a = args[0].asNumber();
-        if (a < 0.0) a = 0.0; if (a > 3.0) a = 3.0;
-        {
-          std::lock_guard<std::mutex> lk(g_naaya_nr_mutex);
-          g_naaya_rnns_aggr = a;
-          g_naaya_nr_dirty.store(true);
-        }
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["rnnsGetAggressiveness"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& /*turboModule*/, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        std::lock_guard<std::mutex> lk(g_naaya_nr_mutex);
-        return jsi::Value(g_naaya_rnns_aggr);
-    }};
-
-    methodMap_["nrSetConfig"] = MethodMetadata{7, [](jsi::Runtime& /*rt*/, TurboModule& /*turboModule*/, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
-        bool hpEn      = args[0].getBool();
-        double hpHz    = args[1].asNumber();
-        double thDb    = args[2].asNumber();
-        double ratio   = args[3].asNumber();
-        double floorDb = args[4].asNumber();
-        double attMs   = args[5].asNumber();
-        double relMs   = args[6].asNumber();
-        {
-          std::lock_guard<std::mutex> lk(g_naaya_nr_mutex);
-          g_naaya_nr_hp_enabled  = hpEn;
-          g_naaya_nr_hp_hz       = hpHz;
-          g_naaya_nr_threshold_db= thDb;
-          g_naaya_nr_ratio       = ratio;
-          g_naaya_nr_floor_db    = floorDb;
-          g_naaya_nr_attack_ms   = attMs;
-          g_naaya_nr_release_ms  = relMs;
-          g_naaya_nr_dirty.store(true);
-        }
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["nrGetConfig"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& /*turboModule*/, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        auto obj = jsi::Object(rt);
-        bool hpEn; double hpHz, thDb, ratio, floorDb, attMs, relMs;
-        NaayaNR_GetConfig(&hpEn, &hpHz, &thDb, &ratio, &floorDb, &attMs, &relMs);
-        obj.setProperty(rt, "highPassEnabled", jsi::Value(hpEn));
-        obj.setProperty(rt, "highPassHz", jsi::Value(hpHz));
-        obj.setProperty(rt, "thresholdDb", jsi::Value(thDb));
-        obj.setProperty(rt, "ratio", jsi::Value(ratio));
-        obj.setProperty(rt, "floorDb", jsi::Value(floorDb));
-        obj.setProperty(rt, "attackMs", jsi::Value(attMs));
-        obj.setProperty(rt, "releaseMs", jsi::Value(relMs));
-        return obj;
-    }};
-
-    // ===== Safety controls exposed to JS =====
-    methodMap_["safetySetConfig"] = MethodMetadata{9, [](jsi::Runtime& /*rt*/, TurboModule& /*turboModule*/, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
-        bool enabled = args[0].getBool();
-        bool dcEn    = args[1].getBool();
-        double dcTh  = args[2].asNumber();
-        bool limEn   = args[3].getBool();
-        double limDb = args[4].asNumber();
-        bool softK   = args[5].getBool();
-        double knee  = args[6].asNumber();
-        bool fbEn    = args[7].getBool();
-        double fbTh  = args[8].asNumber();
-        std::lock_guard<std::mutex> lk(g_naaya_safety_mutex);
-        g_naaya_safety_enabled = enabled;
-        g_naaya_safety_dc_enabled = dcEn;
-        g_naaya_safety_dc_threshold = dcTh;
-        g_naaya_safety_limiter_enabled = limEn;
-        g_naaya_safety_limiter_threshold_db = limDb;
-        g_naaya_safety_softknee = softK;
-        g_naaya_safety_knee_db = knee;
-        g_naaya_safety_feedback_enabled = fbEn;
-        g_naaya_safety_feedback_thresh = fbTh;
-        g_naaya_safety_dirty.store(true);
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["safetyGetReport"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& /*turboModule*/, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        std::lock_guard<std::mutex> lk(g_naaya_safety_mutex);
-        auto obj = jsi::Object(rt);
-        obj.setProperty(rt, "peak", jsi::Value(g_naaya_safety_last_peak));
-        obj.setProperty(rt, "rms", jsi::Value(g_naaya_safety_last_rms));
-        obj.setProperty(rt, "dcOffset", jsi::Value(g_naaya_safety_last_dc));
-        obj.setProperty(rt, "clippedSamples", jsi::Value(static_cast<double>(g_naaya_safety_last_clipped)));
-        obj.setProperty(rt, "feedbackScore", jsi::Value(g_naaya_safety_last_feedback));
-        obj.setProperty(rt, "overload", jsi::Value(g_naaya_safety_last_overload));
-        return obj;
-    }};
-
-    // ===== FX controls exposed to JS =====
-    methodMap_["fxSetEnabled"] = MethodMetadata{1, [](jsi::Runtime& /*rt*/, TurboModule& /*turboModule*/, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
-        bool en = args[0].getBool();
-        {
-          std::lock_guard<std::mutex> lk(g_naaya_fx_mutex);
-          g_naaya_fx_enabled = en;
-          g_naaya_fx_dirty.store(true);
-        }
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["fxGetEnabled"] = MethodMetadata{0, [](jsi::Runtime& rt, TurboModule& /*turboModule*/, const jsi::Value* /*args*/, size_t /*count*/) -> jsi::Value {
-        std::lock_guard<std::mutex> lk(g_naaya_fx_mutex);
-        return jsi::Value(g_naaya_fx_enabled);
-    }};
-
-    methodMap_["fxSetCompressor"] = MethodMetadata{5, [](jsi::Runtime& /*rt*/, TurboModule& /*turboModule*/, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
-        double th = args[0].asNumber();
-        double ra = args[1].asNumber();
-        double at = args[2].asNumber();
-        double rl = args[3].asNumber();
-        double mk = args[4].asNumber();
-        {
-          std::lock_guard<std::mutex> lk(g_naaya_fx_mutex);
-          g_naaya_fx_comp_threshold_db = th;
-          g_naaya_fx_comp_ratio        = ra;
-          g_naaya_fx_comp_attack_ms    = at;
-          g_naaya_fx_comp_release_ms   = rl;
-          g_naaya_fx_comp_makeup_db    = mk;
-          g_naaya_fx_dirty.store(true);
-        }
-        return jsi::Value::undefined();
-    }};
-
-    methodMap_["fxSetDelay"] = MethodMetadata{3, [](jsi::Runtime& /*rt*/, TurboModule& /*turboModule*/, const jsi::Value* args, size_t /*count*/) -> jsi::Value {
-        double dm = args[0].asNumber();
-        double fb = args[1].asNumber();
-        double mx = args[2].asNumber();
-        {
-          std::lock_guard<std::mutex> lk(g_naaya_fx_mutex);
-          g_naaya_fx_delay_ms       = dm;
-          g_naaya_fx_delay_feedback = fb;
-          g_naaya_fx_delay_mix      = mx;
-          g_naaya_fx_dirty.store(true);
-        }
-        return jsi::Value::undefined();
-    }};
-}
-
-// === Safety C API to update metrics from platform recorders ===
-extern "C" void NaayaSafety_UpdateReport(double peak,
-                                          double rms,
-                                          double dcOffset,
-                                          uint32_t clippedSamples,
-                                          double feedbackScore,
-                                          bool overload) {
-  std::lock_guard<std::mutex> lk(g_naaya_safety_mutex);
-  g_naaya_safety_last_peak = peak;
-  g_naaya_safety_last_rms = rms;
-  g_naaya_safety_last_dc = dcOffset;
-  g_naaya_safety_last_clipped = clippedSamples;
-  g_naaya_safety_last_feedback = feedbackScore;
-  g_naaya_safety_last_overload = overload;
-}
-
-void NativeAudioEqualizerModule::ensureDefaultEqualizer(jsi::Runtime& rt) {
-    if (defaultEqualizerId_ == 0) {
-        // 10 bandes, 48000Hz (par défaut)
-        auto idVal = createEqualizer(rt, 10, 48000);
-        defaultEqualizerId_ = static_cast<int32_t>(idVal.asNumber());
-        // Par défaut désactivé (bypass activé)
-        setBypass(rt, defaultEqualizerId_, true);
-        bypassed_ = true;
-    }
-}
-
-// Equalizer management
-jsi::Value NativeAudioEqualizerModule::createEqualizer(jsi::Runtime& rt, double numBands, double sampleRate) {
     std::lock_guard<std::mutex> lock(m_equalizersMutex);
     
     int32_t equalizerId = m_nextEqualizerId++;
-    auto equalizer = std::make_unique<AudioEqualizer::AudioEqualizer>(
-        static_cast<size_t>(numBands), static_cast<uint32_t>(sampleRate));
+    auto equalizer = std::make_unique<AudioFX::AudioEqualizer>(
+        numBands, static_cast<uint32_t>(sampleRate));
     
     auto& instance = m_equalizers[equalizerId];
     instance.equalizer = std::move(equalizer);
     instance.refCount = 1;
     
-    return jsi::Value(equalizerId);
+    // Update global state
+    {
+        std::lock_guard<std::mutex> lk(g_naaya_eq_mutex);
+        g_naaya_eq_num_bands = numBands;
+        g_naaya_eq_dirty.store(true);
+    }
+    
+    return equalizerId;
 }
 
-void NativeAudioEqualizerModule::destroyEqualizer(jsi::Runtime& rt, double equalizerId) {
+void NativeAudioEqualizerModule::destroyEqualizer(int32_t equalizerId) {
     std::lock_guard<std::mutex> lock(m_equalizersMutex);
-    m_equalizers.erase(static_cast<int32_t>(equalizerId));
+    m_equalizers.erase(equalizerId);
 }
 
 // Audio processing
-jsi::Value NativeAudioEqualizerModule::processAudio(jsi::Runtime& rt, double equalizerId, jsi::Object inputBuffer) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
+bool NativeAudioEqualizerModule::processAudio(int32_t equalizerId, const float* inputBuffer, 
+                                              float* outputBuffer, size_t bufferSize) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq || !inputBuffer || !outputBuffer) {
+        return false;
     }
     
-    auto input = jsArrayToFloatVector(rt, inputBuffer);
-    std::vector<float> output(input.size());
-    
-    eq->process(input.data(), output.data(), input.size());
-    
-    return floatVectorToJsArray(rt, output);
+    eq->process(inputBuffer, outputBuffer, bufferSize);
+    return true;
 }
 
-jsi::Value NativeAudioEqualizerModule::processAudioStereo(jsi::Runtime& rt, double equalizerId,
-                                                         jsi::Object inputBufferL, jsi::Object inputBufferR) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
+bool NativeAudioEqualizerModule::processAudioStereo(int32_t equalizerId,
+                                                    const float* inputBufferL, const float* inputBufferR,
+                                                    float* outputBufferL, float* outputBufferR,
+                                                    size_t bufferSize) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq || !inputBufferL || !inputBufferR || !outputBufferL || !outputBufferR) {
+        return false;
     }
     
-    auto inputL = jsArrayToFloatVector(rt, inputBufferL);
-    auto inputR = jsArrayToFloatVector(rt, inputBufferR);
-    
-    if (inputL.size() != inputR.size()) {
-        throw jsi::JSError(rt, "Input buffers must have the same size");
-    }
-    
-    std::vector<float> outputL(inputL.size());
-    std::vector<float> outputR(inputR.size());
-    
-    eq->processStereo(inputL.data(), inputR.data(), outputL.data(), outputR.data(), inputL.size());
-    
-    auto result = jsi::Object(rt);
-    result.setProperty(rt, "left", floatVectorToJsArray(rt, outputL));
-    result.setProperty(rt, "right", floatVectorToJsArray(rt, outputR));
-    
-    return result;
+    eq->processStereo(inputBufferL, inputBufferR, outputBufferL, outputBufferR, bufferSize);
+    return true;
 }
 
 // Band control
-void NativeAudioEqualizerModule::setBandGain(jsi::Runtime& rt, double equalizerId, double bandIndex, double gainDB) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
+bool NativeAudioEqualizerModule::setBandGain(int32_t equalizerId, size_t bandIndex, double gainDB) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
+    
+    eq->setBandGain(bandIndex, gainDB);
+    
+    // Update global state
+    {
+        std::lock_guard<std::mutex> lk(g_naaya_eq_mutex);
+        if (bandIndex < 32) {
+            g_naaya_eq_band_gains[bandIndex] = gainDB;
+            g_naaya_eq_dirty.store(true);
+        }
     }
     
-    eq->setBandGain(static_cast<size_t>(bandIndex), gainDB);
+    return true;
 }
 
-void NativeAudioEqualizerModule::setBandFrequency(jsi::Runtime& rt, double equalizerId, double bandIndex, double frequency) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::setBandFrequency(int32_t equalizerId, size_t bandIndex, double frequency) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
-    eq->setBandFrequency(static_cast<size_t>(bandIndex), frequency);
+    eq->setBandFrequency(bandIndex, frequency);
+    return true;
 }
 
-void NativeAudioEqualizerModule::setBandQ(jsi::Runtime& rt, double equalizerId, double bandIndex, double q) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::setBandQ(int32_t equalizerId, size_t bandIndex, double q) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
-    eq->setBandQ(static_cast<size_t>(bandIndex), q);
+    eq->setBandQ(bandIndex, q);
+    return true;
 }
 
-void NativeAudioEqualizerModule::setBandType(jsi::Runtime& rt, double equalizerId, double bandIndex, double type) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::setBandType(int32_t equalizerId, size_t bandIndex, int type) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
-    eq->setBandType(static_cast<size_t>(bandIndex), jsNumberToFilterType(type));
+    eq->setBandType(bandIndex, intToFilterType(type));
+    return true;
 }
 
-void NativeAudioEqualizerModule::setBandEnabled(jsi::Runtime& rt, double equalizerId, double bandIndex, bool enabled) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::setBandEnabled(int32_t equalizerId, size_t bandIndex, bool enabled) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
-    eq->setBandEnabled(static_cast<size_t>(bandIndex), enabled);
+    eq->setBandEnabled(bandIndex, enabled);
+    return true;
 }
 
 // Get band parameters
-double NativeAudioEqualizerModule::getBandGain(jsi::Runtime& rt, double equalizerId, double bandIndex) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+double NativeAudioEqualizerModule::getBandGain(int32_t equalizerId, size_t bandIndex) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return 0.0;
     
-    return eq->getBandGain(static_cast<size_t>(bandIndex));
+    return eq->getBandGain(bandIndex);
 }
 
-double NativeAudioEqualizerModule::getBandFrequency(jsi::Runtime& rt, double equalizerId, double bandIndex) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+double NativeAudioEqualizerModule::getBandFrequency(int32_t equalizerId, size_t bandIndex) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return 0.0;
     
-    return eq->getBandFrequency(static_cast<size_t>(bandIndex));
+    return eq->getBandFrequency(bandIndex);
 }
 
-double NativeAudioEqualizerModule::getBandQ(jsi::Runtime& rt, double equalizerId, double bandIndex) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+double NativeAudioEqualizerModule::getBandQ(int32_t equalizerId, size_t bandIndex) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return 1.0;
     
-    return eq->getBandQ(static_cast<size_t>(bandIndex));
+    return eq->getBandQ(bandIndex);
 }
 
-double NativeAudioEqualizerModule::getBandType(jsi::Runtime& rt, double equalizerId, double bandIndex) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+int NativeAudioEqualizerModule::getBandType(int32_t equalizerId, size_t bandIndex) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return 0;
     
-    return filterTypeToJsNumber(eq->getBandType(static_cast<size_t>(bandIndex)));
+    return filterTypeToInt(eq->getBandType(bandIndex));
 }
 
-bool NativeAudioEqualizerModule::isBandEnabled(jsi::Runtime& rt, double equalizerId, double bandIndex) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::isBandEnabled(int32_t equalizerId, size_t bandIndex) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
-    return eq->isBandEnabled(static_cast<size_t>(bandIndex));
+    return eq->isBandEnabled(bandIndex);
 }
 
 // Global controls
-void NativeAudioEqualizerModule::setMasterGain(jsi::Runtime& rt, double equalizerId, double gainDB) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::setMasterGain(int32_t equalizerId, double gainDB) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
     eq->setMasterGain(gainDB);
+    
+    // Update global state
+    {
+        std::lock_guard<std::mutex> lk(g_naaya_eq_mutex);
+        g_naaya_eq_master_gain = gainDB;
+        g_naaya_eq_dirty.store(true);
+    }
+    
+    return true;
 }
 
-double NativeAudioEqualizerModule::getMasterGain(jsi::Runtime& rt, double equalizerId) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+double NativeAudioEqualizerModule::getMasterGain(int32_t equalizerId) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return 0.0;
     
     return eq->getMasterGain();
 }
 
-void NativeAudioEqualizerModule::setBypass(jsi::Runtime& rt, double equalizerId, bool bypass) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::setBypass(int32_t equalizerId, bool bypass) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
     eq->setBypass(bypass);
+    bypassed_ = bypass;
+    
+    // Update global state
+    {
+        std::lock_guard<std::mutex> lk(g_naaya_eq_mutex);
+        g_naaya_eq_enabled = !bypass;
+        g_naaya_eq_dirty.store(true);
+    }
+    
+    return true;
 }
 
-bool NativeAudioEqualizerModule::isBypassed(jsi::Runtime& rt, double equalizerId) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::isBypassed(int32_t equalizerId) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return true;
     
     return eq->isBypassed();
 }
 
 // Preset management
-void NativeAudioEqualizerModule::loadPreset(jsi::Runtime& rt, double equalizerId, jsi::Object preset) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::loadPreset(int32_t equalizerId, const PresetData& preset) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
-    AudioEqualizer::EQPreset eqPreset;
-    
-    if (preset.hasProperty(rt, "name")) {
-        eqPreset.name = preset.getProperty(rt, "name").asString(rt).utf8(rt);
-    }
-    
-    if (preset.hasProperty(rt, "gains")) {
-        auto gainsArray = preset.getProperty(rt, "gains").asObject(rt).asArray(rt);
-        size_t length = gainsArray.length(rt);
-        
-        for (size_t i = 0; i < length; ++i) {
-            eqPreset.gains.push_back(gainsArray.getValueAtIndex(rt, i).asNumber());
-        }
-    }
+    AudioFX::EQPreset eqPreset;
+    eqPreset.name = preset.name;
+    eqPreset.gains = preset.bandGains;
     
     eq->loadPreset(eqPreset);
+    
+    // Update global state
+    {
+        std::lock_guard<std::mutex> lk(g_naaya_eq_mutex);
+        size_t n = preset.bandGains.size();
+        if (n > 32) n = 32;
+        for (size_t i = 0; i < n; ++i) {
+            g_naaya_eq_band_gains[i] = preset.bandGains[i];
+        }
+        g_naaya_eq_master_gain = preset.masterGain;
+        g_naaya_eq_dirty.store(true);
+    }
+    
+    currentPresetName_ = preset.name;
+    return true;
 }
 
-jsi::Object NativeAudioEqualizerModule::savePreset(jsi::Runtime& rt, double equalizerId) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
+NativeAudioEqualizerModule::PresetData NativeAudioEqualizerModule::savePreset(int32_t equalizerId) {
+    PresetData preset;
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return preset;
+    
+    AudioFX::EQPreset eqPreset;
+    eq->savePreset(eqPreset);
+    
+    preset.name = eqPreset.name;
+    preset.bandGains = eqPreset.gains;
+    preset.masterGain = eq->getMasterGain();
+    
+    // Add frequencies for each band
+    size_t numBands = eq->getNumBands();
+    preset.bandFrequencies.reserve(numBands);
+    for (size_t i = 0; i < numBands; ++i) {
+        preset.bandFrequencies.push_back(eq->getBandFrequency(i));
     }
     
-    AudioEqualizer::EQPreset preset;
-    eq->savePreset(preset);
-    
-    auto result = jsi::Object(rt);
-    result.setProperty(rt, "name", jsi::String::createFromUtf8(rt, preset.name));
-    
-    auto gains = jsi::Array(rt, preset.gains.size());
-    for (size_t i = 0; i < preset.gains.size(); ++i) {
-        gains.setValueAtIndex(rt, i, jsi::Value(preset.gains[i]));
-    }
-    result.setProperty(rt, "gains", gains);
-    
-    return result;
+    return preset;
 }
 
-void NativeAudioEqualizerModule::resetAllBands(jsi::Runtime& rt, double equalizerId) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::resetAllBands(int32_t equalizerId) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
     eq->resetAllBands();
+    
+    // Update global state
+    {
+        std::lock_guard<std::mutex> lk(g_naaya_eq_mutex);
+        for (size_t i = 0; i < 32; ++i) {
+            g_naaya_eq_band_gains[i] = 0.0;
+        }
+        g_naaya_eq_master_gain = 0.0;
+        g_naaya_eq_dirty.store(true);
+    }
+    
+    return true;
 }
 
-jsi::Array NativeAudioEqualizerModule::getAvailablePresets(jsi::Runtime& rt) {
-    std::vector<std::string> presetNames = {
+std::vector<std::string> NativeAudioEqualizerModule::getAvailablePresets() {
+    return {
         "Flat", "Rock", "Pop", "Jazz", "Classical", 
         "Electronic", "Vocal Boost", "Bass Boost", 
         "Treble Boost", "Loudness"
     };
-    
-    auto result = jsi::Array(rt, presetNames.size());
-    for (size_t i = 0; i < presetNames.size(); ++i) {
-        result.setValueAtIndex(rt, i, jsi::String::createFromUtf8(rt, presetNames[i]));
-    }
-    
-    return result;
 }
 
-void NativeAudioEqualizerModule::loadPresetByName(jsi::Runtime& rt, double equalizerId, jsi::String presetName) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::loadPresetByName(int32_t equalizerId, const std::string& presetName) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
-    std::string name = presetName.utf8(rt);
-    AudioEqualizer::EQPreset preset;
+    AudioFX::EQPreset preset;
     
-    if (name == "Flat") {
-        preset = AudioEqualizer::EQPresetFactory::createFlatPreset();
-    } else if (name == "Rock") {
-        preset = AudioEqualizer::EQPresetFactory::createRockPreset();
-    } else if (name == "Pop") {
-        preset = AudioEqualizer::EQPresetFactory::createPopPreset();
-    } else if (name == "Jazz") {
-        preset = AudioEqualizer::EQPresetFactory::createJazzPreset();
-    } else if (name == "Classical") {
-        preset = AudioEqualizer::EQPresetFactory::createClassicalPreset();
-    } else if (name == "Electronic") {
-        preset = AudioEqualizer::EQPresetFactory::createElectronicPreset();
-    } else if (name == "Vocal Boost") {
-        preset = AudioEqualizer::EQPresetFactory::createVocalBoostPreset();
-    } else if (name == "Bass Boost") {
-        preset = AudioEqualizer::EQPresetFactory::createBassBoostPreset();
-    } else if (name == "Treble Boost") {
-        preset = AudioEqualizer::EQPresetFactory::createTrebleBoostPreset();
-    } else if (name == "Loudness") {
-        preset = AudioEqualizer::EQPresetFactory::createLoudnessPreset();
+    if (presetName == "Flat") {
+        preset = AudioFX::EQPresetFactory::createFlatPreset();
+    } else if (presetName == "Rock") {
+        preset = AudioFX::EQPresetFactory::createRockPreset();
+    } else if (presetName == "Pop") {
+        preset = AudioFX::EQPresetFactory::createPopPreset();
+    } else if (presetName == "Jazz") {
+        preset = AudioFX::EQPresetFactory::createJazzPreset();
+    } else if (presetName == "Classical") {
+        preset = AudioFX::EQPresetFactory::createClassicalPreset();
+    } else if (presetName == "Electronic") {
+        preset = AudioFX::EQPresetFactory::createElectronicPreset();
+    } else if (presetName == "Vocal Boost") {
+        preset = AudioFX::EQPresetFactory::createVocalBoostPreset();
+    } else if (presetName == "Bass Boost") {
+        preset = AudioFX::EQPresetFactory::createBassBoostPreset();
+    } else if (presetName == "Treble Boost") {
+        preset = AudioFX::EQPresetFactory::createTrebleBoostPreset();
+    } else if (presetName == "Loudness") {
+        preset = AudioFX::EQPresetFactory::createLoudnessPreset();
     } else {
-        throw jsi::JSError(rt, "Unknown preset name: " + name);
+        return false;
     }
     
     eq->loadPreset(preset);
+    currentPresetName_ = presetName;
+    
+    // Update global state
+    {
+        std::lock_guard<std::mutex> lk(g_naaya_eq_mutex);
+        size_t n = preset.gains.size();
+        if (n > 32) n = 32;
+        for (size_t i = 0; i < n; ++i) {
+            g_naaya_eq_band_gains[i] = preset.gains[i];
+        }
+        g_naaya_eq_dirty.store(true);
+    }
+    
+    return true;
 }
 
 // Utility
-double NativeAudioEqualizerModule::getNumBands(jsi::Runtime& rt, double equalizerId) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+size_t NativeAudioEqualizerModule::getNumBands(int32_t equalizerId) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return 0;
     
-    return static_cast<double>(eq->getNumBands());
+    return eq->getNumBands();
 }
 
-void NativeAudioEqualizerModule::setSampleRate(jsi::Runtime& rt, double equalizerId, double sampleRate) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::setSampleRate(int32_t equalizerId, double sampleRate) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
     eq->setSampleRate(static_cast<uint32_t>(sampleRate));
+    return true;
 }
 
-double NativeAudioEqualizerModule::getSampleRate(jsi::Runtime& rt, double equalizerId) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+double NativeAudioEqualizerModule::getSampleRate(int32_t equalizerId) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return 0.0;
     
     return static_cast<double>(eq->getSampleRate());
 }
 
-void NativeAudioEqualizerModule::beginParameterUpdate(jsi::Runtime& rt, double equalizerId) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::beginParameterUpdate(int32_t equalizerId) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
     eq->beginParameterUpdate();
+    return true;
 }
 
-void NativeAudioEqualizerModule::endParameterUpdate(jsi::Runtime& rt, double equalizerId) {
-    auto* eq = getEqualizer(static_cast<int32_t>(equalizerId));
-    if (!eq) {
-        throw jsi::JSError(rt, "Invalid equalizer ID");
-    }
+bool NativeAudioEqualizerModule::endParameterUpdate(int32_t equalizerId) {
+    auto* eq = getEqualizer(equalizerId);
+    if (!eq) return false;
     
     eq->endParameterUpdate();
+    return true;
 }
 
 // Helper methods
@@ -1048,9 +584,8 @@ AudioFX::AudioEqualizer* NativeAudioEqualizerModule::getEqualizer(int32_t equali
     return nullptr;
 }
 
-AudioFX::FilterType NativeAudioEqualizerModule::jsNumberToFilterType(double type) {
-    int typeInt = static_cast<int>(type);
-    switch (typeInt) {
+AudioFX::FilterType NativeAudioEqualizerModule::intToFilterType(int type) {
+    switch (type) {
         case 0: return AudioFX::FilterType::LOWPASS;
         case 1: return AudioFX::FilterType::HIGHPASS;
         case 2: return AudioFX::FilterType::BANDPASS;
@@ -1063,56 +598,51 @@ AudioFX::FilterType NativeAudioEqualizerModule::jsNumberToFilterType(double type
     }
 }
 
-double NativeAudioEqualizerModule::filterTypeToJsNumber(AudioFX::FilterType type) {
+int NativeAudioEqualizerModule::filterTypeToInt(AudioFX::FilterType type) {
     switch (type) {
-        case AudioFX::FilterType::LOWPASS: return 0.0;
-        case AudioFX::FilterType::HIGHPASS: return 1.0;
-        case AudioFX::FilterType::BANDPASS: return 2.0;
-        case AudioFX::FilterType::NOTCH: return 3.0;
-        case AudioFX::FilterType::PEAK: return 4.0;
-        case AudioFX::FilterType::LOWSHELF: return 5.0;
-        case AudioFX::FilterType::HIGHSHELF: return 6.0;
-        case AudioFX::FilterType::ALLPASS: return 7.0;
-        default: return 4.0;
+        case AudioFX::FilterType::LOWPASS: return 0;
+        case AudioFX::FilterType::HIGHPASS: return 1;
+        case AudioFX::FilterType::BANDPASS: return 2;
+        case AudioFX::FilterType::NOTCH: return 3;
+        case AudioFX::FilterType::PEAK: return 4;
+        case AudioFX::FilterType::LOWSHELF: return 5;
+        case AudioFX::FilterType::HIGHSHELF: return 6;
+        case AudioFX::FilterType::ALLPASS: return 7;
+        default: return 4;
     }
 }
 
-std::vector<float> NativeAudioEqualizerModule::jsArrayToFloatVector(jsi::Runtime& rt, const jsi::Object& array) {
-    if (!array.isArray(rt)) {
-        throw jsi::JSError(rt, "Expected array");
+// Default equalizer management
+void NativeAudioEqualizerModule::ensureDefaultEqualizer() {
+    if (defaultEqualizerId_ == 0) {
+        // 10 bands, 48000Hz by default
+        defaultEqualizerId_ = createEqualizer(10, 48000);
+        // By default disabled (bypass activated)
+        setBypass(defaultEqualizerId_, true);
+        bypassed_ = true;
     }
-    
-    auto jsArray = array.asArray(rt);
-    size_t length = jsArray.length(rt);
+}
+
+// Audio buffer conversion helpers
+std::vector<float> NativeAudioEqualizerModule::arrayToFloatVector(const std::vector<double>& array) {
     std::vector<float> result;
-    result.reserve(length);
-    
-    for (size_t i = 0; i < length; ++i) {
-        result.push_back(static_cast<float>(jsArray.getValueAtIndex(rt, i).asNumber()));
+    result.reserve(array.size());
+    for (double val : array) {
+        result.push_back(static_cast<float>(val));
     }
-    
     return result;
 }
 
-jsi::Object NativeAudioEqualizerModule::floatVectorToJsArray(jsi::Runtime& rt, const std::vector<float>& vector) {
-    auto array = jsi::Array(rt, vector.size());
-    
-    for (size_t i = 0; i < vector.size(); ++i) {
-        array.setValueAtIndex(rt, i, jsi::Value(static_cast<double>(vector[i])));
+std::vector<double> NativeAudioEqualizerModule::floatVectorToArray(const std::vector<float>& vector) {
+    std::vector<double> result;
+    result.reserve(vector.size());
+    for (float val : vector) {
+        result.push_back(static_cast<double>(val));
     }
-    
-    return array;
-}
-
-// Helper methods implementations
-AudioFX::FilterType NativeAudioEqualizerModule::intToFilterType(int type) {
-    return jsNumberToFilterType(static_cast<double>(type));
-}
-
-int NativeAudioEqualizerModule::filterTypeToInt(AudioFX::FilterType type) {
-    return static_cast<int>(filterTypeToJsNumber(type));
+    return result;
 }
 
 } // namespace react
 } // namespace facebook
+
 #endif // NAAYA_AUDIO_EQ_ENABLED
