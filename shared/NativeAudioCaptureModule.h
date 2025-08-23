@@ -151,7 +151,7 @@ namespace react {
 class JSI_EXPORT NativeAudioCaptureModule : public TurboModule {
 public:
     explicit NativeAudioCaptureModule(std::shared_ptr<CallInvoker> jsInvoker)
-        : TurboModule("NativeAudioCaptureModule", jsInvoker) {
+        : TurboModule("NativeAudioCaptureModule", jsInvoker), jsInvoker_(jsInvoker) {
         // Configuration par défaut
         currentConfig_.sampleRate = 44100;
         currentConfig_.channelCount = 1;
@@ -242,6 +242,9 @@ private:
     // Instance de capture audio
     std::shared_ptr<Audio::capture::AudioCapture> capture_;
     std::unique_ptr<Nyth::Audio::AudioRecorder> recorder_;
+    
+    // CallInvoker pour l'invocation asynchrone sur le thread JS
+    std::shared_ptr<CallInvoker> jsInvoker_;
     
     // Mutex pour la thread safety
     mutable std::mutex captureMutex_;

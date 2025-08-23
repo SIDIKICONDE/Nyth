@@ -301,6 +301,11 @@ jsi::Value NativeAudioCaptureModule::initialize(jsi::Runtime& rt, const jsi::Obj
     std::lock_guard<std::mutex> lock(captureMutex_);
 
     try {
+        // Validation du type d'argument
+        if (!config.isObject(rt)) {
+            throw jsi::JSError(rt, "Configuration must be an object");
+        }
+        
         currentConfig_ = parseConfig(rt, config);
         initializeCapture(currentConfig_);
         return jsi::Value(true);
@@ -437,6 +442,11 @@ jsi::Value NativeAudioCaptureModule::updateConfig(jsi::Runtime& rt, const jsi::O
     std::lock_guard<std::mutex> lock(captureMutex_);
 
     try {
+        // Validation du type d'argument
+        if (!config.isObject(rt)) {
+            throw jsi::JSError(rt, "Configuration must be an object");
+        }
+        
         currentConfig_ = parseConfig(rt, config);
 
         if (capture_) {
@@ -593,6 +603,14 @@ jsi::Value NativeAudioCaptureModule::startRecording(jsi::Runtime& rt, const jsi:
         return jsi::Value(false);
     }
 
+    // Validation des types
+    if (!filePath.isString(rt)) {
+        throw jsi::JSError(rt, "File path must be a string");
+    }
+    if (!options.isObject(rt)) {
+        throw jsi::JSError(rt, "Options must be an object");
+    }
+
     std::string path = filePath.utf8(rt);
 
     Nyth::Audio::AudioFileWriterConfig writerConfig;
@@ -686,7 +704,7 @@ jsi::Value NativeAudioCaptureModule::getRecordingInfo(jsi::Runtime& rt) {
 jsi::Value NativeAudioCaptureModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
 
-    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
 
     if (capture_) {
         capture_->setAudioDataCallback([this](const float* data, size_t frameCount, int channels) {
@@ -700,7 +718,7 @@ jsi::Value NativeAudioCaptureModule::setAudioDataCallback(jsi::Runtime& rt, cons
 jsi::Value NativeAudioCaptureModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
 
-    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
 
     if (capture_) {
         capture_->setErrorCallback([this](const std::string& error) { handleError(error); });
@@ -712,7 +730,7 @@ jsi::Value NativeAudioCaptureModule::setErrorCallback(jsi::Runtime& rt, const js
 jsi::Value NativeAudioCaptureModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
 
-    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
 
     if (capture_) {
         capture_->setStateChangeCallback(
@@ -728,7 +746,7 @@ jsi::Value NativeAudioCaptureModule::setAnalysisCallback(jsi::Runtime& rt, const
                                                          double intervalMs) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
 
-    jsCallbacks_.analysisCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+    jsCallbacks_.analysisCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
     analysisIntervalMs_ = intervalMs;
 
     // Démarrer le thread d'analyse
