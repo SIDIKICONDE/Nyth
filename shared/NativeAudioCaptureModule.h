@@ -125,6 +125,7 @@ void NythCapture_SetStateChangeCallback(NythStateChangeCallback callback);
 #include <memory>
 #include <functional>
 #include <vector>
+#include <limits>
 
 #include <jsi/jsi.h>
 #include <ReactCommon/TurboModule.h>
@@ -134,6 +135,108 @@ void NythCapture_SetStateChangeCallback(NythStateChangeCallback callback);
 #include <mutex>
 #include <atomic>
 #include <queue>
+
+// === Constantes de limites pour la sécurité ===
+namespace AudioLimits {
+    // Limites de buffer
+    constexpr size_t MAX_BUFFER_SIZE = 1024 * 1024;        // 1MB max pour éviter les allocations excessives
+    constexpr size_t MAX_ARRAY_LENGTH = 100000;            // Limite pour les tableaux JSI
+    
+    // Limites de configuration audio
+    constexpr int MIN_SAMPLE_RATE = 8000;                  // Minimum supporté
+    constexpr int MAX_SAMPLE_RATE = 192000;                // Maximum supporté
+    constexpr int MIN_CHANNELS = 1;                        // Mono minimum
+    constexpr int MAX_CHANNELS = 8;                        // 8 canaux maximum
+    constexpr int MIN_BITS_PER_SAMPLE = 8;
+    constexpr int MAX_BITS_PER_SAMPLE = 32;
+    constexpr int MIN_BUFFER_SIZE_FRAMES = 64;
+    constexpr int MAX_BUFFER_SIZE_FRAMES = 8192;
+    
+    // Limites de niveau audio
+    constexpr float MIN_THRESHOLD = 0.0f;
+    constexpr float MAX_THRESHOLD = 1.0f;
+    
+    // Limites temporelles
+    constexpr double MAX_ANALYSIS_INTERVAL_MS = 10000.0;   // 10 secondes max
+    constexpr double MIN_ANALYSIS_INTERVAL_MS = 10.0;      // 10ms minimum
+}
+
+// === Classe de validation JSI ===
+class JSIValidator {
+public:
+    // Validation de types basiques
+    static void validateNumber(jsi::Runtime& rt, const jsi::Value& val, const std::string& name) {
+        if (!val.isNumber()) {
+            throw jsi::JSError(rt, name + " must be a number");
+        }
+    }
+    
+    static void validateString(jsi::Runtime& rt, const jsi::Value& val, const std::string& name) {
+        if (!val.isString()) {
+            throw jsi::JSError(rt, name + " must be a string");
+        }
+    }
+    
+    static void validateBool(jsi::Runtime& rt, const jsi::Value& val, const std::string& name) {
+        if (!val.isBool()) {
+            throw jsi::JSError(rt, name + " must be a boolean");
+        }
+    }
+    
+    static void validateObject(jsi::Runtime& rt, const jsi::Value& val, const std::string& name) {
+        if (!val.isObject()) {
+            throw jsi::JSError(rt, name + " must be an object");
+        }
+    }
+    
+    static void validateArray(jsi::Runtime& rt, const jsi::Value& val, const std::string& name) {
+        if (!val.isObject() || !val.asObject(rt).isArray(rt)) {
+            throw jsi::JSError(rt, name + " must be an array");
+        }
+    }
+    
+    static void validateFunction(jsi::Runtime& rt, const jsi::Value& val, const std::string& name) {
+        if (!val.isObject() || !val.asObject(rt).isFunction(rt)) {
+            throw jsi::JSError(rt, name + " must be a function");
+        }
+    }
+    
+    // Validation avec plages
+    static double validateNumberInRange(jsi::Runtime& rt, const jsi::Value& val, 
+                                       const std::string& name, double min, double max) {
+        validateNumber(rt, val, name);
+        double value = val.asNumber();
+        if (value < min || value > max) {
+            throw jsi::JSError(rt, name + " must be between " + std::to_string(min) + 
+                             " and " + std::to_string(max));
+        }
+        return value;
+    }
+    
+    // Validation de taille de tableau
+    static size_t validateArraySize(jsi::Runtime& rt, const jsi::Array& array, 
+                                   const std::string& name, size_t maxSize) {
+        size_t length = array.length(rt);
+        if (length > maxSize) {
+            throw jsi::JSError(rt, name + " array is too large (max: " + 
+                             std::to_string(maxSize) + ")");
+        }
+        return length;
+    }
+    
+    // Validation de propriété optionnelle
+    template<typename T>
+    static bool getOptionalProperty(jsi::Runtime& rt, const jsi::Object& obj, 
+                                   const std::string& propName, T& value,
+                                   std::function<T(jsi::Runtime&, const jsi::Value&)> converter) {
+        if (obj.hasProperty(rt, propName.c_str())) {
+            auto prop = obj.getProperty(rt, propName.c_str());
+            value = converter(rt, prop);
+            return true;
+        }
+        return false;
+    }
+};
 
 // Forward declarations for namespaces
 namespace Audio {
@@ -152,7 +255,7 @@ class JSI_EXPORT NativeAudioCaptureModule : public TurboModule {
 public:
     explicit NativeAudioCaptureModule(std::shared_ptr<CallInvoker> jsInvoker)
         : TurboModule("NativeAudioCaptureModule", jsInvoker) {
-        // Configuration par défaut
+        // Configuration par défaut avec valeurs sûres
         currentConfig_.sampleRate = 44100;
         currentConfig_.channelCount = 1;
         currentConfig_.bitsPerSample = 16;
@@ -247,13 +350,25 @@ private:
     mutable std::mutex captureMutex_;
     mutable std::mutex callbackMutex_;
     
-    // Callbacks JavaScript
-    struct {
+    // Callbacks JavaScript avec protection
+    struct JSCallbacks {
         std::shared_ptr<jsi::Function> audioDataCallback;
         std::shared_ptr<jsi::Function> errorCallback;
         std::shared_ptr<jsi::Function> stateChangeCallback;
         std::shared_ptr<jsi::Function> analysisCallback;
+        
+        // Méthode pour nettoyer tous les callbacks
+        void clear() {
+            audioDataCallback.reset();
+            errorCallback.reset();
+            stateChangeCallback.reset();
+            analysisCallback.reset();
+        }
     } jsCallbacks_;
+    
+    // Runtime pour les callbacks (avec protection)
+    jsi::Runtime* runtime_ = nullptr;
+    std::atomic<bool> isRuntimeValid_{false};
     
     // Thread d'analyse
     std::thread analysisThread_;
@@ -272,13 +387,20 @@ private:
     std::atomic<bool> isRecordingActive_{false};
     std::string currentRecordingPath_;
 
-    // Méthodes privées
+    // Méthodes privées améliorées
     void initializeCapture(const Audio::capture::AudioCaptureConfig& config);
     void handleAudioData(const float* data, size_t frameCount, int channels);
     void handleError(const std::string& error);
     void handleStateChange(Audio::capture::CaptureState oldState, Audio::capture::CaptureState newState);
     void runAnalysisThread();
     void stopAnalysisThread();
+    
+    // Méthode pour nettoyer les ressources
+    void cleanup();
+    
+    // Validation et conversion sécurisées
+    Audio::capture::AudioCaptureConfig parseConfigSafe(jsi::Runtime& rt, const jsi::Object& jsConfig);
+    void validateAudioConfig(const Audio::capture::AudioCaptureConfig& config);
 
     // Conversion JSI <-> Native
     Audio::capture::AudioCaptureConfig parseConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
