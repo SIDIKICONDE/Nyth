@@ -6,512 +6,17 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <cstring> // Pour memset
+#include <cstring>
 #include <sstream>
-
-// === API C - Utilise maintenant les instances de la classe ===
-
-// Instance globale pour l'API C (une seule instance par application)
-static std::shared_ptr<facebook::react::NativeAudioPipelineModule> g_pipelineModule;
-static std::mutex g_globalMutex;
-
-// Note: Le pipeline utilise maintenant NativeAudioCaptureModule pour la capture
-// au lieu d'implémenter sa propre logique. Cela évite la duplication.
-
-// === Implémentation de l'API C ===
-
-extern "C" {
-
-// === Gestion du cycle de vie ===
-bool NythPipeline_Initialize(const NythPipelineConfig* config) {
-    if (!config)
-        return false;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    try {
-        // Créer une nouvelle instance du module si elle n'existe pas
-        if (!g_pipelineModule) {
-            // Note: jsInvoker sera null pour l'API C, mais c'est OK pour l'initialisation
-            g_pipelineModule = std::make_shared<facebook::react::NativeAudioPipelineModule>(nullptr);
-        }
-
-        // L'initialisation réelle sera faite via les méthodes de la classe
-        // Cette fonction sert juste à valider la configuration
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythPipeline_IsInitialized(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_pipelineModule != nullptr;
-}
-
-void NythPipeline_Release(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    g_pipelineModule.reset();
-}
-
-// === Contrôle du pipeline ===
-bool NythPipeline_Start(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_pipelineModule) {
-        // Note: Cette fonction ne peut pas accéder directement aux méthodes JSI
-        // car elle est dans un contexte C. L'implémentation réelle sera dans la classe.
-        return true;
-    }
-    return false;
-}
-
-bool NythPipeline_Stop(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == PIPELINE_STATE_RUNNING || g_currentState == PIPELINE_STATE_PAUSED) {
-        g_currentState = PIPELINE_STATE_STOPPING;
-
-        // Arrêter les effets, l'égaliseur, etc.
-        // La capture sera arrêtée via NativeAudioCaptureModule
-
-        g_currentState = PIPELINE_STATE_INITIALIZED;
-        return true;
-    }
-    return false;
-}
-
-bool NythPipeline_Pause(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == PIPELINE_STATE_RUNNING) {
-        g_currentState = PIPELINE_STATE_PAUSED;
-
-        // Mettre en pause les effets, l'égaliseur, etc.
-        // La capture sera mise en pause via NativeAudioCaptureModule
-
-        return true;
-    }
-    return false;
-}
-
-bool NythPipeline_Resume(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == PIPELINE_STATE_PAUSED) {
-        g_currentState = PIPELINE_STATE_RUNNING;
-
-        // Reprendre les effets, l'égaliseur, etc.
-        // La capture sera reprise via NativeAudioCaptureModule
-
-        return true;
-    }
-    return false;
-}
-
-// === État et informations ===
-NythPipelineState NythPipeline_GetState(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentState;
-}
-
-const char* NythPipeline_GetErrorString(NythPipelineError error) {
-    switch (error) {
-        case PIPELINE_ERROR_OK:
-            return "OK";
-        case PIPELINE_ERROR_NOT_INITIALIZED:
-            return "Not initialized";
-        case PIPELINE_ERROR_ALREADY_RUNNING:
-            return "Already running";
-        case PIPELINE_ERROR_ALREADY_STOPPED:
-            return "Already stopped";
-        case PIPELINE_ERROR_MODULE_ERROR:
-            return "Module error";
-        case PIPELINE_ERROR_CONFIG_ERROR:
-            return "Config error";
-        case PIPELINE_ERROR_PROCESSING_FAILED:
-            return "Processing failed";
-        default:
-            return "Unknown error";
-    }
-}
-
-void NythPipeline_GetMetrics(NythPipelineMetrics* metrics) {
-    if (!metrics)
-        return;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    *metrics = g_currentMetrics;
-
-    // Update with current values
-    metrics->state = g_currentState;
-    metrics->isRecording = false; // Not implemented in this version
-    metrics->cpuUsage = 15.5f;    // Simulated
-    metrics->latencyMs = 5.2f;    // Simulated
-}
-
-void NythPipeline_GetModuleStatus(NythPipelineModuleStatus* status) {
-    if (!status)
-        return;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    *status = g_currentModuleStatus;
-
-    // Update with current config
-    status->equalizerActive = g_currentConfig.enableEqualizer;
-    status->noiseReductionActive = g_currentConfig.enableNoiseReduction;
-    status->effectsActive = g_currentConfig.enableEffects;
-    status->safetyLimiterActive = g_currentConfig.enableSafetyLimiter;
-    status->fftAnalysisActive = g_currentConfig.enableFFTAnalysis;
-    status->activeEffectsCount = 0; // Not implemented in this version
-}
-
-// === Configuration des modules ===
-
-// Equalizer
-bool NythPipeline_SetEqualizerEnabled(bool enabled) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == PIPELINE_STATE_UNINITIALIZED)
-        return false;
-
-    if (g_audioPipeline) {
-        g_audioPipeline->setEqualizerEnabled(enabled);
-        g_currentConfig.enableEqualizer = enabled;
-        return true;
-    }
-    return false;
-}
-
-bool NythPipeline_SetEqualizerBand(const NythEqualizerBandConfig* band) {
-    if (!band)
-        return false;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioPipeline)
-        return false;
-
-    try {
-        // Note: AudioPipeline may not have direct band access
-        // This would need to be implemented based on the actual AudioPipeline interface
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythPipeline_LoadEqualizerPreset(const char* presetName) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (!g_audioPipeline)
-        return false;
-
-    try {
-        std::string preset(presetName);
-        // Implement preset loading logic here
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythPipeline_ResetEqualizer(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (!g_audioPipeline)
-        return false;
-
-    try {
-        // Implement equalizer reset logic here
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-// Noise Reduction
-bool NythPipeline_SetNoiseReductionEnabled(bool enabled) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == PIPELINE_STATE_UNINITIALIZED)
-        return false;
-
-    if (g_audioPipeline) {
-        g_audioPipeline->setNoiseReductionEnabled(enabled);
-        g_currentConfig.enableNoiseReduction = enabled;
-        return true;
-    }
-    return false;
-}
-
-bool NythPipeline_SetNoiseReductionStrength(float strength) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == PIPELINE_STATE_UNINITIALIZED)
-        return false;
-
-    g_currentConfig.noiseReductionStrength = strength;
-    return true;
-}
-
-bool NythPipeline_TrainNoiseProfile(float durationSeconds) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (!g_audioPipeline)
-        return false;
-
-    try {
-        // Implement noise profile training logic here
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-// Effects
-bool NythPipeline_SetEffectsEnabled(bool enabled) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == PIPELINE_STATE_UNINITIALIZED)
-        return false;
-
-    if (g_audioPipeline) {
-        g_audioPipeline->setEffectsEnabled(enabled);
-        g_currentConfig.enableEffects = enabled;
-        return true;
-    }
-    return false;
-}
-
-bool NythPipeline_AddEffect(const NythPipelineEffectConfig* config) {
-    if (!config)
-        return false;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (!g_audioPipeline)
-        return false;
-
-    try {
-        // Implement effect addition logic here
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythPipeline_RemoveEffect(const char* effectId) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (!g_audioPipeline)
-        return false;
-
-    try {
-        std::string id(effectId);
-        // Implement effect removal logic here
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythPipeline_SetEffectParameter(const char* effectId, const char* param, float value) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (!g_audioPipeline)
-        return false;
-
-    try {
-        std::string id(effectId);
-        std::string parameter(param);
-        // Implement effect parameter setting logic here
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-void NythPipeline_RemoveAllEffects(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (g_audioPipeline) {
-        // Implement remove all effects logic here
-    }
-}
-
-// Safety Limiter
-bool NythPipeline_SetSafetyLimiterEnabled(bool enabled) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == PIPELINE_STATE_UNINITIALIZED)
-        return false;
-
-    if (g_audioPipeline) {
-        g_audioPipeline->setSafetyLimiterEnabled(enabled);
-        g_currentConfig.enableSafetyLimiter = enabled;
-        return true;
-    }
-    return false;
-}
-
-bool NythPipeline_SetSafetyLimiterThreshold(float threshold) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == PIPELINE_STATE_UNINITIALIZED)
-        return false;
-
-    if (g_audioPipeline) {
-        g_audioPipeline->setSafetyLimiterThreshold(threshold);
-        g_currentConfig.safetyLimiterThreshold = threshold;
-        return true;
-    }
-    return false;
-}
-
-// FFT Analysis
-bool NythPipeline_SetFFTAnalysisEnabled(bool enabled) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == PIPELINE_STATE_UNINITIALIZED)
-        return false;
-
-    if (g_audioPipeline) {
-        g_audioPipeline->setFFTAnalysisEnabled(enabled);
-        g_currentConfig.enableFFTAnalysis = enabled;
-        return true;
-    }
-    return false;
-}
-
-bool NythPipeline_SetFFTSize(size_t size) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == PIPELINE_STATE_UNINITIALIZED)
-        return false;
-
-    if (g_audioPipeline) {
-        g_audioPipeline->setFFTSize(size);
-        g_currentConfig.fftSize = size;
-        return true;
-    }
-    return false;
-}
-
-// === Enregistrement ===
-bool NythPipeline_StartRecording(const char* filename) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (!g_audioPipeline)
-        return false;
-
-    try {
-        std::string file(filename);
-        // Implement recording start logic here
-        g_currentMetrics.isRecording = true;
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythPipeline_StopRecording(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (!g_audioPipeline)
-        return false;
-
-    try {
-        // Implement recording stop logic here
-        g_currentMetrics.isRecording = false;
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythPipeline_IsRecording(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentMetrics.isRecording;
-}
-
-// === Utilitaires ===
-float NythPipeline_GetCurrentLevel(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentMetrics.currentLevel;
-}
-
-float NythPipeline_GetPeakLevel(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentMetrics.peakLevel;
-}
-
-bool NythPipeline_IsClipping(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentMetrics.isClipping;
-}
-
-float NythPipeline_GetLatencyMs(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentMetrics.latencyMs;
-}
-
-float NythPipeline_GetCpuUsage(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentMetrics.cpuUsage;
-}
-
-// === Callbacks (pour usage interne) ===
-void NythPipeline_SetAudioDataCallback(NythPipelineAudioDataCallback callback) {
-    // Not implemented in this version
-}
-
-void NythPipeline_SetFFTDataCallback(NythPipelineFFTDataCallback callback) {
-    // Not implemented in this version
-}
-
-void NythPipeline_SetMetricsCallback(NythPipelineMetricsCallback callback) {
-    // Not implemented in this version
-}
-
-void NythPipeline_SetErrorCallback(NythPipelineErrorCallback callback) {
-    // Not implemented in this version
-}
-
-void NythPipeline_SetStateChangeCallback(NythPipelineStateChangeCallback callback) {
-    // Not implemented in this version
-}
-
-// === Intégration avec NativeAudioCaptureModule ===
-
-// Ces fonctions permettent au pipeline d'utiliser NativeAudioCaptureModule
-// pour éviter la duplication de code
-
-bool NythPipeline_HasCapturePermission(void) {
-    // Cette fonction devrait appeler NythCapture_HasPermission()
-    // mais comme on est dans un contexte C++, on ne peut pas l'appeler directement
-    // Le JavaScript devra gérer les permissions via NativeAudioCaptureModule
-    return true; // Placeholder
-}
-
-bool NythPipeline_RequestCapturePermission(void) {
-    // Cette fonction devrait appeler NythCapture_RequestPermission()
-    // mais comme on est dans un contexte C++, on ne peut pas l'appeler directement
-    // Le JavaScript devra gérer les permissions via NativeAudioCaptureModule
-    return true; // Placeholder
-}
-
-bool NythPipeline_IsCapturing(void) {
-    // Cette fonction devrait vérifier l'état de NativeAudioCaptureModule
-    // mais comme on est dans un contexte C++, on ne peut pas l'appeler directement
-    // Le JavaScript devra vérifier l'état via NativeAudioCaptureModule
-    return false; // Placeholder - le pipeline ne gère plus directement la capture
-}
-
-float NythPipeline_GetCaptureLevel(void) {
-    // Cette fonction devrait appeler NythCapture_GetCurrentLevel()
-    // mais comme on est dans un contexte C++, on ne peut pas l'appeler directement
-    // Le JavaScript devra obtenir le niveau via NativeAudioCaptureModule
-    return 0.0f; // Placeholder
-}
-
-} // extern "C"
-
-// === Implémentation C++ pour TurboModule ===
 
 namespace facebook {
 namespace react {
+
+NativeAudioPipelineModule::NativeAudioPipelineModule(std::shared_ptr<CallInvoker> jsInvoker)
+    : NativeAudioPipelineModuleCxxSpec(std::move(jsInvoker)) {
+    // Initialisation par défaut
+    currentState_ = PIPELINE_STATE_UNINITIALIZED;
+}
 
 NativeAudioPipelineModule::~NativeAudioPipelineModule() {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
@@ -935,116 +440,194 @@ void NativeAudioPipelineModule::invokeJSCallback(const std::string& callbackName
 
 // === Méthodes publiques ===
 
-// Gestion du cycle de vie
+// Méthodes d'initialisation et de cycle de vie
 jsi::Value NativeAudioPipelineModule::initialize(jsi::Runtime& rt, const jsi::Object& config) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-
+    
     try {
-        // Stocker le runtime pour les callbacks
         runtime_ = &rt;
-
-        auto nativeConfig = parsePipelineConfig(rt, config);
-        bool success = NythPipeline_Initialize(&nativeConfig);
-
-        if (success) {
-            currentConfig_ = nativeConfig;
-            return jsi::Value(true);
+        
+        // Parse configuration
+        currentConfig_ = parsePipelineConfig(rt, config);
+        
+        // Créer le pipeline audio
+        audioPipeline_ = std::make_unique<Nyth::Audio::AudioPipeline>();
+        
+        // Configurer le pipeline
+        Nyth::Audio::AudioPipeline::Config pipelineConfig;
+        pipelineConfig.captureConfig.sampleRate = currentConfig_.captureConfig.sampleRate;
+        pipelineConfig.captureConfig.channels = currentConfig_.captureConfig.channelCount;
+        pipelineConfig.captureConfig.bufferSizeFrames = currentConfig_.captureConfig.bufferSizeFrames;
+        pipelineConfig.enableEqualizer = currentConfig_.enableEqualizer;
+        pipelineConfig.enableNoiseReduction = currentConfig_.enableNoiseReduction;
+        pipelineConfig.enableEffects = currentConfig_.enableEffects;
+        pipelineConfig.enableSafetyLimiter = currentConfig_.enableSafetyLimiter;
+        pipelineConfig.enableFFTAnalysis = currentConfig_.enableFFTAnalysis;
+        pipelineConfig.safetyLimiterThreshold = currentConfig_.safetyLimiterThreshold;
+        pipelineConfig.noiseReductionStrength = currentConfig_.noiseReductionStrength;
+        
+        if (!audioPipeline_->initialize(pipelineConfig)) {
+            return jsi::Value(false);
         }
+        
+        // Configurer les modules selon la configuration
+        audioPipeline_->setEqualizerEnabled(currentConfig_.enableEqualizer);
+        audioPipeline_->setNoiseReductionEnabled(currentConfig_.enableNoiseReduction);
+        audioPipeline_->setEffectsEnabled(currentConfig_.enableEffects);
+        audioPipeline_->setSafetyLimiterEnabled(currentConfig_.enableSafetyLimiter);
+        audioPipeline_->setSafetyLimiterThreshold(currentConfig_.safetyLimiterThreshold);
+        audioPipeline_->setFFTAnalysisEnabled(currentConfig_.enableFFTAnalysis);
+        audioPipeline_->setFFTSize(currentConfig_.fftSize);
+        
+        currentState_ = PIPELINE_STATE_INITIALIZED;
+        handleStateChange(PIPELINE_STATE_UNINITIALIZED, PIPELINE_STATE_INITIALIZED);
+        
+        return jsi::Value(true);
     } catch (const std::exception& e) {
-        handleError(convertError("config_error"), std::string("Initialization failed: ") + e.what());
+        handleError(PIPELINE_ERROR_CONFIG_ERROR, e.what());
+        return jsi::Value(false);
     }
-
-    return jsi::Value(false);
 }
 
 jsi::Value NativeAudioPipelineModule::isInitialized(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-    return jsi::Value(NythPipeline_IsInitialized());
+    return jsi::Value(audioPipeline_ != nullptr && currentState_ != PIPELINE_STATE_UNINITIALIZED);
 }
 
 jsi::Value NativeAudioPipelineModule::dispose(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-
-    NythPipeline_Release();
+    
+    if (audioPipeline_) {
+        audioPipeline_->stop();
+        audioPipeline_.reset();
+    }
+    
     currentState_ = PIPELINE_STATE_UNINITIALIZED;
-
-    return jsi::Value(true);
+    handleStateChange(currentState_, PIPELINE_STATE_UNINITIALIZED);
+    
+    return jsi::Value::undefined();
 }
 
 // Contrôle du pipeline
 jsi::Value NativeAudioPipelineModule::start(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-
-    if (NythPipeline_Start()) {
+    
+    if (!audioPipeline_ || currentState_ == PIPELINE_STATE_UNINITIALIZED) {
+        return jsi::Value(false);
+    }
+    
+    if (audioPipeline_->start()) {
         currentState_ = PIPELINE_STATE_RUNNING;
+        handleStateChange(PIPELINE_STATE_INITIALIZED, PIPELINE_STATE_RUNNING);
         return jsi::Value(true);
     }
-
+    
     return jsi::Value(false);
 }
 
 jsi::Value NativeAudioPipelineModule::stop(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-
-    if (NythPipeline_Stop()) {
+    
+    if (!audioPipeline_ || (currentState_ != PIPELINE_STATE_RUNNING && currentState_ != PIPELINE_STATE_PAUSED)) {
+        return jsi::Value(false);
+    }
+    
+    if (audioPipeline_->stop()) {
         currentState_ = PIPELINE_STATE_INITIALIZED;
+        handleStateChange(PIPELINE_STATE_RUNNING, PIPELINE_STATE_INITIALIZED);
         return jsi::Value(true);
     }
-
+    
     return jsi::Value(false);
 }
 
 jsi::Value NativeAudioPipelineModule::pause(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-
-    if (NythPipeline_Pause()) {
+    
+    if (!audioPipeline_ || currentState_ != PIPELINE_STATE_RUNNING) {
+        return jsi::Value(false);
+    }
+    
+    if (audioPipeline_->pause()) {
         currentState_ = PIPELINE_STATE_PAUSED;
+        handleStateChange(PIPELINE_STATE_RUNNING, PIPELINE_STATE_PAUSED);
         return jsi::Value(true);
     }
-
+    
     return jsi::Value(false);
 }
 
 jsi::Value NativeAudioPipelineModule::resume(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-
-    if (NythPipeline_Resume()) {
+    
+    if (!audioPipeline_ || currentState_ != PIPELINE_STATE_PAUSED) {
+        return jsi::Value(false);
+    }
+    
+    if (audioPipeline_->resume()) {
         currentState_ = PIPELINE_STATE_RUNNING;
+        handleStateChange(PIPELINE_STATE_PAUSED, PIPELINE_STATE_RUNNING);
         return jsi::Value(true);
     }
-
+    
     return jsi::Value(false);
 }
 
 // État et informations
 jsi::Value NativeAudioPipelineModule::getState(jsi::Runtime& rt) {
-    return jsi::String::createFromUtf8(rt, stateToString(currentState_.load()));
+    std::lock_guard<std::mutex> lock(pipelineMutex_);
+    return jsi::Value(static_cast<int>(currentState_.load()));
 }
 
-jsi::Value NativeAudioPipelineModule::getErrorString(jsi::Runtime& rt, int errorCode) {
-    NythPipelineError error = static_cast<NythPipelineError>(errorCode);
-    return jsi::String::createFromUtf8(rt, NythPipeline_GetErrorString(error));
+jsi::Value NativeAudioPipelineModule::getErrorString(jsi::Runtime& rt, int error) {
+    const char* errorStr = "";
+    switch (static_cast<NythPipelineError>(error)) {
+        case PIPELINE_ERROR_OK: errorStr = "OK"; break;
+        case PIPELINE_ERROR_NOT_INITIALIZED: errorStr = "Not initialized"; break;
+        case PIPELINE_ERROR_ALREADY_RUNNING: errorStr = "Already running"; break;
+        case PIPELINE_ERROR_ALREADY_STOPPED: errorStr = "Already stopped"; break;
+        case PIPELINE_ERROR_MODULE_ERROR: errorStr = "Module error"; break;
+        case PIPELINE_ERROR_CONFIG_ERROR: errorStr = "Config error"; break;
+        case PIPELINE_ERROR_PROCESSING_FAILED: errorStr = "Processing failed"; break;
+        default: errorStr = "Unknown error"; break;
+    }
+    return jsi::String::createFromUtf8(rt, errorStr);
 }
 
 jsi::Value NativeAudioPipelineModule::getMetrics(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    NythPipeline_GetMetrics(&g_currentMetrics);
-    return pipelineMetricsToJS(rt, g_currentMetrics);
+    NythPipelineMetrics metrics;
+    metrics.currentLevel = currentMetrics_.currentLevel;
+    metrics.peakLevel = currentMetrics_.peakLevel;
+    metrics.isClipping = currentMetrics_.isClipping;
+    metrics.cpuUsage = currentMetrics_.cpuUsage;
+    metrics.latencyMs = currentMetrics_.latencyMs;
+    metrics.state = currentState_;
+    metrics.isRecording = currentMetrics_.isRecording;
+    
+    return pipelineMetricsToJS(rt, metrics);
 }
 
 jsi::Value NativeAudioPipelineModule::getModuleStatus(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    NythPipeline_GetModuleStatus(&g_currentModuleStatus);
-    return moduleStatusToJS(rt, g_currentModuleStatus);
+    NythPipelineModuleStatus status;
+    status.equalizerActive = currentConfig_.enableEqualizer;
+    status.noiseReductionActive = currentConfig_.enableNoiseReduction;
+    status.effectsActive = currentConfig_.enableEffects;
+    status.safetyLimiterActive = currentConfig_.enableSafetyLimiter;
+    status.fftAnalysisActive = currentConfig_.enableFFTAnalysis;
+    status.activeEffectsCount = 0; // À implémenter si nécessaire
+    
+    return moduleStatusToJS(rt, status);
 }
 
 // Configuration des modules - Equalizer
 jsi::Value NativeAudioPipelineModule::setEqualizerEnabled(jsi::Runtime& rt, bool enabled) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    if (NythPipeline_SetEqualizerEnabled(enabled)) {
+    if (audioPipeline_->setEqualizerEnabled(enabled)) {
         currentConfig_.enableEqualizer = enabled;
         return jsi::Value(true);
     }
@@ -1057,7 +640,8 @@ jsi::Value NativeAudioPipelineModule::setEqualizerBand(jsi::Runtime& rt, const j
 
     try {
         auto config = parseEqualizerBandConfig(rt, bandConfig);
-        if (NythPipeline_SetEqualizerBand(&config)) {
+        if (audioPipeline_) {
+            audioPipeline_->setEqualizerBand(config.band, config.frequency, config.gain, config.q);
             return jsi::Value(true);
         }
     } catch (...) {
@@ -1071,7 +655,8 @@ jsi::Value NativeAudioPipelineModule::loadEqualizerPreset(jsi::Runtime& rt, cons
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
     std::string preset = presetName.utf8(rt);
-    if (NythPipeline_LoadEqualizerPreset(preset.c_str())) {
+    if (audioPipeline_) {
+        audioPipeline_->loadEqualizerPreset(preset);
         return jsi::Value(true);
     }
 
@@ -1081,7 +666,10 @@ jsi::Value NativeAudioPipelineModule::loadEqualizerPreset(jsi::Runtime& rt, cons
 jsi::Value NativeAudioPipelineModule::resetEqualizer(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    if (NythPipeline_ResetEqualizer()) {
+    if (audioPipeline_) {
+        // Reset en chargeant un preset flat ou en désactivant l'égaliseur
+        audioPipeline_->setEqualizerEnabled(false);
+        audioPipeline_->setEqualizerEnabled(true);
         return jsi::Value(true);
     }
 
@@ -1092,7 +680,7 @@ jsi::Value NativeAudioPipelineModule::resetEqualizer(jsi::Runtime& rt) {
 jsi::Value NativeAudioPipelineModule::setNoiseReductionEnabled(jsi::Runtime& rt, bool enabled) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    if (NythPipeline_SetNoiseReductionEnabled(enabled)) {
+    if (audioPipeline_->setNoiseReductionEnabled(enabled)) {
         currentConfig_.enableNoiseReduction = enabled;
         return jsi::Value(true);
     }
@@ -1103,7 +691,7 @@ jsi::Value NativeAudioPipelineModule::setNoiseReductionEnabled(jsi::Runtime& rt,
 jsi::Value NativeAudioPipelineModule::setNoiseReductionStrength(jsi::Runtime& rt, float strength) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    if (NythPipeline_SetNoiseReductionStrength(strength)) {
+    if (audioPipeline_->setNoiseReductionStrength(strength)) {
         currentConfig_.noiseReductionStrength = strength;
         return jsi::Value(true);
     }
@@ -1114,7 +702,7 @@ jsi::Value NativeAudioPipelineModule::setNoiseReductionStrength(jsi::Runtime& rt
 jsi::Value NativeAudioPipelineModule::trainNoiseProfile(jsi::Runtime& rt, float durationSeconds) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    if (NythPipeline_TrainNoiseProfile(durationSeconds)) {
+    if (audioPipeline_->trainNoiseProfile(durationSeconds)) {
         return jsi::Value(true);
     }
 
@@ -1125,7 +713,7 @@ jsi::Value NativeAudioPipelineModule::trainNoiseProfile(jsi::Runtime& rt, float 
 jsi::Value NativeAudioPipelineModule::setEffectsEnabled(jsi::Runtime& rt, bool enabled) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    if (NythPipeline_SetEffectsEnabled(enabled)) {
+    if (audioPipeline_->setEffectsEnabled(enabled)) {
         currentConfig_.enableEffects = enabled;
         return jsi::Value(true);
     }
@@ -1137,11 +725,9 @@ jsi::Value NativeAudioPipelineModule::addEffect(jsi::Runtime& rt, const jsi::Obj
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
     try {
-        auto config = parseEffectConfig(rt, effectConfig);
-        if (NythPipeline_AddEffect(&config)) {
-            // No need to free strings since they are now arrays, not pointers
-            return jsi::Value(true);
-        }
+        // Pour l'instant, on retourne false car il faudrait créer un IAudioEffect
+        // à partir de la configuration, ce qui nécessite une refactorisation
+        return jsi::Value(false);
     } catch (...) {
         // Free allocated strings if needed
     }
@@ -1153,7 +739,8 @@ jsi::Value NativeAudioPipelineModule::removeEffect(jsi::Runtime& rt, const jsi::
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
     std::string id = effectId.utf8(rt);
-    if (NythPipeline_RemoveEffect(id.c_str())) {
+    if (audioPipeline_) {
+        audioPipeline_->removeEffect(id);
         return jsi::Value(true);
     }
 
@@ -1166,7 +753,7 @@ jsi::Value NativeAudioPipelineModule::setEffectParameter(jsi::Runtime& rt, const
 
     std::string id = effectId.utf8(rt);
     std::string parameter = param.utf8(rt);
-    if (NythPipeline_SetEffectParameter(id.c_str(), parameter.c_str(), value)) {
+    if (audioPipeline_->setEffectParameter(id.c_str(), parameter.c_str(), value)) {
         return jsi::Value(true);
     }
 
@@ -1176,15 +763,19 @@ jsi::Value NativeAudioPipelineModule::setEffectParameter(jsi::Runtime& rt, const
 jsi::Value NativeAudioPipelineModule::removeAllEffects(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    NythPipeline_RemoveAllEffects();
-    return jsi::Value(true);
+    if (audioPipeline_) {
+        // removeAllEffects n'existe pas, on doit gérer une liste d'effets
+        // Pour l'instant on ne fait rien
+        return jsi::Value(true);
+    }
+    return jsi::Value(false);
 }
 
 // Configuration des modules - Safety Limiter
 jsi::Value NativeAudioPipelineModule::setSafetyLimiterEnabled(jsi::Runtime& rt, bool enabled) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    if (NythPipeline_SetSafetyLimiterEnabled(enabled)) {
+    if (audioPipeline_->setSafetyLimiterEnabled(enabled)) {
         currentConfig_.enableSafetyLimiter = enabled;
         return jsi::Value(true);
     }
@@ -1195,7 +786,7 @@ jsi::Value NativeAudioPipelineModule::setSafetyLimiterEnabled(jsi::Runtime& rt, 
 jsi::Value NativeAudioPipelineModule::setSafetyLimiterThreshold(jsi::Runtime& rt, float threshold) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    if (NythPipeline_SetSafetyLimiterThreshold(threshold)) {
+    if (audioPipeline_->setSafetyLimiterThreshold(threshold)) {
         currentConfig_.safetyLimiterThreshold = threshold;
         return jsi::Value(true);
     }
@@ -1207,7 +798,7 @@ jsi::Value NativeAudioPipelineModule::setSafetyLimiterThreshold(jsi::Runtime& rt
 jsi::Value NativeAudioPipelineModule::setFFTAnalysisEnabled(jsi::Runtime& rt, bool enabled) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    if (NythPipeline_SetFFTAnalysisEnabled(enabled)) {
+    if (audioPipeline_->setFFTAnalysisEnabled(enabled)) {
         currentConfig_.enableFFTAnalysis = enabled;
         return jsi::Value(true);
     }
@@ -1218,7 +809,7 @@ jsi::Value NativeAudioPipelineModule::setFFTAnalysisEnabled(jsi::Runtime& rt, bo
 jsi::Value NativeAudioPipelineModule::setFFTSize(jsi::Runtime& rt, size_t size) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    if (NythPipeline_SetFFTSize(size)) {
+    if (audioPipeline_->setFFTSize(size)) {
         currentConfig_.fftSize = size;
         return jsi::Value(true);
     }
@@ -1231,7 +822,7 @@ jsi::Value NativeAudioPipelineModule::startRecording(jsi::Runtime& rt, const jsi
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
     std::string file = filename.utf8(rt);
-    if (NythPipeline_StartRecording(file.c_str())) {
+    if (audioPipeline_->startRecording(file.c_str())) {
         return jsi::Value(true);
     }
 
@@ -1241,7 +832,7 @@ jsi::Value NativeAudioPipelineModule::startRecording(jsi::Runtime& rt, const jsi
 jsi::Value NativeAudioPipelineModule::stopRecording(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    if (NythPipeline_StopRecording()) {
+    if (audioPipeline_->stopRecording()) {
         return jsi::Value(true);
     }
 
@@ -1250,33 +841,34 @@ jsi::Value NativeAudioPipelineModule::stopRecording(jsi::Runtime& rt) {
 
 jsi::Value NativeAudioPipelineModule::isRecording(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-    return jsi::Value(NythPipeline_IsRecording());
+    return jsi::Value(audioPipeline_->isRecording());
 }
 
 // Utilitaires
 jsi::Value NativeAudioPipelineModule::getCurrentLevel(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-    return jsi::Value(NythPipeline_GetCurrentLevel());
+    return jsi::Value(audioPipeline_->getCurrentLevel());
 }
 
 jsi::Value NativeAudioPipelineModule::getPeakLevel(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-    return jsi::Value(NythPipeline_GetPeakLevel());
+    return jsi::Value(audioPipeline_->getPeakLevel());
 }
 
 jsi::Value NativeAudioPipelineModule::isClipping(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-    return jsi::Value(NythPipeline_IsClipping());
+    return jsi::Value(audioPipeline_->isClipping());
 }
 
 jsi::Value NativeAudioPipelineModule::getLatencyMs(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-    return jsi::Value(NythPipeline_GetLatencyMs());
+    return jsi::Value(audioPipeline_->getLatencyMs());
 }
 
 jsi::Value NativeAudioPipelineModule::getCpuUsage(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
-    return jsi::Value(NythPipeline_GetCpuUsage());
+    // getCpuUsage est privé dans AudioPipeline, on retourne une valeur simulée
+    return jsi::Value(currentMetrics_.cpuUsage);
 }
 
 // === Callbacks JavaScript ===
@@ -1356,9 +948,9 @@ jsi::Value NativeAudioPipelineModule::install(jsi::Runtime& rt, std::shared_ptr<
     };
 
     // Installer toutes les méthodes
-    installMethod("initialize", 1, &NativeAudioPipelineModule::isInitialized);
+    installMethod("initialize", 1, &NativeAudioPipelineModule::initialize);
     installMethod("isInitialized", 0, &NativeAudioPipelineModule::isInitialized);
-    installMethod("dispose", 0, &NativeAudioPipelineModule::dispose);
+         installMethod("dispose", 0, &NativeAudioPipelineModule::dispose);
     installMethod("start", 0, &NativeAudioPipelineModule::start);
     installMethod("stop", 0, &NativeAudioPipelineModule::stop);
     installMethod("pause", 0, &NativeAudioPipelineModule::pause);
@@ -1376,6 +968,89 @@ std::shared_ptr<TurboModule> NativeAudioPipelineModuleProvider(std::shared_ptr<C
     return std::make_shared<NativeAudioPipelineModule>(jsInvoker);
 }
 
+// === Méthodes privées pour la gestion des événements ===
+
+void NativeAudioPipelineModule::handleError(NythPipelineError error, const std::string& message) {
+    if (jsCallbacks_.errorCallback && runtime_) {
+        jsInvoker_->invokeAsync([this, error, message]() {
+            if (runtime_ && jsCallbacks_.errorCallback) {
+                jsCallbacks_.errorCallback->call(*runtime_, 
+                    static_cast<int>(error), 
+                    jsi::String::createFromUtf8(*runtime_, message));
+            }
+        });
+    }
+}
+
+void NativeAudioPipelineModule::handleStateChange(NythPipelineState oldState, NythPipelineState newState) {
+    if (jsCallbacks_.stateChangeCallback && runtime_) {
+        jsInvoker_->invokeAsync([this, oldState, newState]() {
+            if (runtime_ && jsCallbacks_.stateChangeCallback) {
+                jsCallbacks_.stateChangeCallback->call(*runtime_, 
+                    static_cast<int>(oldState), 
+                    static_cast<int>(newState));
+            }
+        });
+    }
+}
+
+void NativeAudioPipelineModule::handleAudioData(const float* data, size_t frameCount, int channels) {
+    if (jsCallbacks_.audioDataCallback && runtime_) {
+        // Copier les données pour l'envoi asynchrone
+        std::vector<float> dataCopy(data, data + frameCount * channels);
+        
+        jsInvoker_->invokeAsync([this, dataCopy, frameCount, channels]() {
+            if (runtime_ && jsCallbacks_.audioDataCallback) {
+                // Créer un Float32Array JavaScript
+                auto arrayBuffer = jsi::ArrayBuffer(*runtime_, dataCopy.size() * sizeof(float));
+                memcpy(arrayBuffer.data(*runtime_), dataCopy.data(), dataCopy.size() * sizeof(float));
+                auto typedArray = jsi::Function::createFromHostFunction(*runtime_,
+                    jsi::PropNameID::forAscii(*runtime_, "Float32Array"), 1,
+                    [&arrayBuffer](jsi::Runtime& rt, const jsi::Value&, const jsi::Value*, size_t) {
+                        return jsi::Value(rt, arrayBuffer);
+                    });
+                
+                jsCallbacks_.audioDataCallback->call(*runtime_, typedArray, 
+                    static_cast<double>(frameCount), 
+                    static_cast<double>(channels));
+            }
+        });
+    }
+}
+
+void NativeAudioPipelineModule::handleFFTData(const float* magnitudes, size_t binCount, float sampleRate) {
+    if (jsCallbacks_.fftDataCallback && runtime_) {
+        // Copier les données pour l'envoi asynchrone
+        std::vector<float> magCopy(magnitudes, magnitudes + binCount);
+        
+        jsInvoker_->invokeAsync([this, magCopy, binCount, sampleRate]() {
+            if (runtime_ && jsCallbacks_.fftDataCallback) {
+                // Créer un tableau JavaScript
+                auto magnitudesArray = jsi::Array(*runtime_, binCount);
+                for (size_t i = 0; i < binCount; ++i) {
+                    magnitudesArray.setValueAtIndex(*runtime_, i, jsi::Value(magCopy[i]));
+                }
+                
+                jsCallbacks_.fftDataCallback->call(*runtime_, magnitudesArray, 
+                    static_cast<double>(binCount), 
+                    static_cast<double>(sampleRate));
+            }
+        });
+    }
+}
+
+void NativeAudioPipelineModule::handleMetrics(const NythPipelineMetrics& metrics) {
+    if (jsCallbacks_.metricsCallback && runtime_) {
+        jsInvoker_->invokeAsync([this, metrics]() {
+            if (runtime_ && jsCallbacks_.metricsCallback) {
+                auto metricsObj = pipelineMetricsToJS(*runtime_, metrics);
+                jsCallbacks_.metricsCallback->call(*runtime_, metricsObj);
+            }
+        });
+    }
+}
+
+// === Fin du namespace ===
 } // namespace react
 } // namespace facebook
 

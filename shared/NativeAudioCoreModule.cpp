@@ -18,10 +18,6 @@
 #include <map>
 #include <sstream>
 
-// === Instance pour les composants avancés ===
-static AudioFX::DbLookupTable& g_dbLookupTable = AudioFX::DbLookupTable::getInstance();
-static std::unordered_map<std::string, AudioFX::EQPreset> g_presetCache;
-
 // === Algorithmes branch-free ===
 using namespace AudioFX::BranchFree;
 
@@ -928,8 +924,8 @@ jsi::Value NativeAudioCoreModule::equalizerLoadPreset(jsi::Runtime& rt, const js
             presetObj = AudioFX::EQPresetFactory::createLoudnessPreset();
         } else {
             // Vérifier le cache des presets personnalisés
-            auto it = g_presetCache.find(preset);
-            if (it != g_presetCache.end()) {
+            auto it = m_presetCache.find(preset);
+            if (it != m_presetCache.end()) {
                 presetObj = it->second;
             } else {
                 return jsi::Value(false); // Preset non trouvé
@@ -960,7 +956,7 @@ jsi::Value NativeAudioCoreModule::equalizerSavePreset(jsi::Runtime& rt, const js
         m_equalizer->savePreset(presetObj);
 
         // Mettre en cache
-        g_presetCache[preset] = presetObj;
+        m_presetCache[preset] = presetObj;
         return jsi::Value(true);
     } catch (...) {
         return jsi::Value(false);
@@ -1194,14 +1190,14 @@ jsi::Value NativeAudioCoreModule::filterReset(jsi::Runtime& rt, int64_t filterId
 // Conversion dB/linéaire avec DbLookupTable pour de meilleures performances
 jsi::Value NativeAudioCoreModule::dbToLinear(jsi::Runtime& rt, double db) {
     // Utiliser la table de conversion optimisée avec algorithmes branch-free
-    float result = g_dbLookupTable.dbToLinear(static_cast<float>(db));
+    float result = AudioFX::DbLookupTable::getInstance().dbToLinear(static_cast<float>(db));
     result = AudioFX::BranchFree::abs(result);
     return jsi::Value(static_cast<double>(result));
 }
 
 jsi::Value NativeAudioCoreModule::linearToDb(jsi::Runtime& rt, double linear) {
     // Utiliser la table de conversion optimisée avec algorithmes branch-free
-    float result = g_dbLookupTable.linearToDb(static_cast<float>(linear));
+    float result = AudioFX::DbLookupTable::getInstance().linearToDb(static_cast<float>(linear));
     result = AudioFX::BranchFree::max(result, -120.0f); // Limite inférieure pour éviter -inf
     return jsi::Value(static_cast<double>(result));
 }
@@ -1571,7 +1567,7 @@ jsi::Value NativeAudioCoreModule::getAvailablePresets(jsi::Runtime& rt) {
 
         // Ajouter les presets personnalisés
         size_t customIndex = 10;
-        for (const auto& [name, preset] : g_presetCache) {
+        for (const auto& [name, preset] : m_presetCache) {
             if (customIndex < presetArray.length(rt)) {
                 presetArray.setValueAtIndex(rt, customIndex, jsi::String::createFromUtf8(rt, name));
                 customIndex++;

@@ -3,24 +3,28 @@
 
 #ifdef NYTH_AUDIO_SPECTRUM_ENABLED
 
+#include <thread>
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include "Audio/fft/FFTEngine.hpp"
+
 // TurboModule includes for React Native
 #if defined(__has_include) && __has_include(<ReactCommon/TurboModule.h>)
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
 #include <jsi/jsi.h>
+#else
+#pragma message("TurboModule headers not found, compiling without TurboModule support")
 #endif
 
-#include "Audio/fft/FFTEngine.hpp"
-#include <algorithm>
-#include <atomic>
-#include <chrono>
-#include <cmath>
-#include <memory>
+// Math constants
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 namespace facebook {
 namespace react {
-
-namespace {
 
 // Constantes pour l'analyse spectrale
 namespace SpectrumConstants {
@@ -34,432 +38,420 @@ constexpr bool DEFAULT_USE_WINDOWING = true;
 constexpr bool DEFAULT_USE_SIMD = true;
 } // namespace SpectrumConstants
 
-// Classe d'analyse spectrale interne
-class SpectrumAnalyzer {
-public:
-    SpectrumAnalyzer() = default;
-    ~SpectrumAnalyzer() = default;
+NativeAudioSpectrumModule::NativeAudioSpectrumModule(std::shared_ptr<CallInvoker> jsInvoker)
+    : NativeAudioSpectrumModuleCxxSpec(std::move(jsInvoker)) {
+    currentConfig_.fftSize = SpectrumConstants::DEFAULT_FFT_SIZE;
+    currentConfig_.numBands = SpectrumConstants::DEFAULT_NUM_BANDS;
+    currentConfig_.minFreq = SpectrumConstants::DEFAULT_MIN_FREQ;
+    currentConfig_.maxFreq = SpectrumConstants::DEFAULT_MAX_FREQ;
+    currentConfig_.sampleRate = 48000; // Default sample rate
+    currentConfig_.useWindowing = SpectrumConstants::DEFAULT_USE_WINDOWING;
+    currentConfig_.useSIMD = SpectrumConstants::DEFAULT_USE_SIMD;
+}
 
-    bool initialize(const NythSpectrumConfig* config) {
-        if (!config)
-            return false;
-
-        config_ = *config;
-
-        // Validation de la configuration
-        if (!validateConfig())
-            return false;
-
-        // Initialisation du moteur FFT
-        try {
-            fftEngine_ = AudioFX::createFFTEngine(config_.fftSize);
-        } catch (const std::exception& e) {
-            return false;
-        }
-
-        // Préparation des buffers
-        windowBuffer_.resize(config_.fftSize);
-        fftRealBuffer_.resize(config_.fftSize);
-        fftImagBuffer_.resize(config_.fftSize);
-
-        // Calcul des fréquences des bandes
-        calculateFrequencyBands();
-
-        // Création de la fenêtre
-        if (config_.useWindowing) {
-            createHannWindow();
-        }
-
-        initialized_ = true;
-        return true;
-    }
-
-    void release() {
+NativeAudioSpectrumModule::~NativeAudioSpectrumModule() {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    if (fftEngine_) {
         fftEngine_.reset();
-        windowBuffer_.clear();
-        fftRealBuffer_.clear();
-        fftImagBuffer_.clear();
-        frequencyBands_.clear();
-        config_ = NythSpectrumConfig{};
-        initialized_ = false;
     }
+}
 
-    bool processAudioBuffer(const float* audioBuffer, size_t numSamples) {
-        if (!initialized_ || !audioBuffer || numSamples == 0)
-            return false;
+// === Méthodes TurboModule ===
 
-        // Copie des données audio
-        std::vector<float> audioData(audioBuffer, audioBuffer + numSamples);
-
-        // Application de la fenêtre si activée
-        if (config_.useWindowing) {
-            applyWindowing(audioData);
+jsi::Value NativeAudioSpectrumModule::initialize(jsi::Runtime& rt, const jsi::Object& config) {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    
+    try {
+        // Parse configuration
+        if (config.hasProperty(rt, "fftSize")) {
+            currentConfig_.fftSize = static_cast<size_t>(config.getProperty(rt, "fftSize").asNumber());
         }
-
-        // Remplissage avec des zéros si nécessaire
-        audioData.resize(config_.fftSize, 0.0f);
-
-        // FFT
-        try {
-            fftEngine_->forwardR2C(audioData.data(), fftRealBuffer_, fftImagBuffer_);
-        } catch (const std::exception& e) {
-            return false;
+        if (config.hasProperty(rt, "numBands")) {
+            currentConfig_.numBands = static_cast<size_t>(config.getProperty(rt, "numBands").asNumber());
         }
-
-        // Calcul des magnitudes
-        magnitudes_.resize(config_.numBands);
-        for (size_t i = 0; i < config_.numBands; ++i) {
-            size_t fftIndex = i * (config_.fftSize / 2) / config_.numBands;
-            if (fftIndex < fftRealBuffer_.size()) {
-                float real = fftRealBuffer_[fftIndex];
-                float imag = fftImagBuffer_[fftIndex];
-                magnitudes_[i] = calculateMagnitude(real, imag);
-            } else {
-                magnitudes_[i] = 0.0f;
+        if (config.hasProperty(rt, "minFreq")) {
+            currentConfig_.minFreq = config.getProperty(rt, "minFreq").asNumber();
+        }
+        if (config.hasProperty(rt, "maxFreq")) {
+            currentConfig_.maxFreq = config.getProperty(rt, "maxFreq").asNumber();
+        }
+        if (config.hasProperty(rt, "sampleRate")) {
+            currentConfig_.sampleRate = static_cast<uint32_t>(config.getProperty(rt, "sampleRate").asNumber());
+        }
+        if (config.hasProperty(rt, "useWindowing")) {
+            currentConfig_.useWindowing = config.getProperty(rt, "useWindowing").asBool();
+        }
+        if (config.hasProperty(rt, "useSIMD")) {
+            currentConfig_.useSIMD = config.getProperty(rt, "useSIMD").asBool();
+        }
+        
+        // Validate configuration
+        if (!validateConfigInternal()) {
+            return jsi::Value(false);
+        }
+        
+        // Initialize FFT engine
+        if (currentConfig_.useSIMD) {
+            fftEngine_ = std::make_unique<AudioFX::FFTEngineOptimized>(currentConfig_.fftSize);
+        } else {
+            fftEngine_ = std::make_unique<AudioFX::FFTEngine>(currentConfig_.fftSize);
+        }
+        
+        // Initialize buffers
+        audioBuffer_.resize(currentConfig_.fftSize);
+        windowBuffer_.resize(currentConfig_.fftSize);
+        fftRealBuffer_.resize(currentConfig_.fftSize);
+        fftImagBuffer_.resize(currentConfig_.fftSize);
+        currentMagnitudes_.resize(currentConfig_.numBands);
+        frequencyBands_.resize(currentConfig_.numBands);
+        
+        // Calculate frequency bands
+        calculateFrequencyBands();
+        
+        // Create window function
+        if (currentConfig_.useWindowing) {
+            for (size_t i = 0; i < currentConfig_.fftSize; ++i) {
+                double phase = 2.0 * M_PI * static_cast<double>(i) / static_cast<double>(currentConfig_.fftSize - 1);
+                windowBuffer_[i] = static_cast<float>(0.5 * (1.0 - std::cos(phase)));
             }
         }
-
-        return true;
+        
+        currentState_ = 1; // Initialized
+        return jsi::Value(true);
+        
+    } catch (const std::exception& e) {
+        handleError(1, std::string("Initialization failed: ") + e.what());
+        return jsi::Value(false);
     }
+}
 
-    const std::vector<float>& getMagnitudes() const {
-        return magnitudes_;
+jsi::Value NativeAudioSpectrumModule::isInitialized(jsi::Runtime& rt) {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    return jsi::Value(currentState_ > 0);
+}
+
+jsi::Value NativeAudioSpectrumModule::release(jsi::Runtime& rt) {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    
+    fftEngine_.reset();
+    audioBuffer_.clear();
+    windowBuffer_.clear();
+    fftRealBuffer_.clear();
+    fftImagBuffer_.clear();
+    currentMagnitudes_.clear();
+    frequencyBands_.clear();
+    
+    currentState_ = 0; // Uninitialized
+    return jsi::Value::undefined();
+}
+
+jsi::Value NativeAudioSpectrumModule::getState(jsi::Runtime& rt) {
+    return jsi::Value(currentState_.load());
+}
+
+jsi::Value NativeAudioSpectrumModule::getErrorString(jsi::Runtime& rt, int errorCode) {
+    const char* errorStr = "";
+    switch (errorCode) {
+        case 0: errorStr = "No error"; break;
+        case 1: errorStr = "Not initialized"; break;
+        case 2: errorStr = "Already analyzing"; break;
+        case 3: errorStr = "Already stopped"; break;
+        case 4: errorStr = "FFT failed"; break;
+        case 5: errorStr = "Invalid buffer"; break;
+        case 6: errorStr = "Memory error"; break;
+        case 7: errorStr = "Thread error"; break;
+        default: errorStr = "Unknown error"; break;
     }
-    const std::vector<float>& getFrequencyBands() const {
-        return frequencyBands_;
+    return jsi::String::createFromUtf8(rt, errorStr);
+}
+
+jsi::Value NativeAudioSpectrumModule::setConfig(jsi::Runtime& rt, const jsi::Object& config) {
+    return initialize(rt, config);
+}
+
+jsi::Value NativeAudioSpectrumModule::getConfig(jsi::Runtime& rt) {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    
+    auto config = jsi::Object(rt);
+    config.setProperty(rt, "fftSize", jsi::Value(static_cast<double>(currentConfig_.fftSize)));
+    config.setProperty(rt, "numBands", jsi::Value(static_cast<double>(currentConfig_.numBands)));
+    config.setProperty(rt, "minFreq", jsi::Value(currentConfig_.minFreq));
+    config.setProperty(rt, "maxFreq", jsi::Value(currentConfig_.maxFreq));
+    config.setProperty(rt, "sampleRate", jsi::Value(static_cast<double>(currentConfig_.sampleRate)));
+    config.setProperty(rt, "useWindowing", jsi::Value(currentConfig_.useWindowing));
+    config.setProperty(rt, "useSIMD", jsi::Value(currentConfig_.useSIMD));
+    
+    return config;
+}
+
+jsi::Value NativeAudioSpectrumModule::startAnalysis(jsi::Runtime& rt) {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    
+    if (currentState_ != 1) {
+        return jsi::Value(false);
     }
-    bool isInitialized() const {
-        return initialized_;
+    
+    currentState_ = 2; // Analyzing
+    handleStateChange(1, 2);
+    return jsi::Value(true);
+}
+
+jsi::Value NativeAudioSpectrumModule::stopAnalysis(jsi::Runtime& rt) {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    
+    if (currentState_ != 2) {
+        return jsi::Value(false);
     }
+    
+    currentState_ = 1; // Initialized
+    handleStateChange(2, 1);
+    return jsi::Value(true);
+}
 
-private:
-    NythSpectrumConfig config_;
-    bool initialized_ = false;
+jsi::Value NativeAudioSpectrumModule::isAnalyzing(jsi::Runtime& rt) {
+    return jsi::Value(currentState_ == 2);
+}
 
-    std::unique_ptr<AudioFX::IFFTEngine> fftEngine_;
-    std::vector<float> windowBuffer_;
-    std::vector<float> fftRealBuffer_;
-    std::vector<float> fftImagBuffer_;
-    std::vector<float> frequencyBands_;
-    std::vector<float> magnitudes_;
-
-    bool validateConfig() const {
-        if (config_.fftSize < SpectrumConstants::MIN_FFT_SIZE || config_.fftSize > SpectrumConstants::MAX_FFT_SIZE) {
-            return false;
+jsi::Value NativeAudioSpectrumModule::processAudioBuffer(jsi::Runtime& rt, const jsi::Array& audioBuffer) {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    
+    if (currentState_ != 2 || !fftEngine_) {
+        return jsi::Value(false);
+    }
+    
+    try {
+        // Convert JS array to float vector
+        auto buffer = arrayToFloatVector(rt, audioBuffer);
+        
+        // Process FFT
+        if (!processFFT(buffer.data(), buffer.size())) {
+            return jsi::Value(false);
         }
-        if (config_.numBands == 0 || config_.numBands > config_.fftSize / 2) {
-            return false;
-        }
-        if (config_.sampleRate == 0) {
-            return false;
-        }
-        return true;
+        
+        // Update timestamp
+        lastTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()
+        ).count() / 1000.0;
+        
+        // Notify data callback if set
+        handleSpectrumData(currentMagnitudes_);
+        
+        return jsi::Value(true);
+        
+    } catch (const std::exception& e) {
+        handleError(4, std::string("FFT processing failed: ") + e.what());
+        return jsi::Value(false);
     }
+}
 
-    void calculateFrequencyBands() {
-        frequencyBands_.resize(config_.numBands);
+jsi::Value NativeAudioSpectrumModule::processAudioBufferStereo(jsi::Runtime& rt, 
+                                                               const jsi::Array& audioBufferL,
+                                                               const jsi::Array& audioBufferR) {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    
+    if (currentState_ != 2 || !fftEngine_) {
+        return jsi::Value(false);
+    }
+    
+    try {
+        // Convert JS arrays to float vectors
+        auto bufferL = arrayToFloatVector(rt, audioBufferL);
+        auto bufferR = arrayToFloatVector(rt, audioBufferR);
+        
+        // Mix to mono
+        std::vector<float> monoBuffer(std::min(bufferL.size(), bufferR.size()));
+        for (size_t i = 0; i < monoBuffer.size(); ++i) {
+            monoBuffer[i] = (bufferL[i] + bufferR[i]) * 0.5f;
+        }
+        
+        // Process FFT
+        if (!processFFT(monoBuffer.data(), monoBuffer.size())) {
+            return jsi::Value(false);
+        }
+        
+        // Update timestamp
+        lastTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()
+        ).count() / 1000.0;
+        
+        // Notify data callback if set
+        handleSpectrumData(currentMagnitudes_);
+        
+        return jsi::Value(true);
+        
+    } catch (const std::exception& e) {
+        handleError(4, std::string("FFT processing failed: ") + e.what());
+        return jsi::Value(false);
+    }
+}
 
-        double freqRange = config_.maxFreq - config_.minFreq;
-        for (size_t i = 0; i < config_.numBands; ++i) {
-            double normalizedFreq = static_cast<double>(i) / static_cast<double>(config_.numBands - 1);
-            frequencyBands_[i] = static_cast<float>(config_.minFreq + normalizedFreq * freqRange);
+jsi::Value NativeAudioSpectrumModule::getSpectrumData(jsi::Runtime& rt) {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    
+    auto data = jsi::Object(rt);
+    data.setProperty(rt, "numBands", jsi::Value(static_cast<double>(currentConfig_.numBands)));
+    data.setProperty(rt, "timestamp", jsi::Value(lastTimestamp_));
+    
+    // Create magnitudes array
+    auto magnitudes = jsi::Array(rt, currentMagnitudes_.size());
+    for (size_t i = 0; i < currentMagnitudes_.size(); ++i) {
+        magnitudes.setValueAtIndex(rt, i, jsi::Value(currentMagnitudes_[i]));
+    }
+    data.setProperty(rt, "magnitudes", magnitudes);
+    
+    // Create frequencies array
+    auto frequencies = jsi::Array(rt, frequencyBands_.size());
+    for (size_t i = 0; i < frequencyBands_.size(); ++i) {
+        frequencies.setValueAtIndex(rt, i, jsi::Value(frequencyBands_[i]));
+    }
+    data.setProperty(rt, "frequencies", frequencies);
+    
+    return data;
+}
+
+jsi::Value NativeAudioSpectrumModule::calculateFFTSize(jsi::Runtime& rt, size_t desiredSize) {
+    size_t fftSize = SpectrumConstants::MIN_FFT_SIZE;
+    while (fftSize < desiredSize && fftSize < SpectrumConstants::MAX_FFT_SIZE) {
+        fftSize *= 2;
+    }
+    return jsi::Value(static_cast<double>(fftSize));
+}
+
+jsi::Value NativeAudioSpectrumModule::validateConfig(jsi::Runtime& rt, const jsi::Object& config) {
+    try {
+        size_t fftSize = static_cast<size_t>(config.getProperty(rt, "fftSize").asNumber());
+        size_t numBands = static_cast<size_t>(config.getProperty(rt, "numBands").asNumber());
+        double minFreq = config.getProperty(rt, "minFreq").asNumber();
+        double maxFreq = config.getProperty(rt, "maxFreq").asNumber();
+        uint32_t sampleRate = static_cast<uint32_t>(config.getProperty(rt, "sampleRate").asNumber());
+        
+        bool valid = fftSize >= SpectrumConstants::MIN_FFT_SIZE &&
+                    fftSize <= SpectrumConstants::MAX_FFT_SIZE &&
+                    numBands > 0 && numBands <= fftSize / 2 &&
+                    minFreq < maxFreq &&
+                    sampleRate > 0;
+                    
+        return jsi::Value(valid);
+    } catch (...) {
+        return jsi::Value(false);
+    }
+}
+
+jsi::Value NativeAudioSpectrumModule::setDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    jsCallbacks_.dataCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
+    return jsi::Value::undefined();
+}
+
+jsi::Value NativeAudioSpectrumModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
+    return jsi::Value::undefined();
+}
+
+jsi::Value NativeAudioSpectrumModule::setStateCallback(jsi::Runtime& rt, const jsi::Function& callback) {
+    std::lock_guard<std::mutex> lock(spectrumMutex_);
+    jsCallbacks_.stateCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
+    return jsi::Value::undefined();
+}
+
+// === Private methods ===
+
+bool NativeAudioSpectrumModule::validateConfigInternal() const {
+    return currentConfig_.fftSize >= SpectrumConstants::MIN_FFT_SIZE &&
+           currentConfig_.fftSize <= SpectrumConstants::MAX_FFT_SIZE &&
+           currentConfig_.numBands > 0 &&
+           currentConfig_.numBands <= currentConfig_.fftSize / 2 &&
+           currentConfig_.minFreq < currentConfig_.maxFreq &&
+           currentConfig_.sampleRate > 0;
+}
+
+void NativeAudioSpectrumModule::handleError(int error, const std::string& message) {
+    // Les callbacks JSI doivent être invoqués dans le contexte approprié
+    // Pour l'instant, on log simplement l'erreur
+    // TODO: Implémenter la gestion appropriée des callbacks JSI
+}
+
+void NativeAudioSpectrumModule::handleStateChange(int oldState, int newState) {
+    // Les callbacks JSI doivent être invoqués dans le contexte approprié
+    // TODO: Implémenter la gestion appropriée des callbacks JSI
+}
+
+void NativeAudioSpectrumModule::handleSpectrumData(const std::vector<float>& magnitudes) {
+    // Les callbacks JSI doivent être invoqués dans le contexte approprié
+    // TODO: Implémenter la gestion appropriée des callbacks JSI
+}
+
+std::vector<float> NativeAudioSpectrumModule::arrayToFloatVector(jsi::Runtime& rt, const jsi::Array& array) const {
+    size_t length = array.length(rt);
+    std::vector<float> result(length);
+    for (size_t i = 0; i < length; ++i) {
+        result[i] = static_cast<float>(array.getValueAtIndex(rt, i).asNumber());
+    }
+    return result;
+}
+
+bool NativeAudioSpectrumModule::processFFT(const float* audioData, size_t numSamples) {
+    if (!fftEngine_ || numSamples == 0) {
+        return false;
+    }
+    
+    // Copy and pad/truncate to FFT size
+    std::copy_n(audioData, std::min(numSamples, currentConfig_.fftSize), audioBuffer_.begin());
+    if (numSamples < currentConfig_.fftSize) {
+        std::fill(audioBuffer_.begin() + numSamples, audioBuffer_.end(), 0.0f);
+    }
+    
+    // Apply windowing if enabled
+    if (currentConfig_.useWindowing) {
+        applyWindowing(audioBuffer_);
+    }
+    
+    // Perform FFT
+    fftEngine_->forwardR2C(audioBuffer_.data(), fftRealBuffer_, fftImagBuffer_);
+    
+    // Calculate magnitudes for each band
+    calculateFrequencyBands();
+    
+    return true;
+}
+
+void NativeAudioSpectrumModule::applyWindowing(std::vector<float>& buffer) {
+    for (size_t i = 0; i < buffer.size() && i < windowBuffer_.size(); ++i) {
+        buffer[i] *= windowBuffer_[i];
+    }
+}
+
+void NativeAudioSpectrumModule::calculateFrequencyBands() {
+    // Calculate frequency resolution
+    double freqResolution = static_cast<double>(currentConfig_.sampleRate) / currentConfig_.fftSize;
+    
+    // Calculate frequency bands
+    double freqRange = currentConfig_.maxFreq - currentConfig_.minFreq;
+    for (size_t i = 0; i < currentConfig_.numBands; ++i) {
+        double normalizedFreq = static_cast<double>(i) / static_cast<double>(currentConfig_.numBands - 1);
+        frequencyBands_[i] = static_cast<float>(currentConfig_.minFreq + normalizedFreq * freqRange);
+        
+        // Find corresponding FFT bin
+        size_t fftBin = static_cast<size_t>(frequencyBands_[i] / freqResolution);
+        if (fftBin < fftRealBuffer_.size()) {
+            currentMagnitudes_[i] = calculateMagnitude(fftRealBuffer_[fftBin], fftImagBuffer_[fftBin]);
+        } else {
+            currentMagnitudes_[i] = 0.0f;
         }
     }
+}
 
-    void createHannWindow() {
-        for (size_t i = 0; i < config_.fftSize; ++i) {
-            double phase = 2.0 * M_PI * static_cast<double>(i) / static_cast<double>(config_.fftSize - 1);
-            windowBuffer_[i] = static_cast<float>(0.5 * (1.0 - std::cos(phase)));
-        }
-    }
+float NativeAudioSpectrumModule::calculateMagnitude(float real, float imag) {
+    return std::sqrt(real * real + imag * imag);
+}
 
-    void applyWindowing(std::vector<float>& buffer) {
-        if (buffer.size() > windowBuffer_.size()) {
-            buffer.resize(windowBuffer_.size());
-        }
-
-        for (size_t i = 0; i < buffer.size(); ++i) {
-            buffer[i] *= windowBuffer_[i];
-        }
-    }
-
-    float calculateMagnitude(float real, float imag) {
-        return std::sqrt(real * real + imag * imag);
-    }
-};
-
-} // namespace
+// === Module provider ===
+std::shared_ptr<TurboModule> NativeAudioSpectrumModuleProvider(std::shared_ptr<CallInvoker> jsInvoker) {
+    return std::make_shared<NativeAudioSpectrumModule>(jsInvoker);
+}
 
 } // namespace react
 } // namespace facebook
-
-// Instance globale de l'analyseur
-static facebook::react::SpectrumAnalyzer g_spectrumAnalyzer;
-static std::atomic<NythSpectrumState> g_currentState{SPECTRUM_STATE_UNINITIALIZED};
-static NythSpectrumConfig g_currentConfig;
-
-// Callbacks globaux
-static NythSpectrumDataCallback g_dataCallback = nullptr;
-static NythSpectrumErrorCallback g_errorCallback = nullptr;
-static NythSpectrumStateCallback g_stateCallback = nullptr;
-
-// === Implémentation de l'API C ===
-
-extern "C" {
-
-bool NythSpectrum_Initialize(const NythSpectrumConfig* config) {
-    if (!config)
-        return false;
-
-    if (g_currentState.load() != SPECTRUM_STATE_UNINITIALIZED) {
-        return false;
-    }
-
-    g_currentConfig = *config;
-
-    // Configuration par défaut
-    if (g_currentConfig.fftSize == 0) {
-        g_currentConfig.fftSize = 1024; // DEFAULT_FFT_SIZE
-    }
-    if (g_currentConfig.numBands == 0) {
-        g_currentConfig.numBands = 32; // DEFAULT_NUM_BANDS
-    }
-    if (g_currentConfig.minFreq <= 0.0) {
-        g_currentConfig.minFreq = 20.0; // DEFAULT_MIN_FREQ
-    }
-    if (g_currentConfig.maxFreq <= 0.0) {
-        g_currentConfig.maxFreq = 20000.0; // DEFAULT_MAX_FREQ
-    }
-
-    bool success = g_spectrumAnalyzer.initialize(&g_currentConfig);
-    if (success) {
-        g_currentState.store(SPECTRUM_STATE_INITIALIZED);
-        if (g_stateCallback) {
-            g_stateCallback(SPECTRUM_STATE_UNINITIALIZED, SPECTRUM_STATE_INITIALIZED);
-        }
-    } else {
-        g_currentState.store(SPECTRUM_STATE_ERROR);
-        if (g_errorCallback) {
-            g_errorCallback(SPECTRUM_ERROR_FFT_FAILED, "Failed to initialize FFT engine");
-        }
-    }
-
-    return success;
-}
-
-bool NythSpectrum_IsInitialized(void) {
-    return g_spectrumAnalyzer.isInitialized();
-}
-
-void NythSpectrum_Release(void) {
-    NythSpectrumState oldState = g_currentState.load();
-    g_spectrumAnalyzer.release();
-    g_currentState.store(SPECTRUM_STATE_UNINITIALIZED);
-
-    if (g_stateCallback) {
-        g_stateCallback(oldState, SPECTRUM_STATE_UNINITIALIZED);
-    }
-}
-
-NythSpectrumState NythSpectrum_GetState(void) {
-    return g_currentState.load();
-}
-
-const char* NythSpectrum_GetErrorString(NythSpectrumError error) {
-    switch (error) {
-        case SPECTRUM_ERROR_OK:
-            return "No error";
-        case SPECTRUM_ERROR_NOT_INITIALIZED:
-            return "Module not initialized";
-        case SPECTRUM_ERROR_ALREADY_ANALYZING:
-            return "Already analyzing";
-        case SPECTRUM_ERROR_ALREADY_STOPPED:
-            return "Already stopped";
-        case SPECTRUM_ERROR_FFT_FAILED:
-            return "FFT processing failed";
-        case SPECTRUM_ERROR_INVALID_BUFFER:
-            return "Invalid audio buffer";
-        case SPECTRUM_ERROR_MEMORY_ERROR:
-            return "Memory allocation failed";
-        case SPECTRUM_ERROR_THREAD_ERROR:
-            return "Thread operation failed";
-        default:
-            return "Unknown error";
-    }
-}
-
-bool NythSpectrum_SetConfig(const NythSpectrumConfig* config) {
-    if (!config)
-        return false;
-
-    g_currentConfig = *config;
-    return g_spectrumAnalyzer.initialize(&g_currentConfig);
-}
-
-void NythSpectrum_GetConfig(NythSpectrumConfig* config) {
-    if (config) {
-        *config = g_currentConfig;
-    }
-}
-
-bool NythSpectrum_StartAnalysis(void) {
-    if (g_currentState.load() != SPECTRUM_STATE_INITIALIZED) {
-        return false;
-    }
-
-    g_currentState.store(SPECTRUM_STATE_ANALYZING);
-    if (g_stateCallback) {
-        g_stateCallback(SPECTRUM_STATE_INITIALIZED, SPECTRUM_STATE_ANALYZING);
-    }
-    return true;
-}
-
-bool NythSpectrum_StopAnalysis(void) {
-    if (g_currentState.load() != SPECTRUM_STATE_ANALYZING) {
-        return false;
-    }
-
-    g_currentState.store(SPECTRUM_STATE_INITIALIZED);
-    if (g_stateCallback) {
-        g_stateCallback(SPECTRUM_STATE_ANALYZING, SPECTRUM_STATE_INITIALIZED);
-    }
-    return true;
-}
-
-bool NythSpectrum_IsAnalyzing(void) {
-    return g_currentState.load() == SPECTRUM_STATE_ANALYZING;
-}
-
-bool NythSpectrum_ProcessAudioBuffer(const float* audioBuffer, size_t numSamples) {
-    if (g_currentState.load() != SPECTRUM_STATE_ANALYZING) {
-        return false;
-    }
-
-    if (!g_spectrumAnalyzer.processAudioBuffer(audioBuffer, numSamples)) {
-        if (g_errorCallback) {
-            g_errorCallback(SPECTRUM_ERROR_FFT_FAILED, "Failed to process audio buffer");
-        }
-        return false;
-    }
-
-    // Notification des données si callback défini
-    if (g_dataCallback) {
-        NythSpectrumData data;
-        data.numBands = g_currentConfig.numBands;
-        data.timestamp = static_cast<double>(
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-                .count());
-
-        // Allocation temporaire pour les données
-        std::vector<float> magnitudes = g_spectrumAnalyzer.getMagnitudes();
-        std::vector<float> frequencies = g_spectrumAnalyzer.getFrequencyBands();
-
-        data.magnitudes = magnitudes.data();
-        data.frequencies = frequencies.data();
-
-        g_dataCallback(&data);
-    }
-
-    return true;
-}
-
-bool NythSpectrum_ProcessAudioBufferStereo(const float* audioBufferL, const float* audioBufferR, size_t numSamples) {
-    // Traitement mono simple - moyenne des canaux
-    std::vector<float> monoBuffer(numSamples);
-    for (size_t i = 0; i < numSamples; ++i) {
-        monoBuffer[i] = (audioBufferL[i] + audioBufferR[i]) * 0.5f;
-    }
-
-    return NythSpectrum_ProcessAudioBuffer(monoBuffer.data(), numSamples);
-}
-
-bool NythSpectrum_GetSpectrumData(NythSpectrumData* data) {
-    if (!data)
-        return false;
-
-    data->numBands = g_currentConfig.numBands;
-    data->timestamp = static_cast<double>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-            .count());
-
-    // Copie des données
-    const auto& magnitudes = g_spectrumAnalyzer.getMagnitudes();
-    const auto& frequencies = g_spectrumAnalyzer.getFrequencyBands();
-
-    // Allocation des tableaux (l'appelant doit les libérer)
-    data->magnitudes = new float[magnitudes.size()];
-    data->frequencies = new float[frequencies.size()];
-
-    std::copy(magnitudes.begin(), magnitudes.end(), data->magnitudes);
-    std::copy(frequencies.begin(), frequencies.end(), data->frequencies);
-
-    return true;
-}
-
-void NythSpectrum_ReleaseSpectrumData(NythSpectrumData* data) {
-    if (data) {
-        delete[] data->magnitudes;
-        delete[] data->frequencies;
-        data->magnitudes = nullptr;
-        data->frequencies = nullptr;
-    }
-}
-
-void NythSpectrum_SetDataCallback(NythSpectrumDataCallback callback) {
-    g_dataCallback = callback;
-}
-
-void NythSpectrum_SetErrorCallback(NythSpectrumErrorCallback callback) {
-    g_errorCallback = callback;
-}
-
-void NythSpectrum_SetStateCallback(NythSpectrumStateCallback callback) {
-    g_stateCallback = callback;
-}
-
-size_t NythSpectrum_CalculateFFTSize(size_t desiredSize) {
-    const size_t MIN_FFT_SIZE = 64;
-    const size_t MAX_FFT_SIZE = 8192;
-
-    if (desiredSize < MIN_FFT_SIZE) {
-        return MIN_FFT_SIZE;
-    }
-    if (desiredSize > MAX_FFT_SIZE) {
-        return MAX_FFT_SIZE;
-    }
-
-    // Trouver la puissance de 2 la plus proche
-    size_t power = MIN_FFT_SIZE;
-    while (power < desiredSize && power < MAX_FFT_SIZE) {
-        power *= 2;
-    }
-
-    return power;
-}
-
-bool NythSpectrum_ValidateConfig(const NythSpectrumConfig* config) {
-    const size_t MIN_FFT_SIZE = 64;
-    const size_t MAX_FFT_SIZE = 8192;
-
-    if (!config)
-        return false;
-    if (config->fftSize < MIN_FFT_SIZE)
-        return false;
-    if (config->fftSize > MAX_FFT_SIZE)
-        return false;
-    if (config->numBands == 0)
-        return false;
-    if (config->sampleRate == 0)
-        return false;
-    if (config->minFreq >= config->maxFreq)
-        return false;
-    return true;
-}
-
-} // extern "C"
-
-// === Note: TurboModule implementation removed for compilation simplicity ===
-// The C API functions above provide the core functionality
-// TODO: Re-implement TurboModule bindings when React Native setup is available
 
 #endif // NYTH_AUDIO_SPECTRUM_ENABLED

@@ -35,10 +35,9 @@
 namespace facebook {
 namespace react {
 
-class JSI_EXPORT NativeAudioSpectrumModule : public TurboModule {
+class JSI_EXPORT NativeAudioSpectrumModule : public NativeAudioSpectrumModuleCxxSpec<NativeAudioSpectrumModule> {
 public:
-    explicit NativeAudioSpectrumModule(std::shared_ptr<CallInvoker> jsInvoker)
-        : TurboModule("NativeAudioSpectrumModule", jsInvoker) {}
+    explicit NativeAudioSpectrumModule(std::shared_ptr<CallInvoker> jsInvoker);
     ~NativeAudioSpectrumModule() override;
 
     // === Méthodes TurboModule ===
@@ -86,12 +85,18 @@ public:
 
 private:
     // Configuration actuelle
-    jsi::Object config_;
+    NythSpectrumConfig currentConfig_;
     std::atomic<int> currentState_{0}; // 0 = uninitialized
 
     // Mutex pour la thread safety
     mutable std::mutex spectrumMutex_;
     mutable std::mutex callbackMutex_;
+    
+    // FFT engine
+    std::unique_ptr<AudioFX::IFFTEngine> fftEngine_;
+    
+    // Runtime reference
+    jsi::Runtime* runtime_ = nullptr;
 
     // Callbacks JavaScript
     struct {
