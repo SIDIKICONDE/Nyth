@@ -17,6 +17,12 @@ static std::mutex g_globalMutex;
 static uint32_t g_currentSampleRate = 44100;
 static int g_currentChannels = 2;
 
+// Instance statique pour les callbacks
+namespace {
+    facebook::react::NativeAudioEffectsModule* g_moduleInstance = nullptr;
+    std::mutex g_instanceMutex;
+}
+
 // === Implémentation de l'API C ===
 extern "C" {
 
@@ -429,11 +435,28 @@ namespace facebook {
 namespace react {
 
 NativeAudioEffectsModule::~NativeAudioEffectsModule() {
+    // Nettoyer l'instance globale
+    {
+        std::lock_guard<std::mutex> instanceLock(g_instanceMutex);
+        if (g_moduleInstance == this) {
+            g_moduleInstance = nullptr;
+        }
+    }
+    
+    // Nettoyer les ressources
     std::lock_guard<std::mutex> lock(effectsMutex_);
     if (effectChain_) {
         effectChain_.reset();
     }
     activeEffects_.clear();
+    
+    // Nettoyer les callbacks
+    {
+        std::lock_guard<std::mutex> callbackLock(callbackMutex_);
+        jsCallbacks_.audioDataCallback = {};
+        jsCallbacks_.errorCallback = {};
+        jsCallbacks_.stateChangeCallback = {};
+    }
 }
 
 // === Méthodes privées ===
@@ -464,18 +487,100 @@ std::string NativeAudioEffectsModule::effectTypeToString(NythEffectType type) co
 
 void NativeAudioEffectsModule::handleAudioData(const float* input, float* output,
                                              size_t frameCount, int channels) {
-    // Callback pour les données audio traitées
+    std::lock_guard<std::mutex> lock(callbackMutex_);
+    
+    // Traiter les données audio avec la chaîne d'effets
+    if (effectChain_ && currentState_ == EFFECTS_STATE_PROCESSING) {
+        // Appliquer les effets
+        if (channels == 1) {
+            // Traitement mono
+            std::vector<float> inputVec(input, input + frameCount);
+            std::vector<float> outputVec(frameCount);
+            effectChain_->processMono(inputVec, outputVec);
+            std::copy(outputVec.begin(), outputVec.end(), output);
+        } else if (channels == 2) {
+            // Traitement stéréo - données entrelacées
+            size_t samplesPerChannel = frameCount / 2;
+            std::vector<float> inputL(samplesPerChannel);
+            std::vector<float> inputR(samplesPerChannel);
+            std::vector<float> outputL(samplesPerChannel);
+            std::vector<float> outputR(samplesPerChannel);
+            
+            // Désentrelacer les canaux
+            for (size_t i = 0; i < samplesPerChannel; ++i) {
+                inputL[i] = input[i * 2];
+                inputR[i] = input[i * 2 + 1];
+            }
+            
+            // Traiter
+            effectChain_->processStereo(inputL, inputR, outputL, outputR);
+            
+            // Réentrelacer les canaux
+            for (size_t i = 0; i < samplesPerChannel; ++i) {
+                output[i * 2] = outputL[i];
+                output[i * 2 + 1] = outputR[i];
+            }
+        }
+    } else {
+        // Passthrough si pas de traitement
+        if (output != input) {
+            std::copy(input, input + frameCount * channels, output);
+        }
+    }
+    
+    // Appeler le callback JavaScript si défini
+    if (jsCallbacks_.audioDataCallback.function && jsCallbacks_.audioDataCallback.runtime && jsInvoker_) {
+        auto callback = jsCallbacks_.audioDataCallback.function;
+        auto runtime = jsCallbacks_.audioDataCallback.runtime;
+        
+        // Créer des copies des données pour le callback
+        std::vector<float> inputCopy(input, input + frameCount * channels);
+        std::vector<float> outputCopy(output, output + frameCount * channels);
+        
+        jsInvoker_->invokeAsync([callback, runtime, inputCopy, outputCopy, frameCount, channels]() {
+            try {
+                // Créer les arrays JSI
+                jsi::Array inputArray(*runtime, inputCopy.size());
+                jsi::Array outputArray(*runtime, outputCopy.size());
+                
+                for (size_t i = 0; i < inputCopy.size(); ++i) {
+                    inputArray.setValueAtIndex(*runtime, i, jsi::Value(inputCopy[i]));
+                }
+                for (size_t i = 0; i < outputCopy.size(); ++i) {
+                    outputArray.setValueAtIndex(*runtime, i, jsi::Value(outputCopy[i]));
+                }
+                
+                // Créer l'objet de métadonnées
+                jsi::Object metadata(*runtime);
+                metadata.setProperty(*runtime, "frameCount", jsi::Value(static_cast<double>(frameCount)));
+                metadata.setProperty(*runtime, "channels", jsi::Value(channels));
+                
+                // Appeler le callback avec les données
+                callback->call(*runtime, std::move(inputArray), std::move(outputArray), std::move(metadata));
+            } catch (const jsi::JSError& e) {
+                // Log l'erreur mais ne pas propager
+            }
+        });
+    }
 }
 
 void NativeAudioEffectsModule::handleError(const std::string& error) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    if (jsCallbacks_.errorCallback && jsInvoker_) {
-        // Capturer le callback et l'erreur pour l'exécution asynchrone
-        auto callback = jsCallbacks_.errorCallback;
-        jsInvoker_->invokeAsync([callback, error]() {
-            // Note: Nécessite l'accès au runtime pour l'exécution réelle
-            // Dans une implémentation complète, il faudrait stocker une référence au runtime
-            // ou utiliser une approche différente pour l'invocation
+    if (jsCallbacks_.errorCallback.function && jsCallbacks_.errorCallback.runtime && jsInvoker_) {
+        // Capturer les références nécessaires
+        auto callback = jsCallbacks_.errorCallback.function;
+        auto runtime = jsCallbacks_.errorCallback.runtime;
+        
+        jsInvoker_->invokeAsync([callback, runtime, error]() {
+            try {
+                // Créer l'argument string JSI
+                jsi::String errorStr = jsi::String::createFromUtf8(*runtime, error);
+                // Appeler le callback JavaScript avec l'erreur
+                callback->call(*runtime, errorStr);
+            } catch (const jsi::JSError& e) {
+                // Log l'erreur mais ne pas propager pour éviter un crash
+                // Dans un environnement de production, on pourrait logger ceci
+            }
         });
     }
 }
@@ -483,16 +588,23 @@ void NativeAudioEffectsModule::handleError(const std::string& error) {
 void NativeAudioEffectsModule::handleStateChange(NythEffectsState oldState,
                                                NythEffectsState newState) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    if (jsCallbacks_.stateChangeCallback && jsInvoker_) {
-        // Capturer le callback et les états pour l'exécution asynchrone
-        auto callback = jsCallbacks_.stateChangeCallback;
+    if (jsCallbacks_.stateChangeCallback.function && jsCallbacks_.stateChangeCallback.runtime && jsInvoker_) {
+        // Capturer les références nécessaires
+        auto callback = jsCallbacks_.stateChangeCallback.function;
+        auto runtime = jsCallbacks_.stateChangeCallback.runtime;
         std::string oldStateStr = stateToString(oldState);
         std::string newStateStr = stateToString(newState);
         
-        jsInvoker_->invokeAsync([callback, oldStateStr, newStateStr]() {
-            // Note: Nécessite l'accès au runtime pour l'exécution réelle
-            // Dans une implémentation complète, il faudrait stocker une référence au runtime
-            // ou utiliser une approche différente pour l'invocation
+        jsInvoker_->invokeAsync([callback, runtime, oldStateStr, newStateStr]() {
+            try {
+                // Créer les arguments string JSI
+                jsi::String oldStateJS = jsi::String::createFromUtf8(*runtime, oldStateStr);
+                jsi::String newStateJS = jsi::String::createFromUtf8(*runtime, newStateStr);
+                // Appeler le callback JavaScript avec les états
+                callback->call(*runtime, oldStateJS, newStateJS);
+            } catch (const jsi::JSError& e) {
+                // Log l'erreur mais ne pas propager pour éviter un crash
+            }
         });
     }
 }
@@ -665,12 +777,22 @@ void NativeAudioEffectsModule::invokeJSCallback(
     std::function<void(jsi::Runtime&)> invocation) {
 
     // Utiliser le jsInvoker pour exécuter le callback sur le thread JavaScript principal
-    if (jsInvoker_) {
-        jsInvoker_->invokeAsync([invocation = std::move(invocation)]() {
-            // Note: Dans un vrai module, il faudrait avoir accès au runtime ici
-            // Pour l'instant, on ne peut pas exécuter directement sans le runtime
-            // Cette implémentation nécessiterait de stocker une référence au runtime
-            // ou d'utiliser une approche différente avec CallInvoker
+    if (jsInvoker_ && runtime_) {
+        // Capturer le runtime pour l'utiliser dans le callback
+        auto runtime = runtime_;
+        
+        jsInvoker_->invokeAsync([runtime, invocation = std::move(invocation)]() {
+            try {
+                // Exécuter la fonction d'invocation avec le runtime
+                if (runtime) {
+                    invocation(*runtime);
+                }
+            } catch (const jsi::JSError& e) {
+                // En production, on pourrait logger cette erreur
+                // Pour l'instant, on évite juste le crash
+            } catch (const std::exception& e) {
+                // Gérer les autres exceptions
+            }
         });
     }
 }
@@ -681,9 +803,43 @@ void NativeAudioEffectsModule::initialize(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     try {
+        // Stocker la référence au runtime
+        runtime_ = &rt;
+        
+        // Enregistrer cette instance comme instance globale
+        {
+            std::lock_guard<std::mutex> instanceLock(g_instanceMutex);
+            g_moduleInstance = this;
+        }
+        
+        // Initialiser la chaîne d'effets
         initializeEffectChain();
+        
+        // Configurer les callbacks C globaux pour rediriger vers cette instance
+        NythEffects_SetAudioDataCallback([](const float* input, float* output, size_t frameCount, int channels) {
+            std::lock_guard<std::mutex> instanceLock(g_instanceMutex);
+            if (g_moduleInstance) {
+                g_moduleInstance->handleAudioData(input, output, frameCount, channels);
+            }
+        });
+        
+        NythEffects_SetErrorCallback([](const char* error) {
+            std::lock_guard<std::mutex> instanceLock(g_instanceMutex);
+            if (g_moduleInstance) {
+                g_moduleInstance->handleError(std::string(error));
+            }
+        });
+        
+        NythEffects_SetStateChangeCallback([](NythEffectsState oldState, NythEffectsState newState) {
+            std::lock_guard<std::mutex> instanceLock(g_instanceMutex);
+            if (g_moduleInstance) {
+                g_moduleInstance->handleStateChange(oldState, newState);
+            }
+        });
+        
     } catch (const std::exception& e) {
         handleError(std::string("Initialization failed: ") + e.what());
+        throw jsi::JSError(rt, std::string("Failed to initialize audio effects: ") + e.what());
     }
 }
 
@@ -745,16 +901,64 @@ jsi::Value NativeAudioEffectsModule::createEffect(jsi::Runtime& rt, const jsi::O
 
     try {
         auto nativeConfig = parseEffectConfig(rt, config);
-        int effectId = NythEffects_CreateEffect(&nativeConfig);
-
-        if (effectId >= 0) {
-            return jsi::Value(effectId);
+        
+        // Créer l'effet directement dans notre module
+        std::unique_ptr<AudioFX::IAudioEffect> effect;
+        
+        switch (nativeConfig.type) {
+            case EFFECT_TYPE_COMPRESSOR: {
+                auto compressor = std::make_unique<AudioFX::CompressorEffect>();
+                compressor->setParameters(
+                    nativeConfig.config.compressor.thresholdDb,
+                    nativeConfig.config.compressor.ratio,
+                    nativeConfig.config.compressor.attackMs,
+                    nativeConfig.config.compressor.releaseMs,
+                    nativeConfig.config.compressor.makeupDb
+                );
+                compressor->setSampleRate(currentSampleRate_, currentChannels_);
+                compressor->setEnabled(nativeConfig.enabled);
+                effect = std::move(compressor);
+                break;
+            }
+            case EFFECT_TYPE_DELAY: {
+                auto delay = std::make_unique<AudioFX::DelayEffect>();
+                delay->setParameters(
+                    nativeConfig.config.delay.delayMs,
+                    nativeConfig.config.delay.feedback,
+                    nativeConfig.config.delay.mix
+                );
+                delay->setSampleRate(currentSampleRate_, currentChannels_);
+                delay->setEnabled(nativeConfig.enabled);
+                effect = std::move(delay);
+                break;
+            }
+            default:
+                throw jsi::JSError(rt, "Unknown effect type");
         }
+        
+        // Générer un ID unique
+        int effectId = nextEffectId_++;
+        
+        // Ajouter l'effet à notre map locale
+        activeEffects_[effectId] = std::move(effect);
+        
+        // Ajouter aussi à la chaîne d'effets si elle existe
+        if (effectChain_) {
+            // Note: effectChain_ ne supporte pas l'ajout dynamique après création
+            // Il faudrait recréer la chaîne ou implémenter une méthode addEffect
+            // Pour l'instant, on garde l'effet dans activeEffects_ pour un traitement manuel
+        }
+        
+        // Appeler aussi l'API C pour la compatibilité
+        nativeConfig.effectId = effectId;
+        int cEffectId = NythEffects_CreateEffect(&nativeConfig);
+        
+        return jsi::Value(effectId);
+        
     } catch (const std::exception& e) {
         handleError(std::string("Create effect failed: ") + e.what());
+        throw jsi::JSError(rt, std::string("Failed to create effect: ") + e.what());
     }
-
-    return jsi::Value(-1);
 }
 
 jsi::Value NativeAudioEffectsModule::destroyEffect(jsi::Runtime& rt, int effectId) {
@@ -958,22 +1162,28 @@ jsi::Value NativeAudioEffectsModule::getOutputLevel(jsi::Runtime& rt) {
 
 jsi::Value NativeAudioEffectsModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    // Stocker correctement le callback passé en paramètre
-    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
+    // Stocker le callback et le runtime
+    jsCallbacks_.audioDataCallback.function = std::make_shared<jsi::Function>(callback.getFunction(rt));
+    jsCallbacks_.audioDataCallback.runtime = &rt;
+    runtime_ = &rt;  // Stocker aussi une référence globale au runtime
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioEffectsModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    // Stocker correctement le callback passé en paramètre
-    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
+    // Stocker le callback et le runtime
+    jsCallbacks_.errorCallback.function = std::make_shared<jsi::Function>(callback.getFunction(rt));
+    jsCallbacks_.errorCallback.runtime = &rt;
+    runtime_ = &rt;  // Stocker aussi une référence globale au runtime
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioEffectsModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    // Stocker correctement le callback passé en paramètre
-    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(callback.getFunction(rt));
+    // Stocker le callback et le runtime
+    jsCallbacks_.stateChangeCallback.function = std::make_shared<jsi::Function>(callback.getFunction(rt));
+    jsCallbacks_.stateChangeCallback.runtime = &rt;
+    runtime_ = &rt;  // Stocker aussi une référence globale au runtime
     return jsi::Value(true);
 }
 

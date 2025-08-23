@@ -231,12 +231,20 @@ private:
     
     // JSInvoker pour l'exécution sur le thread JS
     std::shared_ptr<CallInvoker> jsInvoker_;
+    
+    // Runtime reference (weak to avoid circular dependency)
+    jsi::Runtime* runtime_ = nullptr;
 
-    // Callbacks JavaScript
+    // Callbacks JavaScript avec runtime
+    struct CallbackInfo {
+        std::shared_ptr<jsi::Function> function;
+        jsi::Runtime* runtime = nullptr;
+    };
+    
     struct {
-        std::shared_ptr<jsi::Function> audioDataCallback;
-        std::shared_ptr<jsi::Function> errorCallback;
-        std::shared_ptr<jsi::Function> stateChangeCallback;
+        CallbackInfo audioDataCallback;
+        CallbackInfo errorCallback;
+        CallbackInfo stateChangeCallback;
     } jsCallbacks_;
 
     // Configuration actuelle
