@@ -1555,7 +1555,7 @@ jsi::Object NativeAudioNoiseModule::multibandConfigToJS(jsi::Runtime& rt, const 
 }
 
 // === Fonction d'enregistrement du module ===
-std::shared_ptr<TurboModule> NativeAudioNoiseModuleProvider(std::shared_ptr<CallInvoker> jsInvoker) {
+JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioNoiseModuleProvider(std::shared_ptr<CallInvoker> jsInvoker) {
     return std::make_shared<NativeAudioNoiseModule>(jsInvoker);
 }
 
