@@ -16,6 +16,7 @@
 #include <sstream>
 #include <algorithm>
 #include <cmath>
+#include <map>
 
 // === Instance globale pour l'API C ===
 static std::unique_ptr<Audio::core::AudioEqualizer> g_audioEqualizer;
@@ -40,6 +41,35 @@ using namespace AudioFX::BranchFree;
 
 // === Implémentation partagée (privée au module) ===
 namespace NythCoreImpl {
+
+    // --- Conversion d'enums avec mapping explicite ---
+    AudioFX::FilterType convertToAudioFXFilterType(NythCoreFilterType type) {
+        switch (type) {
+            case CORE_FILTER_LOWPASS:   return AudioFX::FilterType::LOWPASS;
+            case CORE_FILTER_HIGHPASS:  return AudioFX::FilterType::HIGHPASS;
+            case CORE_FILTER_BANDPASS:  return AudioFX::FilterType::BANDPASS;
+            case CORE_FILTER_NOTCH:     return AudioFX::FilterType::NOTCH;
+            case CORE_FILTER_PEAK:      return AudioFX::FilterType::PEAK;
+            case CORE_FILTER_LOWSHELF:  return AudioFX::FilterType::LOWSHELF;
+            case CORE_FILTER_HIGHSHELF: return AudioFX::FilterType::HIGHSHELF;
+            case CORE_FILTER_ALLPASS:   return AudioFX::FilterType::ALLPASS;
+            default:                    return AudioFX::FilterType::PEAK; // Default
+        }
+    }
+
+    NythCoreFilterType convertFromAudioFXFilterType(AudioFX::FilterType type) {
+        switch (type) {
+            case AudioFX::FilterType::LOWPASS:   return CORE_FILTER_LOWPASS;
+            case AudioFX::FilterType::HIGHPASS:  return CORE_FILTER_HIGHPASS;
+            case AudioFX::FilterType::BANDPASS:  return CORE_FILTER_BANDPASS;
+            case AudioFX::FilterType::NOTCH:     return CORE_FILTER_NOTCH;
+            case AudioFX::FilterType::PEAK:      return CORE_FILTER_PEAK;
+            case AudioFX::FilterType::LOWSHELF:  return CORE_FILTER_LOWSHELF;
+            case AudioFX::FilterType::HIGHSHELF: return CORE_FILTER_HIGHSHELF;
+            case AudioFX::FilterType::ALLPASS:   return CORE_FILTER_ALLPASS;
+            default:                              return CORE_FILTER_PEAK; // Default
+        }
+    }
 
     // --- Helpers pour l'égaliseur ---
 
@@ -69,18 +99,7 @@ namespace NythCoreImpl {
             eq->setBandQ(bandIndex, config->q);
             eq->setBandEnabled(bandIndex, config->enabled);
 
-            AudioFX::FilterType type;
-            switch (config->type) {
-                case CORE_FILTER_LOWPASS: type = AudioFX::FilterType::LOWPASS; break;
-                case CORE_FILTER_HIGHPASS: type = AudioFX::FilterType::HIGHPASS; break;
-                case CORE_FILTER_BANDPASS: type = AudioFX::FilterType::BANDPASS; break;
-                case CORE_FILTER_NOTCH: type = AudioFX::FilterType::NOTCH; break;
-                case CORE_FILTER_PEAK: type = AudioFX::FilterType::PEAK; break;
-                case CORE_FILTER_LOWSHELF: type = AudioFX::FilterType::LOWSHELF; break;
-                case CORE_FILTER_HIGHSHELF: type = AudioFX::FilterType::HIGHSHELF; break;
-                case CORE_FILTER_ALLPASS: type = AudioFX::FilterType::ALLPASS; break;
-                default: return false;
-            }
+            AudioFX::FilterType type = convertToAudioFXFilterType(config->type);
             eq->setBandType(bandIndex, type);
             return true;
         } catch (...) {
@@ -171,21 +190,22 @@ namespace NythCoreImpl {
         }
 
         // Configuration des versions SIMD et optimisées si disponibles
+        AudioFX::FilterType audioFXType = convertToAudioFXFilterType(config->type);
         if (g_simdFilter) {
             g_simdFilter->calculateCoefficients(
-                static_cast<AudioFX::FilterType>(config->type),
+                audioFXType,
                 config->frequency, config->q, config->gainDB, sampleRate
             );
         }
         if (g_optimizedFilter) {
             g_optimizedFilter->calculateCoefficients(
-                static_cast<AudioFX::FilterType>(config->type),
+                audioFXType,
                 config->frequency, config->q, config->gainDB, sampleRate
             );
         }
         if (g_threadSafeFilter) {
             g_threadSafeFilter->calculateCoefficients(
-                static_cast<AudioFX::FilterType>(config->type),
+                audioFXType,
                 config->frequency, config->q, config->gainDB, sampleRate
             );
         }
@@ -645,7 +665,7 @@ bool NythCore_FilterSetLowpass(int64_t filterId, double frequency, double sample
 
     auto it = g_activeFilters.find(filterId);
     if (it != g_activeFilters.end()) {
-        NythCoreFilterConfig tempConfig = { CORE_FILTER_LOWPASS, frequency, q, 0.0 };
+        NythCoreFilterConfig tempConfig = { frequency, q, 0.0, CORE_FILTER_LOWPASS };
         return NythCoreImpl::filterSetConfig(it->second.get(), &tempConfig, sampleRate);
     }
     return false;
@@ -656,7 +676,7 @@ bool NythCore_FilterSetHighpass(int64_t filterId, double frequency, double sampl
 
     auto it = g_activeFilters.find(filterId);
     if (it != g_activeFilters.end()) {
-        NythCoreFilterConfig tempConfig = { CORE_FILTER_HIGHPASS, frequency, q, 0.0 };
+        NythCoreFilterConfig tempConfig = { frequency, q, 0.0, CORE_FILTER_HIGHPASS };
         return NythCoreImpl::filterSetConfig(it->second.get(), &tempConfig, sampleRate);
     }
     return false;
@@ -667,7 +687,7 @@ bool NythCore_FilterSetBandpass(int64_t filterId, double frequency, double sampl
 
     auto it = g_activeFilters.find(filterId);
     if (it != g_activeFilters.end()) {
-        NythCoreFilterConfig tempConfig = { CORE_FILTER_BANDPASS, frequency, q, 0.0 };
+        NythCoreFilterConfig tempConfig = { frequency, q, 0.0, CORE_FILTER_BANDPASS };
         return NythCoreImpl::filterSetConfig(it->second.get(), &tempConfig, sampleRate);
     }
     return false;
@@ -678,7 +698,7 @@ bool NythCore_FilterSetNotch(int64_t filterId, double frequency, double sampleRa
 
     auto it = g_activeFilters.find(filterId);
     if (it != g_activeFilters.end()) {
-        NythCoreFilterConfig tempConfig = { CORE_FILTER_NOTCH, frequency, q, 0.0 };
+        NythCoreFilterConfig tempConfig = { frequency, q, 0.0, CORE_FILTER_NOTCH };
         return NythCoreImpl::filterSetConfig(it->second.get(), &tempConfig, sampleRate);
     }
     return false;
@@ -688,7 +708,7 @@ bool NythCore_FilterSetPeaking(int64_t filterId, double frequency, double sample
     std::lock_guard<std::mutex> lock(g_globalMutex);
     auto it = g_activeFilters.find(filterId);
     if (it != g_activeFilters.end()) {
-        NythCoreFilterConfig tempConfig = { CORE_FILTER_PEAK, frequency, q, gainDB };
+        NythCoreFilterConfig tempConfig = { frequency, q, gainDB, CORE_FILTER_PEAK };
         return NythCoreImpl::filterSetConfig(it->second.get(), &tempConfig, sampleRate);
     }
     return false;
@@ -698,7 +718,7 @@ bool NythCore_FilterSetLowShelf(int64_t filterId, double frequency, double sampl
     std::lock_guard<std::mutex> lock(g_globalMutex);
     auto it = g_activeFilters.find(filterId);
     if (it != g_activeFilters.end()) {
-        NythCoreFilterConfig tempConfig = { CORE_FILTER_LOWSHELF, frequency, q, gainDB };
+        NythCoreFilterConfig tempConfig = { frequency, q, gainDB, CORE_FILTER_LOWSHELF };
         return NythCoreImpl::filterSetConfig(it->second.get(), &tempConfig, sampleRate);
     }
     return false;
@@ -708,7 +728,7 @@ bool NythCore_FilterSetHighShelf(int64_t filterId, double frequency, double samp
     std::lock_guard<std::mutex> lock(g_globalMutex);
     auto it = g_activeFilters.find(filterId);
     if (it != g_activeFilters.end()) {
-        NythCoreFilterConfig tempConfig = { CORE_FILTER_HIGHSHELF, frequency, q, gainDB };
+        NythCoreFilterConfig tempConfig = { frequency, q, gainDB, CORE_FILTER_HIGHSHELF };
         return NythCoreImpl::filterSetConfig(it->second.get(), &tempConfig, sampleRate);
     }
     return false;
@@ -718,7 +738,7 @@ bool NythCore_FilterSetAllpass(int64_t filterId, double frequency, double sample
     std::lock_guard<std::mutex> lock(g_globalMutex);
     auto it = g_activeFilters.find(filterId);
     if (it != g_activeFilters.end()) {
-        NythCoreFilterConfig tempConfig = { CORE_FILTER_ALLPASS, frequency, q, 0.0 };
+        NythCoreFilterConfig tempConfig = { frequency, q, 0.0, CORE_FILTER_ALLPASS };
         return NythCoreImpl::filterSetConfig(it->second.get(), &tempConfig, sampleRate);
     }
     return false;
@@ -1336,17 +1356,7 @@ jsi::Value NativeAudioCoreModule::equalizerGetBand(jsi::Runtime& rt, size_t band
         config.enabled = m_equalizer->isBandEnabled(bandIndex);
 
         AudioFX::FilterType type = m_equalizer->getBandType(bandIndex);
-        switch (type) {
-            case AudioFX::FilterType::LOWPASS: config.type = CORE_FILTER_LOWPASS; break;
-            case AudioFX::FilterType::HIGHPASS: config.type = CORE_FILTER_HIGHPASS; break;
-            case AudioFX::FilterType::BANDPASS: config.type = CORE_FILTER_BANDPASS; break;
-            case AudioFX::FilterType::NOTCH: config.type = CORE_FILTER_NOTCH; break;
-            case AudioFX::FilterType::PEAK: config.type = CORE_FILTER_PEAK; break;
-            case AudioFX::FilterType::LOWSHELF: config.type = CORE_FILTER_LOWSHELF; break;
-            case AudioFX::FilterType::HIGHSHELF: config.type = CORE_FILTER_HIGHSHELF; break;
-            case AudioFX::FilterType::ALLPASS: config.type = CORE_FILTER_ALLPASS; break;
-            default: config.type = CORE_FILTER_PEAK; break;
-        }
+        config.type = NythCoreImpl::convertFromAudioFXFilterType(type);
 
         return bandConfigToJS(rt, config);
     } catch (const std::exception& e) {
@@ -1359,7 +1369,12 @@ jsi::Value NativeAudioCoreModule::equalizerGetBand(jsi::Runtime& rt, size_t band
 jsi::Value NativeAudioCoreModule::equalizerSetBandGain(jsi::Runtime& rt, size_t bandIndex, double gainDB) {
     std::lock_guard<std::mutex> lock(m_coreMutex);
     if (!m_equalizer) return jsi::Value(false);
-    return jsi::Value(NythCoreImpl::equalizerSetMasterGain(m_equalizer.get(), gainDB));
+    try {
+        m_equalizer->setBandGain(bandIndex, gainDB);
+        return jsi::Value(true);
+    } catch (...) {
+        return jsi::Value(false);
+    }
 }
 
 jsi::Value NativeAudioCoreModule::equalizerSetBandFrequency(jsi::Runtime& rt, size_t bandIndex, double frequency) {
@@ -1390,9 +1405,9 @@ jsi::Value NativeAudioCoreModule::equalizerSetBandType(jsi::Runtime& rt, size_t 
     try {
         NythCoreBandConfig config = {};
         config.type = static_cast<NythCoreFilterType>(filterType);
-        // This is incomplete, needs other params. Better to use the full setBand.
-        // For now, let's keep the direct call for simplicity of this refactor
-        AudioFX::FilterType type = static_cast<AudioFX::FilterType>(filterType);
+        // Convert the integer filterType to our enum, then to AudioFX::FilterType
+        NythCoreFilterType coreType = static_cast<NythCoreFilterType>(filterType);
+        AudioFX::FilterType type = NythCoreImpl::convertToAudioFXFilterType(coreType);
         m_equalizer->setBandType(bandIndex, type);
         return jsi::Value(true);
     } catch (...) {
@@ -1616,7 +1631,7 @@ jsi::Value NativeAudioCoreModule::filterSetLowpass(jsi::Runtime& rt, int64_t fil
     std::lock_guard<std::mutex> lock(m_filterMutex);
     auto it = m_filters.find(filterId);
     if (it != m_filters.end()) {
-        NythCoreFilterConfig config = { CORE_FILTER_LOWPASS, frequency, q, 0.0 };
+        NythCoreFilterConfig config = { frequency, q, 0.0, CORE_FILTER_LOWPASS };
         return jsi::Value(NythCoreImpl::filterSetConfig(it->second.get(), &config, currentSampleRate_));
     }
     return jsi::Value(false);
@@ -1626,7 +1641,7 @@ jsi::Value NativeAudioCoreModule::filterSetHighpass(jsi::Runtime& rt, int64_t fi
     std::lock_guard<std::mutex> lock(m_filterMutex);
     auto it = m_filters.find(filterId);
     if (it != m_filters.end()) {
-        NythCoreFilterConfig config = { CORE_FILTER_HIGHPASS, frequency, q, 0.0 };
+        NythCoreFilterConfig config = { frequency, q, 0.0, CORE_FILTER_HIGHPASS };
         return jsi::Value(NythCoreImpl::filterSetConfig(it->second.get(), &config, currentSampleRate_));
     }
     return jsi::Value(false);
@@ -1636,7 +1651,7 @@ jsi::Value NativeAudioCoreModule::filterSetBandpass(jsi::Runtime& rt, int64_t fi
     std::lock_guard<std::mutex> lock(m_filterMutex);
     auto it = m_filters.find(filterId);
     if (it != m_filters.end()) {
-        NythCoreFilterConfig config = { CORE_FILTER_BANDPASS, frequency, q, 0.0 };
+        NythCoreFilterConfig config = { frequency, q, 0.0, CORE_FILTER_BANDPASS };
         return jsi::Value(NythCoreImpl::filterSetConfig(it->second.get(), &config, currentSampleRate_));
     }
     return jsi::Value(false);
@@ -1646,7 +1661,7 @@ jsi::Value NativeAudioCoreModule::filterSetNotch(jsi::Runtime& rt, int64_t filte
     std::lock_guard<std::mutex> lock(m_filterMutex);
     auto it = m_filters.find(filterId);
     if (it != m_filters.end()) {
-        NythCoreFilterConfig config = { CORE_FILTER_NOTCH, frequency, q, 0.0 };
+        NythCoreFilterConfig config = { frequency, q, 0.0, CORE_FILTER_NOTCH };
         return jsi::Value(NythCoreImpl::filterSetConfig(it->second.get(), &config, currentSampleRate_));
     }
     return jsi::Value(false);
@@ -1656,7 +1671,7 @@ jsi::Value NativeAudioCoreModule::filterSetPeaking(jsi::Runtime& rt, int64_t fil
     std::lock_guard<std::mutex> lock(m_filterMutex);
     auto it = m_filters.find(filterId);
     if (it != m_filters.end()) {
-        NythCoreFilterConfig config = { CORE_FILTER_PEAK, frequency, q, gainDB };
+        NythCoreFilterConfig config = { frequency, q, gainDB, CORE_FILTER_PEAK };
         return jsi::Value(NythCoreImpl::filterSetConfig(it->second.get(), &config, currentSampleRate_));
     }
     return jsi::Value(false);
@@ -1666,7 +1681,7 @@ jsi::Value NativeAudioCoreModule::filterSetLowShelf(jsi::Runtime& rt, int64_t fi
     std::lock_guard<std::mutex> lock(m_filterMutex);
     auto it = m_filters.find(filterId);
     if (it != m_filters.end()) {
-        NythCoreFilterConfig config = { CORE_FILTER_LOWSHELF, frequency, q, gainDB };
+        NythCoreFilterConfig config = { frequency, q, gainDB, CORE_FILTER_LOWSHELF };
         return jsi::Value(NythCoreImpl::filterSetConfig(it->second.get(), &config, currentSampleRate_));
     }
     return jsi::Value(false);
@@ -1676,7 +1691,7 @@ jsi::Value NativeAudioCoreModule::filterSetHighShelf(jsi::Runtime& rt, int64_t f
     std::lock_guard<std::mutex> lock(m_filterMutex);
     auto it = m_filters.find(filterId);
     if (it != m_filters.end()) {
-        NythCoreFilterConfig config = { CORE_FILTER_HIGHSHELF, frequency, q, gainDB };
+        NythCoreFilterConfig config = { frequency, q, gainDB, CORE_FILTER_HIGHSHELF };
         return jsi::Value(NythCoreImpl::filterSetConfig(it->second.get(), &config, currentSampleRate_));
     }
     return jsi::Value(false);
@@ -1686,7 +1701,7 @@ jsi::Value NativeAudioCoreModule::filterSetAllpass(jsi::Runtime& rt, int64_t fil
     std::lock_guard<std::mutex> lock(m_filterMutex);
     auto it = m_filters.find(filterId);
     if (it != m_filters.end()) {
-        NythCoreFilterConfig config = { CORE_FILTER_ALLPASS, frequency, q, 0.0 };
+        NythCoreFilterConfig config = { frequency, q, 0.0, CORE_FILTER_ALLPASS };
         return jsi::Value(NythCoreImpl::filterSetConfig(it->second.get(), &config, currentSampleRate_));
     }
     return jsi::Value(false);
@@ -1889,8 +1904,7 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
     });
     
     registerMethod("dispose", 0, [](auto* m, auto& rt, auto*, auto) { 
-        m->dispose(rt); 
-        return jsi::Value::undefined();
+        return m->dispose(rt);
     });
     
     // === État et informations ===
@@ -1912,8 +1926,7 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
     });
     
     registerMethod("equalizerRelease", 0, [](auto* m, auto& rt, auto*, auto) { 
-        m->equalizerRelease(rt); 
-        return jsi::Value::undefined();
+        return m->equalizerRelease(rt);
     });
     
     registerMethod("equalizerSetMasterGain", 1, [](auto* m, auto& rt, auto* args, auto) { 
@@ -1968,11 +1981,11 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
     
     // === Processing égaliseur ===
     registerMethod("equalizerProcessMono", 1, [](auto* m, auto& rt, auto* args, auto) { 
-        return m->equalizerProcessMono(rt, args[0].asObject(rt)); 
+        return m->equalizerProcessMono(rt, args[0].asObject(rt).asArray(rt)); 
     });
     
     registerMethod("equalizerProcessStereo", 2, [](auto* m, auto& rt, auto* args, auto) { 
-        return m->equalizerProcessStereo(rt, args[0].asObject(rt), args[1].asObject(rt)); 
+        return m->equalizerProcessStereo(rt, args[0].asObject(rt).asArray(rt), args[1].asObject(rt).asArray(rt)); 
     });
     
     // === Presets ===
@@ -2044,11 +2057,11 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
     
     // === Processing filtres ===
     registerMethod("filterProcessMono", 2, [](auto* m, auto& rt, auto* args, auto) { 
-        return m->filterProcessMono(rt, static_cast<int64_t>(args[0].asNumber()), args[1].asObject(rt)); 
+        return m->filterProcessMono(rt, static_cast<int64_t>(args[0].asNumber()), args[1].asObject(rt).asArray(rt)); 
     });
     
     registerMethod("filterProcessStereo", 3, [](auto* m, auto& rt, auto* args, auto) { 
-        return m->filterProcessStereo(rt, static_cast<int64_t>(args[0].asNumber()), args[1].asObject(rt), args[2].asObject(rt)); 
+        return m->filterProcessStereo(rt, static_cast<int64_t>(args[0].asNumber()), args[1].asObject(rt).asArray(rt), args[2].asObject(rt).asArray(rt)); 
     });
     
     // === Informations filtres ===
@@ -2087,8 +2100,7 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
     });
     
     registerMethod("memoryRelease", 0, [](auto* m, auto& rt, auto*, auto) { 
-        m->memoryRelease(rt); 
-        return jsi::Value::undefined();
+        return m->memoryRelease(rt);
     });
     
     registerMethod("memoryGetAvailable", 0, [](auto* m, auto& rt, auto*, auto) { 
