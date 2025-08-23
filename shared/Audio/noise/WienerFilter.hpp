@@ -108,6 +108,12 @@ public:
      */
     void setConfig(const Config& cfg);
 
+    /**
+     * @brief Get current configuration
+     * @return Current configuration
+     */
+    const Config& getConfig() const { return cfg_; }
+
 private:
     Config cfg_;
     size_t numBins_;

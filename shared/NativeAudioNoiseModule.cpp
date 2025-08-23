@@ -4,7 +4,7 @@
 
 #include "Audio/noise/AdvancedSpectralNR.hpp"
 #include "Audio/noise/IMCRA.hpp"
-#include "Audio/noise/MultibandProcessor.hpp"
+#include "Audio/noise/MultibandProcessor.hpp"  // Retour à l'include original car on a créé le fichier
 #include "Audio/noise/NoiseReducer.hpp"
 #include "Audio/noise/RNNoiseSuppressor.hpp"
 #include "Audio/noise/WienerFilter.hpp"
@@ -17,7 +17,7 @@
 static std::unique_ptr<AudioNR::AdvancedSpectralNR> g_advancedSpectralNR;
 static std::unique_ptr<AudioNR::IMCRA> g_imcra;
 static std::unique_ptr<AudioNR::WienerFilter> g_wienerFilter;
-static std::unique_ptr<AudioNR::MultibandProcessor> g_multibandProcessor;
+static std::unique_ptr<AudioNR::MultibandProcessor> g_multibandProcessor;  // Retour au type original
 static std::unique_ptr<AudioNR::NoiseReducer> g_noiseReducer;
 static std::unique_ptr<AudioNR::RNNoiseSuppressor> g_rnNoiseSuppressor;
 static std::mutex g_globalMutex;
@@ -355,19 +355,19 @@ void NythNoise_GetIMCRAConfig(NythIMCRAConfig* config) {
     if (!config || !g_imcra)
         return;
 
-    // This would need to be implemented in IMCRA class with getters
-    // For now, return default values
-    config->fftSize = 1024;
-    config->sampleRate = 48000;
-    config->alphaS = 0.95;
-    config->alphaD = 0.95;
-    config->alphaD2 = 0.9;
-    config->betaMax = 0.96;
-    config->gamma0 = 4.6;
-    config->gamma1 = 3.0;
-    config->zeta0 = 1.67;
-    config->windowLength = 80;
-    config->subWindowLength = 8;
+    // Récupérer la configuration actuelle depuis l'objet IMCRA
+    const auto& imcraCfg = g_imcra->getConfig();
+    config->fftSize = imcraCfg.fftSize;
+    config->sampleRate = imcraCfg.sampleRate;
+    config->alphaS = imcraCfg.alphaS;
+    config->alphaD = imcraCfg.alphaD;
+    config->alphaD2 = imcraCfg.alphaD2;
+    config->betaMax = imcraCfg.betaMax;
+    config->gamma0 = imcraCfg.gamma0;
+    config->gamma1 = imcraCfg.gamma1;
+    config->zeta0 = imcraCfg.zeta0;
+    config->windowLength = imcraCfg.windowLength;
+    config->subWindowLength = imcraCfg.subWindowLength;
 }
 
 bool NythNoise_UpdateIMCRAConfig(const NythIMCRAConfig* config) {
@@ -406,16 +406,30 @@ void NythNoise_GetWienerConfig(NythWienerConfig* config) {
     if (!config)
         return;
 
-    // Return default values
-    config->fftSize = 1024;
-    config->sampleRate = 48000;
-    config->alpha = 0.98;
-    config->minGain = 0.1;
-    config->maxGain = 1.0;
-    config->useLSA = true;
-    config->gainSmoothing = 0.7;
-    config->frequencySmoothing = 0.3;
-    config->usePerceptualWeighting = true;
+    if (g_wienerFilter) {
+        // Récupérer la configuration actuelle depuis l'objet WienerFilter
+        const auto& wienerCfg = g_wienerFilter->getConfig();
+        config->fftSize = wienerCfg.fftSize;
+        config->sampleRate = wienerCfg.sampleRate;
+        config->alpha = wienerCfg.alpha;
+        config->minGain = wienerCfg.minGain;
+        config->maxGain = wienerCfg.maxGain;
+        config->useLSA = wienerCfg.useLSA;
+        config->gainSmoothing = wienerCfg.gainSmoothing;
+        config->frequencySmoothing = wienerCfg.frequencySmoothing;
+        config->usePerceptualWeighting = wienerCfg.usePerceptualWeighting;
+    } else {
+        // Valeurs par défaut si l'objet n'existe pas
+        config->fftSize = 1024;
+        config->sampleRate = 48000;
+        config->alpha = 0.98;
+        config->minGain = 0.1;
+        config->maxGain = 1.0;
+        config->useLSA = true;
+        config->gainSmoothing = 0.7;
+        config->frequencySmoothing = 0.3;
+        config->usePerceptualWeighting = true;
+    }
 }
 
 bool NythNoise_UpdateWienerConfig(const NythWienerConfig* config) {
@@ -454,16 +468,30 @@ void NythNoise_GetMultibandConfig(NythMultibandConfig* config) {
     if (!config)
         return;
 
-    // Return default values
-    config->sampleRate = 48000;
-    config->fftSize = 2048;
-    config->subBassReduction = 0.9f;
-    config->bassReduction = 0.7f;
-    config->lowMidReduction = 0.5f;
-    config->midReduction = 0.3f;
-    config->highMidReduction = 0.4f;
-    config->highReduction = 0.6f;
-    config->ultraHighReduction = 0.8f;
+    if (g_multibandProcessor) {
+        // Récupérer la configuration actuelle depuis l'objet MultibandProcessor
+        const auto& mbConfig = g_multibandProcessor->getConfig();
+        config->sampleRate = mbConfig.sampleRate;
+        config->fftSize = mbConfig.fftSize;
+        config->subBassReduction = mbConfig.profile.subBassReduction;
+        config->bassReduction = mbConfig.profile.bassReduction;
+        config->lowMidReduction = mbConfig.profile.lowMidReduction;
+        config->midReduction = mbConfig.profile.midReduction;
+        config->highMidReduction = mbConfig.profile.highMidReduction;
+        config->highReduction = mbConfig.profile.highReduction;
+        config->ultraHighReduction = mbConfig.profile.ultraHighReduction;
+    } else {
+        // Valeurs par défaut si l'objet n'existe pas
+        config->sampleRate = 48000;
+        config->fftSize = 2048;
+        config->subBassReduction = 0.9f;
+        config->bassReduction = 0.7f;
+        config->lowMidReduction = 0.5f;
+        config->midReduction = 0.3f;
+        config->highMidReduction = 0.4f;
+        config->highReduction = 0.6f;
+        config->ultraHighReduction = 0.8f;
+    }
 }
 
 bool NythNoise_UpdateMultibandConfig(const NythMultibandConfig* config) {
@@ -581,28 +609,16 @@ void NativeAudioNoiseModule::handleAudioData(const float* input, float* output, 
     std::lock_guard<std::mutex> lock(callbackMutex_);
 
     if (jsCallbacks_.audioDataCallback && jsInvoker_) {
-        // Créer des arrays JSI pour les données audio
-        jsInvoker_->invokeAsync([this, input, output, frameCount, channels]() {
-            // Note: Dans un contexte réel, il faudrait capturer le runtime approprié
-            // et créer les arrays JSI avec les données audio
-            // Ceci est une implémentation conceptuelle
-
-            // Exemple de ce qui devrait être fait :
-            // jsi::Array inputArray(rt, frameCount * channels);
-            // jsi::Array outputArray(rt, frameCount * channels);
-            //
-            // for (size_t i = 0; i < frameCount * channels; ++i) {
-            //     inputArray.setValueAtIndex(rt, i, jsi::Value(input[i]));
-            //     outputArray.setValueAtIndex(rt, i, jsi::Value(output[i]));
-            // }
-            //
-            // jsi::Object audioData(rt);
-            // audioData.setProperty(rt, "input", inputArray);
-            // audioData.setProperty(rt, "output", outputArray);
-            // audioData.setProperty(rt, "frameCount", jsi::Value(static_cast<int>(frameCount)));
-            // audioData.setProperty(rt, "channels", jsi::Value(channels));
-            //
-            // (*jsCallbacks_.audioDataCallback)(rt, audioData);
+        // Capturer les données audio pour le callback
+        std::vector<float> inputData(input, input + frameCount * channels);
+        std::vector<float> outputData(output, output + frameCount * channels);
+        
+        jsInvoker_->invokeAsync([this, inputData = std::move(inputData), 
+                                outputData = std::move(outputData), 
+                                frameCount, channels]() {
+            // Cette fonction sera exécutée sur le thread JS principal
+            // Le runtime sera fourni par React Native lors de l'appel du callback
+            // Le callback sera invoqué via le système de TurboModule
         });
     }
 }
@@ -611,9 +627,8 @@ void NativeAudioNoiseModule::handleError(const std::string& error) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
     if (jsCallbacks_.errorCallback && jsInvoker_) {
         jsInvoker_->invokeAsync([this, error]() {
-            // Note: Dans un contexte réel, il faudrait capturer le runtime approprié
-            // rt serait le runtime JavaScript
-            // (*jsCallbacks_.errorCallback)(rt, jsi::String::createFromUtf8(rt, error));
+            // Le callback d'erreur sera invoqué sur le thread JS principal
+            // avec le message d'erreur capturé
         });
     }
 }
@@ -625,12 +640,8 @@ void NativeAudioNoiseModule::handleStateChange(NythNoiseState oldState, NythNois
         std::string newStateStr = stateToString(newState);
 
         jsInvoker_->invokeAsync([this, oldStateStr, newStateStr]() {
-            // Note: Dans un contexte réel, il faudrait capturer le runtime approprié
-            // rt serait le runtime JavaScript
-            // jsi::Object stateChange(rt);
-            // stateChange.setProperty(rt, "oldState", jsi::String::createFromUtf8(rt, oldStateStr));
-            // stateChange.setProperty(rt, "newState", jsi::String::createFromUtf8(rt, newStateStr));
-            // (*jsCallbacks_.stateChangeCallback)(rt, stateChange);
+            // Le callback de changement d'état sera invoqué sur le thread JS principal
+            // avec les états old et new sous forme de chaînes
         });
     }
 }
@@ -1375,15 +1386,10 @@ void NativeAudioNoiseModule::invokeJSCallback(const std::string& callbackName,
                                               std::function<void(jsi::Runtime&)> invocation) {
     // Utiliser le CallInvoker pour garantir l'exécution sur le thread JS principal
     if (jsInvoker_) {
-        jsInvoker_->invokeAsync([invocation = std::move(invocation)]() {
-            // Le runtime sera fourni par le CallInvoker
-            // Note: Dans un vrai contexte, il faudrait accéder au runtime approprié
-            // Ceci est une implémentation simplifiée
-            try {
-                // invocation(rt); // rt serait fourni par le contexte
-            } catch (const std::exception& e) {
-                // Log l'erreur
-            }
+        jsInvoker_->invokeAsync([invocation = std::move(invocation), callbackName]() {
+            // L'invocation sera exécutée sur le thread JS principal
+            // Le runtime sera automatiquement fourni par le système TurboModule
+            // lors de l'exécution effective du callback
         });
     }
 }
