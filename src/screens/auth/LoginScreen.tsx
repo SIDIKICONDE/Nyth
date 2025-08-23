@@ -17,6 +17,9 @@ import {
   AuthButton,
   SocialAuthButtons,
   RememberMeCheckbox,
+  SkiaAuthBackground,
+  SkiaAnimatedLogo,
+  SkiaSuccessAnimation,
 } from '../../components/auth';
 
 // Services et hooks
@@ -49,6 +52,7 @@ export const LoginScreen: React.FC = () => {
   const [errors, setErrors] = useState<AuthValidationErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
 
   // Validation du formulaire
   const validateForm = (): boolean => {
@@ -78,6 +82,9 @@ export const LoginScreen: React.FC = () => {
     try {
       await signIn(formData.email, formData.password);
       logger.info('Connexion réussie');
+
+      // Afficher l'animation de succès hypnotique
+      setShowSuccessAnimation(true);
 
       // Utiliser AsyncStorage directement (sans biométrie)
       if (rememberMe) {
@@ -147,42 +154,46 @@ export const LoginScreen: React.FC = () => {
   }), [isDark, currentTheme.colors.primary]);
 
   return (
-    <AuthContainer>
-      <View style={tw`w-full max-w-md mx-auto px-6`}>
-        <View style={tw`items-center mb-8`}>
-          {/* Logo ou icône */}
-          <View
-            style={[
-              tw`w-20 h-20 rounded-full items-center justify-center mb-4`,
-              styles.badgeBackground,
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="account-circle"
-              size={40}
-              color={currentTheme.colors.primary}
-            />
-          </View>
+    <SkiaAuthBackground>
+      <SkiaSuccessAnimation
+        visible={showSuccessAnimation}
+        onAnimationComplete={() => {
+          setShowSuccessAnimation(false);
+          // Ici vous pourriez naviguer vers l'écran principal
+        }}
+        duration={2500}
+      />
 
-          {/* Titre */}
-          <Text
-            style={[
-              tw`text-2xl font-bold text-center mb-2`,
-              styles.titleColor,
-            ]}
-          >
-            Bon retour !
-          </Text>
-          
-          <Text
-            style={[
-              tw`text-center text-base`,
-              styles.subtitleColor,
-            ]}
-          >
-            Connectez-vous à votre compte
-          </Text>
-        </View>
+      <AuthContainer>
+        <View style={tw`w-full max-w-md mx-auto px-6`}>
+          <View style={tw`items-center mb-8`}>
+            {/* Logo Skia hypnotique */}
+            <View style={tw`mb-6`}>
+              <SkiaAnimatedLogo
+                size={140}
+                colors={['#FF6B9D', '#4ECDC4', '#45B7D1', '#96CEB4']}
+              />
+            </View>
+
+            {/* Titre avec effet visuel */}
+            <Text
+              style={[
+                tw`text-3xl font-bold text-center mb-3`,
+                styles.titleColor,
+              ]}
+            >
+              ✨ Bon retour ! ✨
+            </Text>
+
+            <Text
+              style={[
+                tw`text-center text-base`,
+                styles.subtitleColor,
+              ]}
+            >
+              Laissez-vous hypnotiser par l'expérience...
+            </Text>
+          </View>
 
         {/* Formulaire */}
         <View style={tw`mb-6`}>
@@ -285,5 +296,6 @@ export const LoginScreen: React.FC = () => {
         </View>
       </View>
     </AuthContainer>
+    </SkiaAuthBackground>
   );
 };

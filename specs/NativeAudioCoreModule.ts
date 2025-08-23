@@ -96,7 +96,7 @@ export interface Spec extends TurboModule {
   // === Gestion du cycle de vie ===
 
   // Initialise le module core
-  readonly initialize: () => boolean;
+  readonly initialize: () => void;
 
   // Vérifie si le module est initialisé
   readonly isInitialized: () => boolean;

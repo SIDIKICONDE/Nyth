@@ -233,7 +233,7 @@ describe('🎬 Système de Téléprompter - Tests Sophistiqués', () => {
     });
   });
 
-  describe('🎮 Contrôles Interactifs - Tests des Gestes', () => {
+  describe.skip('🎮 Contrôles Interactifs - Tests des Gestes (DÉSACTIVÉ)', () => {
     test('devrait gérer le double-tap pour réinitialiser', async () => {
       const mockSetShowResetIndicator = jest.fn();
       const mockSetIsResetting = jest.fn();

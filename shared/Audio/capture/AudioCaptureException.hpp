@@ -143,7 +143,7 @@ public:
         }
     }
 
-    static void validateConfig(const AudioCaptureConfig& config) {
+    static void validateConfig(const ::Audio::capture::AudioCaptureConfig& config) {
         validateSampleRate(config.sampleRate);
         validateChannelCount(config.channelCount);
         validateBitsPerSample(config.bitsPerSample);

@@ -652,15 +652,13 @@ void NativeAudioEffectsModule::invokeJSCallback(
 
 // === Méthodes publiques ===
 
-jsi::Value NativeAudioEffectsModule::initialize(jsi::Runtime& rt) {
+void NativeAudioEffectsModule::initialize(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     try {
         initializeEffectChain();
-        return jsi::Value(true);
     } catch (const std::exception& e) {
         handleError(std::string("Initialization failed: ") + e.what());
-        return jsi::Value(false);
     }
 }
 

@@ -16,6 +16,9 @@ import {
   AuthInput,
   AuthButton,
   SocialAuthButtons,
+  SkiaAuthBackground,
+  SkiaAnimatedLogo,
+  SkiaSuccessAnimation,
 } from '../../components/auth';
 
 // Services et hooks
@@ -51,6 +54,7 @@ export const RegisterScreen: React.FC = () => {
   const [errors, setErrors] = useState<AuthValidationErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
 
   // Validation du formulaire
   const validateForm = (): boolean => {
@@ -105,6 +109,9 @@ export const RegisterScreen: React.FC = () => {
         `${formData.firstName} ${formData.lastName}`
       );
       logger.info('Inscription réussie');
+
+      // Afficher l'animation de succès hypnotique
+      setShowSuccessAnimation(true);
     } catch (error) {
       logger.error('Erreur d\'inscription:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur d\'inscription';
@@ -177,38 +184,42 @@ export const RegisterScreen: React.FC = () => {
   }), [isDark, currentTheme.colors.primary]);
 
   return (
-    <AuthContainer>
-      <View style={tw`w-full max-w-md mx-auto px-6`}>
-        <View style={tw`items-center mb-8`}>
-          {/* Logo ou icône */}
-          <View
-            style={[
-              tw`w-20 h-20 rounded-full items-center justify-center mb-4`,
-              styles.badgeBackground,
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="account-plus"
-              size={40}
-              color={currentTheme.colors.primary}
-            />
-          </View>
+    <SkiaAuthBackground>
+      <SkiaSuccessAnimation
+        visible={showSuccessAnimation}
+        onAnimationComplete={() => {
+          setShowSuccessAnimation(false);
+          // Ici vous pourriez naviguer vers l'écran principal
+        }}
+        duration={2500}
+      />
 
-          {/* Titre */}
-          <Text style={[
-            tw`text-2xl font-bold text-center mb-2`,
-            styles.titleColor,
-          ]}>
-            Créer un compte
-          </Text>
-          
-          <Text style={[
-            tw`text-center text-base`,
-            styles.subtitleColor,
-          ]}>
-            Rejoignez-nous aujourd'hui
-          </Text>
-        </View>
+      <AuthContainer>
+        <View style={tw`w-full max-w-md mx-auto px-6`}>
+          <View style={tw`items-center mb-8`}>
+            {/* Logo Skia hypnotique avec couleurs différentes */}
+            <View style={tw`mb-6`}>
+              <SkiaAnimatedLogo
+                size={140}
+                colors={['#667eea', '#764ba2', '#f093fb', '#f5576c']}
+              />
+            </View>
+
+            {/* Titre avec effet visuel */}
+            <Text style={[
+              tw`text-3xl font-bold text-center mb-3`,
+              styles.titleColor,
+            ]}>
+              🌟 Rejoignez-nous ! 🌟
+            </Text>
+
+            <Text style={[
+              tw`text-center text-base`,
+              styles.subtitleColor,
+            ]}>
+              Laissez-vous envoûter par l'expérience...
+            </Text>
+          </View>
 
         {/* Formulaire */}
         <View style={tw`mb-6`}>
@@ -385,5 +396,6 @@ export const RegisterScreen: React.FC = () => {
         </View>
       </View>
     </AuthContainer>
+    </SkiaAuthBackground>
   );
 };

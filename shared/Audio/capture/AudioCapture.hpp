@@ -207,7 +207,11 @@ public:
     CaptureState getState() const override { return state_.load(); }
     bool isCapturing() const override { return state_ == CaptureState::Running; }
     CaptureStatistics getStatistics() const override { return statistics_; }
-    void resetStatistics() override;
+    void resetStatistics() override {
+        statistics_ = CaptureStatistics();
+        currentLevel_ = 0.0f;
+        peakLevel_ = 0.0f;
+    }
     
     void setAudioDataCallback(AudioDataCallback callback) override { dataCallback_ = callback; }
     void setAudioDataCallbackInt16(AudioDataCallbackInt16 callback) override { dataCallbackInt16_ = callback; }

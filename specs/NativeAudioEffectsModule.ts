@@ -79,7 +79,7 @@ export interface Spec extends TurboModule {
   // === Gestion du cycle de vie ===
 
   // Initialise le système d'effets
-  readonly initialize: () => boolean;
+  readonly initialize: () => void;
 
   // Démarre le traitement audio
   readonly start: () => boolean;

@@ -264,11 +264,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/Audio/utils/AudioBuffer.cpp
 #Enhanced Audio Capture System with SIMD optimizations
     ../../../../../shared/Audio/capture/AudioCapture.hpp
-    ../../../../../shared/Audio/capture/AudioCaptureImpl.hpp
+    ../../../../../shared/Audio/capture/AudioCaptureImpl.cpp
     ../../../../../shared/Audio/capture/AudioCaptureUtils.hpp
+    ../../../../../shared/Audio/capture/AudioCaptureUtils.cpp
     ../../../../../shared/Audio/capture/AudioCaptureException.hpp
     ../../../../../shared/Audio/capture/AudioCaptureMetrics.hpp
+    ../../../../../shared/Audio/capture/AudioCaptureMetrics.cpp
     ../../../../../shared/Audio/capture/AudioCaptureSIMD.hpp
+    ../../../../../shared/Audio/capture/AudioCaptureSIMD.cpp
     ../../../../../shared/Audio/capture/AudioFileWriter.hpp
     ../../../../../shared/Audio/capture/examples/audio_recorder_example.cpp
 #Audio Pipeline Integration System

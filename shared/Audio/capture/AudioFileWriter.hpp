@@ -240,7 +240,7 @@ private:
     FileSplitCallback fileSplitCallback_;
     
     // Détection de silence
-    CircularBuffer<float> silenceBuffer_;
+    std::unique_ptr<CircularBuffer<float>> silenceBufferPtr_;
     AudioTimer silenceTimer_;
     
     // Méthodes privées

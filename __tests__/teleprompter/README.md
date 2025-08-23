@@ -2,6 +2,30 @@
 
 Ce dossier contient une suite complète de tests sophistiqués pour le système de téléprompter de l'application Nyth. Ces tests couvrent tous les aspects du système, de la logique métier aux interactions utilisateur.
 
+## ⚠️ **Tests de Gestes/Touches DÉSACTIVÉS**
+
+Les tests suivants ont été désactivés sur demande de l'utilisateur :
+
+### Tests Désactivés dans `GesturesAndInteractions.test.tsx`:
+- ✅ `useDoubleTapHandler` - Tests du Double-Tap (3 tests)
+- ✅ `useTouchHandlers` - Tests des Gestionnaires de Touches (4 tests)
+- ✅ `TouchPauseHandler` - Tests du Gestionnaire de Touches (4 tests)
+- ✅ `Intégration` - Tests de Scénarios Complexes (2 tests)
+
+### Tests Désactivés dans `TeleprompterSystem.test.tsx`:
+- ✅ `Contrôles Interactifs` - Tests des Gestes (2 tests)
+
+### Tests Désactivés dans `Accessibility.test.tsx`:
+- ✅ `Gestes de balayage` - Tests de navigation tactile
+- ✅ `Gestes de pincement` - Tests de zoom tactile
+
+### Tests Désactivés dans `Security.test.tsx`:
+- ✅ `Validation des événements de toucher` - Tests de sécurité tactile
+
+---
+
+# 🎬 Tests Sophistiqués du Système de Téléprompter
+
 ## 📁 Structure des Tests
 
 ```

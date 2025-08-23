@@ -3,10 +3,6 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface NativeCameraFiltersModuleProvider : NSObject <RCTModuleProvider>
-
-@end
-
 @interface NativeAudioEffectsModuleProvider : NSObject <RCTModuleProvider>
 
 @end

@@ -11,6 +11,7 @@
 #include <cmath> // For std::sqrt
 #include <numeric> // For std::accumulate
 #include <unordered_map> // For std::unordered_map
+#include <limits> // For std::numeric_limits
 
 namespace Nyth {
 namespace Audio {
@@ -296,6 +297,121 @@ private:
         }
         detailed_.stdDevLatencyMs = std::sqrt(variance / history.size());
     }
+};
+
+// Classe pour l'analyse de métriques audio avancées
+struct MetricsData {
+    std::chrono::steady_clock::time_point timestamp;
+    float rms = 0.0f;
+    float rmsDb = 0.0f;
+    float peak = 0.0f;
+    float peakDb = 0.0f;
+    float lufs = 0.0f;
+    float truePeak = 0.0f;
+    float truePeakDb = 0.0f;
+    float crestFactor = 0.0f;
+    float crestFactorDb = 0.0f;
+    float dynamicRange = 0.0f;
+    float zeroCrossingRate = 0.0f;
+    float spectralCentroid = 0.0f;
+};
+
+struct PerformanceStats {
+    uint64_t totalFrames = 0;
+    uint64_t totalSamples = 0;
+    float currentLatency = 0.0f;
+    float averageLatency = 0.0f;
+    float minLatency = std::numeric_limits<float>::max();
+    float maxLatency = 0.0f;
+    float cpuUsage = 0.0f;
+    uint32_t dropouts = 0;
+    uint32_t bufferUnderruns = 0;
+    uint32_t bufferOverruns = 0;
+};
+
+class AudioMetrics {
+private:
+    bool enabled_;
+    size_t windowSize_;
+    int updateInterval_;
+    std::chrono::steady_clock::time_point lastUpdateTime_;
+
+    MetricsData currentMetrics_;
+    MetricsData peakMetrics_;
+    MetricsData averageMetrics_;
+
+    std::vector<float> levelHistory_;
+    std::vector<float> peakHistory_;
+
+    size_t sampleCount_;
+    size_t frameCount_;
+    size_t updateCount_;
+
+    std::function<void(const MetricsData&)> updateCallback_;
+    mutable std::mutex mutex_;
+
+    void updateAverages(const MetricsData& current);
+    void updateHistory(const MetricsData& current);
+
+    float calculateLUFS(const float* data, size_t frameCount, int channelCount);
+    float calculateTruePeak(const float* data, size_t sampleCount);
+    float calculateDynamicRange(const float* data, size_t sampleCount);
+    float calculateZeroCrossingRate(const float* data, size_t sampleCount);
+    float estimateSpectralCentroid(const float* data, size_t sampleCount);
+
+public:
+    AudioMetrics();
+    ~AudioMetrics();
+
+    void reset();
+    void process(const float* data, size_t frameCount, int channelCount);
+
+    MetricsData getCurrentMetrics() const;
+    MetricsData getPeakMetrics() const;
+    MetricsData getAverageMetrics() const;
+
+    std::vector<float> getLevelHistory(size_t maxSamples) const;
+    std::vector<float> getPeakHistory(size_t maxSamples) const;
+
+    void setUpdateCallback(std::function<void(const MetricsData&)> callback);
+    void setUpdateInterval(int milliseconds);
+    void setHistorySize(size_t size);
+
+    void enable(bool enabled);
+    bool isEnabled() const;
+
+    std::string getFormattedReport() const;
+};
+
+class PerformanceMonitor {
+private:
+    bool enabled_;
+    PerformanceStats stats_;
+    std::vector<float> latencyHistory_;
+    std::vector<float> cpuHistory_;
+    std::chrono::high_resolution_clock::time_point frameStartTime_;
+    mutable std::mutex mutex_;
+
+public:
+    PerformanceMonitor();
+    ~PerformanceMonitor();
+
+    void reset();
+    void startFrame();
+    void endFrame(size_t samplesProcessed);
+
+    void recordDropout();
+    void recordBufferUnderrun();
+    void recordBufferOverrun();
+
+    PerformanceStats getStats() const;
+    std::vector<float> getLatencyHistory(size_t maxSamples) const;
+    std::vector<float> getCPUHistory(size_t maxSamples) const;
+
+    std::string getFormattedReport() const;
+
+    void enable(bool enabled);
+    bool isEnabled() const;
 };
 
 // Profiler pour mesurer les performances des fonctions

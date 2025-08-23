@@ -993,15 +993,13 @@ void NativeAudioCoreModule::invokeJSCallback(const std::string& callbackName,
 // === Méthodes publiques ===
 
 // Gestion du cycle de vie
-jsi::Value NativeAudioCoreModule::initialize(jsi::Runtime& rt) {
+void NativeAudioCoreModule::initialize(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(m_coreMutex);
 
     try {
         initializeEqualizer();
-        return jsi::Value(true);
     } catch (const std::exception& e) {
         handleError(convertError("module_error"), std::string("Initialization failed: ") + e.what());
-        return jsi::Value(false);
     }
 }
 

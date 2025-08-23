@@ -23,14 +23,12 @@
 		SA2000072F5A6B8C0099AABB /* AudioBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000172F5A6B8C0099AABB /* AudioBuffer.cpp */; };
 		SA2000082F5A6B8C0099AABB /* NativeAudioCoreModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000202F5A6B8C0099AABB /* NativeAudioCoreModule.cpp */; };
 		SA2000092F5A6B8C0099AABB /* EQPresetFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000072F5A6B8C0099AABB /* EQPresetFactory.cpp */; };
-		SF2000022F5A6B8C0099AABB /* FilterFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000052F5A6B8C0099AABB /* FilterFactory.cpp */; };
-		SF2000032F5A6B8C0099AABB /* FilterManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000072F5A6B8C0099AABB /* FilterManager.cpp */; };
-		SF2000052F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000102F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp */; };
-		SF2000062F5A6B8C0099AABB /* OpenGLFilterProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000122F5A6B8C0099AABB /* OpenGLFilterProcessor.cpp */; };
-		SF2000072F5A6B8C0099AABB /* MemoryManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000142F5A6B8C0099AABB /* MemoryManager.cpp */; };
-		SF2000082F5A6B8C0099AABB /* ProductionConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000152F5A6B8C0099AABB /* ProductionConfig.cpp */; };
-		SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */; };
 		SA2000102F5A6B8C0099AABB /* AudioFileWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000192F5A6B8C0099AABB /* AudioFileWriter.cpp */; };
+		SA2000104F5A6B8C0099AABB /* AudioCaptureUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000203F5A6B8C0099AABB /* AudioCaptureUtils.cpp */; };
+		SA2000105F5A6B8C0099AABB /* AudioCaptureMetrics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000204F5A6B8C0099AABB /* AudioCaptureMetrics.cpp */; };
+		SA2000106F5A6B8C0099AABB /* AudioCaptureSIMD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000205F5A6B8C0099AABB /* AudioCaptureSIMD.cpp */; };
+		SA2000107F5A6B8C0099AABB /* AudioCaptureImpl.mm in Sources */ = {isa = PBXBuildFile; fileRef = SA1000206F5A6B8C0099AABB /* AudioCaptureImpl.mm */; };
+		SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */; };
 		SS2000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SS1000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp */; };
 /* End PBXBuildFile section */
 
@@ -56,15 +54,13 @@
 		SA1000132F5A6B8C0099AABB /* SpectralNR.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SpectralNR.cpp; path = ../shared/Audio/noise/SpectralNR.cpp; sourceTree = SOURCE_ROOT; };
 		SA1000152F5A6B8C0099AABB /* AudioSafety.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioSafety.cpp; path = ../shared/Audio/safety/AudioSafety.cpp; sourceTree = SOURCE_ROOT; };
 		SA1000172F5A6B8C0099AABB /* AudioBuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioBuffer.cpp; path = ../shared/Audio/utils/AudioBuffer.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000202F5A6B8C0099AABB /* NativeAudioCoreModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeAudioCoreModule.cpp; path = ../shared/NativeAudioCoreModule.cpp; sourceTree = SOURCE_ROOT; };
-		SF1000052F5A6B8C0099AABB /* FilterFactory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FilterFactory.cpp; path = ../shared/filters/FilterFactory.cpp; sourceTree = SOURCE_ROOT; };
-		SF1000072F5A6B8C0099AABB /* FilterManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FilterManager.cpp; path = ../shared/filters/FilterManager.cpp; sourceTree = SOURCE_ROOT; };
-		SF1000102F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeCameraFiltersModule.cpp; path = ../shared/NativeCameraFiltersModule.cpp; sourceTree = SOURCE_ROOT; };
-		SF1000122F5A6B8C0099AABB /* OpenGLFilterProcessor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OpenGLFilterProcessor.cpp; path = ../shared/filters/OpenGLFilterProcessor.cpp; sourceTree = SOURCE_ROOT; };
-		SF1000142F5A6B8C0099AABB /* MemoryManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryManager.cpp; path = ../shared/filters/MemoryManager.cpp; sourceTree = SOURCE_ROOT; };
-		SF1000152F5A6B8C0099AABB /* ProductionConfig.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ProductionConfig.cpp; path = ../shared/filters/ProductionConfig.cpp; sourceTree = SOURCE_ROOT; };
-		SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioPipeline.cpp; path = ../shared/Audio/AudioPipeline.cpp; sourceTree = SOURCE_ROOT; };
 		SA1000192F5A6B8C0099AABB /* AudioFileWriter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioFileWriter.cpp; path = ../shared/Audio/capture/AudioFileWriter.cpp; sourceTree = SOURCE_ROOT; };
+		SA1000202F5A6B8C0099AABB /* NativeAudioCoreModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeAudioCoreModule.cpp; path = ../shared/NativeAudioCoreModule.cpp; sourceTree = SOURCE_ROOT; };
+		SA1000203F5A6B8C0099AABB /* AudioCaptureUtils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCaptureUtils.cpp; path = ../shared/Audio/capture/AudioCaptureUtils.cpp; sourceTree = SOURCE_ROOT; };
+		SA1000204F5A6B8C0099AABB /* AudioCaptureMetrics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCaptureMetrics.cpp; path = ../shared/Audio/capture/AudioCaptureMetrics.cpp; sourceTree = SOURCE_ROOT; };
+		SA1000205F5A6B8C0099AABB /* AudioCaptureSIMD.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCaptureSIMD.cpp; path = ../shared/Audio/capture/AudioCaptureSIMD.cpp; sourceTree = SOURCE_ROOT; };
+		SA1000206F5A6B8C0099AABB /* AudioCaptureImpl.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = AudioCaptureImpl.mm; path = ../shared/Audio/capture/AudioCaptureImpl.mm; sourceTree = SOURCE_ROOT; };
+		SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioPipeline.cpp; path = ../shared/Audio/AudioPipeline.cpp; sourceTree = SOURCE_ROOT; };
 		SS1000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeAudioSpectrumModule.cpp; path = ../shared/NativeAudioSpectrumModule.cpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -316,14 +312,12 @@
 				SA2000062F5A6B8C0099AABB /* AudioSafety.cpp in Sources */,
 				SA2000072F5A6B8C0099AABB /* AudioBuffer.cpp in Sources */,
 				SA2000082F5A6B8C0099AABB /* NativeAudioCoreModule.cpp in Sources */,
-				SF2000022F5A6B8C0099AABB /* FilterFactory.cpp in Sources */,
-				SF2000032F5A6B8C0099AABB /* FilterManager.cpp in Sources */,
-				SF2000052F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp in Sources */,
-				SF2000062F5A6B8C0099AABB /* OpenGLFilterProcessor.cpp in Sources */,
-				SF2000072F5A6B8C0099AABB /* MemoryManager.cpp in Sources */,
-				SF2000082F5A6B8C0099AABB /* ProductionConfig.cpp in Sources */,
 				SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */,
 				SA2000102F5A6B8C0099AABB /* AudioFileWriter.cpp in Sources */,
+				SA2000104F5A6B8C0099AABB /* AudioCaptureUtils.cpp in Sources */,
+				SA2000107F5A6B8C0099AABB /* AudioCaptureImpl.mm in Sources */,
+				SA2000105F5A6B8C0099AABB /* AudioCaptureMetrics.cpp in Sources */,
+				SA2000106F5A6B8C0099AABB /* AudioCaptureSIMD.cpp in Sources */,
 				SS2000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -464,8 +458,6 @@
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios",
 					"\"$(SRCROOT)/../shared\"",
 					"\"$(SRCROOT)/../shared/Audio/**\"",
-					"\"$(SRCROOT)/../shared/filters\"",
-					"\"$(SRCROOT)/../shared/filters/**\"",
 					"\"$(SRCROOT)/../shared/Audio/capture\"",
 					"\"$(SRCROOT)/../shared/Audio/core\"",
 					"\"$(SRCROOT)/../shared/Audio/effects\"",
@@ -474,6 +466,7 @@
 					"\"$(SRCROOT)/../shared/Audio/safety\"",
 					"\"$(SRCROOT)/../shared/Audio/utils\"",
 					"\"$(SRCROOT)/../shared/Audio/capture/**\"",
+					"\"$(SRCROOT)/../shared/Audio/capture\"",
 					"\"$(SRCROOT)/../shared/Audio/core/**\"",
 					"\"$(SRCROOT)/../shared/Audio/effects/**\"",
 					"\"$(SRCROOT)/../shared/Audio/fft/**\"",
@@ -572,8 +565,6 @@
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios",
 					"\"$(SRCROOT)/../shared\"",
 					"\"$(SRCROOT)/../shared/Audio/**\"",
-					"\"$(SRCROOT)/../shared/filters\"",
-					"\"$(SRCROOT)/../shared/filters/**\"",
 					"\"$(SRCROOT)/../shared/Audio/capture\"",
 					"\"$(SRCROOT)/../shared/Audio/core\"",
 					"\"$(SRCROOT)/../shared/Audio/effects\"",
@@ -582,6 +573,7 @@
 					"\"$(SRCROOT)/../shared/Audio/safety\"",
 					"\"$(SRCROOT)/../shared/Audio/utils\"",
 					"\"$(SRCROOT)/../shared/Audio/capture/**\"",
+					"\"$(SRCROOT)/../shared/Audio/capture\"",
 					"\"$(SRCROOT)/../shared/Audio/core/**\"",
 					"\"$(SRCROOT)/../shared/Audio/effects/**\"",
 					"\"$(SRCROOT)/../shared/Audio/fft/**\"",

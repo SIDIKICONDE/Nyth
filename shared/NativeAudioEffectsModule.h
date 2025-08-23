@@ -163,7 +163,7 @@ public:
     // === Méthodes synchrones ===
 
     // Gestion du cycle de vie
-    jsi::Value initialize(jsi::Runtime& rt);
+    void initialize(jsi::Runtime& rt);
     jsi::Value start(jsi::Runtime& rt);
     jsi::Value stop(jsi::Runtime& rt);
     jsi::Value dispose(jsi::Runtime& rt);

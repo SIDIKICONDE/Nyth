@@ -15,7 +15,7 @@ import AIGeneratorScreen from "../screens/AIGeneratorScreen";
 import AIMemoryScreen from "../screens/AIMemoryScreen";
 import AISettingsScreen from "../screens/AISettingsScreen";
 import { AdminScreenV2 } from "../screens/AdminScreen/AdminScreenV2";
-import AudioScreen from "../screens/AudioScreen";
+import { AudioScreen } from "../screens/AudioScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
 import EditorScreen from "../screens/EditorScreen";
 import FontSettingsScreen from "../screens/FontSettingsScreen";

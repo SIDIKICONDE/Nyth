@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -61,10 +61,10 @@ export default function UltraModernUI({
   const clock = useClockValue();
   const particleClock = useClockValue();
 
-  // Valeurs Skia pour les animations des éléments flottants
-  const floatingProgress1 = useValue(0);
-  const floatingProgress2 = useValue(0);
-  const floatingProgress3 = useValue(0);
+  // Animations React Native pour les éléments flottants
+  const floatingAnimation1 = useRef(new Animated.Value(0)).current;
+  const floatingAnimation2 = useRef(new Animated.Value(0)).current;
+  const floatingAnimation3 = useRef(new Animated.Value(0)).current;
 
   // Valeurs Skia pour les particules avec animations avancées
   const particlesCount = 30; // Augmenté pour plus d'effet
@@ -80,37 +80,16 @@ export default function UltraModernUI({
   const globalPulse = useValue(1);
   const glowIntensity = useValue(0.5);
 
-  // Animations Skia computed pour les éléments flottants
-  const floatingElement1Transform = useComputedValue(() => {
-    const progress = floatingProgress1.current;
-    const translateY = -20 * Math.sin(progress * Math.PI * 2);
-    const rotate = 5 * Math.sin(progress * Math.PI * 2);
-    const scale = 0.8 + 0.2 * Math.sin(progress * Math.PI * 2);
-    return [{ translateY }, { rotate: `${rotate}deg` }, { scale }];
-  }, [floatingProgress1]);
-
-  const floatingElement2Transform = useComputedValue(() => {
-    const progress = floatingProgress2.current;
-    const translateY = -15 * Math.sin(progress * Math.PI * 2);
-    const scale = 0.8 + 0.3 * Math.sin(progress * Math.PI * 2 + Math.PI/4);
-    return [{ translateY }, { scale }];
-  }, [floatingProgress2]);
-
-  const floatingElement3Transform = useComputedValue(() => {
-    const progress = floatingProgress3.current;
-    const translateX = 10 * Math.sin(progress * Math.PI * 2);
-    const rotate = -8 * Math.sin(progress * Math.PI * 2 + Math.PI/2);
-    return [{ translateX }, { rotate: `${rotate}deg` }];
-  }, [floatingProgress3]);
+  // Array des animations flottantes React Native
+  const floatingAnimations = [
+    floatingAnimation1,
+    floatingAnimation2,
+    floatingAnimation3,
+  ];
 
   // Animation frame callback pour les mises à jour Skia
   useFrameCallback((frameInfo) => {
     const time = frameInfo.timeSinceFirstFrame / 1000; // en secondes
-
-    // Animations des éléments flottants avec Skia
-    floatingProgress1.current = (time / 4) % 1; // 4 secondes par cycle
-    floatingProgress2.current = (time / 3.5) % 1; // 3.5 secondes par cycle
-    floatingProgress3.current = (time / 4.5) % 1; // 4.5 secondes par cycle
 
     // Animation globale de pulse
     globalPulse.current = 1 + 0.02 * Math.sin(time * 2);
@@ -118,6 +97,37 @@ export default function UltraModernUI({
     // Animation de glow
     glowIntensity.current = 0.3 + 0.5 * Math.sin(time * 0.5);
   });
+
+  // Animations des éléments flottants avec React Native
+  useEffect(() => {
+    const startFloatingAnimations = () => {
+      Animated.loop(
+        Animated.timing(floatingAnimation1, {
+          toValue: 1,
+          duration: 4000,
+          useNativeDriver: true,
+        })
+      ).start();
+
+      Animated.loop(
+        Animated.timing(floatingAnimation2, {
+          toValue: 1,
+          duration: 3500,
+          useNativeDriver: true,
+        })
+      ).start();
+
+      Animated.loop(
+        Animated.timing(floatingAnimation3, {
+          toValue: 1,
+          duration: 4500,
+          useNativeDriver: true,
+        })
+      ).start();
+    };
+
+    startFloatingAnimations();
+  }, [floatingAnimation1, floatingAnimation2, floatingAnimation3]);
 
   // Animation des particules avec Skia
   useFrameCallback((frameInfo) => {
@@ -266,7 +276,7 @@ export default function UltraModernUI({
 function LoadingSpinner() {
   const clock = useClockValue();
   const rotation = useDerivedValue(() => {
-    return [{ rotate: clock.current * 0.01 }];
+    return [{ rotate: `${clock.current * 0.01}deg` }];
   }, [clock]);
 
   const pulse = useDerivedValue(() => {
@@ -844,7 +854,7 @@ export function UltraModernLoader({
 
   // Animation de rotation principale
   const mainRotation = useDerivedValue(() => {
-    return [{ rotate: clock.current * 0.008 }];
+    return [{ rotate: `${clock.current * 0.008}deg` }];
   }, [clock]);
 
   // Animation des particules orbitantes

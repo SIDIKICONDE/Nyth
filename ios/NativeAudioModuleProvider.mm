@@ -1,7 +1,6 @@
-#import "NativeCameraModuleProvider.h"
+#import "NativeAudioModuleProvider.h"
 #import <ReactCommon/CallInvoker.h>
 #import <ReactCommon/TurboModule.h>
-#import "../../shared/NativeCameraFiltersModule.h"
 #import "../../shared/NativeAudioEffectsModule.h"
 #import "../../shared/NativeAudioNoiseModule.h"
 #import "../../shared/NativeAudioSafetyModule.h"
@@ -11,15 +10,7 @@
 #import "../../shared/NativeAudioCaptureModule.h"
 #import "../../shared/NativeAudioSpectrumModule.h"
 
-@implementation NativeCameraFiltersModuleProvider
 
-- (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
-    (const facebook::react::ObjCTurboModule::InitParams &)params
-{
-  return std::make_shared<facebook::react::NativeCameraFiltersModule>(params.jsInvoker);
-}
-
-@end
 
 @implementation NativeAudioEffectsModuleProvider
 

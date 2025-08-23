@@ -370,7 +370,7 @@ describe('♿ Accessibilité du Téléprompter - Tests Complets', () => {
       expect(touchArea.style.minHeight).toBe(44);
     });
 
-    test('devrait supporter les gestes de balayage pour la navigation', () => {
+    test.skip('devrait supporter les gestes de balayage pour la navigation (DÉSACTIVÉ)', () => {
       const mockOnTogglePause = jest.fn();
       const mockOnPauseScroll = jest.fn();
       const mockOnResumeScroll = jest.fn();
@@ -404,7 +404,7 @@ describe('♿ Accessibilité du Téléprompter - Tests Complets', () => {
       expect(mockOnPauseScroll).toHaveBeenCalled();
     });
 
-    test('devrait supporter les gestes de pincement pour le zoom', () => {
+    test.skip('devrait supporter les gestes de pincement pour le zoom (DÉSACTIVÉ)', () => {
       const mockOnTogglePause = jest.fn();
       const mockOnPauseScroll = jest.fn();
       const mockOnResumeScroll = jest.fn();

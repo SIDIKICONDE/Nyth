@@ -2,15 +2,12 @@
 
 #include <algorithm>
 #include <chrono>
-#include <condition_variable>
 #include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <queue>
 #include <string>
 #include <thread>
-#include <vector>
 #include "AudioCapture.hpp"
 
 #ifdef __ANDROID__
@@ -28,8 +25,8 @@
 #endif
 #endif
 
-namespace Nyth {
 namespace Audio {
+namespace capture {
 
 // === Implémentation Android ===
 #ifdef __ANDROID__
@@ -107,6 +104,9 @@ public:
 #if TARGET_OS_IOS
 
 class AudioCaptureIOS : public AudioCaptureBase {
+public:
+    AudioCaptureIOS();
+    virtual ~AudioCaptureIOS() override;
 private:
     // Audio Unit pour la capture
     AudioComponentInstance audioUnit_ = nullptr;
@@ -121,7 +121,7 @@ private:
         size_t writePos = 0;
         size_t readPos = 0;
         size_t size = 0;
-        std::mutex mutex;
+        mutable std::mutex mutex;
 
         void write(const float* data, size_t frames);
         size_t read(float* data, size_t maxFrames);
@@ -155,9 +155,6 @@ private:
     void handleRouteChange(NSNotification* notification);
 
 public:
-    AudioCaptureIOS();
-    ~AudioCaptureIOS() override;
-
     bool initialize(const AudioCaptureConfig& config) override;
     bool start() override;
     bool pause() override;
@@ -195,28 +192,7 @@ public:
 };
 
 // === Factory implementation ===
-
-inline std::unique_ptr<AudioCapture> AudioCapture::create() {
-    AudioCaptureConfig defaultConfig;
-    return create(defaultConfig);
-}
-
-inline std::unique_ptr<AudioCapture> AudioCapture::create(const AudioCaptureConfig& config) {
-#ifdef __ANDROID__
-    auto capture = std::make_unique<AudioCaptureAndroid>();
-#elif defined(__APPLE__) && TARGET_OS_IOS
-    auto capture = std::make_unique<AudioCaptureIOS>();
-#else
-    // Fallback pour les plateformes non supportées
-    std::unique_ptr<AudioCapture> capture = nullptr;
-#endif
-
-    if (capture && capture->initialize(config)) {
-        return capture;
-    }
-
-    return nullptr;
-}
+// Les implémentations sont dans AudioCaptureImpl.mm
 
 // === Implémentation des méthodes de base ===
 
@@ -319,5 +295,5 @@ inline void AudioCaptureBase::updateLevelsInt16(const int16_t* data, size_t samp
     statistics_.peakLevel = maxVal;
 }
 
+} // namespace capture
 } // namespace Audio
-} // namespace Nyth
