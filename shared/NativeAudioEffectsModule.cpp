@@ -512,7 +512,7 @@ NythEffectConfig NativeAudioEffectsModule::parseEffectConfig(
     }
 
     if (jsConfig.hasProperty(rt, "enabled")) {
-        config.enabled = jsConfig.getProperty(rt, "enabled").asBool();
+        config.enabled = jsConfig.getProperty(rt, "enabled").getBool();
     }
 
     config.sampleRate = currentSampleRate_;
@@ -642,7 +642,7 @@ void NativeAudioEffectsModule::initialize(jsi::Runtime& rt) {
     }
 }
 
-jsi::Value NativeAudioEffectsModule::start(jsi::Runtime& rt) {
+bool NativeAudioEffectsModule::start(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     if (!effectChain_) {
@@ -651,24 +651,24 @@ jsi::Value NativeAudioEffectsModule::start(jsi::Runtime& rt) {
 
     if (effectChain_) {
         currentState_ = EFFECTS_STATE_PROCESSING;
-        return jsi::Value(true);
+        return true;
     }
 
-    return jsi::Value(false);
+    return false;
 }
 
-jsi::Value NativeAudioEffectsModule::stop(jsi::Runtime& rt) {
+bool NativeAudioEffectsModule::stop(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     if (effectChain_) {
         currentState_ = EFFECTS_STATE_INITIALIZED;
-        return jsi::Value(true);
+        return true;
     }
 
-    return jsi::Value(false);
+    return false;
 }
 
-jsi::Value NativeAudioEffectsModule::dispose(jsi::Runtime& rt) {
+void NativeAudioEffectsModule::dispose(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     if (effectChain_) {
@@ -676,26 +676,27 @@ jsi::Value NativeAudioEffectsModule::dispose(jsi::Runtime& rt) {
         activeEffects_.clear();
         currentState_ = EFFECTS_STATE_UNINITIALIZED;
     }
-
-    return jsi::Value(true);
 }
 
-jsi::Value NativeAudioEffectsModule::getState(jsi::Runtime& rt) {
+jsi::String NativeAudioEffectsModule::getState(jsi::Runtime& rt) {
     return jsi::String::createFromUtf8(rt, stateToString(currentState_.load()));
 }
 
-jsi::Value NativeAudioEffectsModule::getStatistics(jsi::Runtime& rt) {
+std::optional<jsi::Object> NativeAudioEffectsModule::getStatistics(jsi::Runtime& rt) {
     NythEffectsStatistics stats = {0};
     NythEffects_GetStatistics(&stats);
+    // Optionnel: retourner null si non initialisé
+    if (currentState_.load() == EFFECTS_STATE_UNINITIALIZED) {
+        return std::nullopt;
+    }
     return statisticsToJS(rt, stats);
 }
 
-jsi::Value NativeAudioEffectsModule::resetStatistics(jsi::Runtime& rt) {
+void NativeAudioEffectsModule::resetStatistics(jsi::Runtime& rt) {
     NythEffects_ResetStatistics();
-    return jsi::Value(true);
 }
 
-jsi::Value NativeAudioEffectsModule::createEffect(jsi::Runtime& rt, const jsi::Object& config) {
+double NativeAudioEffectsModule::createEffect(jsi::Runtime& rt, const jsi::Object& config) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     try {
@@ -703,77 +704,77 @@ jsi::Value NativeAudioEffectsModule::createEffect(jsi::Runtime& rt, const jsi::O
         int effectId = NythEffects_CreateEffect(&nativeConfig);
 
         if (effectId >= 0) {
-            return jsi::Value(effectId);
+            return static_cast<double>(effectId);
         }
     } catch (const std::exception& e) {
         handleError(std::string("Create effect failed: ") + e.what());
     }
 
-    return jsi::Value(-1);
+    return -1.0;
 }
 
-jsi::Value NativeAudioEffectsModule::destroyEffect(jsi::Runtime& rt, int effectId) {
+bool NativeAudioEffectsModule::destroyEffect(jsi::Runtime& rt, double effectId) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
-    if (NythEffects_DestroyEffect(effectId)) {
-        activeEffects_.erase(effectId);
-        return jsi::Value(true);
+    if (NythEffects_DestroyEffect(static_cast<int>(effectId))) {
+        activeEffects_.erase(static_cast<int>(effectId));
+        return true;
     }
 
-    return jsi::Value(false);
+    return false;
 }
 
-jsi::Value NativeAudioEffectsModule::updateEffect(jsi::Runtime& rt, int effectId, const jsi::Object& config) {
+bool NativeAudioEffectsModule::updateEffect(jsi::Runtime& rt, double effectId, const jsi::Object& config) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     try {
         auto nativeConfig = parseEffectConfig(rt, config);
-        nativeConfig.effectId = effectId;
+        nativeConfig.effectId = static_cast<int>(effectId);
 
-        if (NythEffects_UpdateEffect(effectId, &nativeConfig)) {
-            return jsi::Value(true);
+        if (NythEffects_UpdateEffect(static_cast<int>(effectId), &nativeConfig)) {
+            return true;
         }
     } catch (const std::exception& e) {
         handleError(std::string("Update effect failed: ") + e.what());
     }
 
-    return jsi::Value(false);
+    return false;
 }
 
-jsi::Value NativeAudioEffectsModule::getEffectConfig(jsi::Runtime& rt, int effectId) {
+std::optional<jsi::Object> NativeAudioEffectsModule::getEffectConfig(jsi::Runtime& rt, double effectId) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     NythEffectConfig config;
-    if (NythEffects_GetEffectConfig(effectId, &config)) {
+    if (NythEffects_GetEffectConfig(static_cast<int>(effectId), &config)) {
         return effectConfigToJS(rt, config);
     }
 
-    return jsi::Value::null();
+    return std::nullopt;
 }
 
-jsi::Value NativeAudioEffectsModule::enableEffect(jsi::Runtime& rt, int effectId, bool enabled) {
+bool NativeAudioEffectsModule::enableEffect(jsi::Runtime& rt, double effectId, bool enabled) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
-    if (NythEffects_EnableEffect(effectId, enabled)) {
-        return jsi::Value(true);
+    if (NythEffects_EnableEffect(static_cast<int>(effectId), enabled)) {
+        return true;
     }
 
-    return jsi::Value(false);
+    return false;
 }
 
-jsi::Value NativeAudioEffectsModule::isEffectEnabled(jsi::Runtime& rt, int effectId) {
+bool NativeAudioEffectsModule::isEffectEnabled(jsi::Runtime& rt, double effectId) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
-    return jsi::Value(NythEffects_IsEffectEnabled(effectId));
+    return NythEffects_IsEffectEnabled(static_cast<int>(effectId));
 }
 
-jsi::Value NativeAudioEffectsModule::getActiveEffectsCount(jsi::Runtime& rt) {
+double NativeAudioEffectsModule::getActiveEffectsCount(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
-    return jsi::Value(NythEffects_GetActiveEffectsCount());
+    return static_cast<double>(NythEffects_GetActiveEffectsCount());
 }
 
-jsi::Value NativeAudioEffectsModule::getActiveEffectIds(jsi::Runtime& rt) {
+jsi::Array NativeAudioEffectsModule::getActiveEffectIds(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     size_t count = 0;
@@ -783,23 +784,24 @@ jsi::Value NativeAudioEffectsModule::getActiveEffectIds(jsi::Runtime& rt) {
     return effectIdsToJS(rt, effectIds);
 }
 
-jsi::Value NativeAudioEffectsModule::setCompressorParameters(jsi::Runtime& rt, int effectId,
-                                                            float thresholdDb, float ratio,
-                                                            float attackMs, float releaseMs, float makeupDb) {
+bool NativeAudioEffectsModule::setCompressorParameters(jsi::Runtime& rt, double effectId,
+                                                            double thresholdDb, double ratio,
+                                                            double attackMs, double releaseMs, double makeupDb) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
-    if (NythEffects_SetCompressorParameters(effectId, thresholdDb, ratio, attackMs, releaseMs, makeupDb)) {
-        return jsi::Value(true);
-    }
-
-    return jsi::Value(false);
+    return NythEffects_SetCompressorParameters(static_cast<int>(effectId),
+                                               static_cast<float>(thresholdDb),
+                                               static_cast<float>(ratio),
+                                               static_cast<float>(attackMs),
+                                               static_cast<float>(releaseMs),
+                                               static_cast<float>(makeupDb));
 }
 
-jsi::Value NativeAudioEffectsModule::getCompressorParameters(jsi::Runtime& rt, int effectId) {
+std::optional<jsi::Object> NativeAudioEffectsModule::getCompressorParameters(jsi::Runtime& rt, double effectId) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     float thresholdDb, ratio, attackMs, releaseMs, makeupDb;
-    if (NythEffects_GetCompressorParameters(effectId, &thresholdDb, &ratio, &attackMs, &releaseMs, &makeupDb)) {
+    if (NythEffects_GetCompressorParameters(static_cast<int>(effectId), &thresholdDb, &ratio, &attackMs, &releaseMs, &makeupDb)) {
         jsi::Object params(rt);
         params.setProperty(rt, "thresholdDb", jsi::Value(thresholdDb));
         params.setProperty(rt, "ratio", jsi::Value(ratio));
@@ -809,25 +811,24 @@ jsi::Value NativeAudioEffectsModule::getCompressorParameters(jsi::Runtime& rt, i
         return params;
     }
 
-    return jsi::Value::null();
+    return std::nullopt;
 }
 
-jsi::Value NativeAudioEffectsModule::setDelayParameters(jsi::Runtime& rt, int effectId,
-                                                       float delayMs, float feedback, float mix) {
+bool NativeAudioEffectsModule::setDelayParameters(jsi::Runtime& rt, double effectId,
+                                                       double delayMs, double feedback, double mix) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
-    if (NythEffects_SetDelayParameters(effectId, delayMs, feedback, mix)) {
-        return jsi::Value(true);
-    }
-
-    return jsi::Value(false);
+    return NythEffects_SetDelayParameters(static_cast<int>(effectId),
+                                          static_cast<float>(delayMs),
+                                          static_cast<float>(feedback),
+                                          static_cast<float>(mix));
 }
 
-jsi::Value NativeAudioEffectsModule::getDelayParameters(jsi::Runtime& rt, int effectId) {
+std::optional<jsi::Object> NativeAudioEffectsModule::getDelayParameters(jsi::Runtime& rt, double effectId) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     float delayMs, feedback, mix;
-    if (NythEffects_GetDelayParameters(effectId, &delayMs, &feedback, &mix)) {
+    if (NythEffects_GetDelayParameters(static_cast<int>(effectId), &delayMs, &feedback, &mix)) {
         jsi::Object params(rt);
         params.setProperty(rt, "delayMs", jsi::Value(delayMs));
         params.setProperty(rt, "feedback", jsi::Value(feedback));
@@ -835,13 +836,13 @@ jsi::Value NativeAudioEffectsModule::getDelayParameters(jsi::Runtime& rt, int ef
         return params;
     }
 
-    return jsi::Value::null();
+    return std::nullopt;
 }
 
-jsi::Value NativeAudioEffectsModule::processAudio(jsi::Runtime& rt, const jsi::Array& input, int channels) {
+std::optional<jsi::Array> NativeAudioEffectsModule::processAudio(jsi::Runtime& rt, const jsi::Array& input, double channels) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
-    size_t frameCount = input.length(rt) / channels;
+    size_t frameCount = input.length(rt) / static_cast<size_t>(channels);
     std::vector<float> inputBuffer(input.length(rt));
     std::vector<float> outputBuffer(input.length(rt));
 
@@ -850,7 +851,7 @@ jsi::Value NativeAudioEffectsModule::processAudio(jsi::Runtime& rt, const jsi::A
         inputBuffer[i] = static_cast<float>(input.getValueAtIndex(rt, i).asNumber());
     }
 
-    if (NythEffects_ProcessAudio(inputBuffer.data(), outputBuffer.data(), frameCount, channels)) {
+    if (NythEffects_ProcessAudio(inputBuffer.data(), outputBuffer.data(), frameCount, static_cast<int>(channels))) {
         // Convertir le résultat en array JSI
         jsi::Array result(rt, outputBuffer.size());
         for (size_t i = 0; i < outputBuffer.size(); ++i) {
@@ -859,17 +860,17 @@ jsi::Value NativeAudioEffectsModule::processAudio(jsi::Runtime& rt, const jsi::A
         return result;
     }
 
-    return jsi::Value::null();
+    return std::nullopt;
 }
 
-jsi::Value NativeAudioEffectsModule::processAudioStereo(jsi::Runtime& rt,
+std::optional<jsi::Object> NativeAudioEffectsModule::processAudioStereo(jsi::Runtime& rt,
                                                        const jsi::Array& inputL,
                                                        const jsi::Array& inputR) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     size_t frameCount = inputL.length(rt);
     if (frameCount != inputR.length(rt)) {
-        return jsi::Value::null();
+        return std::nullopt;
     }
 
     std::vector<float> inputLBuffer(frameCount);
@@ -900,51 +901,30 @@ jsi::Value NativeAudioEffectsModule::processAudioStereo(jsi::Runtime& rt,
         return result;
     }
 
-    return jsi::Value::null();
+    return std::nullopt;
 }
 
-jsi::Value NativeAudioEffectsModule::getInputLevel(jsi::Runtime& rt) {
-    return jsi::Value(NythEffects_GetInputLevel());
+double NativeAudioEffectsModule::getInputLevel(jsi::Runtime& rt) {
+    return static_cast<double>(NythEffects_GetInputLevel());
 }
 
-jsi::Value NativeAudioEffectsModule::getOutputLevel(jsi::Runtime& rt) {
-    return jsi::Value(NythEffects_GetOutputLevel());
+double NativeAudioEffectsModule::getOutputLevel(jsi::Runtime& rt) {
+    return static_cast<double>(NythEffects_GetOutputLevel());
 }
 
-jsi::Value NativeAudioEffectsModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
+void NativeAudioEffectsModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "audioDataCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
-    return jsi::Value(true);
+    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(callback);
 }
 
-jsi::Value NativeAudioEffectsModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
+void NativeAudioEffectsModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "errorCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
-    return jsi::Value(true);
+    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(callback);
 }
 
-jsi::Value NativeAudioEffectsModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
+void NativeAudioEffectsModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "stateChangeCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
-    return jsi::Value(true);
-}
-
-jsi::Value NativeAudioEffectsModule::install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker) {
-    // Installation directe du module dans le runtime JSI
-    // À implémenter selon les besoins
-    return jsi::Value(true);
+    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(callback);
 }
 
 // === Fonction d'enregistrement du module ===

@@ -142,6 +142,7 @@ void NythEffects_SetStateChangeCallback(NythEffectsStateChangeCallback callback)
 #include <functional>
 #include <vector>
 #include <map>
+#include <optional>
 
 #include <jsi/jsi.h>
 #include <ReactCommon/TurboModule.h>
@@ -162,64 +163,63 @@ namespace Audio {
 namespace facebook {
 namespace react {
 
-class JSI_EXPORT NativeAudioEffectsModule : public TurboModule {
+class JSI_EXPORT NativeAudioEffectsModule : public NativeAudioEffectsModuleCxxSpec<NativeAudioEffectsModule> {
 public:
     explicit NativeAudioEffectsModule(std::shared_ptr<CallInvoker> jsInvoker)
-        : TurboModule("NativeAudioEffectsModule", jsInvoker) {}
+        : NativeAudioEffectsModuleCxxSpec<NativeAudioEffectsModule>(jsInvoker) {
+        currentSampleRate_ = 44100;
+        currentChannels_ = 2;
+    }
     ~NativeAudioEffectsModule() override;
 
-    // === Méthodes TurboModule ===
     static constexpr auto kModuleName = "NativeAudioEffectsModule";
 
-    // === Méthodes synchrones ===
+    // === Méthodes synchrones (alignées sur le Spec TS) ===
 
     // Gestion du cycle de vie
     void initialize(jsi::Runtime& rt);
-    jsi::Value start(jsi::Runtime& rt);
-    jsi::Value stop(jsi::Runtime& rt);
-    jsi::Value dispose(jsi::Runtime& rt);
+    bool start(jsi::Runtime& rt);
+    bool stop(jsi::Runtime& rt);
+    void dispose(jsi::Runtime& rt);
 
     // État et informations
-    jsi::Value getState(jsi::Runtime& rt);
-    jsi::Value getStatistics(jsi::Runtime& rt);
-    jsi::Value resetStatistics(jsi::Runtime& rt);
+    jsi::String getState(jsi::Runtime& rt);
+    std::optional<jsi::Object> getStatistics(jsi::Runtime& rt);
+    void resetStatistics(jsi::Runtime& rt);
 
     // Gestion des effets
-    jsi::Value createEffect(jsi::Runtime& rt, const jsi::Object& config);
-    jsi::Value destroyEffect(jsi::Runtime& rt, int effectId);
-    jsi::Value updateEffect(jsi::Runtime& rt, int effectId, const jsi::Object& config);
-    jsi::Value getEffectConfig(jsi::Runtime& rt, int effectId);
+    double createEffect(jsi::Runtime& rt, const jsi::Object& config);
+    bool destroyEffect(jsi::Runtime& rt, double effectId);
+    bool updateEffect(jsi::Runtime& rt, double effectId, const jsi::Object& config);
+    std::optional<jsi::Object> getEffectConfig(jsi::Runtime& rt, double effectId);
 
     // Contrôle des effets
-    jsi::Value enableEffect(jsi::Runtime& rt, int effectId, bool enabled);
-    jsi::Value isEffectEnabled(jsi::Runtime& rt, int effectId);
-    jsi::Value getActiveEffectsCount(jsi::Runtime& rt);
-    jsi::Value getActiveEffectIds(jsi::Runtime& rt);
+    bool enableEffect(jsi::Runtime& rt, double effectId, bool enabled);
+    bool isEffectEnabled(jsi::Runtime& rt, double effectId);
+    double getActiveEffectsCount(jsi::Runtime& rt);
+    jsi::Array getActiveEffectIds(jsi::Runtime& rt);
 
     // Configuration des effets spécifiques
-    jsi::Value setCompressorParameters(jsi::Runtime& rt, int effectId, float thresholdDb,
-                                     float ratio, float attackMs, float releaseMs, float makeupDb);
-    jsi::Value getCompressorParameters(jsi::Runtime& rt, int effectId);
-    jsi::Value setDelayParameters(jsi::Runtime& rt, int effectId, float delayMs,
-                                float feedback, float mix);
-    jsi::Value getDelayParameters(jsi::Runtime& rt, int effectId);
+    bool setCompressorParameters(jsi::Runtime& rt, double effectId, double thresholdDb,
+                                 double ratio, double attackMs, double releaseMs, double makeupDb);
+    std::optional<jsi::Object> getCompressorParameters(jsi::Runtime& rt, double effectId);
+    bool setDelayParameters(jsi::Runtime& rt, double effectId, double delayMs,
+                            double feedback, double mix);
+    std::optional<jsi::Object> getDelayParameters(jsi::Runtime& rt, double effectId);
 
     // Traitement audio
-    jsi::Value processAudio(jsi::Runtime& rt, const jsi::Array& input, int channels);
-    jsi::Value processAudioStereo(jsi::Runtime& rt, const jsi::Array& inputL,
-                                const jsi::Array& inputR);
+    std::optional<jsi::Array> processAudio(jsi::Runtime& rt, const jsi::Array& input, double channels);
+    std::optional<jsi::Object> processAudioStereo(jsi::Runtime& rt, const jsi::Array& inputL,
+                                                  const jsi::Array& inputR);
 
     // Analyse audio
-    jsi::Value getInputLevel(jsi::Runtime& rt);
-    jsi::Value getOutputLevel(jsi::Runtime& rt);
+    double getInputLevel(jsi::Runtime& rt);
+    double getOutputLevel(jsi::Runtime& rt);
 
     // === Callbacks JavaScript ===
-    jsi::Value setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback);
-    jsi::Value setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback);
-    jsi::Value setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback);
-
-    // === Installation du module ===
-    static jsi::Value install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker);
+    void setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback);
+    void setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback);
+    void setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback);
 
 private:
     // Instance de la chaîne d'effets
