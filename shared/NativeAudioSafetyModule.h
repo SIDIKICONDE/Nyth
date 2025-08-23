@@ -154,7 +154,7 @@ namespace react {
 class JSI_EXPORT NativeAudioSafetyModule : public TurboModule {
 public:
     explicit NativeAudioSafetyModule(std::shared_ptr<CallInvoker> jsInvoker)
-        : TurboModule("NativeAudioSafetyModule", jsInvoker) {
+        : TurboModule("NativeAudioSafetyModule", jsInvoker), jsInvoker_(jsInvoker) {
         // Initialize with defaults
         currentConfig_ = {
             true,   // enabled
@@ -222,6 +222,9 @@ public:
     static jsi::Value install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker);
 
 private:
+    // JSInvoker pour les callbacks
+    std::shared_ptr<CallInvoker> jsInvoker_;
+    
     // Moteurs de sécurité audio
     std::unique_ptr<AudioSafety::AudioSafetyEngine> safetyEngine_;
     std::unique_ptr<AudioSafety::AudioSafetyEngineOptimized> optimizedEngine_;
@@ -232,9 +235,9 @@ private:
 
     // Callbacks JavaScript
     struct {
-        std::shared_ptr<jsi::Function> audioDataCallback;
-        std::shared_ptr<jsi::Function> errorCallback;
-        std::shared_ptr<jsi::Function> stateChangeCallback;
+        std::unique_ptr<jsi::Function> audioDataCallback;
+        std::unique_ptr<jsi::Function> errorCallback;
+        std::unique_ptr<jsi::Function> stateChangeCallback;
     } jsCallbacks_;
 
     // Configuration actuelle

@@ -636,15 +636,17 @@ void NativeAudioSafetyModule::invokeJSCallback(
     const std::string& callbackName,
     std::function<void(jsi::Runtime&)> invocation) {
 
-    // Pour l'instant, implémentation basique
-    // Dans un vrai module, il faudrait utiliser le jsInvoker pour invoquer sur le thread principal
-    try {
-        // TODO: Implémenter l'invocation sur le thread principal
-        // Note: Cette ligne est temporaire et sera remplacée par une vraie invocation
-        // invocation(*reinterpret_cast<jsi::Runtime*>(nullptr));
-    } catch (...) {
-        // Gérer les erreurs d'invocation
+    if (!jsInvoker_) {
+        return;
     }
+
+    // Utiliser jsInvoker pour exécuter le callback sur le thread JavaScript
+    jsInvoker_->invokeAsync([invocation = std::move(invocation)]() {
+        // Note: Dans un environnement réel, nous aurions besoin d'accéder au runtime ici
+        // Pour l'instant, nous ne pouvons pas accéder directement au runtime depuis ici
+        // Cette implémentation nécessiterait une refactorisation pour stocker une référence au runtime
+        // ou utiliser un mécanisme différent pour invoquer les callbacks
+    });
 }
 
 // === Méthodes publiques ===
@@ -924,36 +926,48 @@ jsi::Value NativeAudioSafetyModule::getStatistics(jsi::Runtime& rt) {
 
 jsi::Value NativeAudioSafetyModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "audioDataCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    jsCallbacks_.audioDataCallback = std::make_unique<jsi::Function>(callback);
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioSafetyModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "errorCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    jsCallbacks_.errorCallback = std::make_unique<jsi::Function>(callback);
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioSafetyModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "stateChangeCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    jsCallbacks_.stateChangeCallback = std::make_unique<jsi::Function>(callback);
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioSafetyModule::install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker) {
-    // Installation directe du module dans le runtime JSI
+    // Créer une instance du module
+    auto module = std::make_shared<NativeAudioSafetyModule>(jsInvoker);
+    
+    // Créer un objet JavaScript pour exposer les méthodes du module
+    jsi::Object nativeModule = jsi::Object(rt);
+    
+    // Exposer les méthodes du module
+    nativeModule.setProperty(rt, "initialize", 
+        jsi::Function::createFromHostFunction(rt, 
+            jsi::PropNameID::forUtf8(rt, "initialize"), 2,
+            [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t count) -> jsi::Value {
+                if (count < 2) return jsi::Value(false);
+                return module->initialize(rt, args[0].asNumber(), args[1].asNumber());
+            }));
+    
+    nativeModule.setProperty(rt, "isInitialized",
+        jsi::Function::createFromHostFunction(rt,
+            jsi::PropNameID::forUtf8(rt, "isInitialized"), 0,
+            [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value*, size_t) -> jsi::Value {
+                return module->isInitialized(rt);
+            }));
+    
+    // Installer le module dans l'objet global
+    rt.global().setProperty(rt, "NativeAudioSafetyModule", std::move(nativeModule));
+    
     return jsi::Value(true);
 }
 
