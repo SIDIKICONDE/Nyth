@@ -7,6 +7,7 @@
 #include <sstream>
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 // === Instance globale pour l'API C ===
 static std::unique_ptr<Nyth::Audio::AudioPipeline> g_audioPipeline;
@@ -705,7 +706,6 @@ NythPipelineEffectConfig NativeAudioPipelineModule::parseEffectConfig(jsi::Runti
         config.effectId[sizeof(config.effectId) - 1] = '\0';
     }
     if (jsConfig.hasProperty(rt, "parameters")) {
-        // Pour les paramètres, on suppose que c'est un tableau de nombres
         auto paramsValue = jsConfig.getProperty(rt, "parameters");
         if (paramsValue.isObject()) {
             auto paramsObj = paramsValue.asObject(rt);
@@ -713,10 +713,27 @@ NythPipelineEffectConfig NativeAudioPipelineModule::parseEffectConfig(jsi::Runti
                 auto paramsArray = paramsObj.asArray(rt);
                 size_t paramCount = std::min(paramsArray.length(rt), static_cast<size_t>(16));
                 config.parameterCount = static_cast<int>(paramCount);
-                
                 for (size_t i = 0; i < paramCount; ++i) {
                     config.parameters[i] = static_cast<float>(paramsArray.getValueAtIndex(rt, i).asNumber());
                 }
+            } else {
+                // Support d'un objet { key: number|boolean|string }
+                auto keys = paramsObj.getPropertyNames(rt);
+                size_t paramIndex = 0;
+                for (size_t i = 0; i < keys.length(rt) && paramIndex < 16; ++i) {
+                    auto key = keys.getValueAtIndex(rt, i);
+                    if (key.isString()) {
+                        jsi::Value v = paramsObj.getProperty(rt, key.asString(rt));
+                        if (v.isNumber()) {
+                            config.parameters[paramIndex++] = static_cast<float>(v.asNumber());
+                        } else if (v.isBool()) {
+                            config.parameters[paramIndex++] = v.getBool() ? 1.0f : 0.0f;
+                        } else {
+                            // Ignorer les valeurs non numériques (e.g., string)
+                        }
+                    }
+                }
+                config.parameterCount = static_cast<int>(paramIndex);
             }
         }
     }
@@ -750,6 +767,7 @@ jsi::Value NativeAudioPipelineModule::initialize(jsi::Runtime& rt, const jsi::Ob
 
         if (success) {
             currentConfig_ = nativeConfig;
+            currentState_ = PIPELINE_STATE_INITIALIZED;
             return jsi::Value(true);
         }
     } catch (const std::exception& e) {
@@ -770,7 +788,7 @@ jsi::Value NativeAudioPipelineModule::dispose(jsi::Runtime& rt) {
     NythPipeline_Release();
     currentState_ = PIPELINE_STATE_UNINITIALIZED;
 
-    return jsi::Value(true);
+    return jsi::Value::undefined();
 }
 
 // Contrôle du pipeline
@@ -979,7 +997,7 @@ jsi::Value NativeAudioPipelineModule::removeAllEffects(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
     NythPipeline_RemoveAllEffects();
-    return jsi::Value(true);
+    return jsi::Value::undefined();
 }
 
 // Configuration des modules - Safety Limiter
@@ -1085,52 +1103,32 @@ jsi::Value NativeAudioPipelineModule::getCpuUsage(jsi::Runtime& rt) {
 
 jsi::Value NativeAudioPipelineModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "audioDataCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
-    return jsi::Value(true);
+    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(callback);
+    return jsi::Value::undefined();
 }
 
 jsi::Value NativeAudioPipelineModule::setFFTDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.fftDataCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "fftDataCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
-    return jsi::Value(true);
+    jsCallbacks_.fftDataCallback = std::make_shared<jsi::Function>(callback);
+    return jsi::Value::undefined();
 }
 
 jsi::Value NativeAudioPipelineModule::setMetricsCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.metricsCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "metricsCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
-    return jsi::Value(true);
+    jsCallbacks_.metricsCallback = std::make_shared<jsi::Function>(callback);
+    return jsi::Value::undefined();
 }
 
 jsi::Value NativeAudioPipelineModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "errorCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
-    return jsi::Value(true);
+    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(callback);
+    return jsi::Value::undefined();
 }
 
 jsi::Value NativeAudioPipelineModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "stateChangeCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
-    return jsi::Value(true);
+    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(callback);
+    return jsi::Value::undefined();
 }
 
 // === Intégration avec NativeAudioCaptureModule ===
@@ -1160,8 +1158,139 @@ jsi::Value NativeAudioPipelineModule::getCaptureLevel(jsi::Runtime& rt) {
 
 // === Installation du module ===
 jsi::Value NativeAudioPipelineModule::install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker) {
-    // Installation directe du module dans le runtime JSI
-    return jsi::Value(true);
+    auto module = std::make_shared<NativeAudioPipelineModule>(jsInvoker);
+
+    auto object = jsi::Object(rt);
+
+    // Enregistrer toutes les méthodes
+    auto registerMethod =
+        [&](const char* name, size_t paramCount,
+            std::function<jsi::Value(NativeAudioPipelineModule*, jsi::Runtime&, const jsi::Value*, size_t)> method) {
+            object.setProperty(
+                rt, name,
+                jsi::Function::createFromHostFunction(
+                    rt, jsi::PropNameID::forAscii(rt, name), static_cast<unsigned int>(paramCount),
+                    [module, method](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args,
+                                     size_t count) -> jsi::Value { return method(module.get(), rt, args, count); }));
+        };
+
+    // Gestion du cycle de vie
+    registerMethod("initialize", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->initialize(rt, args[0].asObject(rt));
+    });
+    registerMethod("isInitialized", 0, [](auto* m, auto& rt, auto*, auto) { return m->isInitialized(rt); });
+    registerMethod("dispose", 0, [](auto* m, auto& rt, auto*, auto) { return m->dispose(rt); });
+
+    // Contrôle du pipeline
+    registerMethod("start", 0, [](auto* m, auto& rt, auto*, auto) { return m->start(rt); });
+    registerMethod("stop", 0, [](auto* m, auto& rt, auto*, auto) { return m->stop(rt); });
+    registerMethod("pause", 0, [](auto* m, auto& rt, auto*, auto) { return m->pause(rt); });
+    registerMethod("resume", 0, [](auto* m, auto& rt, auto*, auto) { return m->resume(rt); });
+
+    // État et informations
+    registerMethod("getState", 0, [](auto* m, auto& rt, auto*, auto) { return m->getState(rt); });
+    registerMethod("getErrorString", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->getErrorString(rt, static_cast<int>(args[0].asNumber()));
+    });
+    registerMethod("getMetrics", 0, [](auto* m, auto& rt, auto*, auto) { return m->getMetrics(rt); });
+    registerMethod("getModuleStatus", 0, [](auto* m, auto& rt, auto*, auto) { return m->getModuleStatus(rt); });
+
+    // Configuration des modules - Equalizer
+    registerMethod("setEqualizerEnabled", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setEqualizerEnabled(rt, args[0].asBool());
+    });
+    registerMethod("setEqualizerBand", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setEqualizerBand(rt, args[0].asObject(rt));
+    });
+    registerMethod("loadEqualizerPreset", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->loadEqualizerPreset(rt, args[0].asString(rt));
+    });
+    registerMethod("resetEqualizer", 0, [](auto* m, auto& rt, auto*, auto) { return m->resetEqualizer(rt); });
+
+    // Configuration des modules - Noise Reduction
+    registerMethod("setNoiseReductionEnabled", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setNoiseReductionEnabled(rt, args[0].asBool());
+    });
+    registerMethod("setNoiseReductionStrength", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setNoiseReductionStrength(rt, static_cast<float>(args[0].asNumber()));
+    });
+    registerMethod("trainNoiseProfile", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->trainNoiseProfile(rt, static_cast<float>(args[0].asNumber()));
+    });
+
+    // Configuration des modules - Effects
+    registerMethod("setEffectsEnabled", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setEffectsEnabled(rt, args[0].asBool());
+    });
+    registerMethod("addEffect", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->addEffect(rt, args[0].asObject(rt));
+    });
+    registerMethod("removeEffect", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->removeEffect(rt, args[0].asString(rt));
+    });
+    registerMethod("setEffectParameter", 3, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setEffectParameter(rt, args[0].asString(rt), args[1].asString(rt),
+                                     static_cast<float>(args[2].asNumber()));
+    });
+    registerMethod("removeAllEffects", 0, [](auto* m, auto& rt, auto*, auto) { return m->removeAllEffects(rt); });
+
+    // Configuration des modules - Safety Limiter
+    registerMethod("setSafetyLimiterEnabled", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setSafetyLimiterEnabled(rt, args[0].asBool());
+    });
+    registerMethod("setSafetyLimiterThreshold", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setSafetyLimiterThreshold(rt, static_cast<float>(args[0].asNumber()));
+    });
+
+    // Configuration des modules - FFT Analysis
+    registerMethod("setFFTAnalysisEnabled", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setFFTAnalysisEnabled(rt, args[0].asBool());
+    });
+    registerMethod("setFFTSize", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setFFTSize(rt, static_cast<size_t>(args[0].asNumber()));
+    });
+
+    // Enregistrement
+    registerMethod("startRecording", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->startRecording(rt, args[0].asString(rt));
+    });
+    registerMethod("stopRecording", 0, [](auto* m, auto& rt, auto*, auto) { return m->stopRecording(rt); });
+    registerMethod("isRecording", 0, [](auto* m, auto& rt, auto*, auto) { return m->isRecording(rt); });
+
+    // Utilitaires
+    registerMethod("getCurrentLevel", 0, [](auto* m, auto& rt, auto*, auto) { return m->getCurrentLevel(rt); });
+    registerMethod("getPeakLevel", 0, [](auto* m, auto& rt, auto*, auto) { return m->getPeakLevel(rt); });
+    registerMethod("isClipping", 0, [](auto* m, auto& rt, auto*, auto) { return m->isClipping(rt); });
+    registerMethod("getLatencyMs", 0, [](auto* m, auto& rt, auto*, auto) { return m->getLatencyMs(rt); });
+    registerMethod("getCpuUsage", 0, [](auto* m, auto& rt, auto*, auto) { return m->getCpuUsage(rt); });
+
+    // Callbacks
+    registerMethod("setAudioDataCallback", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setAudioDataCallback(rt, args[0].asObject(rt).asFunction(rt));
+    });
+    registerMethod("setFFTDataCallback", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setFFTDataCallback(rt, args[0].asObject(rt).asFunction(rt));
+    });
+    registerMethod("setMetricsCallback", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setMetricsCallback(rt, args[0].asObject(rt).asFunction(rt));
+    });
+    registerMethod("setErrorCallback", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setErrorCallback(rt, args[0].asObject(rt).asFunction(rt));
+    });
+    registerMethod("setStateChangeCallback", 1, [](auto* m, auto& rt, auto* args, auto) {
+        return m->setStateChangeCallback(rt, args[0].asObject(rt).asFunction(rt));
+    });
+
+    // Intégration capture (placeholders)
+    registerMethod("hasCapturePermission", 0, [](auto* m, auto& rt, auto*, auto) { return m->hasCapturePermission(rt); });
+    registerMethod("requestCapturePermission", 0, [](auto* m, auto& rt, auto*, auto) { return m->requestCapturePermission(rt); });
+    registerMethod("isCapturing", 0, [](auto* m, auto& rt, auto*, auto) { return m->isCapturing(rt); });
+    registerMethod("getCaptureLevel", 0, [](auto* m, auto& rt, auto*, auto) { return m->getCaptureLevel(rt); });
+
+    // Installer le module dans le runtime global
+    rt.global().setProperty(rt, "NativeAudioPipelineModule", object);
+
+    return object;
 }
 
 // === Fonction d'enregistrement du module ===
