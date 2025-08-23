@@ -25,7 +25,7 @@ namespace FFTConstants {
 // C++17 type traits for validation
 template<typename T>
 struct is_fft_float_type {
-    static constexpr bool value = std::is_same_v<T, float> || std::is_same_v<T, double>;
+    static constexpr bool value = std::is_same<T, float>::value || std::is_same<T, double>::value;
 };
 
 template<typename T>
@@ -127,7 +127,7 @@ private:
                     size_t twiddleIdx = j * twiddleStep;
 
                     float tReal = inverse ? -twiddleImag_[twiddleIdx] : twiddleImag_[twiddleIdx];
-                    float tImag = twiddleReal_[twiddleIdx];
+                    (void)twiddleReal_[twiddleIdx]; // Variable non utilisée, supprimée pour éviter le warning
 
                     if (inverse) {
                         tReal = -tReal;

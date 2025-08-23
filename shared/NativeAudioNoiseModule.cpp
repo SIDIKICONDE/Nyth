@@ -21,7 +21,7 @@ static std::unique_ptr<AudioNR::MultibandProcessor> g_multibandProcessor;
 static std::unique_ptr<AudioNR::NoiseReducer> g_noiseReducer;
 static std::unique_ptr<AudioNR::RNNoiseSuppressor> g_rnNoiseSuppressor;
 static std::mutex g_globalMutex;
-static NythNoiseConfig g_currentConfig = {0};
+static NythNoiseConfig g_currentConfig = {};
 static NythNoiseState g_currentState = NOISE_STATE_UNINITIALIZED;
 static NythNoiseStatistics g_currentStats = {0};
 
@@ -71,7 +71,7 @@ bool NythNoise_Initialize(const NythNoiseConfig* config) {
                 advConfig.noiseMethod = AudioNR::AdvancedSpectralNR::Config::NoiseEstimation::IMCRA;
                 break;
             case NOISE_ESTIMATION_MCRA:
-                advConfig.noiseMethod = AudioNR::AdvancedSpectralNR::Config::NoiseEstimation::MCRA;
+                advConfig.noiseMethod = AudioNR::AdvancedSpectralNR::Config::NoiseEstimation::SIMPLE_MCRA;
                 break;
             default:
                 advConfig.noiseMethod = AudioNR::AdvancedSpectralNR::Config::NoiseEstimation::SIMPLE_MCRA;
@@ -96,11 +96,6 @@ bool NythNoise_Initialize(const NythNoiseConfig* config) {
         }
 
         // Initialize temporal noise reducer
-        AudioNR::NoiseReducerConfig nrConfig;
-        nrConfig.sampleRate = config->sampleRate;
-        nrConfig.enabled = true;
-        nrConfig.thresholdDb = -30.0f + config->aggressiveness * 10.0f;
-        nrConfig.ratio = 2.0f + config->aggressiveness * 2.0f;
         g_noiseReducer = std::make_unique<AudioNR::NoiseReducer>(config->sampleRate, config->channels);
 
         g_currentState = NOISE_STATE_INITIALIZED;
@@ -482,19 +477,7 @@ void NythNoise_SetStateChangeCallback(NythNoiseStateChangeCallback callback) {
 namespace facebook {
 namespace react {
 
-NativeAudioNoiseModule::NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsInvoker)
-    : TurboModule(jsInvoker) {
-    currentConfig_.sampleRate = 48000;
-    currentConfig_.channels = 2;
-    currentConfig_.fftSize = 2048;
-    currentConfig_.hopSize = 512;
-    currentConfig_.algorithm = NOISE_ALGORITHM_ADVANCED_SPECTRAL;
-    currentConfig_.noiseMethod = NOISE_ESTIMATION_IMCRA;
-    currentConfig_.aggressiveness = 0.7f;
-    currentConfig_.enableMultiband = true;
-    currentConfig_.preserveTransients = true;
-    currentConfig_.reduceMusicalNoise = true;
-}
+
 
 NativeAudioNoiseModule::~NativeAudioNoiseModule() {
     std::lock_guard<std::mutex> lock(noiseMutex_);
@@ -540,11 +523,6 @@ void NativeAudioNoiseModule::initializeNoiseSystem(const NythNoiseConfig& config
     advancedSpectralNR_ = std::make_unique<AudioNR::AdvancedSpectralNR>(advConfig);
 
     // Initialize Noise Reducer for temporal processing
-    AudioNR::NoiseReducerConfig nrConfig;
-    nrConfig.sampleRate = config.sampleRate;
-    nrConfig.enabled = true;
-    nrConfig.thresholdDb = -30.0f + config.aggressiveness * 10.0f;
-    nrConfig.ratio = 2.0f + config.aggressiveness * 2.0f;
     noiseReducer_ = std::make_unique<AudioNR::NoiseReducer>(config.sampleRate, config.channels);
 
     currentState_ = NOISE_STATE_INITIALIZED;
@@ -1016,7 +994,7 @@ void NativeAudioNoiseModule::invokeJSCallback(
     // Dans un vrai module, il faudrait utiliser le jsInvoker pour invoquer sur le thread principal
     try {
         // TODO: Implémenter l'invocation sur le thread principal
-        invocation(*reinterpret_cast<jsi::Runtime*>(nullptr));
+        // Pour l'instant, on ne fait rien
     } catch (...) {
         // Gérer les erreurs d'invocation
     }
@@ -1024,7 +1002,7 @@ void NativeAudioNoiseModule::invokeJSCallback(
 
 // Helper function implementations (placeholders for now)
 NythIMCRAConfig NativeAudioNoiseModule::parseIMCRAConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
-    NythIMCRAConfig config = {0};
+    NythIMCRAConfig config = {};
     // Implementation would parse JSI object into config struct
     return config;
 }
@@ -1036,7 +1014,7 @@ jsi::Object NativeAudioNoiseModule::imcraConfigToJS(jsi::Runtime& rt, const Nyth
 }
 
 NythWienerConfig NativeAudioNoiseModule::parseWienerConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
-    NythWienerConfig config = {0};
+    NythWienerConfig config = {};
     // Implementation would parse JSI object into config struct
     return config;
 }
@@ -1048,7 +1026,7 @@ jsi::Object NativeAudioNoiseModule::wienerConfigToJS(jsi::Runtime& rt, const Nyt
 }
 
 NythMultibandConfig NativeAudioNoiseModule::parseMultibandConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
-    NythMultibandConfig config = {0};
+    NythMultibandConfig config = {};
     // Implementation would parse JSI object into config struct
     return config;
 }

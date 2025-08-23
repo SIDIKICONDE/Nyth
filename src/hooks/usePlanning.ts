@@ -125,14 +125,15 @@ export const usePlanning = (): UsePlanningReturn => {
       // 🔥 CACHE OPTIMISÉ: Vérifier le cache d'abord
       const cacheKey = `planning_data_${user.uid}`;
       const cachedData = await adminAdvancedCacheService.get(cacheKey) as {
-        data: { events: PlanningEvent[]; goals: Goal[]; timestamp: number };
-        metadata: { timestamp: number };
-      };
+        events: PlanningEvent[];
+        goals: Goal[];
+        timestamp: number;
+      } | null;
 
-      if (cachedData && Date.now() - cachedData.metadata.timestamp < 2 * 60 * 1000) { // Cache de 2 minutes
+      if (cachedData && cachedData.timestamp && Date.now() - cachedData.timestamp < 2 * 60 * 1000) { // Cache de 2 minutes
         logger.info("⚡ CACHE HIT! Données chargées depuis le cache");
-        setEvents(cachedData.data.events || []);
-        setGoals(cachedData.data.goals || []);
+        setEvents(cachedData.events || []);
+        setGoals(cachedData.goals || []);
         setIsLoading(false);
         return;
       }

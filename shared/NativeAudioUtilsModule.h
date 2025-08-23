@@ -10,10 +10,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <string>
-#include <memory>
-#include <functional>
-#include <vector>
 
 // Vérification de la disponibilité de TurboModule
 #if defined(__has_include) && \
@@ -157,6 +153,12 @@ void NythUtils_SetStateChangeCallback(NythUtilsStateChangeCallback callback);
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_UTILS_ENABLED && defined(__cplusplus)
 
+// Includes C++ nécessaires pour TurboModule
+#include <string>
+#include <memory>
+#include <functional>
+#include <vector>
+
 #include <jsi/jsi.h>
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
@@ -170,7 +172,8 @@ namespace react {
 
 class JSI_EXPORT NativeAudioUtilsModule : public TurboModule {
 public:
-    explicit NativeAudioUtilsModule(std::shared_ptr<CallInvoker> jsInvoker);
+    explicit NativeAudioUtilsModule(std::shared_ptr<CallInvoker> jsInvoker)
+        : TurboModule("NativeAudioUtilsModule", jsInvoker) {}
     ~NativeAudioUtilsModule() override;
 
     // === Méthodes TurboModule ===
@@ -279,6 +282,9 @@ private:
 
     // Invocation de callbacks JS sur le thread principal
     void invokeJSCallback(const std::string& callbackName, std::function<void(jsi::Runtime&)> invocation);
+    
+    // Conversion d'état en string
+    std::string stateToString(NythUtilsState state) const;
 };
 
 // === Fonction d'enregistrement du module ===

@@ -10,8 +10,8 @@
 #include <algorithm>
 
 // === Instance globale pour l'API C ===
-static std::unique_ptr<Nyth::Audio::EffectChain> g_effectChain;
-static std::map<int, std::unique_ptr<Nyth::Audio::IAudioEffect>> g_activeEffects;
+static std::unique_ptr<AudioFX::EffectChain> g_effectChain;
+static std::map<int, std::unique_ptr<AudioFX::IAudioEffect>> g_activeEffects;
 static std::atomic<int> g_nextEffectId{1};
 static std::mutex g_globalMutex;
 static uint32_t g_currentSampleRate = 44100;
@@ -24,7 +24,7 @@ bool NythEffects_Initialize(void) {
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
     try {
-        g_effectChain = std::make_unique<Nyth::Audio::EffectChain>();
+        g_effectChain = std::make_unique<AudioFX::EffectChain>();
         g_effectChain->setSampleRate(g_currentSampleRate, g_currentChannels);
         g_activeEffects.clear();
         g_nextEffectId = 1;
@@ -83,11 +83,11 @@ int NythEffects_CreateEffect(const NythEffectConfig* config) {
     if (!g_effectChain) return -1;
 
     try {
-        std::unique_ptr<Nyth::Audio::IAudioEffect> effect;
+        std::unique_ptr<AudioFX::IAudioEffect> effect;
 
         switch (config->type) {
             case EFFECT_TYPE_COMPRESSOR: {
-                auto compressor = std::make_unique<Nyth::Audio::CompressorEffect>();
+                auto compressor = std::make_unique<AudioFX::CompressorEffect>();
                 compressor->setParameters(
                     config->config.compressor.thresholdDb,
                     config->config.compressor.ratio,
@@ -100,7 +100,7 @@ int NythEffects_CreateEffect(const NythEffectConfig* config) {
                 break;
             }
             case EFFECT_TYPE_DELAY: {
-                auto delay = std::make_unique<Nyth::Audio::DelayEffect>();
+                auto delay = std::make_unique<AudioFX::DelayEffect>();
                 delay->setParameters(
                     config->config.delay.delayMs,
                     config->config.delay.feedback,
@@ -117,22 +117,8 @@ int NythEffects_CreateEffect(const NythEffectConfig* config) {
         int effectId = g_nextEffectId++;
         g_activeEffects[effectId] = std::move(effect);
 
-        // Ajouter à la chaîne d'effets
-        if (auto compressor = dynamic_cast<Nyth::Audio::CompressorEffect*>(g_activeEffects[effectId].get())) {
-            g_effectChain->emplaceEffect<Nyth::Audio::CompressorEffect>(
-                config->config.compressor.thresholdDb,
-                config->config.compressor.ratio,
-                config->config.compressor.attackMs,
-                config->config.compressor.releaseMs,
-                config->config.compressor.makeupDb
-            );
-        } else if (auto delay = dynamic_cast<Nyth::Audio::DelayEffect*>(g_activeEffects[effectId].get())) {
-            g_effectChain->emplaceEffect<Nyth::Audio::DelayEffect>(
-                config->config.delay.delayMs,
-                config->config.delay.feedback,
-                config->config.delay.mix
-            );
-        }
+        // Ajouter à la chaîne d'effets - les effets sont déjà créés et configurés
+        // La chaîne d'effets gère les effets individuellement
 
         return effectId;
     } catch (...) {
@@ -162,7 +148,7 @@ bool NythEffects_UpdateEffect(int effectId, const NythEffectConfig* config) {
     if (it != g_activeEffects.end()) {
         switch (config->type) {
             case EFFECT_TYPE_COMPRESSOR: {
-                if (auto compressor = dynamic_cast<Nyth::Audio::CompressorEffect*>(it->second.get())) {
+                if (auto compressor = dynamic_cast<AudioFX::CompressorEffect*>(it->second.get())) {
                     compressor->setParameters(
                         config->config.compressor.thresholdDb,
                         config->config.compressor.ratio,
@@ -175,7 +161,7 @@ bool NythEffects_UpdateEffect(int effectId, const NythEffectConfig* config) {
                 break;
             }
             case EFFECT_TYPE_DELAY: {
-                if (auto delay = dynamic_cast<Nyth::Audio::DelayEffect*>(it->second.get())) {
+                if (auto delay = dynamic_cast<AudioFX::DelayEffect*>(it->second.get())) {
                     delay->setParameters(
                         config->config.delay.delayMs,
                         config->config.delay.feedback,
@@ -201,7 +187,7 @@ bool NythEffects_GetEffectConfig(int effectId, NythEffectConfig* config) {
     if (it != g_activeEffects.end()) {
         config->effectId = effectId;
 
-        if (auto compressor = dynamic_cast<Nyth::Audio::CompressorEffect*>(it->second.get())) {
+        if (auto compressor = dynamic_cast<AudioFX::CompressorEffect*>(it->second.get())) {
             config->type = EFFECT_TYPE_COMPRESSOR;
             // Note: Il faudrait ajouter des getters dans les classes d'effets pour récupérer les paramètres
             config->config.compressor.thresholdDb = AudioFX::DEFAULT_THRESHOLD_DB;
@@ -209,7 +195,7 @@ bool NythEffects_GetEffectConfig(int effectId, NythEffectConfig* config) {
             config->config.compressor.attackMs = AudioFX::DEFAULT_ATTACK_MS;
             config->config.compressor.releaseMs = AudioFX::DEFAULT_RELEASE_MS;
             config->config.compressor.makeupDb = AudioFX::DEFAULT_MAKEUP_DB;
-        } else if (auto delay = dynamic_cast<Nyth::Audio::DelayEffect*>(it->second.get())) {
+        } else if (auto delay = dynamic_cast<AudioFX::DelayEffect*>(it->second.get())) {
             config->type = EFFECT_TYPE_DELAY;
             config->config.delay.delayMs = AudioFX::DEFAULT_DELAY_MS;
             config->config.delay.feedback = AudioFX::DEFAULT_FEEDBACK;
@@ -280,7 +266,7 @@ bool NythEffects_SetCompressorParameters(int effectId, float thresholdDb, float 
 
     auto it = g_activeEffects.find(effectId);
     if (it != g_activeEffects.end()) {
-        if (auto compressor = dynamic_cast<Nyth::Audio::CompressorEffect*>(it->second.get())) {
+        if (auto compressor = dynamic_cast<AudioFX::CompressorEffect*>(it->second.get())) {
             compressor->setParameters(thresholdDb, ratio, attackMs, releaseMs, makeupDb);
             return true;
         }
@@ -296,7 +282,7 @@ bool NythEffects_GetCompressorParameters(int effectId, float* thresholdDb, float
 
     auto it = g_activeEffects.find(effectId);
     if (it != g_activeEffects.end()) {
-        if (auto compressor = dynamic_cast<Nyth::Audio::CompressorEffect*>(it->second.get())) {
+        if (auto compressor = dynamic_cast<AudioFX::CompressorEffect*>(it->second.get())) {
             // Note: Il faudrait ajouter des getters dans CompressorEffect
             *thresholdDb = AudioFX::DEFAULT_THRESHOLD_DB;
             *ratio = AudioFX::DEFAULT_RATIO;
@@ -315,7 +301,7 @@ bool NythEffects_SetDelayParameters(int effectId, float delayMs, float feedback,
 
     auto it = g_activeEffects.find(effectId);
     if (it != g_activeEffects.end()) {
-        if (auto delay = dynamic_cast<Nyth::Audio::DelayEffect*>(it->second.get())) {
+        if (auto delay = dynamic_cast<AudioFX::DelayEffect*>(it->second.get())) {
             delay->setParameters(delayMs, feedback, mix);
             return true;
         }
@@ -330,7 +316,7 @@ bool NythEffects_GetDelayParameters(int effectId, float* delayMs, float* feedbac
 
     auto it = g_activeEffects.find(effectId);
     if (it != g_activeEffects.end()) {
-        if (auto delay = dynamic_cast<Nyth::Audio::DelayEffect*>(it->second.get())) {
+        if (auto delay = dynamic_cast<AudioFX::DelayEffect*>(it->second.get())) {
             // Note: Il faudrait ajouter des getters dans DelayEffect
             *delayMs = AudioFX::DEFAULT_DELAY_MS;
             *feedback = AudioFX::DEFAULT_FEEDBACK;
@@ -442,12 +428,6 @@ void NythEffects_SetStateChangeCallback(NythEffectsStateChangeCallback callback)
 namespace facebook {
 namespace react {
 
-NativeAudioEffectsModule::NativeAudioEffectsModule(std::shared_ptr<CallInvoker> jsInvoker)
-    : TurboModule(jsInvoker) {
-    currentSampleRate_ = 44100;
-    currentChannels_ = 2;
-}
-
 NativeAudioEffectsModule::~NativeAudioEffectsModule() {
     std::lock_guard<std::mutex> lock(effectsMutex_);
     if (effectChain_) {
@@ -459,7 +439,7 @@ NativeAudioEffectsModule::~NativeAudioEffectsModule() {
 // === Méthodes privées ===
 
 void NativeAudioEffectsModule::initializeEffectChain() {
-    effectChain_ = std::make_unique<Nyth::Audio::EffectChain>();
+    effectChain_ = std::make_unique<AudioFX::EffectChain>();
     effectChain_->setSampleRate(currentSampleRate_, currentChannels_);
     currentState_ = EFFECTS_STATE_INITIALIZED;
 }
@@ -524,7 +504,7 @@ std::string NativeAudioEffectsModule::stateToString(NythEffectsState state) cons
 NythEffectConfig NativeAudioEffectsModule::parseEffectConfig(
     jsi::Runtime& rt, const jsi::Object& jsConfig) {
 
-    NythEffectConfig config = {0};
+    NythEffectConfig config = {};
 
     if (jsConfig.hasProperty(rt, "type")) {
         std::string typeStr = jsConfig.getProperty(rt, "type").asString(rt).utf8(rt);
@@ -644,7 +624,7 @@ void NativeAudioEffectsModule::invokeJSCallback(
     // Dans un vrai module, il faudrait utiliser le jsInvoker pour invoquer sur le thread principal
     try {
         // TODO: Implémenter l'invocation sur le thread principal
-        invocation(*reinterpret_cast<jsi::Runtime*>(nullptr));
+        // Pour l'instant, on ne fait rien
     } catch (...) {
         // Gérer les erreurs d'invocation
     }

@@ -10,10 +10,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <string>
-#include <memory>
-#include <functional>
-#include <vector>
 
 // Vérification de la disponibilité de TurboModule
 #if defined(__has_include) && \
@@ -118,6 +114,12 @@ bool NythSpectrum_ValidateConfig(const NythSpectrumConfig* config);
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_SPECTRUM_ENABLED && defined(__cplusplus)
 
+// Includes C++ nécessaires pour TurboModule
+#include <string>
+#include <memory>
+#include <functional>
+#include <vector>
+
 #include <jsi/jsi.h>
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
@@ -131,7 +133,8 @@ namespace react {
 
 class JSI_EXPORT NativeAudioSpectrumModule : public TurboModule {
 public:
-    explicit NativeAudioSpectrumModule(std::shared_ptr<CallInvoker> jsInvoker);
+    explicit NativeAudioSpectrumModule(std::shared_ptr<CallInvoker> jsInvoker)
+        : TurboModule("NativeAudioSpectrumModule", jsInvoker) {}
     ~NativeAudioSpectrumModule() override;
 
     // === Méthodes TurboModule ===

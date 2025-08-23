@@ -10,11 +10,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <string>
-#include <memory>
-#include <functional>
-#include <vector>
-#include <map>
 
 // Vérification de la disponibilité de TurboModule
 #if defined(__has_include) && \
@@ -141,20 +136,36 @@ void NythEffects_SetStateChangeCallback(NythEffectsStateChangeCallback callback)
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_EFFECTS_ENABLED && defined(__cplusplus)
 
+// Includes C++ nécessaires pour TurboModule
+#include <string>
+#include <memory>
+#include <functional>
+#include <vector>
+#include <map>
+
 #include <jsi/jsi.h>
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
 #include "Audio/effects/EffectChain.hpp"
+#include "Audio/effects/EffectBase.hpp"
 #include <mutex>
 #include <atomic>
 #include <queue>
+
+// Forward declarations for Nyth namespace
+namespace Nyth {
+namespace Audio {
+    class IAudioEffect;
+}
+}
 
 namespace facebook {
 namespace react {
 
 class JSI_EXPORT NativeAudioEffectsModule : public TurboModule {
 public:
-    explicit NativeAudioEffectsModule(std::shared_ptr<CallInvoker> jsInvoker);
+    explicit NativeAudioEffectsModule(std::shared_ptr<CallInvoker> jsInvoker)
+        : TurboModule("NativeAudioEffectsModule", jsInvoker) {}
     ~NativeAudioEffectsModule() override;
 
     // === Méthodes TurboModule ===
@@ -212,7 +223,7 @@ public:
 
 private:
     // Instance de la chaîne d'effets
-    std::unique_ptr<Nyth::Audio::EffectChain> effectChain_;
+    std::unique_ptr<AudioFX::EffectChain> effectChain_;
 
     // Mutex pour la thread safety
     mutable std::mutex effectsMutex_;
@@ -232,7 +243,7 @@ private:
 
     // Gestion des IDs d'effets
     std::atomic<int> nextEffectId_{1};
-    std::map<int, std::unique_ptr<Nyth::Audio::IAudioEffect>> activeEffects_;
+    std::map<int, std::unique_ptr<AudioFX::IAudioEffect>> activeEffects_;
 
     // Buffers de traitement
     std::vector<float> inputBuffer_;
@@ -245,6 +256,7 @@ private:
     bool validateEffectId(int effectId) const;
     NythEffectType stringToEffectType(const std::string& typeStr) const;
     std::string effectTypeToString(NythEffectType type) const;
+    std::string stateToString(NythEffectsState state) const;
     void handleAudioData(const float* input, float* output, size_t frameCount, int channels);
     void handleError(const std::string& error);
     void handleStateChange(NythEffectsState oldState, NythEffectsState newState);

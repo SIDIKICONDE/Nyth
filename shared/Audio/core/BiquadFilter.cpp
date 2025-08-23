@@ -259,6 +259,67 @@ void AudioFX::BiquadFilter::process(const float* input, float* output, size_t nu
     m_y2 = y2;
 }
 
+void AudioFX::BiquadFilter::processMono(const float* input, float* output, size_t numSamples) {
+    // Optimized mono processing - Direct Form II Transposed
+    double y1 = m_y1, y2 = m_y2;
+
+    // Cache coefficients in local variables to avoid memory access
+    const double a0 = m_a0;
+    const double a1 = m_a1;
+    const double a2 = m_a2;
+    const double b1 = m_b1;
+    const double b2 = m_b2;
+
+    // Process samples with unrolled loop for better pipelining
+    size_t i = SAMPLE_INDEX_0;
+    for (; i + SAMPLE_INDEX_3 < numSamples; i += UNROLL_FACTOR_BIQUAD) {
+        // Sample 0
+        double x0 = static_cast<double>(input[i]);
+        double w0 = x0 - b1 * y1 - b2 * y2;
+        double y0 = a0 * w0 + a1 * y1 + a2 * y2;
+
+        // Sample 1
+        double x1 = static_cast<double>(input[i + SAMPLE_INDEX_1]);
+        double w1 = x1 - b1 * w0 - b2 * y1;
+        double y1_new = a0 * w1 + a1 * w0 + a2 * y1;
+
+        // Sample 2
+        double x2 = static_cast<double>(input[i + SAMPLE_INDEX_2]);
+        double w2 = x2 - b1 * w1 - b2 * w0;
+        double y2_new = a0 * w2 + a1 * w1 + a2 * w0;
+
+        // Sample 3
+        double x3 = static_cast<double>(input[i + SAMPLE_INDEX_3]);
+        double w3 = x3 - b1 * w2 - b2 * w1;
+        double y3 = a0 * w3 + a1 * w2 + a2 * w1;
+
+        // Update state for next iteration
+        y2 = w2;
+        y1 = (std::abs(w3) < EPSILON) ? RESET_VALUE : w3;
+
+        // Write outputs
+        output[i] = static_cast<float>(y0);
+        output[i + SAMPLE_INDEX_1] = static_cast<float>(y1_new);
+        output[i + SAMPLE_INDEX_2] = static_cast<float>(y2_new);
+        output[i + SAMPLE_INDEX_3] = static_cast<float>(y3);
+    }
+
+    // Process remaining samples
+    for (; i < numSamples; ++i) {
+        double x = static_cast<double>(input[i]);
+        double w = x - b1 * y1 - b2 * y2;
+        double y = a0 * w + a1 * y1 + a2 * y2;
+
+        y2 = y1;
+        y1 = (std::abs(w) < EPSILON) ? RESET_VALUE : w;
+
+        output[i] = static_cast<float>(y);
+    }
+
+    m_y1 = y1;
+    m_y2 = y2;
+}
+
 void AudioFX::BiquadFilter::processStereo(const float* inputL, const float* inputR,
                                 float* outputL, float* outputR, size_t numSamples) {
     // Optimized stereo processing - interleaved for better cache usage

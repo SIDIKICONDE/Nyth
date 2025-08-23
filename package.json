@@ -49,7 +49,7 @@
     "@react-native/new-app-screen": "0.81.0",
     "@react-navigation/native": "^7.1.17",
     "@react-navigation/stack": "^7.4.7",
-    "@shopify/react-native-skia": "^2.2.4",
+
     "crypto-js": "^4.2.0",
     "fs-extra": "^11.3.1",
     "i18next": "^25.3.6",
@@ -125,7 +125,17 @@
     "type": "modules",
     "jsSrcsDir": "specs",
     "android": {
-      "javaPackageName": "com.nyth.specs"
+      "javaPackageName": "com.nyth.specs",
+      "modulesProvider": {
+        "NativeAudioCaptureModule": "NativeAudioCaptureModuleProvider",
+        "NativeAudioEffectsModule": "NativeAudioEffectsModuleProvider",
+        "NativeAudioNoiseModule": "NativeAudioNoiseModuleProvider",
+        "NativeAudioSafetyModule": "NativeAudioSafetyModuleProvider",
+        "NativeAudioCoreModule": "NativeAudioCoreModuleProvider",
+        "NativeAudioUtilsModule": "NativeAudioUtilsModuleProvider",
+        "NativeAudioPipelineModule": "NativeAudioPipelineModuleProvider",
+        "NativeAudioSpectrumModule": "NativeAudioSpectrumModuleProvider"
+      }
     },
     "ios": {
       "modulesProvider": {

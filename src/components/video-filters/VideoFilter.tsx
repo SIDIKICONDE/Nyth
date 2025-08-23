@@ -1,14 +1,10 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
-import {
-  Canvas,
-  Fill,
-  Group,
-  Paint,
-  ColorMatrix,
-  ImageShader,
-  useImage,
-} from "@shopify/react-native-skia";
+import { View, StyleSheet, Image, Text } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  withTiming,
+  interpolateColor,
+} from "react-native-reanimated";
 
 export interface VideoFilterProps {
   width: number;
@@ -33,92 +29,91 @@ export const VideoFilter: React.FC<VideoFilterProps> = ({
   intensity = 1.0,
   imageUri,
 }) => {
-  const image = useImage(imageUri);
+  const getFilterStyle = (type: string, intensity: number) => {
+    const baseStyle: any = {
+      width,
+      height,
+      borderRadius: 8,
+      overflow: "hidden",
+    };
 
-  const getColorMatrix = (type: string, intensity: number) => {
     switch (type) {
       case "sepia":
-        return [
-          0.393 + 0.607 * (1 - intensity),
-          0.769 - 0.769 * (1 - intensity),
-          0.189 - 0.189 * (1 - intensity),
-          0,
-          0,
-          0.349 - 0.349 * (1 - intensity),
-          0.686 + 0.314 * (1 - intensity),
-          0.168 - 0.168 * (1 - intensity),
-          0,
-          0,
-          0.272 - 0.272 * (1 - intensity),
-          0.534 - 0.534 * (1 - intensity),
-          0.131 + 0.869 * (1 - intensity),
-          0,
-          0,
-          0,
-          0,
-          0,
-          1,
-          0,
-        ];
+        return {
+          ...baseStyle,
+          tintColor: `rgba(112, 66, 20, ${intensity * 0.7})`,
+        };
 
       case "vintage":
-        return [
-          1.2, 0, 0, 0, 0.1, 0, 1.1, 0, 0, 0.05, 0, 0, 0.9, 0, 0.1, 0, 0, 0, 1,
-          0,
-        ];
+        return {
+          ...baseStyle,
+          tintColor: `rgba(255, 248, 220, ${intensity * 0.3})`,
+        };
 
       case "cool":
-        return [
-          1.1, 0, 0, 0, 0, 0, 0.9, 0, 0, 0.1, 0, 0, 1.2, 0, 0.1, 0, 0, 0, 1, 0,
-        ];
+        return {
+          ...baseStyle,
+          tintColor: `rgba(173, 216, 230, ${intensity * 0.4})`,
+        };
 
       case "warm":
-        return [
-          1.2, 0, 0, 0, 0.1, 0, 1.1, 0, 0, 0.05, 0, 0, 0.9, 0, 0, 0, 0, 0, 1, 0,
-        ];
+        return {
+          ...baseStyle,
+          tintColor: `rgba(255, 218, 185, ${intensity * 0.4})`,
+        };
 
       case "dramatic":
-        return [
-          1.3, 0, 0, 0, -0.1, 0, 1.1, 0, 0, -0.05, 0, 0, 0.8, 0, -0.1, 0, 0, 0,
-          1, 0,
-        ];
+        return {
+          ...baseStyle,
+          tintColor: `rgba(139, 69, 19, ${intensity * 0.6})`,
+        };
 
       case "blackAndWhite":
-        return [
-          0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587,
-          0.114, 0, 0, 0, 0, 0, 1, 0,
-        ];
+        return {
+          ...baseStyle,
+          tintColor: `rgba(128, 128, 128, ${intensity})`,
+        };
 
       case "vivid":
-        return [
-          1.4, 0, 0, 0, 0.1, 0, 1.3, 0, 0, 0.05, 0, 0, 1.2, 0, 0.1, 0, 0, 0, 1,
-          0,
-        ];
+        return {
+          ...baseStyle,
+          tintColor: `rgba(255, 215, 0, ${intensity * 0.3})`,
+        };
 
       default:
-        return [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0];
+        return baseStyle;
     }
   };
 
-  const colorMatrix = getColorMatrix(filterType, intensity);
+  const filterStyle = getFilterStyle(filterType, intensity);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(intensity, { duration: 300 }),
+    };
+  });
+
+  if (!imageUri) {
+    return (
+      <View style={[styles.container, { width, height }]}>
+        <View style={styles.placeholder}>
+          <Text style={styles.placeholderText}>Aucune image</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
-    <View style={[styles.container, { width, height }]}>
-      <Canvas style={styles.canvas}>
-        <Fill color="#000000" />
-
-        {image && (
-          <Group>
-            <Paint>
-              <ColorMatrix matrix={colorMatrix} />
-            </Paint>
-            <Fill>
-              <ImageShader image={image} fit="cover" />
-            </Fill>
-          </Group>
-        )}
-      </Canvas>
-    </View>
+    <Animated.View style={[styles.container, animatedStyle]}>
+      <Image
+        source={{ uri: imageUri }}
+        style={filterStyle}
+        resizeMode="cover"
+      />
+      {filterType !== "none" && (
+        <View style={[styles.overlay, { opacity: intensity * 0.3 }]} />
+      )}
+    </Animated.View>
   );
 };
 
@@ -127,7 +122,18 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderRadius: 8,
   },
-  canvas: {
+  placeholder: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f0f0f0",
+  },
+  placeholderText: {
+    fontSize: 14,
+    color: "#666",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
   },
 });

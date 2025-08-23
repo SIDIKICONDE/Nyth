@@ -30,21 +30,24 @@ namespace BranchFree {
  * @brief Branch-free absolute value
  * Avoids: if (x < 0) return -x; else return x;
  */
+// Overload for floating point types
 template <typename T>
-inline T abs(T x) noexcept {
-    if constexpr (std::is_floating_point_v<T>) {
-        // For floats, use bit manipulation
-        union {
-            T f;
-            uint32_t i;
-        } u = {x};
-        u.i &= 0x7FFFFFFF; // Clear sign bit
-        return u.f;
-    } else {
-        // For integers
-        T mask = x >> (sizeof(T) * 8 - 1);
-        return (x + mask) ^ mask;
-    }
+inline typename std::enable_if<std::is_floating_point<T>::value, T>::type abs(T x) noexcept {
+    // For floats, use bit manipulation
+    union {
+        T f;
+        uint32_t i;
+    } u = {x};
+    u.i &= 0x7FFFFFFF; // Clear sign bit
+    return u.f;
+}
+
+// Overload for integer types
+template <typename T>
+inline typename std::enable_if<!std::is_floating_point<T>::value, T>::type abs(T x) noexcept {
+    // For integers
+    T mask = x >> (sizeof(T) * 8 - 1);
+    return (x + mask) ^ mask;
 }
 
 /**
@@ -60,27 +63,33 @@ inline T sign(T x) noexcept {
  * @brief Branch-free minimum
  * Avoids: if (a < b) return a; else return b;
  */
+// Overload for floating point types
 template <typename T>
-inline T min(T a, T b) noexcept {
-    if constexpr (std::is_floating_point_v<T>) {
-        // For floats, handle NaN correctly
-        return (a < b) ? a : b; // Compiler optimizes to cmov
-    } else {
-        // For integers
-        return b ^ ((a ^ b) & -(a < b));
-    }
+inline typename std::enable_if<std::is_floating_point<T>::value, T>::type min(T a, T b) noexcept {
+    // For floats, handle NaN correctly
+    return (a < b) ? a : b; // Compiler optimizes to cmov
+}
+
+// Overload for integer types
+template <typename T>
+inline typename std::enable_if<!std::is_floating_point<T>::value, T>::type min(T a, T b) noexcept {
+    // For integers
+    return b ^ ((a ^ b) & -(a < b));
 }
 
 /**
  * @brief Branch-free maximum
  */
+// Overload for floating point types
 template <typename T>
-inline T max(T a, T b) noexcept {
-    if constexpr (std::is_floating_point_v<T>) {
-        return (a > b) ? a : b; // Compiler optimizes to cmov
-    } else {
-        return a ^ ((a ^ b) & -(a < b));
-    }
+inline typename std::enable_if<std::is_floating_point<T>::value, T>::type max(T a, T b) noexcept {
+    return (a > b) ? a : b; // Compiler optimizes to cmov
+}
+
+// Overload for integer types
+template <typename T>
+inline typename std::enable_if<!std::is_floating_point<T>::value, T>::type max(T a, T b) noexcept {
+    return a ^ ((a ^ b) & -(a < b));
 }
 
 /**
@@ -98,15 +107,18 @@ inline T clamp(T value, T minVal, T maxVal) noexcept {
  * @brief Branch-free select (ternary operator replacement)
  * Returns a if condition is true, b otherwise
  */
+// Overload for floating point types
 template <typename T>
-inline T select(bool condition, T a, T b) noexcept {
-    if constexpr (std::is_floating_point_v<T>) {
-        // For floating point types, use arithmetic
-        return condition ? a : b; // Compiler optimizes to conditional move
-    } else {
-        // For integer types, use bit manipulation
-        return b ^ ((a ^ b) & -T(condition));
-    }
+inline typename std::enable_if<std::is_floating_point<T>::value, T>::type select(bool condition, T a, T b) noexcept {
+    // For floating point types, use arithmetic
+    return condition ? a : b; // Compiler optimizes to conditional move
+}
+
+// Overload for integer types
+template <typename T>
+inline typename std::enable_if<!std::is_floating_point<T>::value, T>::type select(bool condition, T a, T b) noexcept {
+    // For integer types, use bit manipulation
+    return b ^ ((a ^ b) & -T(condition));
 }
 
 // ============================================================================
@@ -120,7 +132,6 @@ inline T select(bool condition, T a, T b) noexcept {
 inline float softClip(float x) noexcept {
     // Using tanh approximation for soft clipping
     // This avoids the branch in: if (abs(x) > 1) ...
-    constexpr float a = 0.5f;
     float x2 = x * x;
     float x3 = x2 * x;
     float x5 = x3 * x2;

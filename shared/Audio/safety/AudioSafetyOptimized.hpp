@@ -237,6 +237,70 @@ inline void AudioSafetyEngineOptimized::limitBufferNEON(float* x, size_t n, floa
         x[i] = AudioFX::BranchFree::clamp(x[i], -threshold, threshold);
     }
 }
+
+inline SafetyReport AudioSafetyEngineOptimized::analyzeNEON(const float* x, size_t n) noexcept {
+    SafetyReport report{};
+    if (n == 0) return report;
+
+    float32x4_t sum_vec = vdupq_n_f32(0.0f);
+    float32x4_t sum2_vec = vdupq_n_f32(0.0f);
+    float32x4_t peak_vec = vdupq_n_f32(0.0f);
+    uint32_t clipped = 0;
+    
+    const float32x4_t clip_high = vdupq_n_f32(CLIP_THRESHOLD_HIGH);
+    const float32x4_t clip_low = vdupq_n_f32(CLIP_THRESHOLD_LOW);
+
+    size_t i = 0;
+    for (; i + 3 < n; i += 4) {
+        float32x4_t samples = vld1q_f32(&x[i]);
+
+        sum_vec = vaddq_f32(sum_vec, samples);
+        sum2_vec = vmlaq_f32(sum2_vec, samples, samples); // sum2 += samples * samples
+        
+        float32x4_t abs_samples = vabsq_f32(samples);
+        peak_vec = vmaxq_f32(peak_vec, abs_samples);
+        
+        uint32x4_t high_mask = vcgtq_f32(samples, clip_high);
+        uint32x4_t low_mask = vcltq_f32(samples, clip_low);
+        uint32x4_t clip_mask = vorrq_u32(high_mask, low_mask);
+        
+        uint32_t mask_res[4];
+        vst1q_u32(mask_res, clip_mask);
+        if (mask_res[0]) clipped++;
+        if (mask_res[1]) clipped++;
+        if (mask_res[2]) clipped++;
+        if (mask_res[3]) clipped++;
+    }
+
+    float sum_arr[4], sum2_arr[4], peak_arr[4];
+    vst1q_f32(sum_arr, sum_vec);
+    vst1q_f32(sum2_arr, sum2_vec);
+    vst1q_f32(peak_arr, peak_vec);
+
+    double sum = static_cast<double>(sum_arr[0]) + sum_arr[1] + sum_arr[2] + sum_arr[3];
+    double sum2 = static_cast<double>(sum2_arr[0]) + sum2_arr[1] + sum2_arr[2] + sum2_arr[3];
+    double peak = static_cast<double>(peak_arr[0]);
+    peak = std::max(peak, static_cast<double>(peak_arr[1]));
+    peak = std::max(peak, static_cast<double>(peak_arr[2]));
+    peak = std::max(peak, static_cast<double>(peak_arr[3]));
+
+    for (; i < n; ++i) {
+        float v = x[i];
+        sum += v;
+        sum2 += v * v;
+        peak = std::max(peak, static_cast<double>(std::abs(v)));
+        if (v > CLIP_THRESHOLD_HIGH || v < CLIP_THRESHOLD_LOW) {
+            clipped++;
+        }
+    }
+
+    report.peak = peak;
+    report.rms = std::sqrt(sum2 / n);
+    report.dcOffset = sum / n;
+    report.clippedSamples = clipped;
+
+    return report;
+}
 #endif // SAFETY_NEON
 
 inline void AudioSafetyEngineOptimized::limitBufferBranchFree(float* x, size_t n, float threshold) noexcept {

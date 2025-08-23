@@ -44,12 +44,12 @@ public:
 
     // C++17 modernized processing methods with SFINAE
     template<typename T = float,
-             typename = std::enable_if_t<std::is_floating_point_v<T>>>
+             typename = std::enable_if_t<std::is_floating_point<T>::value>>
     void process(const std::vector<T>& input, std::vector<T>& output,
                 const std::string& location = NYTH_SOURCE_LOCATION);
 
     template<typename T = float,
-             typename = std::enable_if_t<std::is_floating_point_v<T>>>
+             typename = std::enable_if_t<std::is_floating_point<T>::value>>
     void processStereo(const std::vector<T>& inputL, const std::vector<T>& inputR,
                       std::vector<T>& outputL, std::vector<T>& outputR,
                       const std::string& location = NYTH_SOURCE_LOCATION);
@@ -61,10 +61,13 @@ public:
     [[deprecated("Use vector version instead")]]
     void processStereo(const float* inputL, const float* inputR,
                       float* outputL, float* outputR, size_t numSamples);
+    
+    // Mono processing method
+    void processMono(const float* input, float* output, size_t numSamples);
 
     // Process single sample (for real-time processing)
     template<typename T = float,
-             typename = std::enable_if_t<std::is_floating_point_v<T>>>
+             typename = std::enable_if_t<std::is_floating_point<T>::value>>
     inline T processSample(T input);
 
     // Reset filter state
@@ -108,7 +111,7 @@ constexpr double compute_frequency_response(double frequency, double sampleRate)
 
 // C++17 type-trait based validation
 template<typename T>
-inline typename std::enable_if<std::is_floating_point_v<T>, T>::type
+inline typename std::enable_if<std::is_floating_point<T>::value, T>::type
 process_sample_implementation(double a0, double a1, double a2, double b1, double b2,
                                       T input, double& y1, double& y2) {
     // Direct Form II implementation

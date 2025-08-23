@@ -1,6 +1,6 @@
 #include "WienerFilter.hpp"
 #include <algorithm>
-#include <numeric>
+
 
 namespace AudioNR {
 

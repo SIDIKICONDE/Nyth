@@ -10,10 +10,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <string>
-#include <memory>
-#include <functional>
-#include <vector>
+
+
 
 // Vérification de la disponibilité de TurboModule
 #if defined(__has_include) && \
@@ -122,6 +120,12 @@ void NythCapture_SetStateChangeCallback(NythStateChangeCallback callback);
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_CAPTURE_ENABLED && defined(__cplusplus)
 
+// Includes C++ nécessaires pour TurboModule
+#include <string>
+#include <memory>
+#include <functional>
+#include <vector>
+
 #include <jsi/jsi.h>
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
@@ -131,13 +135,30 @@ void NythCapture_SetStateChangeCallback(NythStateChangeCallback callback);
 #include <atomic>
 #include <queue>
 
+// Forward declarations for namespaces
+namespace Audio {
+namespace capture {
+    struct AudioCaptureConfig;
+    enum class CaptureState;
+    struct CaptureStatistics;
+    struct AudioDeviceInfo;
+}
+}
+
 namespace facebook {
 namespace react {
 
 class JSI_EXPORT NativeAudioCaptureModule : public TurboModule {
 public:
-    explicit NativeAudioCaptureModule(std::shared_ptr<CallInvoker> jsInvoker);
-    ~NativeAudioCaptureModule();
+    explicit NativeAudioCaptureModule(std::shared_ptr<CallInvoker> jsInvoker)
+        : TurboModule("NativeAudioCaptureModule", jsInvoker) {
+        // Configuration par défaut
+        currentConfig_.sampleRate = 44100;
+        currentConfig_.channelCount = 1;
+        currentConfig_.bitsPerSample = 16;
+        currentConfig_.bufferSizeFrames = 1024;
+    }
+    ~NativeAudioCaptureModule() override;
     
     // === Méthodes TurboModule ===
     static constexpr auto kModuleName = "NativeAudioCaptureModule";
@@ -219,7 +240,7 @@ public:
     
 private:
     // Instance de capture audio
-    std::unique_ptr<Nyth::Audio::AudioCapture> capture_;
+    std::shared_ptr<Audio::capture::AudioCapture> capture_;
     std::unique_ptr<Nyth::Audio::AudioRecorder> recorder_;
     
     // Mutex pour la thread safety
@@ -245,26 +266,26 @@ private:
     std::condition_variable queueCV_;
     
     // Configuration actuelle
-    Nyth::Audio::AudioCaptureConfig currentConfig_;
-    
+    Audio::capture::AudioCaptureConfig currentConfig_;
+
     // État de l'enregistrement
     std::atomic<bool> isRecordingActive_{false};
     std::string currentRecordingPath_;
-    
+
     // Méthodes privées
-    void initializeCapture(const Nyth::Audio::AudioCaptureConfig& config);
+    void initializeCapture(const Audio::capture::AudioCaptureConfig& config);
     void handleAudioData(const float* data, size_t frameCount, int channels);
     void handleError(const std::string& error);
-    void handleStateChange(Nyth::Audio::CaptureState oldState, Nyth::Audio::CaptureState newState);
+    void handleStateChange(Audio::capture::CaptureState oldState, Audio::capture::CaptureState newState);
     void runAnalysisThread();
     void stopAnalysisThread();
-    
+
     // Conversion JSI <-> Native
-    Nyth::Audio::AudioCaptureConfig parseConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
-    jsi::Object configToJS(jsi::Runtime& rt, const Nyth::Audio::AudioCaptureConfig& config);
-    jsi::Object statisticsToJS(jsi::Runtime& rt, const Nyth::Audio::CaptureStatistics& stats);
-    jsi::Object deviceToJS(jsi::Runtime& rt, const Nyth::Audio::AudioDeviceInfo& device);
-    jsi::Array devicesToJS(jsi::Runtime& rt, const std::vector<Nyth::Audio::AudioDeviceInfo>& devices);
+    Audio::capture::AudioCaptureConfig parseConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
+    jsi::Object configToJS(jsi::Runtime& rt, const Audio::capture::AudioCaptureConfig& config);
+    jsi::Object statisticsToJS(jsi::Runtime& rt, const Audio::capture::CaptureStatistics& stats);
+    jsi::Object deviceToJS(jsi::Runtime& rt, const Audio::capture::AudioDeviceInfo& device);
+    jsi::Array devicesToJS(jsi::Runtime& rt, const std::vector<Audio::capture::AudioDeviceInfo>& devices);
     
     // Invocation de callbacks JS sur le thread principal
     void invokeJSCallback(const std::string& callbackName, std::function<void(jsi::Runtime&)> invocation);

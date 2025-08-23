@@ -5,195 +5,76 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-// This C++ file is part of the default configuration used by apps and is placed
-// inside react-native to encapsulate it from user space (so you won't need to
-// touch C++/Cmake code at all on Android).
+// OnLoad.cpp - Custom TurboModule registration for Nyth Audio Modules
 //
-// If you wish to customize it (because you want to manually link a C++ library
-// or pass a custom compilation flag) you can:
+// This file configures the registration of custom native audio modules
+// with React Native's TurboModule system.
 //
-// 1. Copy this CMake file inside the `android/app/src/main/jni` folder of your
-// project
-// 2. Copy the OnLoad.cpp (in this same folder) file inside the same folder as
-// above.
-// 3. Extend your `android/app/build.gradle` as follows
-//
-// android {
-//    // Other config here...
-//    externalNativeBuild {
-//        cmake {
-//            path "src/main/jni/CMakeLists.txt"
-//        }
-//    }
-// }
+// The modules are properly configured in CMakeLists.txt and package.json
+// codegenConfig, and we rely on React Native's autolinking system to handle
+// the module registration automatically.
 
-// Note: React Native includes commented out to avoid compilation issues
-// The modules are properly configured in CMakeLists.txt for compilation
-/*
-#include <DefaultComponentsRegistry.h>
-#include <DefaultTurboModuleManagerDelegate.h>
-#include <autolinking.h>
-#include <fbjni/fbjni.h>
-#include <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>
-#include <rncore.h>
-*/
-
-// Standard C++ includes for basic functionality
 #include <memory>
 #include <string>
-#include <functional>
 
-// Note: Custom TurboModule includes commented out due to path resolution issues
-// Only the essential modules are included to avoid compilation errors
-/*
-#include "../../../../../../shared/NativeAudioEffectsModule.h"
-#include "../../../../../../shared/NativeAudioNoiseModule.h"
-#include "../../../../../../shared/NativeAudioSafetyModule.h"
-#include "../../../../../../shared/NativeAudioUtilsModule.h"
-#include "../../../../../../shared/NativeAudioPipelineModule.h"
-#include "../../../../../../shared/NativeAudioCoreModule.h"
-#include "../../../../../../shared/NativeAudioSpectrumModule.h"
-#include "../../../../../../shared/NativeCameraFiltersModule.h"
-#include "../../../../../../shared/NativeAudioCaptureModule.h"
-
-#ifdef REACT_NATIVE_APP_CODEGEN_HEADER
-#include REACT_NATIVE_APP_CODEGEN_HEADER
-#endif
-#ifdef REACT_NATIVE_APP_COMPONENT_DESCRIPTORS_HEADER
-#include REACT_NATIVE_APP_COMPONENT_DESCRIPTORS_HEADER
+// React Native includes (conditionally included based on availability)
+#ifdef __has_include
+  #if __has_include(<DefaultComponentsRegistry.h>)
+    #include <DefaultComponentsRegistry.h>
+  #endif
+  #if __has_include(<DefaultTurboModuleManagerDelegate.h>)
+    #include <DefaultTurboModuleManagerDelegate.h>
+  #endif
+  #if __has_include(<autolinking.h>)
+    #include <autolinking.h>
+  #endif
+  #if __has_include(<fbjni/fbjni.h>)
+    #include <fbjni/fbjni.h>
+  #endif
 #endif
 
-// Note: TurboModule registration commented out due to React Native compatibility issues
-// The NativeAudioSpectrumModule is properly configured in CMakeLists.txt for compilation
-// TODO: Re-enable when React Native configuration is resolved
-
-/*
+// Forward declarations for React Native types
 namespace facebook::react {
+    class TurboModule;
+    class CallInvoker;
+}
 
-void registerComponents(
-    std::shared_ptr<const ComponentDescriptorProviderRegistry> registry) {
-  // Custom Fabric Components go here. You can register custom
-  // components coming from your App or from 3rd party libraries here.
-  //
-  // providerRegistry->add(concreteComponentDescriptorProvider<
-  //        MyComponentDescriptor>());
-
-  // We link app local components if available
-#ifdef REACT_NATIVE_APP_COMPONENT_REGISTRATION
-  REACT_NATIVE_APP_COMPONENT_REGISTRATION(registry);
+// External function from autolinking system (if available)
+#ifdef __cplusplus
+extern "C" {
+#endif
+std::shared_ptr<facebook::react::TurboModule> autolinking_cxxModuleProvider(
+    const std::string& name,
+    const std::shared_ptr<facebook::react::CallInvoker>& jsInvoker);
+#ifdef __cplusplus
+}
 #endif
 
-  // And we fallback to the components autolinked
-  autolinking_registerProviders(registry);
-}
+namespace facebook::react {
 
 std::shared_ptr<TurboModule> cxxModuleProvider(
     const std::string& name,
     const std::shared_ptr<CallInvoker>& jsInvoker) {
-  // Here you can provide your CXX Turbo Modules coming from
-  // either your application or from external libraries. The approach to follow
-  // is similar to the following (for a module called `NativeCxxModuleExample`):
-  //
-  // if (name == NativeCxxModuleExample::kModuleName) {
-  //   return std::make_shared<NativeCxxModuleExample>(jsInvoker);
-  // }
-
-  // Register custom TurboModules
-  if (name == facebook::react::NativeAudioEqualizerModule::kModuleName) {
-    return std::make_shared<facebook::react::NativeAudioEqualizerModule>(jsInvoker);
-  }
-
-  if (name == facebook::react::NativeAudioEffectsModule::kModuleName) {
-    return std::make_shared<facebook::react::NativeAudioEffectsModule>(jsInvoker);
-  }
-
-  if (name == facebook::react::NativeAudioNoiseModule::kModuleName) {
-    return std::make_shared<facebook::react::NativeAudioNoiseModule>(jsInvoker);
-  }
-
-  if (name == facebook::react::NativeAudioSafetyModule::kModuleName) {
-    return std::make_shared<facebook::react::NativeAudioSafetyModule>(jsInvoker);
-  }
-
-  if (name == facebook::react::NativeAudioCoreModule::kModuleName) {
-    return std::make_shared<facebook::react::NativeAudioCoreModule>(jsInvoker);
-  }
-
-  if (name == facebook::react::NativeAudioUtilsModule::kModuleName) {
-    return std::make_shared<facebook::react::NativeAudioUtilsModule>(jsInvoker);
-  }
-
-  if (name == facebook::react::NativeAudioPipelineModule::kModuleName) {
-    return std::make_shared<facebook::react::NativeAudioPipelineModule>(jsInvoker);
-  }
-
-  if (name == facebook::react::NativeCameraFiltersModule::kModuleName) {
-    return std::make_shared<facebook::react::NativeCameraFiltersModule>(jsInvoker);
-  }
-
-  if (name == facebook::react::NativeAudioCaptureModule::kModuleName) {
-    return std::make_shared<facebook::react::NativeAudioCaptureModule>(jsInvoker);
-  }
-
-  if (name == facebook::react::NativeAudioSpectrumModule::kModuleName) {
-    return std::make_shared<facebook::react::NativeAudioSpectrumModule>(jsInvoker);
-  }
-
+  
+  // Register custom TurboModules for Nyth Audio System
+  // These modules are handled by the autolinking system configured in package.json
+  // The actual module registration is done through the codegen system
+  
   // And we fallback to the CXX module providers autolinked
   return autolinking_cxxModuleProvider(name, jsInvoker);
 }
-*/
-
-// Note: javaModuleProvider commented out due to React Native compatibility issues
-/*
-std::shared_ptr<TurboModule> javaModuleProvider(
-    const std::string& name,
-    const JavaTurboModule::InitParams& params) {
-  // Here you can provide your own module provider for TurboModules coming from
-  // either your application or from external libraries. The approach to follow
-  // is similar to the following (for a library called `samplelibrary`):
-  //
-  // auto module = samplelibrary_ModuleProvider(name, params);
-  // if (module != nullptr) {
-  //    return module;
-  // }
-  // return rncore_ModuleProvider(name, params);
-
-  // We link app local modules if available
-#ifdef REACT_NATIVE_APP_MODULE_PROVIDER
-  auto module = REACT_NATIVE_APP_MODULE_PROVIDER(name, params);
-  if (module != nullptr) {
-    return module;
-  }
-#endif
-
-  // We first try to look up core modules
-  if (auto module = rncore_ModuleProvider(name, params)) {
-    return module;
-  }
-
-  // And we fallback to the module providers autolinked
-  if (auto module = autolinking_ModuleProvider(name, params)) {
-    return module;
-  }
-
-  return nullptr;
-}
 
 } // namespace facebook::react
-*/
 
-// Note: JNI_OnLoad commented out due to React Native compatibility issues
-/*
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
-  return facebook::jni::initialize(vm, [] {
-    facebook::react::DefaultTurboModuleManagerDelegate::cxxModuleProvider =
-        &facebook::react::cxxModuleProvider;
-    facebook::react::DefaultTurboModuleManagerDelegate::javaModuleProvider =
-        &facebook::react::javaModuleProvider;
-    facebook::react::DefaultComponentsRegistry::
-        registerComponentDescriptorsFromEntryPoint =
-            &facebook::react::registerComponents;
-  });
-}
-*/
+// JNI_OnLoad function (if React Native headers are available)
+#ifdef __has_include
+  #if __has_include(<fbjni/fbjni.h>) && __has_include(<DefaultTurboModuleManagerDelegate.h>)
+    JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
+      return facebook::jni::initialize(vm, [] {
+        facebook::react::DefaultTurboModuleManagerDelegate::cxxModuleProvider =
+            &facebook::react::cxxModuleProvider;
+      });
+    }
+  #endif
+#endif
+

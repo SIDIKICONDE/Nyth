@@ -10,11 +10,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <string>
-#include <memory>
-#include <functional>
-#include <vector>
-#include <map>
 
 // Vérification de la disponibilité de TurboModule
 #if defined(__has_include) && \
@@ -193,6 +188,13 @@ void NythNoise_SetStateChangeCallback(NythNoiseStateChangeCallback callback);
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_NOISE_ENABLED && defined(__cplusplus)
 
+// Includes C++ nécessaires pour TurboModule
+#include <string>
+#include <memory>
+#include <functional>
+#include <vector>
+#include <map>
+
 #include <jsi/jsi.h>
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
@@ -211,7 +213,19 @@ namespace react {
 
 class JSI_EXPORT NativeAudioNoiseModule : public TurboModule {
 public:
-    explicit NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsInvoker);
+    explicit NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsInvoker)
+        : TurboModule("NativeAudioNoiseModule", jsInvoker) {
+        currentConfig_.sampleRate = 48000;
+        currentConfig_.channels = 2;
+        currentConfig_.fftSize = 2048;
+        currentConfig_.hopSize = 512;
+        currentConfig_.algorithm = NOISE_ALGORITHM_ADVANCED_SPECTRAL;
+        currentConfig_.noiseMethod = NOISE_ESTIMATION_IMCRA;
+        currentConfig_.aggressiveness = 0.7f;
+        currentConfig_.enableMultiband = true;
+        currentConfig_.preserveTransients = true;
+        currentConfig_.reduceMusicalNoise = true;
+    }
     ~NativeAudioNoiseModule() override;
 
     // === Méthodes TurboModule ===
@@ -306,6 +320,7 @@ private:
     void initializeNoiseSystem(const NythNoiseConfig& config);
     NythNoiseAlgorithm stringToAlgorithm(const std::string& algorithmStr) const;
     std::string algorithmToString(NythNoiseAlgorithm algorithm) const;
+    std::string stateToString(NythNoiseState state) const;
     void handleAudioData(const float* input, float* output, size_t frameCount, int channels);
     void handleError(const std::string& error);
     void handleStateChange(NythNoiseState oldState, NythNoiseState newState);

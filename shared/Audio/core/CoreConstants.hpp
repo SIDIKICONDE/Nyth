@@ -104,7 +104,7 @@ struct is_audio_buffer_type {
     template<typename>
     static std::false_type test_size(...);
 
-    static constexpr bool value = std::is_pointer_v<T> ||
+    static constexpr bool value = std::is_pointer<T>::value ||
                                  (decltype(test_data<T>(0))::value &&
                                   decltype(test_size<T>(0))::value);
 };
@@ -117,7 +117,7 @@ struct EQBand;
 
 template<typename T>
 struct is_equalizer_band_type {
-    static constexpr bool value = std::is_same_v<T, EQBand>;
+    static constexpr bool value = std::is_same<T, EQBand>::value;
 };
 
 template<typename T>

@@ -10,6 +10,7 @@
 
 #include <chrono>
 #include <cstring>
+#include <algorithm>
 
 namespace Nyth {
 namespace Audio {
@@ -365,7 +366,7 @@ void AudioPipeline::setNoiseReductionEnabled(bool enabled) {
 }
 
 void AudioPipeline::setNoiseReductionStrength(float strength) {
-    config_.noiseReductionStrength = std::clamp(strength, 0.0f, 1.0f);
+    config_.noiseReductionStrength = std::max(0.0f, std::min(strength, 1.0f));
     if (noiseReduction_) {
         AudioNR::NoiseReducerConfig nrConfig = noiseReduction_->getConfig();
         nrConfig.ratio = config_.noiseReductionStrength * 10.0 + 1.0; // Convertir 0-1 vers 1-11
@@ -384,7 +385,7 @@ void AudioPipeline::setSafetyLimiterEnabled(bool enabled) {
 }
 
 void AudioPipeline::setSafetyLimiterThreshold(float threshold) {
-    config_.safetyLimiterThreshold = std::clamp(threshold, 0.1f, 1.0f);
+    config_.safetyLimiterThreshold = std::max(0.1f, std::min(threshold, 1.0f));
     if (safetyLimiter_) {
         // safetyLimiter_->setThreshold(config_.safetyLimiterThreshold);
     }

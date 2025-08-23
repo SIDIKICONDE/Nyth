@@ -14,28 +14,29 @@
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		EAD25BD3403910B8C726EA19 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		FF2000012F5A6B8C0099AABB /* BuildFile in Frameworks */ = {isa = PBXBuildFile; };
-		SA2000012F5A6B8C0099AABB /* AudioEqualizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000012F5A6B8C0099AABB /* AudioEqualizer.cpp */; };
-		SA2000022F5A6B8C0099AABB /* BiquadFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000032F5A6B8C0099AABB /* BiquadFilter.cpp */; };
-		SA2000032F5A6B8C0099AABB /* NoiseReducer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000092F5A6B8C0099AABB /* NoiseReducer.cpp */; };
-		SA2000042F5A6B8C0099AABB /* RNNoiseSuppressor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000112F5A6B8C0099AABB /* RNNoiseSuppressor.cpp */; };
-		SA2000052F5A6B8C0099AABB /* SpectralNR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000132F5A6B8C0099AABB /* SpectralNR.cpp */; };
-		SA2000062F5A6B8C0099AABB /* AudioSafety.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000152F5A6B8C0099AABB /* AudioSafety.cpp */; };
-		SA2000072F5A6B8C0099AABB /* AudioBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000172F5A6B8C0099AABB /* AudioBuffer.cpp */; };
-		SA2000082F5A6B8C0099AABB /* NativeAudioCoreModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000202F5A6B8C0099AABB /* NativeAudioCoreModule.cpp */; };
-		SA2000092F5A6B8C0099AABB /* EQPresetFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000072F5A6B8C0099AABB /* EQPresetFactory.cpp */; };
-		SA2000102F5A6B8C0099AABB /* AudioFileWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000192F5A6B8C0099AABB /* AudioFileWriter.cpp */; };
-		SA2000104F5A6B8C0099AABB /* AudioCaptureUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000203F5A6B8C0099AABB /* AudioCaptureUtils.cpp */; };
-		SA2000105F5A6B8C0099AABB /* AudioCaptureMetrics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000204F5A6B8C0099AABB /* AudioCaptureMetrics.cpp */; };
-		SA2000106F5A6B8C0099AABB /* AudioCaptureSIMD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000205F5A6B8C0099AABB /* AudioCaptureSIMD.cpp */; };
-		SA2000107F5A6B8C0099AABB /* AudioCaptureImpl.mm in Sources */ = {isa = PBXBuildFile; fileRef = SA1000206F5A6B8C0099AABB /* AudioCaptureImpl.mm */; };
-		SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */; };
-		SS2000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SS1000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp */; };
+		
+		/* Audio Capture Build Files */
+		FF1EA32D8080E9B115904401 /* AudioCaptureImpl.mm in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3208080E9B115904401 /* AudioCaptureImpl.mm */; };
+		FF1EA32E8080E9B115904401 /* AudioCaptureMetrics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3238080E9B115904401 /* AudioCaptureMetrics.cpp */; };
+		FF1EA32F8080E9B115904401 /* AudioCaptureSIMD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3258080E9B115904401 /* AudioCaptureSIMD.cpp */; };
+		FF1EA3308080E9B115904401 /* AudioCaptureUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3278080E9B115904401 /* AudioCaptureUtils.cpp */; };
+		FF1EA3318080E9B115904401 /* AudioFileWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3298080E9B115904401 /* AudioFileWriter.cpp */; };
+
+		/* Audio Core Build Files */
+		FF1EA3328080E9B115904402 /* AudioEqualizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3328080E9B115904401 /* AudioEqualizer.cpp */; };
+		FF1EA3338080E9B115904403 /* EQPresetFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3408080E9B115904401 /* EQPresetFactory.cpp */; };
+		FF1EA3358080E9B115904404 /* BiquadFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3358080E9B115904401 /* BiquadFilter.cpp */; };
+
+		/* Audio Noise Build Files */
+		FF1EA3598080E9B115904401 /* IMCRA.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA34E8080E9B115904401 /* IMCRA.cpp */; };
+		FF1EA35A8080E9B115904401 /* NoiseReducer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3518080E9B115904401 /* NoiseReducer.cpp */; };
+		FF1EA35B8080E9B115904401 /* RNNoiseSuppressor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3538080E9B115904401 /* RNNoiseSuppressor.cpp */; };
+		FF1EA35C8080E9B115904401 /* SpectralNR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3558080E9B115904401 /* SpectralNR.cpp */; };
+		FF1EA35D8080E9B115904401 /* WienerFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3578080E9B115904401 /* WienerFilter.cpp */; };
 
 		/* Audio Safety Build Files */
-		FF1EA35D8080E9B115904402 /* AudioSafety.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000152F5A6B8C0099AABB /* AudioSafety.cpp */; };
-
-		/* Audio Utils Build Files */
-		FF1EA35K8080E9B115904401 /* AudioBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA35H8080E9B115904401 /* AudioBuffer.cpp */; };
+		FF1EA3678080E9B115904401 /* AudioSafety.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3628080E9B115904401 /* AudioSafety.cpp */; };
+		FF1EA3688080E9B115904401 /* TestAudioSafety.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA3668080E9B115904401 /* TestAudioSafety.cpp */; };
 
 /* End PBXBuildFile section */
 
@@ -53,31 +54,64 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Nyth/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Nyth/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		SA1000012F5A6B8C0099AABB /* AudioEqualizer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioEqualizer.cpp; path = ../shared/Audio/core/AudioEqualizer.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000032F5A6B8C0099AABB /* BiquadFilter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = BiquadFilter.cpp; path = ../shared/Audio/core/BiquadFilter.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000072F5A6B8C0099AABB /* EQPresetFactory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EQPresetFactory.cpp; path = ../shared/Audio/core/EQPresetFactory.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000092F5A6B8C0099AABB /* NoiseReducer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NoiseReducer.cpp; path = ../shared/Audio/noise/NoiseReducer.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000112F5A6B8C0099AABB /* RNNoiseSuppressor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = RNNoiseSuppressor.cpp; path = ../shared/Audio/noise/RNNoiseSuppressor.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000132F5A6B8C0099AABB /* SpectralNR.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SpectralNR.cpp; path = ../shared/Audio/noise/SpectralNR.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000152F5A6B8C0099AABB /* AudioSafety.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioSafety.cpp; path = ../shared/Audio/safety/AudioSafety.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000172F5A6B8C0099AABB /* AudioBuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioBuffer.cpp; path = ../shared/Audio/utils/AudioBuffer.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000192F5A6B8C0099AABB /* AudioFileWriter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioFileWriter.cpp; path = ../shared/Audio/capture/AudioFileWriter.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000202F5A6B8C0099AABB /* NativeAudioCoreModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeAudioCoreModule.cpp; path = ../shared/NativeAudioCoreModule.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000203F5A6B8C0099AABB /* AudioCaptureUtils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCaptureUtils.cpp; path = ../shared/Audio/capture/AudioCaptureUtils.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000204F5A6B8C0099AABB /* AudioCaptureMetrics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCaptureMetrics.cpp; path = ../shared/Audio/capture/AudioCaptureMetrics.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000205F5A6B8C0099AABB /* AudioCaptureSIMD.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCaptureSIMD.cpp; path = ../shared/Audio/capture/AudioCaptureSIMD.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000206F5A6B8C0099AABB /* AudioCaptureImpl.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = AudioCaptureImpl.mm; path = ../shared/Audio/capture/AudioCaptureImpl.mm; sourceTree = SOURCE_ROOT; };
-		SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioPipeline.cpp; path = ../shared/Audio/AudioPipeline.cpp; sourceTree = SOURCE_ROOT; };
-		SS1000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeAudioSpectrumModule.cpp; path = ../shared/NativeAudioSpectrumModule.cpp; sourceTree = SOURCE_ROOT; };
+		
+		/* Audio Capture Files */
+		FF1EA31D8080E9B115904401 /* AudioCapture.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCapture.hpp; path = ../shared/Audio/capture/AudioCapture.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA31E8080E9B115904401 /* AudioCaptureException.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCaptureException.hpp; path = ../shared/Audio/capture/AudioCaptureException.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA31F8080E9B115904401 /* AudioCaptureImpl.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCaptureImpl.hpp; path = ../shared/Audio/capture/AudioCaptureImpl.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3208080E9B115904401 /* AudioCaptureImpl.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = AudioCaptureImpl.mm; path = ../shared/Audio/capture/AudioCaptureImpl.mm; sourceTree = SOURCE_ROOT; };
+		FF1EA3218080E9B115904401 /* AudioCaptureJNI.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCaptureJNI.hpp; path = ../shared/Audio/capture/AudioCaptureJNI.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3228080E9B115904401 /* AudioCaptureMetrics.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCaptureMetrics.hpp; path = ../shared/Audio/capture/AudioCaptureMetrics.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3238080E9B115904401 /* AudioCaptureMetrics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCaptureMetrics.cpp; path = ../shared/Audio/capture/AudioCaptureMetrics.cpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3248080E9B115904401 /* AudioCaptureSIMD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCaptureSIMD.hpp; path = ../shared/Audio/capture/AudioCaptureSIMD.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3258080E9B115904401 /* AudioCaptureSIMD.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCaptureSIMD.cpp; path = ../shared/Audio/capture/AudioCaptureSIMD.cpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3268080E9B115904401 /* AudioCaptureUtils.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCaptureUtils.hpp; path = ../shared/Audio/capture/AudioCaptureUtils.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3278080E9B115904401 /* AudioCaptureUtils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCaptureUtils.cpp; path = ../shared/Audio/capture/AudioCaptureUtils.cpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3288080E9B115904401 /* AudioFileWriter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioFileWriter.hpp; path = ../shared/Audio/capture/AudioFileWriter.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3298080E9B115904401 /* AudioFileWriter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioFileWriter.cpp; path = ../shared/Audio/capture/AudioFileWriter.cpp; sourceTree = SOURCE_ROOT; };
+
+		/* Audio Core Files */
+		FF1EA3328080E9B115904401 /* AudioEqualizer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioEqualizer.cpp; path = ../shared/Audio/core/AudioEqualizer.cpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3338080E9B115904401 /* AudioEqualizer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioEqualizer.hpp; path = ../shared/Audio/core/AudioEqualizer.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3348080E9B115904401 /* AudioError.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioError.hpp; path = ../shared/Audio/core/AudioError.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3358080E9B115904401 /* BiquadFilter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = BiquadFilter.cpp; path = ../shared/Audio/core/BiquadFilter.cpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3368080E9B115904401 /* BiquadFilter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = BiquadFilter.hpp; path = ../shared/Audio/core/BiquadFilter.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3378080E9B115904401 /* CoreConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = CoreConstants.hpp; path = ../shared/Audio/core/CoreConstants.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3388080E9B115904401 /* EQBand.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = EQBand.hpp; path = ../shared/Audio/core/EQBand.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3398080E9B115904401 /* EQPreset.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = EQPreset.hpp; path = ../shared/Audio/core/EQPreset.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3408080E9B115904401 /* EQPresetFactory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EQPresetFactory.cpp; path = ../shared/Audio/core/EQPresetFactory.cpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3418080E9B115904401 /* EQPresetFactory.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = EQPresetFactory.hpp; path = ../shared/Audio/core/EQPresetFactory.hpp; sourceTree = SOURCE_ROOT; };
+
+		/* Audio Effects Files */
+		FF1EA3428080E9B115904401 /* Compressor.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Compressor.hpp; path = ../shared/Audio/effects/Compressor.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3438080E9B115904401 /* Delay.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Delay.hpp; path = ../shared/Audio/effects/Delay.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3448080E9B115904401 /* EffectBase.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = EffectBase.hpp; path = ../shared/Audio/effects/EffectBase.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3458080E9B115904401 /* EffectChain.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = EffectChain.hpp; path = ../shared/Audio/effects/EffectChain.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3468080E9B115904401 /* EffectConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = EffectConstants.hpp; path = ../shared/Audio/effects/EffectConstants.hpp; sourceTree = SOURCE_ROOT; };
+
+		/* Audio FFT Files */
+		FF1EA34B8080E9B115904401 /* FFTEngine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = FFTEngine.hpp; path = ../shared/Audio/fft/FFTEngine.hpp; sourceTree = SOURCE_ROOT; };
+
+		/* Audio Noise Files */
+		FF1EA34D8080E9B115904401 /* AdvancedSpectralNR.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AdvancedSpectralNR.hpp; path = ../shared/Audio/noise/AdvancedSpectralNR.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA34E8080E9B115904401 /* IMCRA.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = IMCRA.cpp; path = ../shared/Audio/noise/IMCRA.cpp; sourceTree = SOURCE_ROOT; };
+		FF1EA34F8080E9B115904401 /* IMCRA.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = IMCRA.hpp; path = ../shared/Audio/noise/IMCRA.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3508080E9B115904401 /* NoiseContants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = NoiseContants.hpp; path = ../shared/Audio/noise/NoiseContants.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3518080E9B115904401 /* NoiseReducer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NoiseReducer.cpp; path = ../shared/Audio/noise/NoiseReducer.cpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3528080E9B115904401 /* NoiseReducer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = NoiseReducer.hpp; path = ../shared/Audio/noise/NoiseReducer.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3538080E9B115904401 /* RNNoiseSuppressor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = RNNoiseSuppressor.cpp; path = ../shared/Audio/noise/RNNoiseSuppressor.cpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3548080E9B115904401 /* RNNoiseSuppressor.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = RNNoiseSuppressor.hpp; path = ../shared/Audio/noise/RNNoiseSuppressor.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3558080E9B115904401 /* SpectralNR.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SpectralNR.cpp; path = ../shared/Audio/noise/SpectralNR.cpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3568080E9B115904401 /* SpectralNR.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = SpectralNR.hpp; path = ../shared/Audio/noise/SpectralNR.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3578080E9B115904401 /* WienerFilter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = WienerFilter.cpp; path = ../shared/Audio/noise/WienerFilter.cpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3588080E9B115904401 /* WienerFilter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = WienerFilter.hpp; path = ../shared/Audio/noise/WienerFilter.hpp; sourceTree = SOURCE_ROOT; };
 
 		/* Audio Safety Files */
-		FF1EA35B8080E9B115904401 /* AudioSafety.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioSafety.hpp; path = ../shared/Audio/safety/AudioSafety.hpp; sourceTree = SOURCE_ROOT; };
-		FF1EA35C8080E9B115904401 /* SafetyContants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = SafetyContants.hpp; path = ../shared/Audio/safety/SafetyContants.hpp; sourceTree = SOURCE_ROOT; };
-
-		/* Audio Utils Files */
-		FF1EA35H8080E9B115904401 /* AudioBuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioBuffer.cpp; path = ../shared/Audio/utils/AudioBuffer.cpp; sourceTree = SOURCE_ROOT; };
-		FF1EA35I8080E9B115904401 /* AudioBuffer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioBuffer.hpp; path = ../shared/Audio/utils/AudioBuffer.hpp; sourceTree = SOURCE_ROOT; };
-		FF1EA35J8080E9B115904401 /* utilsConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = utilsConstants.hpp; path = ../shared/Audio/utils/utilsConstants.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3628080E9B115904401 /* AudioSafety.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioSafety.cpp; path = ../shared/Audio/safety/AudioSafety.cpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3638080E9B115904401 /* AudioSafety.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioSafety.hpp; path = ../shared/Audio/safety/AudioSafety.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3648080E9B115904401 /* AudioSafetyOptimized.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioSafetyOptimized.hpp; path = ../shared/Audio/safety/AudioSafetyOptimized.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3658080E9B115904401 /* SafetyContants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = SafetyContants.hpp; path = ../shared/Audio/safety/SafetyContants.hpp; sourceTree = SOURCE_ROOT; };
+		FF1EA3668080E9B115904401 /* TestAudioSafety.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TestAudioSafety.cpp; path = ../shared/Audio/safety/TestAudioSafety.cpp; sourceTree = SOURCE_ROOT; };
 
 /* End PBXFileReference section */
 
@@ -157,35 +191,108 @@
 			path = Pods;
 			sourceTree = "<group>";
 		};
-		FF1EA35A8080E9B115904401 /* Safety */ = {
-			isa = PBXGroup;
-			children = (
-				FF1EA35B8080E9B115904401 /* AudioSafety.hpp */,
-				FF1EA35C8080E9B115904401 /* SafetyContants.hpp */,
-				FF1EA35D8080E9B115904401 /* AudioSafety.cpp */,
-			);
-			name = Safety;
-			sourceTree = "<group>";
-		};
 		FF1EA3178080E9B115904401 /* Audio */ = {
 			isa = PBXGroup;
 			children = (
+				FF1EA3478080E9B115904401 /* Capture */,
+				FF1EA3488080E9B115904401 /* Core */,
+				FF1EA3498080E9B115904401 /* Effects */,
+				FF1EA34A8080E9B115904401 /* FFT */,
 				FF1EA35A8080E9B115904401 /* Safety */,
-				FF1EA35G8080E9B115904401 /* Utils */,
+				FF1EA34C8080E9B115904401 /* Noise */,
 			);
 			name = Audio;
 			sourceTree = "<group>";
 		};
-		FF1EA35G8080E9B115904401 /* Utils */ = {
+		FF1EA3478080E9B115904401 /* Capture */ = {
 			isa = PBXGroup;
 			children = (
-				FF1EA35H8080E9B115904401 /* AudioBuffer.cpp */,
-				FF1EA35I8080E9B115904401 /* AudioBuffer.hpp */,
-				FF1EA35J8080E9B115904401 /* utilsConstants.hpp */,
+				FF1EA31D8080E9B115904401 /* AudioCapture.hpp */,
+				FF1EA31E8080E9B115904401 /* AudioCaptureException.hpp */,
+				FF1EA31F8080E9B115904401 /* AudioCaptureImpl.hpp */,
+				FF1EA3208080E9B115904401 /* AudioCaptureImpl.mm */,
+				FF1EA3218080E9B115904401 /* AudioCaptureJNI.hpp */,
+				FF1EA3228080E9B115904401 /* AudioCaptureMetrics.hpp */,
+				FF1EA3238080E9B115904401 /* AudioCaptureMetrics.cpp */,
+				FF1EA3248080E9B115904401 /* AudioCaptureSIMD.hpp */,
+				FF1EA3258080E9B115904401 /* AudioCaptureSIMD.cpp */,
+				FF1EA3268080E9B115904401 /* AudioCaptureUtils.hpp */,
+				FF1EA3278080E9B115904401 /* AudioCaptureUtils.cpp */,
+				FF1EA3288080E9B115904401 /* AudioFileWriter.hpp */,
+				FF1EA3298080E9B115904401 /* AudioFileWriter.cpp */,
 			);
-			name = Utils;
+			name = Capture;
 			sourceTree = "<group>";
 		};
+		FF1EA3488080E9B115904401 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				FF1EA3328080E9B115904401 /* AudioEqualizer.cpp */,
+				FF1EA3338080E9B115904401 /* AudioEqualizer.hpp */,
+				FF1EA3348080E9B115904401 /* AudioError.hpp */,
+				FF1EA3358080E9B115904401 /* BiquadFilter.cpp */,
+				FF1EA3368080E9B115904401 /* BiquadFilter.hpp */,
+				FF1EA3378080E9B115904401 /* CoreConstants.hpp */,
+				FF1EA3388080E9B115904401 /* EQBand.hpp */,
+				FF1EA3398080E9B115904401 /* EQPreset.hpp */,
+				FF1EA3408080E9B115904401 /* EQPresetFactory.cpp */,
+				FF1EA3418080E9B115904401 /* EQPresetFactory.hpp */,
+			);
+			name = Core;
+			sourceTree = "<group>";
+		};
+		FF1EA3498080E9B115904401 /* Effects */ = {
+			isa = PBXGroup;
+			children = (
+				FF1EA3428080E9B115904401 /* Compressor.hpp */,
+				FF1EA3438080E9B115904401 /* Delay.hpp */,
+				FF1EA3448080E9B115904401 /* EffectBase.hpp */,
+				FF1EA3458080E9B115904401 /* EffectChain.hpp */,
+				FF1EA3468080E9B115904401 /* EffectConstants.hpp */,
+			);
+			name = Effects;
+			sourceTree = "<group>";
+		};
+		FF1EA34A8080E9B115904401 /* FFT */ = {
+			isa = PBXGroup;
+			children = (
+				FF1EA34B8080E9B115904401 /* FFTEngine.hpp */,
+			);
+			name = FFT;
+			sourceTree = "<group>";
+		};
+		FF1EA35A8080E9B115904401 /* Safety */ = {
+			isa = PBXGroup;
+			children = (
+				FF1EA3628080E9B115904401 /* AudioSafety.cpp */,
+				FF1EA3638080E9B115904401 /* AudioSafety.hpp */,
+				FF1EA3648080E9B115904401 /* AudioSafetyOptimized.hpp */,
+				FF1EA3658080E9B115904401 /* SafetyContants.hpp */,
+				FF1EA3668080E9B115904401 /* TestAudioSafety.cpp */,
+			);
+			name = Safety;
+			sourceTree = "<group>";
+		};
+		FF1EA34C8080E9B115904401 /* Noise */ = {
+			isa = PBXGroup;
+			children = (
+				FF1EA34D8080E9B115904401 /* AdvancedSpectralNR.hpp */,
+				FF1EA34E8080E9B115904401 /* IMCRA.cpp */,
+				FF1EA34F8080E9B115904401 /* IMCRA.hpp */,
+				FF1EA3508080E9B115904401 /* NoiseContants.hpp */,
+				FF1EA3518080E9B115904401 /* NoiseReducer.cpp */,
+				FF1EA3528080E9B115904401 /* NoiseReducer.hpp */,
+				FF1EA3538080E9B115904401 /* RNNoiseSuppressor.cpp */,
+				FF1EA3548080E9B115904401 /* RNNoiseSuppressor.hpp */,
+				FF1EA3558080E9B115904401 /* SpectralNR.cpp */,
+				FF1EA3568080E9B115904401 /* SpectralNR.hpp */,
+				FF1EA3578080E9B115904401 /* WienerFilter.cpp */,
+				FF1EA3588080E9B115904401 /* WienerFilter.hpp */,
+			);
+			name = Noise;
+			sourceTree = "<group>";
+		};
+
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -350,23 +457,21 @@
 			buildActionMask = 2147483647;
 			files = (
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
-				SA2000012F5A6B8C0099AABB /* AudioEqualizer.cpp in Sources */,
-				SA2000022F5A6B8C0099AABB /* BiquadFilter.cpp in Sources */,
-				SA2000092F5A6B8C0099AABB /* EQPresetFactory.cpp in Sources */,
-				SA2000032F5A6B8C0099AABB /* NoiseReducer.cpp in Sources */,
-				SA2000042F5A6B8C0099AABB /* RNNoiseSuppressor.cpp in Sources */,
-				SA2000052F5A6B8C0099AABB /* SpectralNR.cpp in Sources */,
-				SA2000062F5A6B8C0099AABB /* AudioSafety.cpp in Sources */,
-				SA2000072F5A6B8C0099AABB /* AudioBuffer.cpp in Sources */,
-				SA2000082F5A6B8C0099AABB /* NativeAudioCoreModule.cpp in Sources */,
-				SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */,
-				SA2000102F5A6B8C0099AABB /* AudioFileWriter.cpp in Sources */,
-				SA2000104F5A6B8C0099AABB /* AudioCaptureUtils.cpp in Sources */,
-				SA2000107F5A6B8C0099AABB /* AudioCaptureImpl.mm in Sources */,
-				SA2000105F5A6B8C0099AABB /* AudioCaptureMetrics.cpp in Sources */,
-				SA2000106F5A6B8C0099AABB /* AudioCaptureSIMD.cpp in Sources */,
-				SS2000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp in Sources */,
-				FF1EA35K8080E9B115904401 /* AudioBuffer.cpp in Sources */,
+				FF1EA32D8080E9B115904401 /* AudioCaptureImpl.mm in Sources */,
+				FF1EA32E8080E9B115904401 /* AudioCaptureMetrics.cpp in Sources */,
+				FF1EA32F8080E9B115904401 /* AudioCaptureSIMD.cpp in Sources */,
+				FF1EA3308080E9B115904401 /* AudioCaptureUtils.cpp in Sources */,
+				FF1EA3318080E9B115904401 /* AudioFileWriter.cpp in Sources */,
+				FF1EA3328080E9B115904402 /* AudioEqualizer.cpp in Sources */,
+				FF1EA3338080E9B115904403 /* EQPresetFactory.cpp in Sources */,
+				FF1EA3358080E9B115904404 /* BiquadFilter.cpp in Sources */,
+				FF1EA3598080E9B115904401 /* IMCRA.cpp in Sources */,
+				FF1EA35A8080E9B115904401 /* NoiseReducer.cpp in Sources */,
+				FF1EA35B8080E9B115904401 /* RNNoiseSuppressor.cpp in Sources */,
+				FF1EA35C8080E9B115904401 /* SpectralNR.cpp in Sources */,
+				FF1EA35D8080E9B115904401 /* WienerFilter.cpp in Sources */,
+				FF1EA3678080E9B115904401 /* AudioSafety.cpp in Sources */,
+				FF1EA3688080E9B115904401 /* TestAudioSafety.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,6 +1,6 @@
 // Modules natifs/non typés utilisés côté app (shims minimalistes)
 declare module "@react-native-picker/picker";
-declare module "@shopify/react-native-skia";
+
 declare module "@expo/vector-icons";
 declare module "date-fns";
 declare module "date-fns/locale";

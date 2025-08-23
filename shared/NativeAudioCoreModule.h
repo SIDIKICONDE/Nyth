@@ -10,10 +10,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <string>
-#include <memory>
-#include <functional>
-#include <vector>
 
 // Vérification de la disponibilité de TurboModule
 #if defined(__has_include) && \
@@ -214,6 +210,12 @@ void NythCore_SetStateCallback(NythCoreStateCallback callback);
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_CORE_ENABLED && defined(__cplusplus)
 
+// Includes C++ nécessaires pour TurboModule
+#include <string>
+#include <memory>
+#include <functional>
+#include <vector>
+
 #include <jsi/jsi.h>
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
@@ -229,7 +231,11 @@ namespace react {
 
 class JSI_EXPORT NativeAudioCoreModule : public TurboModule {
 public:
-    explicit NativeAudioCoreModule(std::shared_ptr<CallInvoker> jsInvoker);
+    explicit NativeAudioCoreModule(std::shared_ptr<CallInvoker> jsInvoker)
+        : TurboModule("NativeAudioCoreModule", jsInvoker) {
+        currentSampleRate_ = 44100;
+        currentChannels_ = 2;
+    }
     ~NativeAudioCoreModule() override;
 
     // === Méthodes TurboModule ===
@@ -331,6 +337,15 @@ public:
     jsi::Value setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback);
     jsi::Value setStateCallback(jsi::Runtime& rt, const jsi::Function& callback);
 
+    // === Fonctions utilitaires supplémentaires ===
+    jsi::Value getAvailablePresets(jsi::Runtime& rt);
+
+    // === Contrôle de performance ===
+    jsi::Value enableSIMD(jsi::Runtime& rt, bool enable);
+    jsi::Value enableOptimizedProcessing(jsi::Runtime& rt, bool enable);
+    jsi::Value enableThreadSafe(jsi::Runtime& rt, bool enable);
+    jsi::Value getCapabilities(jsi::Runtime& rt);
+
     // === Installation du module ===
     static jsi::Value install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker);
 
@@ -398,6 +413,9 @@ private:
 
     // Invocation de callbacks JS sur le thread principal
     void invokeJSCallback(const std::string& callbackName, std::function<void(jsi::Runtime&)> invocation);
+
+    // Gestion d'erreurs avancée avec AudioError
+    void handleErrorWithAudioError(AudioFX::AudioError error, const std::string& context);
 };
 
 // === Fonction d'enregistrement du module ===

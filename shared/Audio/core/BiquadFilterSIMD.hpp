@@ -308,7 +308,7 @@ class alignas(64) VectorizedBuffer {
 public:
     explicit VectorizedBuffer(size_t size) : m_size(size), m_data(nullptr) {
         // Allocate aligned memory for optimal SIMD performance
-        m_data = static_cast<T*>(std::aligned_alloc(64, size * sizeof(T)));
+        m_data = static_cast<T*>(aligned_alloc(64, size * sizeof(T)));
         if (!m_data)
             throw std::bad_alloc();
         std::memset(m_data, 0, size * sizeof(T));
@@ -339,31 +339,40 @@ public:
 
     // Vectorized operations
     void fill(T value) {
+        fill_impl(value, std::is_same<T, float>{});
+    }
+
+private:
+    // AVX2 implementation
+    template<typename U>
+    void fill_impl(U value, std::true_type) {
 #ifdef AUDIOFX_AVX2
-        if constexpr (std::is_same_v<T, float>) {
-            __m256 val = _mm256_set1_ps(value);
-            size_t i = 0;
-            for (; i + 7 < m_size; i += 8) {
-                _mm256_store_ps(&m_data[i], val);
-            }
-            for (; i < m_size; ++i) {
-                m_data[i] = value;
-            }
+        __m256 val = _mm256_set1_ps(value);
+        size_t i = 0;
+        for (; i + 7 < m_size; i += 8) {
+            _mm256_store_ps(&m_data[i], val);
+        }
+        for (; i < m_size; ++i) {
+            m_data[i] = value;
         }
 #elif defined(AUDIOFX_NEON)
-        if constexpr (std::is_same_v<T, float>) {
-            float32x4_t val = vdupq_n_f32(value);
-            size_t i = 0;
-            for (; i + 3 < m_size; i += 4) {
-                vst1q_f32(&m_data[i], val);
-            }
-            for (; i < m_size; ++i) {
-                m_data[i] = value;
-            }
+        float32x4_t val = vdupq_n_f32(value);
+        size_t i = 0;
+        for (; i + 3 < m_size; i += 4) {
+            vst1q_f32(&m_data[i], val);
+        }
+        for (; i < m_size; ++i) {
+            m_data[i] = value;
         }
 #else
         std::fill_n(m_data, m_size, value);
 #endif
+    }
+
+    // Fallback for non-float types
+    template<typename U>
+    void fill_impl(U value, std::false_type) {
+        std::fill_n(m_data, m_size, value);
     }
 
     void copyFrom(const T* source) {

@@ -76,6 +76,18 @@ struct SafetyReport {
     double feedbackScore = INITIAL_FEEDBACK_SCORE; // 0..1
     bool hasNaN = INITIAL_HAS_NAN;
     bool feedbackLikely = INITIAL_FEEDBACK_LIKELY; // score >= threshold
+
+    // Reset method for object pool
+    void reset() {
+        peak = INITIAL_PEAK;
+        rms = INITIAL_RMS;
+        dcOffset = INITIAL_DC_OFFSET;
+        clippedSamples = INITIAL_CLIPPED_SAMPLES;
+        overloadActive = INITIAL_OVERLOAD_ACTIVE;
+        feedbackScore = INITIAL_FEEDBACK_SCORE;
+        hasNaN = INITIAL_HAS_NAN;
+        feedbackLikely = INITIAL_FEEDBACK_LIKELY;
+    }
 };
 
 class AudioSafetyEngine {
@@ -106,6 +118,9 @@ public:
     }
     SafetyReport getLastReport() const {
         return report_;
+    }
+    uint32_t getSampleRate() const {
+        return sampleRate_;
     }
 
     /**

@@ -18,7 +18,7 @@ import {
   UsageStats,
 } from "../../types/subscription";
 import { createLogger } from "../../utils/optimizedLogger";
-import subscriptionCacheService from "../subscription/SubscriptionCacheService";
+import { initializeSubscriptionCacheService, getSubscriptionCacheService } from "../subscription/SubscriptionCacheService";
 
 const logger = createLogger("SubscriptionService");
 
@@ -27,6 +27,14 @@ const COLLECTION_NAME = "subscriptions";
 const USAGE_COLLECTION = "usage_stats";
 
 class SubscriptionService {
+  private subscriptionCacheService: any;
+
+  constructor() {
+    // Initialiser le cache service avec cette instance
+    initializeSubscriptionCacheService(this);
+    this.subscriptionCacheService = getSubscriptionCacheService();
+  }
+
   /**
    * Créer ou mettre à jour un abonnement avec cache et retry
    */
@@ -48,7 +56,7 @@ class SubscriptionService {
         );
 
         // Invalider et mettre à jour le cache
-        await subscriptionCacheService.updateCache(userId, subscription as any);
+        await this.subscriptionCacheService.updateCache(userId, subscription as any);
 
         logger.info("✅ Abonnement créé/mis à jour:", subscription.planId);
       },
@@ -63,7 +71,7 @@ class SubscriptionService {
   async getSubscription(userId: string): Promise<Subscription | null> {
     try {
       // Utiliser le cache intelligent
-      const cachedSubscription = await subscriptionCacheService.getSubscription(userId);
+      const cachedSubscription = await this.subscriptionCacheService.getSubscription(userId);
       if (cachedSubscription) {
         return cachedSubscription as Subscription;
       }
@@ -78,7 +86,7 @@ class SubscriptionService {
           const subscription = snap.exists() ? (snap.data() as Subscription) : null;
 
           // Mettre en cache même si null
-          await subscriptionCacheService.updateCache(userId, subscription as any);
+          await this.subscriptionCacheService.updateCache(userId, subscription as any);
 
           return subscription;
         },
@@ -312,7 +320,7 @@ class SubscriptionService {
   async getUsageStats(userId: string): Promise<UsageStats | null> {
     try {
       // Utiliser le cache intelligent
-      const cachedUsage = await subscriptionCacheService.getUsageStats(userId);
+      const cachedUsage = await this.subscriptionCacheService.getUsageStats(userId);
       if (cachedUsage) {
         return cachedUsage;
       }
@@ -326,7 +334,7 @@ class SubscriptionService {
 
           if (!snap.exists()) {
             // Mettre en cache même si null
-            await subscriptionCacheService.updateCache(userId, undefined, null);
+            await this.subscriptionCacheService.updateCache(userId, undefined, null);
             return null;
           }
 
@@ -364,7 +372,7 @@ class SubscriptionService {
           }
 
           // Mettre en cache
-          await subscriptionCacheService.updateCache(userId, undefined, usageStats);
+          await this.subscriptionCacheService.updateCache(userId, undefined, usageStats);
 
           return usageStats;
         },
@@ -388,7 +396,7 @@ class SubscriptionService {
         await deleteDoc(subscriptionRef);
 
         // Invalider le cache
-        await subscriptionCacheService.invalidateCache(userId);
+        await this.subscriptionCacheService.invalidateCache(userId);
 
         logger.info("✅ Abonnement supprimé");
       },
@@ -435,7 +443,7 @@ class SubscriptionService {
    */
   getHealthStatus() {
     return {
-      cacheStats: subscriptionCacheService.getCacheStats(),
+      cacheStats: this.subscriptionCacheService.getCacheStats(),
       isHealthy: true, // À améliorer avec des checks réels
       lastError: null,
       timestamp: Date.now(),
@@ -446,7 +454,7 @@ class SubscriptionService {
    * Forcer le refresh du cache pour un utilisateur
    */
   async refreshCache(userId: string): Promise<void> {
-    await subscriptionCacheService.invalidateCache(userId);
+    await this.subscriptionCacheService.invalidateCache(userId);
     logger.info("🗑️ Cache forcé pour:", userId);
   }
 }

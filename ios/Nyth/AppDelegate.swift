@@ -18,8 +18,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
-    if FirebaseApp.app() == nil {
+    // Configuration Firebase AVANT l'initialisation de React Native
+    do {
       FirebaseApp.configure()
+      print("✅ Firebase configuré avec succès")
+    } catch {
+      print("❌ Erreur lors de la configuration Firebase: \(error)")
     }
 
     // Notifications iOS

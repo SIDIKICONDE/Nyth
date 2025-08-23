@@ -12,7 +12,7 @@
 static std::unique_ptr<Nyth::Audio::AudioPipeline> g_audioPipeline;
 static std::mutex g_globalMutex;
 static NythPipelineState g_currentState = PIPELINE_STATE_UNINITIALIZED;
-static NythPipelineConfig g_currentConfig = {0};
+static NythPipelineConfig g_currentConfig = {};
 static NythPipelineMetrics g_currentMetrics = {0};
 static NythPipelineModuleStatus g_currentModuleStatus = {0};
 
@@ -285,7 +285,7 @@ bool NythPipeline_SetEffectsEnabled(bool enabled) {
     return false;
 }
 
-bool NythPipeline_AddEffect(const NythEffectConfig* config) {
+bool NythPipeline_AddEffect(const NythPipelineEffectConfig* config) {
     if (!config) return false;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
@@ -507,11 +507,7 @@ float NythPipeline_GetCaptureLevel(void) {
 namespace facebook {
 namespace react {
 
-NativeAudioPipelineModule::NativeAudioPipelineModule(std::shared_ptr<CallInvoker> jsInvoker)
-    : TurboModule(jsInvoker) {
-    currentSampleRate_ = 44100;
-    currentChannels_ = 2;
-}
+
 
 NativeAudioPipelineModule::~NativeAudioPipelineModule() {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
@@ -548,7 +544,7 @@ std::string NativeAudioPipelineModule::stateToString(NythPipelineState state) co
 // === Conversion JSI <-> Native ===
 
 NythPipelineConfig NativeAudioPipelineModule::parsePipelineConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
-    NythPipelineConfig config = {0};
+    NythPipelineConfig config = {};
 
     // Capture config
     if (jsConfig.hasProperty(rt, "captureConfig")) {
@@ -673,7 +669,7 @@ jsi::Object NativeAudioPipelineModule::moduleStatusToJS(jsi::Runtime& rt, const 
 }
 
 NythEqualizerBandConfig NativeAudioPipelineModule::parseEqualizerBandConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
-    NythEqualizerBandConfig config = {0};
+    NythEqualizerBandConfig config = {};
     config.band = 0;
     config.frequency = 1000.0;
     config.gain = 0.0;
@@ -695,20 +691,34 @@ NythEqualizerBandConfig NativeAudioPipelineModule::parseEqualizerBandConfig(jsi:
     return config;
 }
 
-NythEffectConfig NativeAudioPipelineModule::parseEffectConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
-    NythEffectConfig config = {0};
+NythPipelineEffectConfig NativeAudioPipelineModule::parseEffectConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
+    NythPipelineEffectConfig config = {};
 
     if (jsConfig.hasProperty(rt, "effectType")) {
-        const char* typeStr = jsConfig.getProperty(rt, "effectType").asString(rt).utf8(rt).c_str();
-        config.effectType = strdup(typeStr);
+        std::string typeStr = jsConfig.getProperty(rt, "effectType").asString(rt).utf8(rt);
+        strncpy(config.effectType, typeStr.c_str(), sizeof(config.effectType) - 1);
+        config.effectType[sizeof(config.effectType) - 1] = '\0';
     }
     if (jsConfig.hasProperty(rt, "effectId")) {
-        const char* idStr = jsConfig.getProperty(rt, "effectId").asString(rt).utf8(rt).c_str();
-        config.effectId = strdup(idStr);
+        std::string idStr = jsConfig.getProperty(rt, "effectId").asString(rt).utf8(rt);
+        strncpy(config.effectId, idStr.c_str(), sizeof(config.effectId) - 1);
+        config.effectId[sizeof(config.effectId) - 1] = '\0';
     }
     if (jsConfig.hasProperty(rt, "parameters")) {
-        const char* paramsStr = jsConfig.getProperty(rt, "parameters").asString(rt).utf8(rt).c_str();
-        config.parameters = strdup(paramsStr);
+        // Pour les paramètres, on suppose que c'est un tableau de nombres
+        auto paramsValue = jsConfig.getProperty(rt, "parameters");
+        if (paramsValue.isObject()) {
+            auto paramsObj = paramsValue.asObject(rt);
+            if (paramsObj.isArray(rt)) {
+                auto paramsArray = paramsObj.asArray(rt);
+                size_t paramCount = std::min(paramsArray.length(rt), static_cast<size_t>(16));
+                config.parameterCount = static_cast<int>(paramCount);
+                
+                for (size_t i = 0; i < paramCount; ++i) {
+                    config.parameters[i] = static_cast<float>(paramsArray.getValueAtIndex(rt, i).asNumber());
+                }
+            }
+        }
     }
 
     return config;
@@ -721,7 +731,8 @@ void NativeAudioPipelineModule::invokeJSCallback(const std::string& callbackName
     // Pour l'instant, implémentation basique
     try {
         // TODO: Implémenter l'invocation sur le thread principal
-        invocation(*reinterpret_cast<jsi::Runtime*>(nullptr));
+        // Note: Cette ligne est temporaire et sera remplacée par une vraie invocation
+        // invocation(*reinterpret_cast<jsi::Runtime*>(nullptr));
     } catch (...) {
         // Gérer les erreurs d'invocation
     }
@@ -820,15 +831,15 @@ jsi::Value NativeAudioPipelineModule::getErrorString(jsi::Runtime& rt, int error
 jsi::Value NativeAudioPipelineModule::getMetrics(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    NythPipeline_GetMetrics(&currentMetrics_);
-    return pipelineMetricsToJS(rt, currentMetrics_);
+    NythPipeline_GetMetrics(&g_currentMetrics);
+    return pipelineMetricsToJS(rt, g_currentMetrics);
 }
 
 jsi::Value NativeAudioPipelineModule::getModuleStatus(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(pipelineMutex_);
 
-    NythPipeline_GetModuleStatus(&currentModuleStatus_);
-    return moduleStatusToJS(rt, currentModuleStatus_);
+    NythPipeline_GetModuleStatus(&g_currentModuleStatus);
+    return moduleStatusToJS(rt, g_currentModuleStatus);
 }
 
 // Configuration des modules - Equalizer
@@ -930,10 +941,7 @@ jsi::Value NativeAudioPipelineModule::addEffect(jsi::Runtime& rt, const jsi::Obj
     try {
         auto config = parseEffectConfig(rt, effectConfig);
         if (NythPipeline_AddEffect(&config)) {
-            // Free allocated strings
-            if (config.effectType) free((void*)config.effectType);
-            if (config.effectId) free((void*)config.effectId);
-            if (config.parameters) free((void*)config.parameters);
+            // No need to free strings since they are now arrays, not pointers
             return jsi::Value(true);
         }
     } catch (...) {

@@ -10,10 +10,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <string>
-#include <memory>
-#include <functional>
-#include <vector>
 
 // Vérification de la disponibilité de TurboModule
 #if defined(__has_include) && \
@@ -137,6 +133,12 @@ void NythSafety_SetStateChangeCallback(NythSafetyStateChangeCallback callback);
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_SAFETY_ENABLED && defined(__cplusplus)
 
+// Includes C++ nécessaires pour TurboModule
+#include <string>
+#include <memory>
+#include <functional>
+#include <vector>
+
 #include <jsi/jsi.h>
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
@@ -151,7 +153,28 @@ namespace react {
 
 class JSI_EXPORT NativeAudioSafetyModule : public TurboModule {
 public:
-    explicit NativeAudioSafetyModule(std::shared_ptr<CallInvoker> jsInvoker);
+    explicit NativeAudioSafetyModule(std::shared_ptr<CallInvoker> jsInvoker)
+        : TurboModule("NativeAudioSafetyModule", jsInvoker) {
+        // Initialize with defaults
+        currentConfig_ = {
+            true,   // enabled
+            true,   // dcRemovalEnabled
+            0.002,  // dcThreshold
+            true,   // limiterEnabled
+            -1.0,   // limiterThresholdDb
+            true,   // softKneeLimiter
+            6.0,    // kneeWidthDb
+            true,   // feedbackDetectEnabled
+            0.95    // feedbackCorrThreshold
+        };
+
+        optimizationConfig_ = {
+            false, // useOptimizedEngine
+            true,  // enableMemoryPool
+            true,  // branchFreeProcessing
+            32     // poolSize
+        };
+    }
     ~NativeAudioSafetyModule() override;
 
     // === Méthodes TurboModule ===
@@ -251,6 +274,12 @@ private:
 
     // Invocation de callbacks JS sur le thread principal
     void invokeJSCallback(const std::string& callbackName, std::function<void(jsi::Runtime&)> invocation);
+
+    // Gestion des callbacks et erreurs
+    void handleError(const std::string& error);
+    void handleAudioData(const float* input, float* output, size_t frameCount, int channels);
+    void handleStateChange(NythSafetyState oldState, NythSafetyState newState);
+    std::string stateToString(NythSafetyState state) const;
 };
 
 // === Fonction d'enregistrement du module ===

@@ -12,27 +12,25 @@ project(appmodules
 include(${REACT_ANDROID_DIR}/cmake-utils/ReactNative-application.cmake)
 
 #== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
-#C++ 20 Configuration
+#C++17 Configuration (Consistent across all platforms)
 #== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
 
-#Force C++ 20 standard
+#Force C++17 standard (consistent across all compilers)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-#Ensure compiler supports C++ 20
+#Ensure compiler supports C++17
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-#Clang - specific C++ 20 flags
+#Clang - specific C++17 flags
     add_compile_options(
         -std=c++17
         -stdlib=libc++
-        -fexperimental-library # Pour les nouvelles features de la stdlib
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-#GCC - specific C++ 20 flags
+#GCC - specific C++17 flags
     add_compile_options(
-        -std=c++20
-        -lstdc++fs # Pour filesystem si nécessaire
+        -std=c++17
     )
 endif()
 
@@ -116,21 +114,21 @@ endif()
 #Feature Detection
 #== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
 
-#Vérifier le support des concepts
+#Vérifier le support des features C++17
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles("
-#include <concepts>
-    template<typename T>
-    concept Integral = std::integral<T>;
+#include <type_traits>
     int main() {
-    return 0; }
-"    HAS_CONCEPTS)
+        bool test = std::is_pointer_v<int*>;
+        return test ? 0 : 1;
+    }
+"    HAS_CPP17_TYPE_TRAITS)
 
-if(HAS_CONCEPTS)
-    message(STATUS "✅ C++20 Concepts support: ENABLED")
-    add_definitions(-DHAS_CONCEPTS)
+if(HAS_CPP17_TYPE_TRAITS)
+    message(STATUS "✅ C++17 Type traits support: ENABLED")
+    add_definitions(-DHAS_CPP17_TYPE_TRAITS)
 else()
-    message(WARNING "❌ C++20 Concepts support: NOT AVAILABLE")
+    message(WARNING "❌ C++17 Type traits support: NOT AVAILABLE - will fallback to C++11 style")
 endif()
 
 #Vérifier le support de std::format
@@ -257,6 +255,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/Audio/core/EQPreset.hpp
     ../../../../../shared/Audio/core/EQPresetFactory.hpp
     ../../../../../shared/Audio/core/EQPresetFactory.cpp
+    ../../../../../shared/Audio/noise/AdvancedSpectralNR.cpp
+    ../../../../../shared/Audio/noise/IMCRA.cpp
+    ../../../../../shared/Audio/noise/WienerFilter.cpp
     ../../../../../shared/Audio/noise/NoiseReducer.cpp
     ../../../../../shared/Audio/noise/RNNoiseSuppressor.cpp
     ../../../../../shared/Audio/noise/SpectralNR.cpp
@@ -273,7 +274,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/Audio/capture/AudioCaptureSIMD.hpp
     ../../../../../shared/Audio/capture/AudioCaptureSIMD.cpp
     ../../../../../shared/Audio/capture/AudioFileWriter.hpp
-    ../../../../../shared/Audio/capture/examples/audio_recorder_example.cpp
 #Audio Pipeline Integration System
     ../../../../../shared/Audio/AudioPipeline.hpp
     ../../../../../shared/Audio/AudioPipeline.cpp
@@ -362,8 +362,8 @@ target_precompile_headers(${CMAKE_PROJECT_NAME} PRIVATE
 #Build Summary
 #== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
 
-message(STATUS "🔧 C++20 Configuration Summary:")
-message(STATUS "  - Standard: C++20")
+message(STATUS "🔧 C++17 Configuration Summary:")
+message(STATUS "  - Standard: C++17")
 message(STATUS "  - Extensions: ${CMAKE_CXX_EXTENSIONS}")
 message(STATUS "  - Compiler: ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "  - Version: ${CMAKE_CXX_COMPILER_VERSION}")

@@ -13,8 +13,8 @@
 static std::unique_ptr<AudioSafety::AudioSafetyEngine> g_safetyEngine;
 static std::unique_ptr<AudioSafety::AudioSafetyEngineOptimized> g_optimizedEngine;
 static std::mutex g_globalMutex;
-static NythSafetyConfig g_currentConfig = {0};
-static NythSafetyOptimizationConfig g_optimizationConfig = {0};
+static NythSafetyConfig g_currentConfig = {};
+static NythSafetyOptimizationConfig g_optimizationConfig = {};
 static NythSafetyState g_currentState = SAFETY_STATE_UNINITIALIZED;
 static NythSafetyReport g_lastReport = {0};
 
@@ -372,28 +372,7 @@ void NythSafety_SetStateChangeCallback(NythSafetyStateChangeCallback callback) {
 namespace facebook {
 namespace react {
 
-NativeAudioSafetyModule::NativeAudioSafetyModule(std::shared_ptr<CallInvoker> jsInvoker)
-    : TurboModule(jsInvoker) {
-    // Initialize with defaults
-    currentConfig_ = {
-        true,   // enabled
-        true,   // dcRemovalEnabled
-        0.002,  // dcThreshold
-        true,   // limiterEnabled
-        -1.0,   // limiterThresholdDb
-        true,   // softKneeLimiter
-        6.0,    // kneeWidthDb
-        true,   // feedbackDetectEnabled
-        0.95    // feedbackCorrThreshold
-    };
 
-    optimizationConfig_ = {
-        false, // useOptimizedEngine
-        true,  // enableMemoryPool
-        true,  // branchFreeProcessing
-        32     // poolSize
-    };
-}
 
 NativeAudioSafetyModule::~NativeAudioSafetyModule() {
     std::lock_guard<std::mutex> lock(safetyMutex_);
@@ -661,7 +640,8 @@ void NativeAudioSafetyModule::invokeJSCallback(
     // Dans un vrai module, il faudrait utiliser le jsInvoker pour invoquer sur le thread principal
     try {
         // TODO: Implémenter l'invocation sur le thread principal
-        invocation(*reinterpret_cast<jsi::Runtime*>(nullptr));
+        // Note: Cette ligne est temporaire et sera remplacée par une vraie invocation
+        // invocation(*reinterpret_cast<jsi::Runtime*>(nullptr));
     } catch (...) {
         // Gérer les erreurs d'invocation
     }
@@ -789,7 +769,7 @@ jsi::Value NativeAudioSafetyModule::setOptimizationConfig(jsi::Runtime& rt, cons
         try {
             AudioSafety::SafetyError error;
             optimizedEngine_ = std::make_unique<AudioSafety::AudioSafetyEngineOptimized>(
-                safetyEngine_->getConfig().sampleRate, 2, &error);
+                safetyEngine_->getSampleRate(), 2, &error);
 
             if (error == AudioSafety::SafetyError::OK) {
                 optimizedEngine_->setConfig(safetyEngine_->getConfig());

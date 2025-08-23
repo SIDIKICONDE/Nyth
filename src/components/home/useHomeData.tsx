@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -70,13 +70,13 @@ export function useHomeData() {
       // 🔥 CACHE OPTIMISÉ: Vérifier le cache d'abord
       const cacheKey = `home_data_${user.uid}`;
       const cachedData = await adminAdvancedCacheService.get(cacheKey) as {
-        data: { recordings: Recording[]; timestamp: number };
-        metadata: { timestamp: number };
-      };
+        recordings: Recording[];
+        timestamp: number;
+      } | null;
 
-      if (cachedData && Date.now() - cachedData.metadata.timestamp < 2 * 60 * 1000) { // Cache de 2 minutes
+      if (cachedData && cachedData.timestamp && Date.now() - cachedData.timestamp < 2 * 60 * 1000) { // Cache de 2 minutes
         logger.info("⚡ CACHE HIT! Données chargées depuis le cache");
-        setRecordings(cachedData.data.recordings || []);
+        setRecordings(cachedData.recordings || []);
         return;
       }
 

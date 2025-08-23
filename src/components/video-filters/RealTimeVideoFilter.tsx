@@ -6,13 +6,11 @@ import {
   TouchableOpacity,
   Text,
 } from 'react-native';
-import {
-  Canvas,
-  Fill,
-  Group,
-  Paint,
-  ColorMatrix,
-} from '@shopify/react-native-skia';
+import Animated, {
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+} from 'react-native-reanimated';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -31,78 +29,47 @@ export const RealTimeVideoFilter: React.FC<RealTimeVideoFilterProps> = ({
 }) => {
   const [showControls, setShowControls] = useState(false);
 
-  // Matrices de couleurs optimisées pour le temps réel
-  const getColorMatrix = (type: string, intensity: number) => {
+  // Styles animés pour les filtres
+  const getFilterOverlayStyle = (type: string, intensity: number) => {
     const baseIntensity = Math.min(1, Math.max(0, intensity));
-    
-    switch (type) {
-      case 'sepia':
-        return [
-          0.393 + 0.607 * (1 - baseIntensity), 0.769 - 0.769 * (1 - baseIntensity), 0.189 - 0.189 * (1 - baseIntensity), 0, 0,
-          0.349 - 0.349 * (1 - baseIntensity), 0.686 + 0.314 * (1 - baseIntensity), 0.168 - 0.168 * (1 - baseIntensity), 0, 0,
-          0.272 - 0.272 * (1 - baseIntensity), 0.534 - 0.534 * (1 - baseIntensity), 0.131 + 0.869 * (1 - baseIntensity), 0, 0,
-          0, 0, 0, 1, 0,
-        ];
-      
-      case 'vintage':
-        return [
-          1.2 * baseIntensity + (1 - baseIntensity), 0, 0, 0, 0.1 * baseIntensity,
-          0, 1.1 * baseIntensity + (1 - baseIntensity), 0, 0, 0.05 * baseIntensity,
-          0, 0, 0.9 * baseIntensity + (1 - baseIntensity), 0, 0.1 * baseIntensity,
-          0, 0, 0, 1, 0,
-        ];
-      
-      case 'cool':
-        return [
-          1.1 * baseIntensity + (1 - baseIntensity), 0, 0, 0, 0,
-          0, 0.9 * baseIntensity + (1 - baseIntensity), 0, 0, 0.1 * baseIntensity,
-          0, 0, 1.2 * baseIntensity + (1 - baseIntensity), 0, 0.1 * baseIntensity,
-          0, 0, 0, 1, 0,
-        ];
-      
-      case 'warm':
-        return [
-          1.2 * baseIntensity + (1 - baseIntensity), 0, 0, 0, 0.1 * baseIntensity,
-          0, 1.1 * baseIntensity + (1 - baseIntensity), 0, 0, 0.05 * baseIntensity,
-          0, 0, 0.9 * baseIntensity + (1 - baseIntensity), 0, 0,
-          0, 0, 0, 1, 0,
-        ];
-      
-      case 'dramatic':
-        return [
-          1.3 * baseIntensity + (1 - baseIntensity), 0, 0, 0, -0.1 * baseIntensity,
-          0, 1.1 * baseIntensity + (1 - baseIntensity), 0, 0, -0.05 * baseIntensity,
-          0, 0, 0.8 * baseIntensity + (1 - baseIntensity), 0, -0.1 * baseIntensity,
-          0, 0, 0, 1, 0,
-        ];
-      
-      case 'blackAndWhite':
-        return [
-          0.299 * baseIntensity + (1 - baseIntensity), 0.587 * baseIntensity, 0.114 * baseIntensity, 0, 0,
-          0.299 * baseIntensity, 0.587 * baseIntensity + (1 - baseIntensity), 0.114 * baseIntensity, 0, 0,
-          0.299 * baseIntensity, 0.587 * baseIntensity, 0.114 * baseIntensity + (1 - baseIntensity), 0, 0,
-          0, 0, 0, 1, 0,
-        ];
-      
-      case 'vivid':
-        return [
-          1.4 * baseIntensity + (1 - baseIntensity), 0, 0, 0, 0.1 * baseIntensity,
-          0, 1.3 * baseIntensity + (1 - baseIntensity), 0, 0, 0.05 * baseIntensity,
-          0, 0, 1.2 * baseIntensity + (1 - baseIntensity), 0, 0.1 * baseIntensity,
-          0, 0, 0, 1, 0,
-        ];
-      
-      default:
-        return [
-          1, 0, 0, 0, 0,
-          0, 1, 0, 0, 0,
-          0, 0, 1, 0, 0,
-          0, 0, 0, 1, 0,
-        ];
-    }
+
+    const overlayStyles: { [key: string]: any } = {
+      sepia: {
+        backgroundColor: `rgba(112, 66, 20, ${baseIntensity * 0.4})`,
+      },
+      vintage: {
+        backgroundColor: `rgba(255, 248, 220, ${baseIntensity * 0.2})`,
+      },
+      cool: {
+        backgroundColor: `rgba(173, 216, 230, ${baseIntensity * 0.3})`,
+      },
+      warm: {
+        backgroundColor: `rgba(255, 218, 185, ${baseIntensity * 0.3})`,
+      },
+      dramatic: {
+        backgroundColor: `rgba(139, 69, 19, ${baseIntensity * 0.5})`,
+      },
+      blackAndWhite: {
+        backgroundColor: `rgba(128, 128, 128, ${baseIntensity * 0.7})`,
+      },
+      vivid: {
+        backgroundColor: `rgba(255, 215, 0, ${baseIntensity * 0.2})`,
+      },
+    };
+
+    return overlayStyles[type] || { backgroundColor: 'transparent' };
   };
 
-  const colorMatrix = getColorMatrix(selectedFilter, filterIntensity);
+  const filterOverlayStyle = getFilterOverlayStyle(selectedFilter, filterIntensity);
+
+  // Animation pour l'overlay du filtre
+  const animatedOverlayStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(selectedFilter !== 'none' ? filterIntensity : 0, {
+        duration: 200,
+      }),
+    };
+  });
 
   return (
     <View style={styles.container}>
@@ -113,15 +80,13 @@ export const RealTimeVideoFilter: React.FC<RealTimeVideoFilterProps> = ({
 
       {/* Overlay du filtre en temps réel */}
       {selectedFilter !== 'none' && (
-        <View style={StyleSheet.absoluteFill}>
-          <Canvas style={styles.filterCanvas}>
-            <Fill>
-              <Paint>
-                <ColorMatrix matrix={colorMatrix} />
-              </Paint>
-            </Fill>
-          </Canvas>
-        </View>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            filterOverlayStyle,
+            animatedOverlayStyle,
+          ]}
+        />
       )}
 
       {/* Contrôles flottants */}
@@ -182,9 +147,7 @@ const styles = StyleSheet.create({
   cameraContainer: {
     flex: 1,
   },
-  filterCanvas: {
-    flex: 1,
-  },
+
   filterButton: {
     position: 'absolute',
     top: 50,

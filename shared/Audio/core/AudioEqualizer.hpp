@@ -34,15 +34,18 @@ public:
 
   // Processing methods - templates defined in AudioEqualizerTemplates.hpp
   template <typename T = float,
-            typename = std::enable_if_t<std::is_floating_point_v<T>>>
+            typename = std::enable_if_t<std::is_floating_point<T>::value>>
   void process(const std::vector<T> &input, std::vector<T> &output,
                const std::string &location = NYTH_SOURCE_LOCATION);
 
   template <typename T = float,
-            typename = std::enable_if_t<std::is_floating_point_v<T>>>
+            typename = std::enable_if_t<std::is_floating_point<T>::value>>
   void processStereo(const std::vector<T> &inputL, const std::vector<T> &inputR,
                      std::vector<T> &outputL, std::vector<T> &outputR,
                      const std::string &location = NYTH_SOURCE_LOCATION);
+                     
+  // Mono processing method for single channel audio
+  void processMono(const float* input, float* output, size_t numSamples);
 
   // Band control
   void setBandGain(size_t bandIndex, double gainDB);
@@ -68,6 +71,9 @@ public:
   void loadPreset(const AudioFX::EQPreset &preset);
   void savePreset(AudioFX::EQPreset &preset) const;
   void resetAllBands();
+  
+  // Reset and initialization
+  void reset();
 
   // Sample rate
   void setSampleRate(uint32_t sampleRate);
@@ -99,7 +105,7 @@ public:
   getDebugInfo(const std::string &location = NYTH_SOURCE_LOCATION) const;
 
   template <typename T = float,
-            typename = std::enable_if_t<std::is_floating_point_v<T>>>
+            typename = std::enable_if_t<std::is_floating_point<T>::value>>
   bool
   validateAudioBuffer(const std::vector<T> &buffer,
                       const std::string &location = NYTH_SOURCE_LOCATION) const;
@@ -125,6 +131,38 @@ private:
   double dbToLinear(double db) const;
   double linearToDb(double linear) const;
 
+  // Type dispatch helpers for C++11 compatibility
+  template <typename T>
+  void processTypeDispatch(const std::vector<T> &input, std::vector<T> &output, std::true_type) {
+    processOptimized(input, output);
+  }
+
+  template <typename T>
+  void processTypeDispatch(const std::vector<T> &input, std::vector<T> &output, std::false_type) {
+    std::vector<float> tempInput(input.begin(), input.end());
+    std::vector<float> tempOutput(tempInput.size());
+    processOptimized(tempInput, tempOutput);
+    std::copy(tempOutput.begin(), tempOutput.end(), output.begin());
+  }
+
+  template <typename T>
+  void processStereoTypeDispatch(const std::vector<T> &inputL, const std::vector<T> &inputR,
+                                 std::vector<T> &outputL, std::vector<T> &outputR, std::true_type) {
+    processStereoOptimized(inputL, inputR, outputL, outputR);
+  }
+
+  template <typename T>
+  void processStereoTypeDispatch(const std::vector<T> &inputL, const std::vector<T> &inputR,
+                                 std::vector<T> &outputL, std::vector<T> &outputR, std::false_type) {
+    std::vector<float> tempInputL(inputL.begin(), inputL.end());
+    std::vector<float> tempInputR(inputR.begin(), inputR.end());
+    std::vector<float> tempOutputL(tempInputL.size());
+    std::vector<float> tempOutputR(tempInputR.size());
+    processStereoOptimized(tempInputL, tempInputR, tempOutputL, tempOutputR);
+    std::copy(tempOutputL.begin(), tempOutputL.end(), outputL.begin());
+    std::copy(tempOutputR.begin(), tempOutputR.end(), outputR.begin());
+  }
+
   // Member variables
   std::vector<AudioFX::EQBand> m_bands;
   uint32_t m_sampleRate;
@@ -144,7 +182,7 @@ inline void AudioEqualizer::process(const std::vector<T> &input,
                                     const std::string &location) {
   // C++17 static assertion pour validation de type à la compilation
   static_assert(
-      std::is_floating_point_v<T>,
+      std::is_floating_point<T>::value,
       "AudioEqualizer::process requires floating point type (float or double)");
 
   // Validation des tailles de buffers
@@ -167,20 +205,8 @@ inline void AudioEqualizer::process(const std::vector<T> &input,
     m_parametersChanged.store(false);
   }
 
-  // Traitement spécialisé selon le type avec constexpr if (C++17)
-  if constexpr (std::is_same_v<T, float>) {
-    // Traitement direct pour float (type natif)
-    processOptimized(input, output);
-  } else {
-    // Conversion vers float pour les autres types (double)
-    std::vector<float> tempInput(input.begin(), input.end());
-    std::vector<float> tempOutput(tempInput.size());
-
-    processOptimized(tempInput, tempOutput);
-
-    // Conversion retour vers le type original
-    std::copy(tempOutput.begin(), tempOutput.end(), output.begin());
-  }
+  // Traitement spécialisé selon le type avec SFINAE (compatible C++11)
+  processTypeDispatch(input, output, std::is_same<T, float>{});
 }
 
 template <typename T, typename SFINAE>
@@ -190,7 +216,7 @@ inline void AudioEqualizer::processStereo(const std::vector<T> &inputL,
                                           std::vector<T> &outputR,
                                           const std::string &location) {
   // C++17 static assertion pour validation de type à la compilation
-  static_assert(std::is_floating_point_v<T>,
+  static_assert(std::is_floating_point<T>::value,
                 "AudioEqualizer::processStereo requires floating point type "
                 "(float or double)");
 
@@ -220,23 +246,8 @@ inline void AudioEqualizer::processStereo(const std::vector<T> &inputL,
     m_parametersChanged.store(false);
   }
 
-  // Traitement spécialisé selon le type avec constexpr if (C++17)
-  if constexpr (std::is_same_v<T, float>) {
-    // Traitement direct pour float (type natif)
-    processStereoOptimized(inputL, inputR, outputL, outputR);
-  } else {
-    // Conversion vers float pour les autres types (double)
-    std::vector<float> tempInputL(inputL.begin(), inputL.end());
-    std::vector<float> tempInputR(inputR.begin(), inputR.end());
-    std::vector<float> tempOutputL(tempInputL.size());
-    std::vector<float> tempOutputR(tempInputR.size());
-
-    processStereoOptimized(tempInputL, tempInputR, tempOutputL, tempOutputR);
-
-    // Conversion retour vers le type original
-    std::copy(tempOutputL.begin(), tempOutputL.end(), outputL.begin());
-    std::copy(tempOutputR.begin(), tempOutputR.end(), outputR.begin());
-  }
+  // Traitement spécialisé selon le type avec SFINAE (compatible C++11)
+  processStereoTypeDispatch(inputL, inputR, outputL, outputR, std::is_same<T, float>{});
 }
 
 template <typename T, typename SFINAE>
@@ -244,7 +255,7 @@ inline bool
 AudioEqualizer::validateAudioBuffer(const std::vector<T> &buffer,
                                     const std::string &location) const {
   // C++17 static assertion pour validation de type à la compilation
-  static_assert(std::is_floating_point_v<T>,
+  static_assert(std::is_floating_point<T>::value,
                 "AudioEqualizer::validateAudioBuffer requires floating point "
                 "type (float or double)");
 
@@ -260,8 +271,5 @@ AudioEqualizer::validateAudioBuffer(const std::vector<T> &buffer,
 
 } // namespace core
 } // namespace Audio
-
-// Include preset factory
-#include "EQPresetFactory.hpp"
 
 #endif // AUDIOFX_AUDIOEQUALIZER_HPP

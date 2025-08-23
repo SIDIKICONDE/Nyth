@@ -1,13 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createLogger } from "../../utils/optimizedLogger";
-import subscriptionService from "../firebase/subscriptionService";
-import { UserSubscription, UsageStats } from "../../types/subscription";
+import { UserSubscription, UsageStats, Subscription } from "../../types/subscription";
 import { adminAdvancedCacheService } from "../cache/adminAdvancedCacheService";
 
 const logger = createLogger("SubscriptionCacheService");
 
 interface SubscriptionCacheEntry {
-  data: UserSubscription | null;
+  data: UserSubscription | Subscription | null;
   usage: UsageStats | null;
   cachedAt: number;
   expiresAt: number;
@@ -20,6 +19,14 @@ interface CacheConfig {
   maxRetries: number;      // 3 tentatives max
   retryDelay: number;      // 1000ms délai initial
   enableCompression: boolean;
+}
+
+/**
+ * Interface for the subscription service that this cache service depends on
+ */
+export interface SubscriptionServiceInterface {
+  getSubscription(userId: string): Promise<Subscription | null>;
+  getUsageStats(userId: string): Promise<UsageStats | null>;
 }
 
 /**
@@ -40,8 +47,10 @@ class SubscriptionCacheService {
   };
 
   private retryTimeouts = new Map<string, NodeJS.Timeout>();
+  private subscriptionService: SubscriptionServiceInterface;
 
-  constructor() {
+  constructor(subscriptionService: SubscriptionServiceInterface) {
+    this.subscriptionService = subscriptionService;
     this.initialize();
   }
 
@@ -58,7 +67,7 @@ class SubscriptionCacheService {
   /**
    * Récupère l'abonnement avec cache intelligent
    */
-  async getSubscription(userId: string): Promise<UserSubscription | null> {
+  async getSubscription(userId: string): Promise<Subscription | null> {
     const cacheKey = `${this.constructor.name}_subscription_${userId}`;
 
     try {
@@ -66,7 +75,7 @@ class SubscriptionCacheService {
       const cached = this.cache.get(cacheKey);
       if (cached && !this.isExpired(cached)) {
         logger.debug("✅ Cache hit pour abonnement:", userId);
-        return cached.data;
+        return cached.data as Subscription | null;
       }
 
       // Vérifier AsyncStorage
@@ -74,12 +83,12 @@ class SubscriptionCacheService {
       if (stored && !this.isExpired(stored)) {
         this.cache.set(cacheKey, stored);
         logger.debug("✅ Storage hit pour abonnement:", userId);
-        return stored.data;
+        return stored.data as Subscription | null;
       }
 
       // Récupérer depuis Firestore avec retry
       const subscription = await this.fetchWithRetry(
-        () => subscriptionService.getSubscription(userId),
+        () => this.subscriptionService.getSubscription(userId),
         `getSubscription_${userId}`
       );
 
@@ -105,7 +114,7 @@ class SubscriptionCacheService {
       const cached = this.cache.get(cacheKey) || await this.getFromStorage(cacheKey);
       if (cached?.data) {
         logger.warn("⚠️ Utilisation du cache expiré pour:", userId);
-        return cached.data;
+        return cached.data as Subscription | null;
       }
 
       throw error;
@@ -136,7 +145,7 @@ class SubscriptionCacheService {
 
       // Récupérer depuis Firestore avec retry
       const usage = await this.fetchWithRetry(
-        () => subscriptionService.getUsageStats(userId),
+        () => this.subscriptionService.getUsageStats(userId),
         `getUsageStats_${userId}`
       );
 
@@ -188,7 +197,7 @@ class SubscriptionCacheService {
   /**
    * Met à jour le cache après modification
    */
-  async updateCache(userId: string, subscription: UserSubscription | null, usage?: UsageStats | null): Promise<void> {
+  async updateCache(userId: string, subscription: Subscription | null, usage?: UsageStats | null): Promise<void> {
     const subscriptionKey = `${this.constructor.name}_subscription_${userId}`;
     const usageKey = `${this.constructor.name}_usage_${userId}`;
 
@@ -354,7 +363,7 @@ class SubscriptionCacheService {
     const now = Date.now();
     const expiredKeys: string[] = [];
 
-    for (const [key, entry] of this.cache.entries()) {
+    for (const [key, entry] of Array.from(this.cache.entries())) {
       if (this.isExpired(entry)) {
         expiredKeys.push(key);
       }
@@ -388,5 +397,48 @@ class SubscriptionCacheService {
   }
 }
 
-export const subscriptionCacheService = new SubscriptionCacheService();
-export default subscriptionCacheService;
+/**
+ * Factory function to create a SubscriptionCacheService instance
+ * with the required subscription service dependency
+ */
+export function createSubscriptionCacheService(subscriptionService: SubscriptionServiceInterface): SubscriptionCacheService {
+  return new SubscriptionCacheService(subscriptionService);
+}
+
+// For backward compatibility, we'll create a placeholder that will be initialized later
+let _subscriptionCacheService: SubscriptionCacheService | null = null;
+
+/**
+ * Initialize the global subscription cache service instance
+ * This should be called after the subscription service is created
+ */
+export function initializeSubscriptionCacheService(subscriptionService: SubscriptionServiceInterface): void {
+  _subscriptionCacheService = new SubscriptionCacheService(subscriptionService);
+}
+
+/**
+ * Get the global subscription cache service instance
+ * Throws an error if not initialized
+ */
+export function getSubscriptionCacheService(): SubscriptionCacheService {
+  if (!_subscriptionCacheService) {
+    throw new Error("SubscriptionCacheService not initialized. Call initializeSubscriptionCacheService first.");
+  }
+  return _subscriptionCacheService;
+}
+
+// Export the class for direct instantiation if needed
+export { SubscriptionCacheService };
+
+// Default export for backward compatibility
+// This creates a temporary instance that will be properly initialized later
+const defaultSubscriptionCacheService = new SubscriptionCacheService({
+  getSubscription: async () => {
+    throw new Error("SubscriptionCacheService not properly initialized");
+  },
+  getUsageStats: async () => {
+    throw new Error("SubscriptionCacheService not properly initialized");
+  }
+});
+
+export default defaultSubscriptionCacheService;

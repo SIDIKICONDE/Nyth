@@ -47,7 +47,7 @@ public:
             AUDIO_RETURN_IF_ERROR(AudioValidator::validateFinite(result));
 
             // Clamp output to prevent overflow
-            result = std::clamp(result, -10.0f, 10.0f); // ±10 is reasonable for audio
+            result = std::max(-10.0f, std::min(result, 10.0f)); // ±10 is reasonable for audio
 
             output[i] = result;
         }
@@ -81,8 +81,8 @@ public:
             AUDIO_RETURN_IF_ERROR(AudioValidator::validateFinite(resultR));
 
             // Clamp outputs
-            outputL[i] = std::clamp(resultL, -10.0f, 10.0f);
-            outputR[i] = std::clamp(resultR, -10.0f, 10.0f);
+            outputL[i] = std::max(-10.0f, std::min(resultL, 10.0f));
+            outputR[i] = std::max(-10.0f, std::min(resultR, 10.0f));
         }
 
         return AudioError::OK;
@@ -149,7 +149,7 @@ protected:
         }
 
         // Clamp input to prevent overflow in calculations
-        input = std::clamp(input, -100.0f, 100.0f);
+        input = std::max(-100.0f, std::min(input, 100.0f));
 
         // Process using base class
         float output = processSample(input);
@@ -178,7 +178,7 @@ protected:
             input = 0.0f;
         }
 
-        input = std::clamp(input, -100.0f, 100.0f);
+        input = std::max(-100.0f, std::min(input, 100.0f));
 
         // Direct Form II implementation for right channel
         double x = static_cast<double>(input);
@@ -293,7 +293,7 @@ class AlignedAudioBuffer {
 public:
     explicit AlignedAudioBuffer(size_t size) : m_size(size) {
         // Allocate aligned memory for SIMD
-        m_data = static_cast<T*>(std::aligned_alloc(64, size * sizeof(T)));
+        m_data = static_cast<T*>(aligned_alloc(64, size * sizeof(T)));
         if (!m_data) {
             throw std::bad_alloc();
         }

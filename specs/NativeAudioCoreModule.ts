@@ -1,5 +1,11 @@
 import { TurboModule, TurboModuleRegistry } from 'react-native';
 
+// === Types pour le runtime JSI ===
+export interface JSIRuntime {
+  // Interface minimale pour le runtime JSI
+  // Peut être étendue selon les besoins
+}
+
 // === Types d'erreurs ===
 export type CoreError =
   | 'ok'
@@ -96,117 +102,143 @@ export interface Spec extends TurboModule {
   // === Gestion du cycle de vie ===
 
   // Initialise le module core
-  readonly initialize: () => void;
+  readonly initialize: (runtime?: JSIRuntime) => void;
 
   // Vérifie si le module est initialisé
-  readonly isInitialized: () => boolean;
+  readonly isInitialized: (runtime?: JSIRuntime) => boolean;
 
   // Libère toutes les ressources
-  readonly dispose: () => void;
+  readonly dispose: (runtime?: JSIRuntime) => void;
 
   // === État et informations ===
 
   // Obtient l'état actuel du module
-  readonly getState: () => CoreState;
+  readonly getState: (runtime?: JSIRuntime) => CoreState;
 
   // Obtient la description d'une erreur
-  readonly getErrorString: (errorCode: number) => string;
+  readonly getErrorString: (errorCode: number, runtime?: JSIRuntime) => string;
 
   // === Égaliseur ===
 
   // Initialisation
-  readonly equalizerInitialize: (config: CoreEqualizerConfig) => boolean;
-  readonly equalizerIsInitialized: () => boolean;
-  readonly equalizerRelease: () => void;
+  readonly equalizerInitialize: (config: CoreEqualizerConfig, runtime?: JSIRuntime) => boolean;
+  readonly equalizerIsInitialized: (runtime?: JSIRuntime) => boolean;
+  readonly equalizerRelease: (runtime?: JSIRuntime) => void;
 
   // Configuration globale
-  readonly equalizerSetMasterGain: (gainDB: number) => boolean;
-  readonly equalizerSetBypass: (bypass: boolean) => boolean;
-  readonly equalizerSetSampleRate: (sampleRate: number) => boolean;
+  readonly equalizerSetMasterGain: (gainDB: number, runtime?: JSIRuntime) => boolean;
+  readonly equalizerSetBypass: (bypass: boolean, runtime?: JSIRuntime) => boolean;
+  readonly equalizerSetSampleRate: (sampleRate: number, runtime?: JSIRuntime) => boolean;
 
   // Configuration des bandes
-  readonly equalizerSetBand: (bandIndex: number, config: CoreBandConfig) => boolean;
-  readonly equalizerGetBand: (bandIndex: number) => CoreBandConfig | null;
-  readonly equalizerSetBandGain: (bandIndex: number, gainDB: number) => boolean;
-  readonly equalizerSetBandFrequency: (bandIndex: number, frequency: number) => boolean;
-  readonly equalizerSetBandQ: (bandIndex: number, q: number) => boolean;
-  readonly equalizerSetBandType: (bandIndex: number, filterType: CoreFilterType) => boolean;
-  readonly equalizerSetBandEnabled: (bandIndex: number, enabled: boolean) => boolean;
+  readonly equalizerSetBand: (bandIndex: number, config: CoreBandConfig, runtime?: JSIRuntime) => boolean;
+  readonly equalizerGetBand: (bandIndex: number, runtime?: JSIRuntime) => CoreBandConfig | null;
+  readonly equalizerSetBandGain: (bandIndex: number, gainDB: number, runtime?: JSIRuntime) => boolean;
+  readonly equalizerSetBandFrequency: (bandIndex: number, frequency: number, runtime?: JSIRuntime) => boolean;
+  readonly equalizerSetBandQ: (bandIndex: number, q: number, runtime?: JSIRuntime) => boolean;
+  readonly equalizerSetBandType: (bandIndex: number, filterType: CoreFilterType, runtime?: JSIRuntime) => boolean;
+  readonly equalizerSetBandEnabled: (bandIndex: number, enabled: boolean, runtime?: JSIRuntime) => boolean;
 
   // Informations
-  readonly equalizerGetInfo: () => CoreEqualizerInfo;
-  readonly equalizerGetNumBands: () => number;
+  readonly equalizerGetInfo: (runtime?: JSIRuntime) => CoreEqualizerInfo;
+  readonly equalizerGetNumBands: (runtime?: JSIRuntime) => number;
 
   // Processing
-  readonly equalizerProcessMono: (input: number[]) => number[];
-  readonly equalizerProcessStereo: (inputL: number[], inputR: number[]) => { left: number[]; right: number[] };
+  readonly equalizerProcessMono: (input: number[], runtime?: JSIRuntime) => number[];
+  readonly equalizerProcessStereo: (inputL: number[], inputR: number[], runtime?: JSIRuntime) => { left: number[]; right: number[] };
 
   // Presets
-  readonly equalizerLoadPreset: (presetName: string) => boolean;
-  readonly equalizerSavePreset: (presetName: string) => boolean;
-  readonly equalizerResetAllBands: () => boolean;
+  readonly equalizerLoadPreset: (presetName: string, runtime?: JSIRuntime) => boolean;
+  readonly equalizerSavePreset: (presetName: string, runtime?: JSIRuntime) => boolean;
+  readonly equalizerResetAllBands: (runtime?: JSIRuntime) => boolean;
+  readonly getAvailablePresets: (runtime?: JSIRuntime) => string[];
 
   // === Filtres biquad individuels ===
 
   // Gestion du cycle de vie
-  readonly filterCreate: () => number; // Retourne l'ID du filtre créé
-  readonly filterDestroy: (filterId: number) => boolean;
+  readonly filterCreate: (runtime?: JSIRuntime) => number; // Retourne l'ID du filtre créé
+  readonly filterDestroy: (filterId: number, runtime?: JSIRuntime) => boolean;
 
   // Configuration
-  readonly filterSetConfig: (filterId: number, config: CoreFilterConfig) => boolean;
-  readonly filterGetConfig: (filterId: number) => CoreFilterConfig | null;
+  readonly filterSetConfig: (filterId: number, config: CoreFilterConfig, runtime?: JSIRuntime) => boolean;
+  readonly filterGetConfig: (filterId: number, runtime?: JSIRuntime) => CoreFilterConfig | null;
 
   // Types de filtres
-  readonly filterSetLowpass: (filterId: number, frequency: number, sampleRate: number, q: number) => boolean;
-  readonly filterSetHighpass: (filterId: number, frequency: number, sampleRate: number, q: number) => boolean;
-  readonly filterSetBandpass: (filterId: number, frequency: number, sampleRate: number, q: number) => boolean;
-  readonly filterSetNotch: (filterId: number, frequency: number, sampleRate: number, q: number) => boolean;
-  readonly filterSetPeaking: (filterId: number, frequency: number, sampleRate: number, q: number, gainDB: number) => boolean;
-  readonly filterSetLowShelf: (filterId: number, frequency: number, sampleRate: number, q: number, gainDB: number) => boolean;
-  readonly filterSetHighShelf: (filterId: number, frequency: number, sampleRate: number, q: number, gainDB: number) => boolean;
-  readonly filterSetAllpass: (filterId: number, frequency: number, sampleRate: number, q: number) => boolean;
+  readonly filterSetLowpass: (filterId: number, frequency: number, sampleRate: number, q: number, runtime?: JSIRuntime) => boolean;
+  readonly filterSetHighpass: (filterId: number, frequency: number, sampleRate: number, q: number, runtime?: JSIRuntime) => boolean;
+  readonly filterSetBandpass: (filterId: number, frequency: number, sampleRate: number, q: number, runtime?: JSIRuntime) => boolean;
+  readonly filterSetNotch: (filterId: number, frequency: number, sampleRate: number, q: number, runtime?: JSIRuntime) => boolean;
+  readonly filterSetPeaking: (filterId: number, frequency: number, sampleRate: number, q: number, gainDB: number, runtime?: JSIRuntime) => boolean;
+  readonly filterSetLowShelf: (filterId: number, frequency: number, sampleRate: number, q: number, gainDB: number, runtime?: JSIRuntime) => boolean;
+  readonly filterSetHighShelf: (filterId: number, frequency: number, sampleRate: number, q: number, gainDB: number, runtime?: JSIRuntime) => boolean;
+  readonly filterSetAllpass: (filterId: number, frequency: number, sampleRate: number, q: number, runtime?: JSIRuntime) => boolean;
 
   // Processing
-  readonly filterProcessMono: (filterId: number, input: number[]) => number[];
-  readonly filterProcessStereo: (filterId: number, inputL: number[], inputR: number[]) => { left: number[]; right: number[] };
+  readonly filterProcessMono: (filterId: number, input: number[], runtime?: JSIRuntime) => number[];
+  readonly filterProcessStereo: (filterId: number, inputL: number[], inputR: number[], runtime?: JSIRuntime) => { left: number[]; right: number[] };
 
   // Informations
-  readonly filterGetInfo: (filterId: number) => CoreFilterInfo | null;
-  readonly filterReset: (filterId: number) => boolean;
+  readonly filterGetInfo: (filterId: number, runtime?: JSIRuntime) => CoreFilterInfo | null;
+  readonly filterReset: (filterId: number, runtime?: JSIRuntime) => boolean;
 
   // === Utilitaires ===
 
   // Conversion dB/linéaire
-  readonly dbToLinear: (db: number) => number;
-  readonly linearToDb: (linear: number) => number;
+  readonly dbToLinear: (db: number, runtime?: JSIRuntime) => number;
+  readonly linearToDb: (linear: number, runtime?: JSIRuntime) => number;
 
   // Validation
-  readonly validateFrequency: (frequency: number, sampleRate: number) => boolean;
-  readonly validateQ: (q: number) => boolean;
-  readonly validateGainDB: (gainDB: number) => boolean;
+  readonly validateFrequency: (frequency: number, sampleRate: number, runtime?: JSIRuntime) => boolean;
+  readonly validateQ: (q: number, runtime?: JSIRuntime) => boolean;
+  readonly validateGainDB: (gainDB: number, runtime?: JSIRuntime) => boolean;
 
   // === Gestion mémoire ===
 
-  readonly memoryInitialize: (poolSize: number) => boolean;
-  readonly memoryRelease: () => void;
-  readonly memoryGetAvailable: () => number;
-  readonly memoryGetUsed: () => number;
+  readonly memoryInitialize: (poolSize: number, runtime?: JSIRuntime) => boolean;
+  readonly memoryRelease: (runtime?: JSIRuntime) => void;
+  readonly memoryGetAvailable: (runtime?: JSIRuntime) => number;
+  readonly memoryGetUsed: (runtime?: JSIRuntime) => number;
 
   // === Callbacks JavaScript ===
 
   // Définit le callback pour les données audio traitées
-  readonly setAudioCallback: (callback: CoreAudioCallback) => void;
+  readonly setAudioCallback: (callback: CoreAudioCallback, runtime?: JSIRuntime) => void;
 
   // Définit le callback pour les erreurs
-  readonly setErrorCallback: (callback: CoreErrorCallback) => void;
+  readonly setErrorCallback: (callback: CoreErrorCallback, runtime?: JSIRuntime) => void;
 
   // Définit le callback pour les changements d'état
-  readonly setStateCallback: (callback: CoreStateCallback) => void;
+  readonly setStateCallback: (callback: CoreStateCallback, runtime?: JSIRuntime) => void;
+
+  // === Contrôle de performance ===
+
+  // Activer/désactiver les optimisations SIMD
+  readonly enableSIMD: (enable: boolean, runtime?: JSIRuntime) => boolean;
+
+  // Activer/désactiver les optimisations avancées
+  readonly enableOptimizedProcessing: (enable: boolean, runtime?: JSIRuntime) => boolean;
+
+  // Activer/désactiver le traitement thread-safe
+  readonly enableThreadSafe: (enable: boolean, runtime?: JSIRuntime) => boolean;
+
+  // Obtenir les capacités disponibles du système
+  readonly getCapabilities: (runtime?: JSIRuntime) => {
+    simd: boolean;
+    optimized: boolean;
+    threadSafe: boolean;
+    branchFree: boolean;
+    dbLookup: boolean;
+  };
 
   // === Installation du module (pour JSI direct) ===
 
+  // Note: La méthode install est statique et disponible via NativeAudioCoreModuleStatic
+}
+
+// === Classe statique pour l'installation ===
+export interface NativeAudioCoreModuleStatic {
   // Installe le module directement dans le runtime JSI
-  readonly install?: () => void;
+  install(runtime: JSIRuntime, jsInvoker?: any): void;
 }
 
 // Export du module
@@ -320,6 +352,9 @@ export class AudioCoreHelper {
     if (!this.module) {
       // Import du module principal
       this.module = require('../specs/NativeAudioCoreModule').default;
+      if (!this.module) {
+        throw new Error('NativeAudioCoreModule is not available');
+      }
     }
     return this.module;
   }
@@ -404,5 +439,71 @@ export class AudioCoreHelper {
   static validateQ(q: number): boolean {
     return q >= EqualizerConstants.MIN_Q &&
            q <= EqualizerConstants.MAX_Q;
+  }
+
+  // === Nouvelles fonctionnalités avancées ===
+
+  // Contrôle de performance
+  static async enableSIMD(enable: boolean): Promise<boolean> {
+    const module = this.getModule();
+    return module.enableSIMD(enable);
+  }
+
+  static async enableOptimizedProcessing(enable: boolean): Promise<boolean> {
+    const module = this.getModule();
+    return module.enableOptimizedProcessing(enable);
+  }
+
+  static async enableThreadSafe(enable: boolean): Promise<boolean> {
+    const module = this.getModule();
+    return module.enableThreadSafe(enable);
+  }
+
+  // Obtenir les capacités du système
+  static async getCapabilities(): Promise<{
+    simd: boolean;
+    optimized: boolean;
+    threadSafe: boolean;
+    branchFree: boolean;
+    dbLookup: boolean;
+  }> {
+    const module = this.getModule();
+    return module.getCapabilities();
+  }
+
+  // Obtenir la liste des presets disponibles
+  static async getAvailablePresets(): Promise<string[]> {
+    const module = this.getModule();
+    return module.getAvailablePresets();
+  }
+
+  // Configuration de performance recommandée
+  static async configurePerformanceProfile(profile: 'maximum' | 'balanced' | 'compatible'): Promise<boolean> {
+    const module = this.getModule();
+
+    switch (profile) {
+      case 'maximum':
+        // Performance maximale - SIMD + optimisations
+        await module.enableSIMD(true);
+        await module.enableOptimizedProcessing(true);
+        await module.enableThreadSafe(false);
+        break;
+
+      case 'balanced':
+        // Équilibre performance/sécurité
+        await module.enableSIMD(true);
+        await module.enableOptimizedProcessing(false);
+        await module.enableThreadSafe(true);
+        break;
+
+      case 'compatible':
+        // Maximum de compatibilité
+        await module.enableSIMD(false);
+        await module.enableOptimizedProcessing(false);
+        await module.enableThreadSafe(true);
+        break;
+    }
+
+    return true;
   }
 }

@@ -10,10 +10,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <string>
-#include <memory>
-#include <functional>
-#include <vector>
 
 // Vérification de la disponibilité de TurboModule
 #if defined(__has_include) && \
@@ -103,12 +99,14 @@ typedef struct {
     int activeEffectsCount;
 } NythPipelineModuleStatus;
 
-// === Configuration d'effet ===
+// === Configuration d'effet pour pipeline ===
 typedef struct {
-    const char* effectType; // "compressor", "delay", "reverb", etc.
-    const char* effectId;
-    const char* parameters; // JSON string
-} NythEffectConfig;
+    char effectId[64];
+    char effectType[32];
+    float parameters[16];
+    int parameterCount;
+    bool enabled;
+} NythPipelineEffectConfig;
 
 // === Configuration d'égaliseur ===
 typedef struct {
@@ -151,7 +149,7 @@ bool NythPipeline_TrainNoiseProfile(float durationSeconds);
 
 // Effects
 bool NythPipeline_SetEffectsEnabled(bool enabled);
-bool NythPipeline_AddEffect(const NythEffectConfig* config);
+bool NythPipeline_AddEffect(const NythPipelineEffectConfig* config);
 bool NythPipeline_RemoveEffect(const char* effectId);
 bool NythPipeline_SetEffectParameter(const char* effectId, const char* param, float value);
 void NythPipeline_RemoveAllEffects(void);
@@ -196,10 +194,17 @@ void NythPipeline_SetStateChangeCallback(NythPipelineStateChangeCallback callbac
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_PIPELINE_ENABLED && defined(__cplusplus)
 
+// Includes C++ nécessaires pour TurboModule
+#include <string>
+#include <memory>
+#include <functional>
+#include <vector>
+
 #include <jsi/jsi.h>
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
 #include "Audio/AudioPipeline.hpp"
+#include "NativeAudioEffectsModule.h"
 #include <mutex>
 #include <atomic>
 #include <queue>
@@ -209,7 +214,11 @@ namespace react {
 
 class JSI_EXPORT NativeAudioPipelineModule : public TurboModule {
 public:
-    explicit NativeAudioPipelineModule(std::shared_ptr<CallInvoker> jsInvoker);
+    explicit NativeAudioPipelineModule(std::shared_ptr<CallInvoker> jsInvoker)
+        : TurboModule("NativeAudioPipelineModule", jsInvoker) {
+        currentSampleRate_ = 44100;
+        currentChannels_ = 2;
+    }
     ~NativeAudioPipelineModule() override;
 
     // === Méthodes TurboModule ===
@@ -308,6 +317,10 @@ private:
 
     // Configuration actuelle
     NythPipelineConfig currentConfig_;
+    
+    // Paramètres audio
+    uint32_t currentSampleRate_;
+    int currentChannels_;
 
     // Méthodes privées
     NythPipelineError convertError(const std::string& error) const;
@@ -320,7 +333,7 @@ private:
     jsi::Object moduleStatusToJS(jsi::Runtime& rt, const NythPipelineModuleStatus& status) const;
 
     NythEqualizerBandConfig parseEqualizerBandConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
-    NythEffectConfig parseEffectConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
+    NythPipelineEffectConfig parseEffectConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
 
     // Gestion des callbacks
     void handleAudioData(const float* data, size_t frameCount, int channels);

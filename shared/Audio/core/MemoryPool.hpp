@@ -25,7 +25,7 @@ class LockFreeMemoryPool {
 public:
     explicit LockFreeMemoryPool(size_t poolSize = 1024) : m_poolSize(poolSize), m_allocated(0) {
         // Pre-allocate all blocks
-        m_memory = static_cast<T*>(std::aligned_alloc(64, poolSize * sizeof(T)));
+        m_memory = static_cast<T*>(aligned_alloc(64, poolSize * sizeof(T)));
         if (!m_memory) {
             throw std::bad_alloc();
         }
@@ -74,7 +74,6 @@ public:
             return; // Invalid pointer
         }
 
-        size_t index = ptr - m_memory;
         Node* node = reinterpret_cast<Node*>(ptr);
 
         // Find a free slot in the free list
@@ -141,7 +140,7 @@ public:
     explicit RingBufferPool(size_t bufferSize = 4096, size_t numBuffers = 32)
         : m_bufferSize(bufferSize), m_numBuffers(numBuffers), m_readIndex(0), m_writeIndex(0) {
         // Allocate contiguous memory for all buffers
-        m_memory = static_cast<float*>(std::aligned_alloc(64, bufferSize * numBuffers * sizeof(float)));
+        m_memory = static_cast<float*>(aligned_alloc(64, bufferSize * numBuffers * sizeof(float)));
         if (!m_memory) {
             throw std::bad_alloc();
         }
@@ -224,7 +223,7 @@ class StackAllocator {
 public:
     explicit StackAllocator(size_t size = 1024 * 1024) // 1MB default
         : m_size(size), m_offset(0) {
-        m_memory = static_cast<uint8_t*>(std::aligned_alloc(64, size));
+        m_memory = static_cast<uint8_t*>(aligned_alloc(64, size));
         if (!m_memory) {
             throw std::bad_alloc();
         }
@@ -345,7 +344,7 @@ public:
         std::lock_guard<std::mutex> lock(m_mutex);
 
         // Reset object state if it has a reset method
-        if constexpr (std::is_member_function_pointer_v<decltype(&T::reset)>) {
+        if constexpr (std::is_member_function_pointer<decltype(&T::reset)>::value) {
             obj->reset();
         }
 

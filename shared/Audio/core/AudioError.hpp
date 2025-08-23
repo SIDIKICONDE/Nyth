@@ -3,7 +3,7 @@
 #define AUDIOFX_AUDIO_ERROR_HPP
 
 #include <cstdint>
-#include <optional>
+#include <memory>
 #include <utility>
 #include <cmath>
 
@@ -76,7 +76,7 @@ template <typename T>
 class AudioResult {
 public:
     // Constructors
-    AudioResult(T value) : m_value(std::move(value)), m_error(AudioError::OK) {}
+    AudioResult(T value) : m_value(std::make_unique<T>(std::move(value))), m_error(AudioError::OK) {}
     AudioResult(AudioError error) : m_error(error) {}
 
     // Check if operation succeeded
@@ -92,18 +92,18 @@ public:
 
     // Access value (only if OK)
     T& value() & {
-        return m_value.value();
+        return *m_value;
     }
     const T& value() const& {
-        return m_value.value();
+        return *m_value;
     }
     T&& value() && {
-        return std::move(m_value.value());
+        return std::move(*m_value);
     }
 
     // Access value with default
     T valueOr(T defaultValue) const {
-        return isOk() ? m_value.value() : defaultValue;
+        return isOk() ? *m_value : defaultValue;
     }
 
     // Access error
@@ -116,7 +116,7 @@ public:
     auto map(F&& f) -> AudioResult<decltype(f(std::declval<T>()))> {
         using U = decltype(f(std::declval<T>()));
         if (isOk()) {
-            return AudioResult<U>(f(m_value.value()));
+            return AudioResult<U>(f(*m_value));
         }
         return AudioResult<U>(m_error);
     }
@@ -125,13 +125,13 @@ public:
     auto andThen(F&& f) -> decltype(f(std::declval<T>())) {
         using U = decltype(f(std::declval<T>()));
         if (isOk()) {
-            return f(m_value.value());
+            return f(*m_value);
         }
         return U(m_error);
     }
 
 private:
-    std::optional<T> m_value;
+    std::unique_ptr<T> m_value;
     AudioError m_error;
 };
 
