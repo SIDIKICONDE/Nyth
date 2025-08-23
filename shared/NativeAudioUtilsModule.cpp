@@ -4,480 +4,15 @@
 
 #include "Audio/utils/AudioBuffer.hpp"
 #include "Audio/utils/utilsConstants.hpp"
-#include <chrono>
-#include <sstream>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
+#include <sstream>
 #include <stdexcept>
-
-// === Instance globale pour l'API C ===
-static std::unique_ptr<AudioUtils::AudioBuffer> g_audioBuffer;
-static std::mutex g_globalMutex;
-static NythUtilsState g_currentState = UTILS_STATE_UNINITIALIZED;
-
-// === Implémentation de l'API C ===
-extern "C" {
-
-bool NythAudioBuffer_Create(size_t numChannels, size_t numSamples) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    try {
-        if (numChannels == 0 || numSamples == 0 ||
-            numChannels > AudioUtils::MAX_CHANNELS ||
-            numSamples > AudioUtils::MAX_SAMPLES) {
-            g_currentState = UTILS_STATE_ERROR;
-            return false;
-        }
-
-        g_audioBuffer = std::make_unique<AudioUtils::AudioBuffer>(numChannels, numSamples);
-        g_currentState = UTILS_STATE_INITIALIZED;
-        return true;
-    } catch (...) {
-        g_currentState = UTILS_STATE_ERROR;
-        return false;
-    }
-}
-
-bool NythAudioBuffer_IsValid(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_audioBuffer != nullptr && g_audioBuffer->validateBuffer();
-}
-
-void NythAudioBuffer_Destroy(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    g_audioBuffer.reset();
-    g_currentState = UTILS_STATE_UNINITIALIZED;
-}
-
-// === Informations et statistiques ===
-void NythAudioBuffer_GetInfo(NythAudioBufferInfo* info) {
-    if (!info) return;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    memset(info, 0, sizeof(NythAudioBufferInfo));
-
-    if (g_audioBuffer) {
-        info->numChannels = g_audioBuffer->getNumChannels();
-        info->numSamples = g_audioBuffer->getNumSamples();
-        info->totalSizeBytes = info->numChannels * info->numSamples * sizeof(float);
-        info->alignment = AudioUtils::SIMD_ALIGNMENT_BYTES;
-        info->isValid = g_audioBuffer->validateBuffer();
-
-#ifdef __ARM_NEON
-        info->hasSIMD = true;
-#elif defined(__SSE2__)
-        info->hasSIMD = true;
-#else
-        info->hasSIMD = false;
-#endif
-    }
-}
-
-void NythAudioBuffer_GetStats(size_t channel, size_t startSample, size_t numSamples,
-                             NythAudioBufferStats* stats) {
-    if (!stats || !g_audioBuffer) return;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    memset(stats, 0, sizeof(NythAudioBufferStats));
-
-    if (channel >= g_audioBuffer->getNumChannels()) return;
-
-    size_t maxSamples = g_audioBuffer->getNumSamples();
-    if (startSample >= maxSamples) return;
-
-    size_t actualSamples = std::min(numSamples, maxSamples - startSample);
-
-    // Calcul des statistiques
-    const float* data = g_audioBuffer->getChannel(startSample);
-    if (!data) return;
-
-    float peak = 0.0f;
-    double sum = 0.0;
-    double sumSquares = 0.0;
-    size_t clipped = 0;
-
-    for (size_t i = 0; i < actualSamples; ++i) {
-        float sample = data[i];
-
-        // Vérification NaN/Inf
-        if (std::isnan(sample)) {
-            stats->hasNaN = true;
-            continue;
-        }
-        if (std::isinf(sample)) {
-            stats->hasInf = true;
-            continue;
-        }
-
-        // Calcul du peak
-        float absSample = std::abs(sample);
-        peak = std::max(peak, absSample);
-
-        // Comptage des échantillons écrêtés
-        if (absSample > 1.0f) {
-            clipped++;
-        }
-
-        // Calcul de la moyenne et RMS
-        sum += sample;
-        sumSquares += sample * sample;
-    }
-
-    stats->peakLevel = peak;
-    stats->dcOffset = sum / actualSamples;
-    stats->rmsLevel = std::sqrt(sumSquares / actualSamples);
-    stats->clippedSamples = clipped;
-}
-
-// === Opérations de base ===
-bool NythAudioBuffer_Clear(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer) return false;
-
-    try {
-        g_audioBuffer->clear();
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythAudioBuffer_ClearChannel(size_t channel) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer || channel >= g_audioBuffer->getNumChannels()) return false;
-
-    try {
-        g_audioBuffer->clear(channel);
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythAudioBuffer_ClearRange(size_t channel, size_t startSample, size_t numSamples) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer || channel >= g_audioBuffer->getNumChannels()) return false;
-
-    try {
-        // Clear specific range - utiliser la méthode appropriée
-        if (startSample == 0 && numSamples == g_audioBuffer->getNumSamples()) {
-            g_audioBuffer->clear(channel);
-        } else {
-            // Pour une plage spécifique, on doit le faire manuellement
-            float* channelData = g_audioBuffer->getChannel(channel);
-            if (channelData) {
-                std::fill(channelData + startSample, channelData + startSample + numSamples, 0.0f);
-            }
-        }
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-// === Opérations de copie ===
-bool NythAudioBuffer_CopyFromBuffer(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer) return false;
-
-    try {
-        // Copier depuis le même buffer - pas besoin de buffer temporaire
-        // Cette opération n'a pas de sens, on retourne true
-        return true;
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythAudioBuffer_CopyFromChannel(size_t destChannel, size_t destStartSample,
-                                   size_t srcChannel, size_t srcStartSample, size_t numSamples) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer ||
-        destChannel >= g_audioBuffer->getNumChannels() ||
-        srcChannel >= g_audioBuffer->getNumChannels()) {
-        return false;
-    }
-
-    try {
-        g_audioBuffer->copyFrom(destChannel, destStartSample, *g_audioBuffer,
-                               srcChannel, srcStartSample, numSamples);
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythAudioBuffer_CopyFromArray(size_t destChannel, const float* source, size_t numSamples) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer || !source || destChannel >= g_audioBuffer->getNumChannels()) {
-        return false;
-    }
-
-    try {
-        g_audioBuffer->copyFrom(destChannel, source, numSamples);
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-// === Opérations de mixage ===
-bool NythAudioBuffer_AddFrom(size_t destChannel, const float* source, size_t numSamples, float gain) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer || !source || destChannel >= g_audioBuffer->getNumChannels()) {
-        return false;
-    }
-
-    try {
-        g_audioBuffer->addFrom(destChannel, source, numSamples, gain);
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythAudioBuffer_AddFromBuffer(float gain) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer) return false;
-
-    try {
-        // Addition depuis le même buffer - pas besoin de buffer temporaire
-        // Cette opération n'a pas de sens, on retourne true
-        return true;
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-// === Opérations de gain ===
-bool NythAudioBuffer_ApplyGain(size_t channel, float gain) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer || channel >= g_audioBuffer->getNumChannels()) return false;
-
-    try {
-        g_audioBuffer->applyGain(channel, gain);
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythAudioBuffer_ApplyGainRange(size_t channel, size_t startSample, size_t numSamples, float gain) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer || channel >= g_audioBuffer->getNumChannels()) return false;
-
-    try {
-        g_audioBuffer->applyGain(channel, startSample, numSamples, gain);
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythAudioBuffer_ApplyGainRamp(size_t channel, size_t startSample, size_t numSamples,
-                                  float startGain, float endGain) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer || channel >= g_audioBuffer->getNumChannels()) return false;
-
-    try {
-        g_audioBuffer->applyGainRamp(channel, startSample, numSamples, startGain, endGain);
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-// === Analyse du signal ===
-float NythAudioBuffer_GetMagnitude(size_t channel, size_t startSample, size_t numSamples) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer || channel >= g_audioBuffer->getNumChannels()) {
-        return 0.0f;
-    }
-
-    try {
-        return g_audioBuffer->getMagnitude(channel, startSample, numSamples);
-    } catch (...) {
-        return 0.0f;
-    }
-}
-
-float NythAudioBuffer_GetRMSLevel(size_t channel, size_t startSample, size_t numSamples) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer || channel >= g_audioBuffer->getNumChannels()) {
-        return 0.0f;
-    }
-
-    try {
-        return g_audioBuffer->getRMSLevel(channel, startSample, numSamples);
-    } catch (...) {
-        return 0.0f;
-    }
-}
-
-// === Accès direct aux données ===
-float* NythAudioBuffer_GetChannelData(size_t channel) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer || channel >= g_audioBuffer->getNumChannels()) {
-        return nullptr;
-    }
-
-    return g_audioBuffer->getChannel(channel);
-}
-
-const float* NythAudioBuffer_GetChannelDataReadOnly(size_t channel) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer || channel >= g_audioBuffer->getNumChannels()) {
-        return nullptr;
-    }
-
-    return g_audioBuffer->getChannel(channel);
-}
-
-float** NythAudioBuffer_GetWritePointers(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer) return nullptr;
-
-    return g_audioBuffer->getArrayOfWritePointers();
-}
-
-const float* const* NythAudioBuffer_GetReadPointers(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (!g_audioBuffer) return nullptr;
-
-    return g_audioBuffer->getArrayOfReadPointers();
-}
-
-// === Utilitaires de conversion ===
-float NythUtils_DbToLinear(float db) {
-    return std::pow(10.0f, db / 20.0f);
-}
-
-float NythUtils_LinearToDb(float linear) {
-    return 20.0f * std::log10(std::max(linear, 1e-10f));
-}
-
-double NythUtils_DbToLinearDouble(double db) {
-    return std::pow(10.0, db / 20.0);
-}
-
-double NythUtils_LinearToDbDouble(double linear) {
-    return 20.0 * std::log10(std::max(linear, 1e-10));
-}
-
-// === Constantes et informations système ===
-size_t NythUtils_GetMaxChannels(void) {
-    return AudioUtils::MAX_CHANNELS;
-}
-
-size_t NythUtils_GetMaxSamples(void) {
-    return AudioUtils::MAX_SAMPLES;
-}
-
-size_t NythUtils_GetSIMDAlignment(void) {
-    return AudioUtils::SIMD_ALIGNMENT_BYTES;
-}
-
-bool NythUtils_HasSIMDSupport(void) {
-#ifdef __ARM_NEON
-    return true;
-#elif defined(__SSE2__)
-    return true;
-#else
-    return false;
-#endif
-}
-
-const char* NythUtils_GetPlatformInfo(void) {
-    static std::string platformInfo;
-
-    if (platformInfo.empty()) {
-        std::stringstream ss;
-
-#ifdef AUDIO_PLATFORM_MACOS
-        ss << "macOS";
-#elif defined(AUDIO_PLATFORM_WINDOWS)
-        ss << "Windows";
-#elif defined(AUDIO_PLATFORM_LINUX)
-        ss << "Linux";
-#else
-        ss << "Unknown";
-#endif
-
-        ss << " - ";
-
-#ifdef AUDIO_COMPILER_CLANG
-        ss << "Clang";
-#elif defined(AUDIO_COMPILER_GCC)
-        ss << "GCC";
-#elif defined(AUDIO_COMPILER_MSVC)
-        ss << "MSVC";
-#else
-        ss << "Unknown Compiler";
-#endif
-
-        ss << " - ";
-
-#ifdef __ARM_NEON
-        ss << "NEON SIMD";
-#elif defined(__SSE2__)
-        ss << "SSE2 SIMD";
-#else
-        ss << "No SIMD";
-#endif
-
-        platformInfo = ss.str();
-    }
-
-    return platformInfo.c_str();
-}
-
-// === Callbacks ===
-static NythUtilsBufferCallback g_bufferCallback = nullptr;
-static NythUtilsErrorCallback g_errorCallback = nullptr;
-static NythUtilsStateChangeCallback g_stateChangeCallback = nullptr;
-
-void NythUtils_SetBufferCallback(NythUtilsBufferCallback callback) {
-    g_bufferCallback = callback;
-}
-
-void NythUtils_SetErrorCallback(NythUtilsErrorCallback callback) {
-    g_errorCallback = callback;
-}
-
-void NythUtils_SetStateChangeCallback(NythUtilsStateChangeCallback callback) {
-    g_stateChangeCallback = callback;
-}
-
-} // extern "C"
-
-// === Implémentation C++ pour TurboModule ===
 
 namespace facebook {
 namespace react {
-
-
 
 NativeAudioUtilsModule::~NativeAudioUtilsModule() {
     std::lock_guard<std::mutex> lock(utilsMutex_);
@@ -495,7 +30,8 @@ bool NativeAudioUtilsModule::validateChannel(size_t channel) const {
 }
 
 bool NativeAudioUtilsModule::validateRange(size_t channel, size_t startSample, size_t numSamples) const {
-    if (!audioBuffer_ || channel >= audioBuffer_->getNumChannels()) return false;
+    if (!audioBuffer_ || channel >= audioBuffer_->getNumChannels())
+        return false;
 
     size_t maxSamples = audioBuffer_->getNumSamples();
     return startSample < maxSamples && startSample + numSamples <= maxSamples;
@@ -549,11 +85,16 @@ void NativeAudioUtilsModule::handleStateChange(NythUtilsState oldState, NythUtil
 
 std::string NativeAudioUtilsModule::stateToString(NythUtilsState state) const {
     switch (state) {
-        case UTILS_STATE_UNINITIALIZED: return "uninitialized";
-        case UTILS_STATE_INITIALIZED: return "initialized";
-        case UTILS_STATE_PROCESSING: return "processing";
-        case UTILS_STATE_ERROR: return "error";
-        default: return "unknown";
+        case UTILS_STATE_UNINITIALIZED:
+            return "uninitialized";
+        case UTILS_STATE_INITIALIZED:
+            return "initialized";
+        case UTILS_STATE_PROCESSING:
+            return "processing";
+        case UTILS_STATE_ERROR:
+            return "error";
+        default:
+            return "unknown";
     }
 }
 
@@ -579,7 +120,8 @@ NythAudioBufferInfo NativeAudioUtilsModule::getBufferInfoInternal() const {
     return info;
 }
 
-NythAudioBufferStats NativeAudioUtilsModule::getBufferStatsInternal(size_t channel, size_t startSample, size_t numSamples) const {
+NythAudioBufferStats NativeAudioUtilsModule::getBufferStatsInternal(size_t channel, size_t startSample,
+                                                                    size_t numSamples) const {
     NythAudioBufferStats stats = {};
 
     if (!audioBuffer_ || channel >= audioBuffer_->getNumChannels()) {
@@ -587,12 +129,14 @@ NythAudioBufferStats NativeAudioUtilsModule::getBufferStatsInternal(size_t chann
     }
 
     size_t maxSamples = audioBuffer_->getNumSamples();
-    if (startSample >= maxSamples) return stats;
+    if (startSample >= maxSamples)
+        return stats;
 
     size_t actualSamples = std::min(numSamples, maxSamples - startSample);
     const float* data = audioBuffer_->getChannel(channel) + startSample;
 
-    if (!data) return stats;
+    if (!data)
+        return stats;
 
     float peak = 0.0f;
     double sum = 0.0, sumSquares = 0.0;
@@ -676,14 +220,11 @@ jsi::Array NativeAudioUtilsModule::floatVectorToArray(jsi::Runtime& rt, const st
     return result;
 }
 
-void NativeAudioUtilsModule::invokeJSCallback(
-    const std::string& callbackName,
-    std::function<void(jsi::Runtime&)> invocation) {
-
+void NativeAudioUtilsModule::invokeJSCallback(const std::string& callbackName,
+                                              std::function<void(jsi::Runtime&)> invocation) {
     // Pour l'instant, implémentation basique
     // Dans un vrai module, il faudrait utiliser le jsInvoker pour invoquer sur le thread principal
     try {
-        // TODO: Implémenter l'invocation sur le thread principal
         // TODO: Implémenter l'invocation sur le thread principal
         // Pour l'instant, on ne fait rien
     } catch (...) {
@@ -730,7 +271,8 @@ jsi::Value NativeAudioUtilsModule::getBufferInfo(jsi::Runtime& rt) {
     return bufferInfoToJS(rt, info);
 }
 
-jsi::Value NativeAudioUtilsModule::getBufferStats(jsi::Runtime& rt, size_t channel, size_t startSample, size_t numSamples) {
+jsi::Value NativeAudioUtilsModule::getBufferStats(jsi::Runtime& rt, size_t channel, size_t startSample,
+                                                  size_t numSamples) {
     std::lock_guard<std::mutex> lock(utilsMutex_);
 
     if (!validateRange(channel, startSample, numSamples)) {
@@ -833,7 +375,7 @@ jsi::Value NativeAudioUtilsModule::copyFromBuffer(jsi::Runtime& rt) {
 }
 
 jsi::Value NativeAudioUtilsModule::copyFromChannel(jsi::Runtime& rt, size_t destChannel, size_t destStartSample,
-                                                  size_t srcChannel, size_t srcStartSample, size_t numSamples) {
+                                                   size_t srcChannel, size_t srcStartSample, size_t numSamples) {
     std::lock_guard<std::mutex> lock(utilsMutex_);
 
     if (!validateChannel(destChannel) || !validateChannel(srcChannel)) {
@@ -843,8 +385,7 @@ jsi::Value NativeAudioUtilsModule::copyFromChannel(jsi::Runtime& rt, size_t dest
     }
 
     try {
-        audioBuffer_->copyFrom(destChannel, destStartSample, *audioBuffer_,
-                              srcChannel, srcStartSample, numSamples);
+        audioBuffer_->copyFrom(destChannel, destStartSample, *audioBuffer_, srcChannel, srcStartSample, numSamples);
         handleBufferOperation("copyFromChannel", true);
         return jsi::Value(true);
     } catch (const std::exception& e) {
@@ -937,7 +478,8 @@ jsi::Value NativeAudioUtilsModule::applyGain(jsi::Runtime& rt, size_t channel, f
     }
 }
 
-jsi::Value NativeAudioUtilsModule::applyGainRange(jsi::Runtime& rt, size_t channel, size_t startSample, size_t numSamples, float gain) {
+jsi::Value NativeAudioUtilsModule::applyGainRange(jsi::Runtime& rt, size_t channel, size_t startSample,
+                                                  size_t numSamples, float gain) {
     std::lock_guard<std::mutex> lock(utilsMutex_);
 
     if (!validateRange(channel, startSample, numSamples)) {
@@ -957,8 +499,8 @@ jsi::Value NativeAudioUtilsModule::applyGainRange(jsi::Runtime& rt, size_t chann
     }
 }
 
-jsi::Value NativeAudioUtilsModule::applyGainRamp(jsi::Runtime& rt, size_t channel, size_t startSample, size_t numSamples,
-                                                float startGain, float endGain) {
+jsi::Value NativeAudioUtilsModule::applyGainRamp(jsi::Runtime& rt, size_t channel, size_t startSample,
+                                                 size_t numSamples, float startGain, float endGain) {
     std::lock_guard<std::mutex> lock(utilsMutex_);
 
     if (!validateRange(channel, startSample, numSamples)) {
@@ -978,7 +520,8 @@ jsi::Value NativeAudioUtilsModule::applyGainRamp(jsi::Runtime& rt, size_t channe
     }
 }
 
-jsi::Value NativeAudioUtilsModule::getMagnitude(jsi::Runtime& rt, size_t channel, size_t startSample, size_t numSamples) {
+jsi::Value NativeAudioUtilsModule::getMagnitude(jsi::Runtime& rt, size_t channel, size_t startSample,
+                                                size_t numSamples) {
     std::lock_guard<std::mutex> lock(utilsMutex_);
 
     if (!validateRange(channel, startSample, numSamples)) {
@@ -994,7 +537,8 @@ jsi::Value NativeAudioUtilsModule::getMagnitude(jsi::Runtime& rt, size_t channel
     }
 }
 
-jsi::Value NativeAudioUtilsModule::getRMSLevel(jsi::Runtime& rt, size_t channel, size_t startSample, size_t numSamples) {
+jsi::Value NativeAudioUtilsModule::getRMSLevel(jsi::Runtime& rt, size_t channel, size_t startSample,
+                                               size_t numSamples) {
     std::lock_guard<std::mutex> lock(utilsMutex_);
 
     if (!validateRange(channel, startSample, numSamples)) {
@@ -1019,7 +563,8 @@ jsi::Value NativeAudioUtilsModule::getChannelData(jsi::Runtime& rt, size_t chann
 
     try {
         const float* data = audioBuffer_->getChannel(channel);
-        if (!data) return jsi::Value::null();
+        if (!data)
+            return jsi::Value::null();
 
         size_t numSamples = audioBuffer_->getNumSamples();
         jsi::Array result(rt, numSamples);
@@ -1057,40 +602,79 @@ jsi::Value NativeAudioUtilsModule::setChannelData(jsi::Runtime& rt, size_t chann
 }
 
 jsi::Value NativeAudioUtilsModule::dbToLinear(jsi::Runtime& rt, float db) {
-    return jsi::Value(NythUtils_DbToLinear(db));
+    return jsi::Value(std::pow(10.0f, db / 20.0f));
 }
 
 jsi::Value NativeAudioUtilsModule::linearToDb(jsi::Runtime& rt, float linear) {
-    return jsi::Value(NythUtils_LinearToDb(linear));
+    return jsi::Value(20.0f * std::log10(std::max(linear, 1e-10f)));
 }
 
 jsi::Value NativeAudioUtilsModule::dbToLinearDouble(jsi::Runtime& rt, double db) {
-    return jsi::Value(NythUtils_DbToLinearDouble(db));
+    return jsi::Value(std::pow(10.0, db / 20.0));
 }
 
 jsi::Value NativeAudioUtilsModule::linearToDbDouble(jsi::Runtime& rt, double linear) {
-    return jsi::Value(NythUtils_LinearToDbDouble(linear));
+    return jsi::Value(20.0 * std::log10(std::max(linear, 1e-10)));
 }
 
 jsi::Value NativeAudioUtilsModule::getMaxChannels(jsi::Runtime& rt) {
-    return jsi::Value(static_cast<int>(NythUtils_GetMaxChannels()));
+    return jsi::Value(static_cast<int>(AudioUtils::MAX_CHANNELS));
 }
 
 jsi::Value NativeAudioUtilsModule::getMaxSamples(jsi::Runtime& rt) {
-    return jsi::Value(static_cast<int>(NythUtils_GetMaxSamples()));
+    return jsi::Value(static_cast<int>(AudioUtils::MAX_SAMPLES));
 }
 
 jsi::Value NativeAudioUtilsModule::getSIMDAlignment(jsi::Runtime& rt) {
-    return jsi::Value(static_cast<int>(NythUtils_GetSIMDAlignment()));
+    return jsi::Value(static_cast<int>(AudioUtils::SIMD_ALIGNMENT_BYTES));
 }
 
 jsi::Value NativeAudioUtilsModule::hasSIMDSupport(jsi::Runtime& rt) {
-    return jsi::Value(NythUtils_HasSIMDSupport());
+#ifdef __ARM_NEON
+    return jsi::Value(true);
+#elif defined(__SSE2__)
+    return jsi::Value(true);
+#else
+    return jsi::Value(false);
+#endif
 }
 
 jsi::Value NativeAudioUtilsModule::getPlatformInfo(jsi::Runtime& rt) {
-    const char* info = NythUtils_GetPlatformInfo();
-    return jsi::String::createFromUtf8(rt, info);
+    std::stringstream ss;
+
+#ifdef AUDIO_PLATFORM_MACOS
+    ss << "macOS";
+#elif defined(AUDIO_PLATFORM_WINDOWS)
+    ss << "Windows";
+#elif defined(AUDIO_PLATFORM_LINUX)
+    ss << "Linux";
+#else
+    ss << "Unknown";
+#endif
+
+    ss << " - ";
+
+#ifdef AUDIO_COMPILER_CLANG
+    ss << "Clang";
+#elif defined(AUDIO_COMPILER_GCC)
+    ss << "GCC";
+#elif defined(AUDIO_COMPILER_MSVC)
+    ss << "MSVC";
+#else
+    ss << "Unknown Compiler";
+#endif
+
+    ss << " - ";
+
+#ifdef __ARM_NEON
+    ss << "NEON SIMD";
+#elif defined(__SSE2__)
+    ss << "SSE2 SIMD";
+#else
+    ss << "No SIMD";
+#endif
+
+    return jsi::String::createFromUtf8(rt, ss.str());
 }
 
 // === Callbacks JavaScript ===
@@ -1098,30 +682,27 @@ jsi::Value NativeAudioUtilsModule::getPlatformInfo(jsi::Runtime& rt) {
 jsi::Value NativeAudioUtilsModule::setBufferCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
     jsCallbacks_.bufferCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "bufferCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "bufferCallback"), 0,
+                                              [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                                 size_t count) -> jsi::Value { return jsi::Value::undefined(); }));
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioUtilsModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
     jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "errorCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "errorCallback"), 0,
+                                              [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                                 size_t count) -> jsi::Value { return jsi::Value::undefined(); }));
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioUtilsModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
     jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "stateChangeCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "stateChangeCallback"), 0,
+                                              [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                                 size_t count) -> jsi::Value { return jsi::Value::undefined(); }));
     return jsi::Value(true);
 }
 
@@ -1131,8 +712,7 @@ jsi::Value NativeAudioUtilsModule::install(jsi::Runtime& rt, std::shared_ptr<Cal
 }
 
 // === Fonction d'enregistrement du module ===
-std::shared_ptr<TurboModule> NativeAudioUtilsModuleProvider(
-    std::shared_ptr<CallInvoker> jsInvoker) {
+std::shared_ptr<TurboModule> NativeAudioUtilsModuleProvider(std::shared_ptr<CallInvoker> jsInvoker) {
     return std::make_shared<NativeAudioUtilsModule>(jsInvoker);
 }
 

@@ -209,7 +209,7 @@ private:
         double masterGainDB;
         bool bypass;
     };
-    
+
     struct BandConfig {
         size_t bandIndex;
         double frequency;
@@ -218,7 +218,7 @@ private:
         int type;
         bool enabled;
     };
-    
+
     struct FilterConfig {
         double frequency;
         double q;

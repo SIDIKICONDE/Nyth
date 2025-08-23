@@ -12,10 +12,10 @@
 
 #include "Audio/fft/FFTEngine.hpp"
 #include <algorithm>
-#include <cmath>
-#include <memory>
 #include <atomic>
 #include <chrono>
+#include <cmath>
+#include <memory>
 
 namespace facebook {
 namespace react {
@@ -24,15 +24,15 @@ namespace {
 
 // Constantes pour l'analyse spectrale
 namespace SpectrumConstants {
-    constexpr size_t DEFAULT_FFT_SIZE = 1024;
-    constexpr size_t MIN_FFT_SIZE = 64;
-    constexpr size_t MAX_FFT_SIZE = 8192;
-    constexpr double DEFAULT_MIN_FREQ = 20.0;
-    constexpr double DEFAULT_MAX_FREQ = 20000.0;
-    constexpr size_t DEFAULT_NUM_BANDS = 32;
-    constexpr bool DEFAULT_USE_WINDOWING = true;
-    constexpr bool DEFAULT_USE_SIMD = true;
-}
+constexpr size_t DEFAULT_FFT_SIZE = 1024;
+constexpr size_t MIN_FFT_SIZE = 64;
+constexpr size_t MAX_FFT_SIZE = 8192;
+constexpr double DEFAULT_MIN_FREQ = 20.0;
+constexpr double DEFAULT_MAX_FREQ = 20000.0;
+constexpr size_t DEFAULT_NUM_BANDS = 32;
+constexpr bool DEFAULT_USE_WINDOWING = true;
+constexpr bool DEFAULT_USE_SIMD = true;
+} // namespace SpectrumConstants
 
 // Classe d'analyse spectrale interne
 class SpectrumAnalyzer {
@@ -41,12 +41,14 @@ public:
     ~SpectrumAnalyzer() = default;
 
     bool initialize(const NythSpectrumConfig* config) {
-        if (!config) return false;
+        if (!config)
+            return false;
 
         config_ = *config;
 
         // Validation de la configuration
-        if (!validateConfig()) return false;
+        if (!validateConfig())
+            return false;
 
         // Initialisation du moteur FFT
         try {
@@ -83,7 +85,8 @@ public:
     }
 
     bool processAudioBuffer(const float* audioBuffer, size_t numSamples) {
-        if (!initialized_ || !audioBuffer || numSamples == 0) return false;
+        if (!initialized_ || !audioBuffer || numSamples == 0)
+            return false;
 
         // Copie des données audio
         std::vector<float> audioData(audioBuffer, audioBuffer + numSamples);
@@ -119,9 +122,15 @@ public:
         return true;
     }
 
-    const std::vector<float>& getMagnitudes() const { return magnitudes_; }
-    const std::vector<float>& getFrequencyBands() const { return frequencyBands_; }
-    bool isInitialized() const { return initialized_; }
+    const std::vector<float>& getMagnitudes() const {
+        return magnitudes_;
+    }
+    const std::vector<float>& getFrequencyBands() const {
+        return frequencyBands_;
+    }
+    bool isInitialized() const {
+        return initialized_;
+    }
 
 private:
     NythSpectrumConfig config_;
@@ -135,8 +144,7 @@ private:
     std::vector<float> magnitudes_;
 
     bool validateConfig() const {
-        if (config_.fftSize < SpectrumConstants::MIN_FFT_SIZE ||
-            config_.fftSize > SpectrumConstants::MAX_FFT_SIZE) {
+        if (config_.fftSize < SpectrumConstants::MIN_FFT_SIZE || config_.fftSize > SpectrumConstants::MAX_FFT_SIZE) {
             return false;
         }
         if (config_.numBands == 0 || config_.numBands > config_.fftSize / 2) {
@@ -180,7 +188,7 @@ private:
     }
 };
 
-} // namespace anonymous
+} // namespace
 
 } // namespace react
 } // namespace facebook
@@ -200,7 +208,8 @@ static NythSpectrumStateCallback g_stateCallback = nullptr;
 extern "C" {
 
 bool NythSpectrum_Initialize(const NythSpectrumConfig* config) {
-    if (!config) return false;
+    if (!config)
+        return false;
 
     if (g_currentState.load() != SPECTRUM_STATE_UNINITIALIZED) {
         return false;
@@ -258,20 +267,30 @@ NythSpectrumState NythSpectrum_GetState(void) {
 
 const char* NythSpectrum_GetErrorString(NythSpectrumError error) {
     switch (error) {
-        case SPECTRUM_ERROR_OK: return "No error";
-        case SPECTRUM_ERROR_NOT_INITIALIZED: return "Module not initialized";
-        case SPECTRUM_ERROR_ALREADY_ANALYZING: return "Already analyzing";
-        case SPECTRUM_ERROR_ALREADY_STOPPED: return "Already stopped";
-        case SPECTRUM_ERROR_FFT_FAILED: return "FFT processing failed";
-        case SPECTRUM_ERROR_INVALID_BUFFER: return "Invalid audio buffer";
-        case SPECTRUM_ERROR_MEMORY_ERROR: return "Memory allocation failed";
-        case SPECTRUM_ERROR_THREAD_ERROR: return "Thread operation failed";
-        default: return "Unknown error";
+        case SPECTRUM_ERROR_OK:
+            return "No error";
+        case SPECTRUM_ERROR_NOT_INITIALIZED:
+            return "Module not initialized";
+        case SPECTRUM_ERROR_ALREADY_ANALYZING:
+            return "Already analyzing";
+        case SPECTRUM_ERROR_ALREADY_STOPPED:
+            return "Already stopped";
+        case SPECTRUM_ERROR_FFT_FAILED:
+            return "FFT processing failed";
+        case SPECTRUM_ERROR_INVALID_BUFFER:
+            return "Invalid audio buffer";
+        case SPECTRUM_ERROR_MEMORY_ERROR:
+            return "Memory allocation failed";
+        case SPECTRUM_ERROR_THREAD_ERROR:
+            return "Thread operation failed";
+        default:
+            return "Unknown error";
     }
 }
 
 bool NythSpectrum_SetConfig(const NythSpectrumConfig* config) {
-    if (!config) return false;
+    if (!config)
+        return false;
 
     g_currentConfig = *config;
     return g_spectrumAnalyzer.initialize(&g_currentConfig);
@@ -327,8 +346,9 @@ bool NythSpectrum_ProcessAudioBuffer(const float* audioBuffer, size_t numSamples
     if (g_dataCallback) {
         NythSpectrumData data;
         data.numBands = g_currentConfig.numBands;
-        data.timestamp = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch()).count());
+        data.timestamp = static_cast<double>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+                .count());
 
         // Allocation temporaire pour les données
         std::vector<float> magnitudes = g_spectrumAnalyzer.getMagnitudes();
@@ -354,11 +374,13 @@ bool NythSpectrum_ProcessAudioBufferStereo(const float* audioBufferL, const floa
 }
 
 bool NythSpectrum_GetSpectrumData(NythSpectrumData* data) {
-    if (!data) return false;
+    if (!data)
+        return false;
 
     data->numBands = g_currentConfig.numBands;
-    data->timestamp = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count());
+    data->timestamp = static_cast<double>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count());
 
     // Copie des données
     const auto& magnitudes = g_spectrumAnalyzer.getMagnitudes();
@@ -419,12 +441,18 @@ bool NythSpectrum_ValidateConfig(const NythSpectrumConfig* config) {
     const size_t MIN_FFT_SIZE = 64;
     const size_t MAX_FFT_SIZE = 8192;
 
-    if (!config) return false;
-    if (config->fftSize < MIN_FFT_SIZE) return false;
-    if (config->fftSize > MAX_FFT_SIZE) return false;
-    if (config->numBands == 0) return false;
-    if (config->sampleRate == 0) return false;
-    if (config->minFreq >= config->maxFreq) return false;
+    if (!config)
+        return false;
+    if (config->fftSize < MIN_FFT_SIZE)
+        return false;
+    if (config->fftSize > MAX_FFT_SIZE)
+        return false;
+    if (config->numBands == 0)
+        return false;
+    if (config->sampleRate == 0)
+        return false;
+    if (config->minFreq >= config->maxFreq)
+        return false;
     return true;
 }
 

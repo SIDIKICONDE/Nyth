@@ -316,6 +316,18 @@ private:
     void handleError(const std::string& error);
     void handleStateChange(NythNoiseState oldState, NythNoiseState newState);
 
+    // Nouvelles méthodes privées pour remplacer les APIs globales
+    bool processAudioInternal(const float* input, float* output, size_t frameCount, int channels);
+    bool processAudioStereoInternal(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                    size_t frameCount);
+    void updateStatistics();
+    void resetStatisticsInternal();
+    float getInputLevelInternal() const;
+    float getOutputLevelInternal() const;
+    float getEstimatedSNRInternal() const;
+    float getSpeechProbabilityInternal() const;
+    float getMusicalNoiseLevelInternal() const;
+
     // Conversion JSI <-> Native
     NythNoiseConfig parseNoiseConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
     jsi::Object noiseConfigToJS(jsi::Runtime& rt, const NythNoiseConfig& config);

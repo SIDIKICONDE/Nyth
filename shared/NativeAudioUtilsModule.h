@@ -2,27 +2,21 @@
 
 // Includes conditionnels pour la compatibilité
 #if defined(__has_include)
-  #if __has_include(<NythJSI.h>)
-    #include <NythJSI.h>
-  #endif
+#if __has_include(<NythJSI.h>)
+#include <NythJSI.h>
+#endif
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 // Vérification de la disponibilité de TurboModule
-#if defined(__has_include) && \
-    __has_include(<ReactCommon/TurboModule.h>) && \
+#if defined(__has_include) && __has_include(<ReactCommon/TurboModule.h>) && \
     __has_include(<ReactCommon/TurboModuleUtils.h>)
 #define NYTH_AUDIO_UTILS_ENABLED 1
 #else
 #define NYTH_AUDIO_UTILS_ENABLED 0
-#endif
-
-// === API C globale pour les utilitaires audio ===
-#ifdef __cplusplus
-extern "C" {
 #endif
 
 // === Types d'erreurs d'utilitaires ===
@@ -47,9 +41,9 @@ typedef enum {
 typedef struct {
     size_t numChannels;
     size_t numSamples;
-    bool useSIMD;           // Utiliser les optimisations SIMD
-    bool enableValidation;  // Activer la validation des buffers
-    size_t alignment;       // Alignement mémoire
+    bool useSIMD;          // Utiliser les optimisations SIMD
+    bool enableValidation; // Activer la validation des buffers
+    size_t alignment;      // Alignement mémoire
 } NythAudioBufferConfig;
 
 // === Informations du buffer ===
@@ -82,89 +76,21 @@ typedef struct {
     float endGain;
 } NythBufferOperationConfig;
 
-// === API de gestion des buffers ===
-
-bool NythAudioBuffer_Create(size_t numChannels, size_t numSamples);
-bool NythAudioBuffer_IsValid(void);
-void NythAudioBuffer_Destroy(void);
-
-// === Informations et statistiques ===
-void NythAudioBuffer_GetInfo(NythAudioBufferInfo* info);
-void NythAudioBuffer_GetStats(size_t channel, size_t startSample, size_t numSamples,
-                             NythAudioBufferStats* stats);
-
-// === Opérations de base ===
-bool NythAudioBuffer_Clear(void);
-bool NythAudioBuffer_ClearChannel(size_t channel);
-bool NythAudioBuffer_ClearRange(size_t channel, size_t startSample, size_t numSamples);
-
-// === Opérations de copie ===
-bool NythAudioBuffer_CopyFromBuffer(void);
-bool NythAudioBuffer_CopyFromChannel(size_t destChannel, size_t destStartSample,
-                                   size_t srcChannel, size_t srcStartSample, size_t numSamples);
-bool NythAudioBuffer_CopyFromArray(size_t destChannel, const float* source, size_t numSamples);
-
-// === Opérations de mixage ===
-bool NythAudioBuffer_AddFrom(size_t destChannel, const float* source, size_t numSamples, float gain);
-bool NythAudioBuffer_AddFromBuffer(float gain);
-
-// === Opérations de gain ===
-bool NythAudioBuffer_ApplyGain(size_t channel, float gain);
-bool NythAudioBuffer_ApplyGainRange(size_t channel, size_t startSample, size_t numSamples, float gain);
-bool NythAudioBuffer_ApplyGainRamp(size_t channel, size_t startSample, size_t numSamples,
-                                  float startGain, float endGain);
-
-// === Analyse du signal ===
-float NythAudioBuffer_GetMagnitude(size_t channel, size_t startSample, size_t numSamples);
-float NythAudioBuffer_GetRMSLevel(size_t channel, size_t startSample, size_t numSamples);
-
-// === Accès direct aux données ===
-float* NythAudioBuffer_GetChannelData(size_t channel);
-const float* NythAudioBuffer_GetChannelDataReadOnly(size_t channel);
-float** NythAudioBuffer_GetWritePointers(void);
-const float* const* NythAudioBuffer_GetReadPointers(void);
-
-// === Utilitaires de conversion ===
-float NythUtils_DbToLinear(float db);
-float NythUtils_LinearToDb(float linear);
-double NythUtils_DbToLinearDouble(double db);
-double NythUtils_LinearToDbDouble(double linear);
-
-// === Constantes et informations système ===
-size_t NythUtils_GetMaxChannels(void);
-size_t NythUtils_GetMaxSamples(void);
-size_t NythUtils_GetSIMDAlignment(void);
-bool NythUtils_HasSIMDSupport(void);
-const char* NythUtils_GetPlatformInfo(void);
-
-// === Callbacks (pour usage interne) ===
-typedef void (*NythUtilsBufferCallback)(const char* operation, bool success);
-typedef void (*NythUtilsErrorCallback)(NythUtilsError error, const char* message);
-typedef void (*NythUtilsStateChangeCallback)(NythUtilsState oldState, NythUtilsState newState);
-
-void NythUtils_SetBufferCallback(NythUtilsBufferCallback callback);
-void NythUtils_SetErrorCallback(NythUtilsErrorCallback callback);
-void NythUtils_SetStateChangeCallback(NythUtilsStateChangeCallback callback);
-
-#ifdef __cplusplus
-}
-#endif
-
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_UTILS_ENABLED && defined(__cplusplus)
 
 // Includes C++ nécessaires pour TurboModule
-#include <string>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <string>
 #include <vector>
 
-#include <jsi/jsi.h>
+#include "Audio/utils/AudioBuffer.hpp"
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
-#include "Audio/utils/AudioBuffer.hpp"
-#include <mutex>
 #include <atomic>
+#include <jsi/jsi.h>
+#include <mutex>
 #include <queue>
 
 namespace facebook {
@@ -197,8 +123,8 @@ public:
 
     // Opérations de copie
     jsi::Value copyFromBuffer(jsi::Runtime& rt);
-    jsi::Value copyFromChannel(jsi::Runtime& rt, size_t destChannel, size_t destStartSample,
-                              size_t srcChannel, size_t srcStartSample, size_t numSamples);
+    jsi::Value copyFromChannel(jsi::Runtime& rt, size_t destChannel, size_t destStartSample, size_t srcChannel,
+                               size_t srcStartSample, size_t numSamples);
     jsi::Value copyFromArray(jsi::Runtime& rt, size_t destChannel, const jsi::Array& source);
 
     // Opérations de mixage
@@ -208,8 +134,8 @@ public:
     // Opérations de gain
     jsi::Value applyGain(jsi::Runtime& rt, size_t channel, float gain);
     jsi::Value applyGainRange(jsi::Runtime& rt, size_t channel, size_t startSample, size_t numSamples, float gain);
-    jsi::Value applyGainRamp(jsi::Runtime& rt, size_t channel, size_t startSample, size_t numSamples,
-                            float startGain, float endGain);
+    jsi::Value applyGainRamp(jsi::Runtime& rt, size_t channel, size_t startSample, size_t numSamples, float startGain,
+                             float endGain);
 
     // Analyse du signal
     jsi::Value getMagnitude(jsi::Runtime& rt, size_t channel, size_t startSample, size_t numSamples);
@@ -282,14 +208,13 @@ private:
 
     // Invocation de callbacks JS sur le thread principal
     void invokeJSCallback(const std::string& callbackName, std::function<void(jsi::Runtime&)> invocation);
-    
+
     // Conversion d'état en string
     std::string stateToString(NythUtilsState state) const;
 };
 
 // === Fonction d'enregistrement du module ===
-JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioUtilsModuleProvider(
-    std::shared_ptr<CallInvoker> jsInvoker);
+JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioUtilsModuleProvider(std::shared_ptr<CallInvoker> jsInvoker);
 
 } // namespace react
 } // namespace facebook

@@ -7,126 +7,12 @@
 #endif
 #endif
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
-
 // Vérification de la disponibilité de TurboModule
 #if defined(__has_include) && __has_include(<ReactCommon/TurboModule.h>) && \
     __has_include(<ReactCommon/TurboModuleUtils.h>)
 #define NYTH_AUDIO_EFFECTS_ENABLED 1
 #else
 #define NYTH_AUDIO_EFFECTS_ENABLED 0
-#endif
-
-// === API C globale pour les effets audio ===
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// === Types d'effets ===
-typedef enum { EFFECT_TYPE_COMPRESSOR = 0, EFFECT_TYPE_DELAY, EFFECT_TYPE_UNKNOWN } NythEffectType;
-
-// === État des effets ===
-typedef enum {
-    EFFECTS_STATE_UNINITIALIZED = 0,
-    EFFECTS_STATE_INITIALIZED,
-    EFFECTS_STATE_PROCESSING,
-    EFFECTS_STATE_ERROR
-} NythEffectsState;
-
-// === Configuration des effets ===
-typedef struct {
-    NythEffectType type;
-    int effectId; // ID unique de l'effet
-    bool enabled;
-    uint32_t sampleRate;
-    int channels;
-    // Données spécifiques à l'effet (union pour différents types)
-    union {
-        // Configuration compresseur
-        struct {
-            float thresholdDb;
-            float ratio;
-            float attackMs;
-            float releaseMs;
-            float makeupDb;
-        } compressor;
-        // Configuration délai
-        struct {
-            float delayMs;
-            float feedback;
-            float mix;
-        } delay;
-    } config;
-} NythEffectConfig;
-
-// === Statistiques des effets ===
-typedef struct {
-    float inputLevel;
-    float outputLevel;
-    uint32_t processedFrames;
-    uint64_t processedSamples;
-    int64_t durationMs;
-    int activeEffectsCount;
-} NythEffectsStatistics;
-
-// === API de gestion des effets ===
-bool NythEffects_Initialize(void);
-bool NythEffects_Start(void);
-bool NythEffects_Stop(void);
-void NythEffects_Release(void);
-
-// === État et informations ===
-NythEffectsState NythEffects_GetState(void);
-void NythEffects_GetStatistics(NythEffectsStatistics* stats);
-void NythEffects_ResetStatistics(void);
-
-// === Gestion des effets individuels ===
-int NythEffects_CreateEffect(const NythEffectConfig* config);
-bool NythEffects_DestroyEffect(int effectId);
-bool NythEffects_UpdateEffect(int effectId, const NythEffectConfig* config);
-bool NythEffects_GetEffectConfig(int effectId, NythEffectConfig* config);
-
-// === Contrôle des effets ===
-bool NythEffects_EnableEffect(int effectId, bool enabled);
-bool NythEffects_IsEffectEnabled(int effectId);
-int NythEffects_GetActiveEffectsCount(void);
-const int* NythEffects_GetActiveEffectIds(size_t* count);
-
-// === Configuration des effets spécifiques ===
-
-// Compresseur
-bool NythEffects_SetCompressorParameters(int effectId, float thresholdDb, float ratio, float attackMs, float releaseMs,
-                                         float makeupDb);
-bool NythEffects_GetCompressorParameters(int effectId, float* thresholdDb, float* ratio, float* attackMs,
-                                         float* releaseMs, float* makeupDb);
-
-// Délai
-bool NythEffects_SetDelayParameters(int effectId, float delayMs, float feedback, float mix);
-bool NythEffects_GetDelayParameters(int effectId, float* delayMs, float* feedback, float* mix);
-
-// === Traitement audio ===
-bool NythEffects_ProcessAudio(const float* input, float* output, size_t frameCount, int channels);
-bool NythEffects_ProcessAudioStereo(const float* inputL, const float* inputR, float* outputL, float* outputR,
-                                    size_t frameCount);
-
-// === Analyse audio ===
-float NythEffects_GetInputLevel(void);
-float NythEffects_GetOutputLevel(void);
-
-// === Callbacks (pour usage interne) ===
-typedef void (*NythEffectsDataCallback)(const float* input, float* output, size_t frameCount, int channels);
-typedef void (*NythEffectsErrorCallback)(const char* error);
-typedef void (*NythEffectsStateChangeCallback)(NythEffectsState oldState, NythEffectsState newState);
-
-void NythEffects_SetAudioDataCallback(NythEffectsDataCallback callback);
-void NythEffects_SetErrorCallback(NythEffectsErrorCallback callback);
-void NythEffects_SetStateChangeCallback(NythEffectsStateChangeCallback callback);
-
-#ifdef __cplusplus
-}
 #endif
 
 // === Interface C++ pour TurboModule ===
@@ -139,23 +25,68 @@ void NythEffects_SetStateChangeCallback(NythEffectsStateChangeCallback callback)
 #include <string>
 #include <vector>
 
-
 #include "Audio/effects/EffectBase.hpp"
 #include "Audio/effects/EffectChain.hpp"
+#include "Audio/effects/EffectConstants.hpp"
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
 #include <atomic>
 #include <jsi/jsi.h>
 #include <mutex>
-#include <queue>
 
-
-// Forward declarations for Nyth namespace
-namespace Nyth {
-namespace Audio {
+// Forward declarations for AudioFX namespace
+namespace AudioFX {
 class IAudioEffect;
-}
-} // namespace Nyth
+class CompressorEffect;
+class DelayEffect;
+class EffectChain;
+} // namespace AudioFX
+
+// Types d'effets audio
+enum NythEffectType { EFFECT_TYPE_UNKNOWN = 0, EFFECT_TYPE_COMPRESSOR = 1, EFFECT_TYPE_DELAY = 2 };
+
+// États du module
+enum NythEffectsState {
+    EFFECTS_STATE_UNINITIALIZED = 0,
+    EFFECTS_STATE_INITIALIZED = 1,
+    EFFECTS_STATE_PROCESSING = 2,
+    EFFECTS_STATE_ERROR = 3
+};
+
+// Configuration des effets
+struct NythEffectConfig {
+    int effectId = 0;
+    NythEffectType type = EFFECT_TYPE_UNKNOWN;
+    bool enabled = AudioFX::DEFAULT_ENABLED;
+    uint32_t sampleRate = AudioFX::REFERENCE_SAMPLE_RATE;
+    int channels = AudioFX::DEFAULT_CHANNELS;
+
+    union {
+        struct {
+            float thresholdDb;
+            float ratio;
+            float attackMs;
+            float releaseMs;
+            float makeupDb;
+        } compressor;
+
+        struct {
+            float delayMs;
+            float feedback;
+            float mix;
+        } delay;
+    } config;
+};
+
+// Statistiques du module
+struct NythEffectsStatistics {
+    float inputLevel = AudioFX::BUFFER_INIT_VALUE;
+    float outputLevel = AudioFX::BUFFER_INIT_VALUE;
+    uint64_t processedFrames = AudioFX::ZERO_SAMPLES;
+    uint64_t processedSamples = AudioFX::ZERO_SAMPLES;
+    uint64_t durationMs = AudioFX::ZERO_SAMPLES;
+    int activeEffectsCount = AudioFX::ZERO_SAMPLES;
+};
 
 namespace facebook {
 namespace react {
@@ -243,20 +174,14 @@ private:
         CallbackInfo stateChangeCallback;
     } jsCallbacks_;
 
-    // Configuration actuelle
-    uint32_t currentSampleRate_;
-    int currentChannels_;
+    // Configuration actuelle - utilise les constantes d'EffectConstants.hpp
+    uint32_t currentSampleRate_ = AudioFX::REFERENCE_SAMPLE_RATE;
+    int currentChannels_ = AudioFX::DEFAULT_CHANNELS;
     std::atomic<NythEffectsState> currentState_{EFFECTS_STATE_UNINITIALIZED};
 
     // Gestion des IDs d'effets
-    std::atomic<int> nextEffectId_{1};
+    std::atomic<int> nextEffectId_{AudioFX::CHAIN_START_INDEX};
     std::map<int, std::unique_ptr<AudioFX::IAudioEffect>> activeEffects_;
-
-    // Buffers de traitement
-    std::vector<float> inputBuffer_;
-    std::vector<float> outputBuffer_;
-    std::vector<float> tempBufferL_;
-    std::vector<float> tempBufferR_;
 
     // Méthodes privées
     void initializeEffectChain();

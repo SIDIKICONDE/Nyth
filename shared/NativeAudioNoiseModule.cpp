@@ -11,485 +11,8 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <sstream>
-
-// === Instance globale pour l'API C ===
-static std::unique_ptr<AudioNR::AdvancedSpectralNR> g_advancedSpectralNR;
-static std::unique_ptr<AudioNR::IMCRA> g_imcra;
-static std::unique_ptr<AudioNR::WienerFilter> g_wienerFilter;
-static std::unique_ptr<AudioNR::MultibandProcessor> g_multibandProcessor;
-static std::unique_ptr<AudioNR::NoiseReducer> g_noiseReducer;
-static std::unique_ptr<AudioNR::RNNoiseSuppressor> g_rnNoiseSuppressor;
-static std::mutex g_globalMutex;
-static NythNoiseConfig g_currentConfig = {};
-static NythNoiseState g_currentState = NOISE_STATE_UNINITIALIZED;
-static NythNoiseStatistics g_currentStats = {0};
-
-// === Implémentation de l'API C ===
-extern "C" {
-
-bool NythNoise_Initialize(const NythNoiseConfig* config) {
-    if (!config)
-        return false;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    try {
-        g_currentConfig = *config;
-
-        // Initialize Advanced Spectral NR (main system)
-        AudioNR::AdvancedSpectralNR::Config advConfig;
-        advConfig.sampleRate = config->sampleRate;
-        advConfig.fftSize = config->fftSize;
-        advConfig.hopSize = config->hopSize;
-        advConfig.aggressiveness = config->aggressiveness;
-        advConfig.enableMultiband = config->enableMultiband;
-        advConfig.preserveTransients = config->preserveTransients;
-        advConfig.reduceMusicalNoise = config->reduceMusicalNoise;
-
-        // Map algorithm type
-        switch (config->algorithm) {
-            case NOISE_ALGORITHM_ADVANCED_SPECTRAL:
-                advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::MMSE_LSA;
-                break;
-            case NOISE_ALGORITHM_WIENER_FILTER:
-                advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::WIENER_FILTER;
-                break;
-            case NOISE_ALGORITHM_MULTIBAND:
-                advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::MULTIBAND;
-                break;
-            case NOISE_ALGORITHM_TWO_STEP:
-                advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::TWO_STEP;
-                break;
-            default:
-                advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::SPECTRAL_SUBTRACTION;
-                break;
-        }
-
-        // Map noise estimation method
-        switch (config->noiseMethod) {
-            case NOISE_ESTIMATION_IMCRA:
-                advConfig.noiseMethod = AudioNR::AdvancedSpectralNR::Config::NoiseEstimation::IMCRA;
-                break;
-            case NOISE_ESTIMATION_MCRA:
-                advConfig.noiseMethod = AudioNR::AdvancedSpectralNR::Config::NoiseEstimation::SIMPLE_MCRA;
-                break;
-            default:
-                advConfig.noiseMethod = AudioNR::AdvancedSpectralNR::Config::NoiseEstimation::SIMPLE_MCRA;
-                break;
-        }
-
-        g_advancedSpectralNR = std::make_unique<AudioNR::AdvancedSpectralNR>(advConfig);
-
-        // Initialize other components as needed
-        if (config->algorithm == NOISE_ALGORITHM_WIENER_FILTER) {
-            AudioNR::WienerFilter::Config wienerCfg;
-            wienerCfg.fftSize = config->fftSize;
-            wienerCfg.sampleRate = config->sampleRate;
-            g_wienerFilter = std::make_unique<AudioNR::WienerFilter>(wienerCfg);
-        }
-
-        if (config->enableMultiband) {
-            AudioNR::MultibandProcessor::Config mbConfig;
-            mbConfig.sampleRate = config->sampleRate;
-            mbConfig.fftSize = config->fftSize;
-            g_multibandProcessor = std::make_unique<AudioNR::MultibandProcessor>(mbConfig);
-        }
-
-        // Initialize temporal noise reducer
-        g_noiseReducer = std::make_unique<AudioNR::NoiseReducer>(config->sampleRate, config->channels);
-
-        g_currentState = NOISE_STATE_INITIALIZED;
-        return true;
-    } catch (...) {
-        g_currentState = NOISE_STATE_ERROR;
-        return false;
-    }
-}
-
-bool NythNoise_Start(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (g_currentState == NOISE_STATE_INITIALIZED) {
-        g_currentState = NOISE_STATE_PROCESSING;
-        return true;
-    }
-    return false;
-}
-
-bool NythNoise_Stop(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (g_currentState == NOISE_STATE_PROCESSING) {
-        g_currentState = NOISE_STATE_INITIALIZED;
-        return true;
-    }
-    return false;
-}
-
-void NythNoise_Release(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    g_advancedSpectralNR.reset();
-    g_imcra.reset();
-    g_wienerFilter.reset();
-    g_multibandProcessor.reset();
-    g_noiseReducer.reset();
-    g_rnNoiseSuppressor.reset();
-    g_currentState = NOISE_STATE_UNINITIALIZED;
-}
-
-// === État et informations ===
-NythNoiseState NythNoise_GetState(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentState;
-}
-
-void NythNoise_GetStatistics(NythNoiseStatistics* stats) {
-    if (!stats)
-        return;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    *stats = g_currentStats;
-
-    if (g_advancedSpectralNR) {
-        stats->estimatedSNR = g_advancedSpectralNR->getEstimatedSNR();
-    }
-}
-
-void NythNoise_ResetStatistics(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    memset(&g_currentStats, 0, sizeof(NythNoiseStatistics));
-}
-
-// === Configuration ===
-void NythNoise_GetConfig(NythNoiseConfig* config) {
-    if (!config)
-        return;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    *config = g_currentConfig;
-}
-
-bool NythNoise_UpdateConfig(const NythNoiseConfig* config) {
-    if (!config)
-        return false;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return NythNoise_Initialize(config);
-}
-
-bool NythNoise_SetAlgorithm(NythNoiseAlgorithm algorithm) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == NOISE_STATE_UNINITIALIZED)
-        return false;
-
-    g_currentConfig.algorithm = algorithm;
-
-    // Reinitialize with new algorithm
-    return NythNoise_Initialize(&g_currentConfig);
-}
-
-bool NythNoise_SetAggressiveness(float aggressiveness) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState == NOISE_STATE_UNINITIALIZED)
-        return false;
-
-    g_currentConfig.aggressiveness = aggressiveness;
-
-    if (g_advancedSpectralNR) {
-        g_advancedSpectralNR->setAggressiveness(aggressiveness);
-    }
-
-    return true;
-}
-
-// === Traitement audio ===
-bool NythNoise_ProcessAudio(const float* input, float* output, size_t frameCount, int channels) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState != NOISE_STATE_PROCESSING)
-        return false;
-    if (!input || !output || frameCount == 0)
-        return false;
-
-    try {
-        // Update input level
-        float inputLevel = 0.0f;
-        for (size_t i = 0; i < frameCount * channels; ++i) {
-            inputLevel = std::max(inputLevel, std::abs(input[i]));
-        }
-        g_currentStats.inputLevel = inputLevel;
-
-        // Apply noise reduction based on algorithm
-        if (g_advancedSpectralNR) {
-            g_advancedSpectralNR->process(input, output, frameCount);
-        } else if (g_noiseReducer) {
-            if (channels == 1) {
-                g_noiseReducer->processMono(input, output, frameCount);
-            } else {
-                // For stereo, process each channel separately
-                std::vector<float> inL(frameCount), inR(frameCount);
-                std::vector<float> outL(frameCount), outR(frameCount);
-
-                for (size_t i = 0; i < frameCount; ++i) {
-                    inL[i] = input[i * 2];
-                    inR[i] = input[i * 2 + 1];
-                }
-
-                g_noiseReducer->processStereo(inL.data(), inR.data(), outL.data(), outR.data(), frameCount);
-
-                for (size_t i = 0; i < frameCount; ++i) {
-                    output[i * 2] = outL[i];
-                    output[i * 2 + 1] = outR[i];
-                }
-            }
-        } else {
-            // Fallback: copy input to output
-            std::copy(input, input + frameCount * channels, output);
-        }
-
-        // Update output level and statistics
-        float outputLevel = 0.0f;
-        for (size_t i = 0; i < frameCount * channels; ++i) {
-            outputLevel = std::max(outputLevel, std::abs(output[i]));
-        }
-        g_currentStats.outputLevel = outputLevel;
-        g_currentStats.processedFrames++;
-        g_currentStats.processedSamples += frameCount * channels;
-        g_currentStats.durationMs += (frameCount * 1000) / g_currentConfig.sampleRate;
-
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool NythNoise_ProcessAudioStereo(const float* inputL, const float* inputR, float* outputL, float* outputR,
-                                  size_t frameCount) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    if (g_currentState != NOISE_STATE_PROCESSING)
-        return false;
-    if (!inputL || !inputR || !outputL || !outputR || frameCount == 0)
-        return false;
-
-    try {
-        if (g_noiseReducer) {
-            g_noiseReducer->processStereo(inputL, inputR, outputL, outputR, frameCount);
-        } else {
-            // Fallback: copy input to output
-            std::copy(inputL, inputL + frameCount, outputL);
-            std::copy(inputR, inputR + frameCount, outputR);
-        }
-
-        g_currentStats.processedFrames++;
-        g_currentStats.processedSamples += frameCount * 2;
-        g_currentStats.durationMs += (frameCount * 1000) / g_currentConfig.sampleRate;
-
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-// === Analyse audio ===
-float NythNoise_GetInputLevel(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentStats.inputLevel;
-}
-
-float NythNoise_GetOutputLevel(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentStats.outputLevel;
-}
-
-float NythNoise_GetEstimatedSNR(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (g_advancedSpectralNR) {
-        return g_advancedSpectralNR->getEstimatedSNR();
-    }
-    return g_currentStats.estimatedSNR;
-}
-
-float NythNoise_GetSpeechProbability(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentStats.speechProbability;
-}
-
-float NythNoise_GetMusicalNoiseLevel(void) {
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_currentStats.musicalNoiseLevel;
-}
-
-// === Contrôle avancé ===
-
-// IMCRA
-bool NythNoise_InitializeIMCRA(const NythIMCRAConfig* config) {
-    if (!config)
-        return false;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    try {
-        AudioNR::IMCRA::Config imcraCfg;
-        imcraCfg.fftSize = config->fftSize;
-        imcraCfg.sampleRate = config->sampleRate;
-        imcraCfg.alphaS = config->alphaS;
-        imcraCfg.alphaD = config->alphaD;
-        imcraCfg.alphaD2 = config->alphaD2;
-        imcraCfg.betaMax = config->betaMax;
-        imcraCfg.gamma0 = config->gamma0;
-        imcraCfg.gamma1 = config->gamma1;
-        imcraCfg.zeta0 = config->zeta0;
-        imcraCfg.windowLength = config->windowLength;
-        imcraCfg.subWindowLength = config->subWindowLength;
-
-        g_imcra = std::make_unique<AudioNR::IMCRA>(imcraCfg);
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-void NythNoise_GetIMCRAConfig(NythIMCRAConfig* config) {
-    if (!config || !g_imcra)
-        return;
-
-    // This would need to be implemented in IMCRA class with getters
-    // For now, return default values
-    config->fftSize = 1024;
-    config->sampleRate = 48000;
-    config->alphaS = 0.95;
-    config->alphaD = 0.95;
-    config->alphaD2 = 0.9;
-    config->betaMax = 0.96;
-    config->gamma0 = 4.6;
-    config->gamma1 = 3.0;
-    config->zeta0 = 1.67;
-    config->windowLength = 80;
-    config->subWindowLength = 8;
-}
-
-bool NythNoise_UpdateIMCRAConfig(const NythIMCRAConfig* config) {
-    if (!config || !g_imcra)
-        return false;
-    return NythNoise_InitializeIMCRA(config);
-}
-
-// Wiener
-bool NythNoise_InitializeWiener(const NythWienerConfig* config) {
-    if (!config)
-        return false;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    try {
-        AudioNR::WienerFilter::Config wienerCfg;
-        wienerCfg.fftSize = config->fftSize;
-        wienerCfg.sampleRate = config->sampleRate;
-        wienerCfg.alpha = config->alpha;
-        wienerCfg.minGain = config->minGain;
-        wienerCfg.maxGain = config->maxGain;
-        wienerCfg.useLSA = config->useLSA;
-        wienerCfg.gainSmoothing = config->gainSmoothing;
-        wienerCfg.frequencySmoothing = config->frequencySmoothing;
-        wienerCfg.usePerceptualWeighting = config->usePerceptualWeighting;
-
-        g_wienerFilter = std::make_unique<AudioNR::WienerFilter>(wienerCfg);
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-void NythNoise_GetWienerConfig(NythWienerConfig* config) {
-    if (!config)
-        return;
-
-    // Return default values
-    config->fftSize = 1024;
-    config->sampleRate = 48000;
-    config->alpha = 0.98;
-    config->minGain = 0.1;
-    config->maxGain = 1.0;
-    config->useLSA = true;
-    config->gainSmoothing = 0.7;
-    config->frequencySmoothing = 0.3;
-    config->usePerceptualWeighting = true;
-}
-
-bool NythNoise_UpdateWienerConfig(const NythWienerConfig* config) {
-    if (!config)
-        return false;
-    return NythNoise_InitializeWiener(config);
-}
-
-// Multi-bandes
-bool NythNoise_InitializeMultiband(const NythMultibandConfig* config) {
-    if (!config)
-        return false;
-
-    std::lock_guard<std::mutex> lock(g_globalMutex);
-
-    try {
-        AudioNR::MultibandProcessor::Config mbConfig;
-        mbConfig.sampleRate = config->sampleRate;
-        mbConfig.fftSize = config->fftSize;
-        mbConfig.profile.subBassReduction = config->subBassReduction;
-        mbConfig.profile.bassReduction = config->bassReduction;
-        mbConfig.profile.lowMidReduction = config->lowMidReduction;
-        mbConfig.profile.midReduction = config->midReduction;
-        mbConfig.profile.highMidReduction = config->highMidReduction;
-        mbConfig.profile.highReduction = config->highReduction;
-        mbConfig.profile.ultraHighReduction = config->ultraHighReduction;
-
-        g_multibandProcessor = std::make_unique<AudioNR::MultibandProcessor>(mbConfig);
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-void NythNoise_GetMultibandConfig(NythMultibandConfig* config) {
-    if (!config)
-        return;
-
-    // Return default values
-    config->sampleRate = 48000;
-    config->fftSize = 2048;
-    config->subBassReduction = 0.9f;
-    config->bassReduction = 0.7f;
-    config->lowMidReduction = 0.5f;
-    config->midReduction = 0.3f;
-    config->highMidReduction = 0.4f;
-    config->highReduction = 0.6f;
-    config->ultraHighReduction = 0.8f;
-}
-
-bool NythNoise_UpdateMultibandConfig(const NythMultibandConfig* config) {
-    if (!config)
-        return false;
-    return NythNoise_InitializeMultiband(config);
-}
-
-// === Callbacks ===
-static NythNoiseDataCallback g_dataCallback = nullptr;
-static NythNoiseErrorCallback g_errorCallback = nullptr;
-static NythNoiseStateChangeCallback g_stateChangeCallback = nullptr;
-
-void NythNoise_SetAudioDataCallback(NythNoiseDataCallback callback) {
-    g_dataCallback = callback;
-}
-
-void NythNoise_SetErrorCallback(NythNoiseErrorCallback callback) {
-    g_errorCallback = callback;
-}
-
-void NythNoise_SetStateChangeCallback(NythNoiseStateChangeCallback callback) {
-    g_stateChangeCallback = callback;
-}
-
-} // extern "C"
 
 // === Implémentation C++ pour TurboModule ===
 
@@ -785,13 +308,18 @@ jsi::Value NativeAudioNoiseModule::getState(jsi::Runtime& rt) {
 
 jsi::Value NativeAudioNoiseModule::getStatistics(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
-    NythNoise_GetStatistics(&currentStats_);
+
+    // Update statistics from components
+    if (advancedSpectralNR_) {
+        currentStats_.estimatedSNR = advancedSpectralNR_->getEstimatedSNR();
+    }
+
     return statisticsToJS(rt, currentStats_);
 }
 
 jsi::Value NativeAudioNoiseModule::resetStatistics(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
-    NythNoise_ResetStatistics();
+    memset(&currentStats_, 0, sizeof(NythNoiseStatistics));
     return jsi::Value(true);
 }
 
@@ -856,16 +384,65 @@ jsi::Value NativeAudioNoiseModule::processAudio(jsi::Runtime& rt, const jsi::Arr
         inputBuffer[i] = static_cast<float>(input.getValueAtIndex(rt, i).asNumber());
     }
 
-    if (NythNoise_ProcessAudio(inputBuffer.data(), outputBuffer.data(), frameCount, channels)) {
-        // Convertir le résultat en array JSI
+    if (currentState_ != NOISE_STATE_PROCESSING) {
+        return jsi::Value::null();
+    }
+
+    try {
+        // Update input level
+        float inputLevel = 0.0f;
+        for (size_t i = 0; i < inputBuffer.size(); ++i) {
+            inputLevel = std::max(inputLevel, std::abs(inputBuffer[i]));
+        }
+        currentStats_.inputLevel = inputLevel;
+
+        // Apply noise reduction
+        if (advancedSpectralNR_) {
+            advancedSpectralNR_->process(inputBuffer.data(), outputBuffer.data(), frameCount);
+        } else if (noiseReducer_) {
+            if (channels == 1) {
+                noiseReducer_->processMono(inputBuffer.data(), outputBuffer.data(), frameCount);
+            } else {
+                // For stereo, process each channel separately
+                std::vector<float> inL(frameCount), inR(frameCount);
+                std::vector<float> outL(frameCount), outR(frameCount);
+
+                for (size_t i = 0; i < frameCount; ++i) {
+                    inL[i] = inputBuffer[i * 2];
+                    inR[i] = inputBuffer[i * 2 + 1];
+                }
+
+                noiseReducer_->processStereo(inL.data(), inR.data(), outL.data(), outR.data(), frameCount);
+
+                for (size_t i = 0; i < frameCount; ++i) {
+                    outputBuffer[i * 2] = outL[i];
+                    outputBuffer[i * 2 + 1] = outR[i];
+                }
+            }
+        } else {
+            // Fallback: copy input to output
+            std::copy(inputBuffer.begin(), inputBuffer.end(), outputBuffer.begin());
+        }
+
+        // Update output level and statistics
+        float outputLevel = 0.0f;
+        for (size_t i = 0; i < outputBuffer.size(); ++i) {
+            outputLevel = std::max(outputLevel, std::abs(outputBuffer[i]));
+        }
+        currentStats_.outputLevel = outputLevel;
+        currentStats_.processedFrames++;
+        currentStats_.processedSamples += frameCount * channels;
+        currentStats_.durationMs += (frameCount * 1000) / currentConfig_.sampleRate;
+
+        // Convert result to JSI array
         jsi::Array result(rt, outputBuffer.size());
         for (size_t i = 0; i < outputBuffer.size(); ++i) {
             result.setValueAtIndex(rt, i, jsi::Value(outputBuffer[i]));
         }
         return result;
+    } catch (...) {
+        return jsi::Value::null();
     }
-
-    return jsi::Value::null();
 }
 
 jsi::Value NativeAudioNoiseModule::processAudioStereo(jsi::Runtime& rt, const jsi::Array& inputL,
@@ -888,9 +465,25 @@ jsi::Value NativeAudioNoiseModule::processAudioStereo(jsi::Runtime& rt, const js
         inputRBuffer[i] = static_cast<float>(inputR.getValueAtIndex(rt, i).asNumber());
     }
 
-    if (NythNoise_ProcessAudioStereo(inputLBuffer.data(), inputRBuffer.data(), outputLBuffer.data(),
-                                     outputRBuffer.data(), frameCount)) {
-        // Convertir les résultats en objet JSI
+    if (currentState_ != NOISE_STATE_PROCESSING) {
+        return jsi::Value::null();
+    }
+
+    try {
+        if (noiseReducer_) {
+            noiseReducer_->processStereo(inputLBuffer.data(), inputRBuffer.data(), outputLBuffer.data(),
+                                         outputRBuffer.data(), frameCount);
+        } else {
+            // Fallback: copy input to output
+            std::copy(inputLBuffer.begin(), inputLBuffer.end(), outputLBuffer.begin());
+            std::copy(inputRBuffer.begin(), inputRBuffer.end(), outputRBuffer.begin());
+        }
+
+        currentStats_.processedFrames++;
+        currentStats_.processedSamples += frameCount * 2;
+        currentStats_.durationMs += (frameCount * 1000) / currentConfig_.sampleRate;
+
+        // Convert results to JSI object
         jsi::Object result(rt);
         jsi::Array resultL(rt, frameCount);
         jsi::Array resultR(rt, frameCount);
@@ -903,36 +496,39 @@ jsi::Value NativeAudioNoiseModule::processAudioStereo(jsi::Runtime& rt, const js
         result.setProperty(rt, "left", std::move(resultL));
         result.setProperty(rt, "right", std::move(resultR));
         return result;
+    } catch (...) {
+        return jsi::Value::null();
     }
-
-    return jsi::Value::null();
 }
 
 // === Analyse audio ===
 
 jsi::Value NativeAudioNoiseModule::getInputLevel(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
-    return jsi::Value(NythNoise_GetInputLevel());
+    return jsi::Value(currentStats_.inputLevel);
 }
 
 jsi::Value NativeAudioNoiseModule::getOutputLevel(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
-    return jsi::Value(NythNoise_GetOutputLevel());
+    return jsi::Value(currentStats_.outputLevel);
 }
 
 jsi::Value NativeAudioNoiseModule::getEstimatedSNR(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
-    return jsi::Value(NythNoise_GetEstimatedSNR());
+    if (advancedSpectralNR_) {
+        return jsi::Value(advancedSpectralNR_->getEstimatedSNR());
+    }
+    return jsi::Value(currentStats_.estimatedSNR);
 }
 
 jsi::Value NativeAudioNoiseModule::getSpeechProbability(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
-    return jsi::Value(NythNoise_GetSpeechProbability());
+    return jsi::Value(currentStats_.speechProbability);
 }
 
 jsi::Value NativeAudioNoiseModule::getMusicalNoiseLevel(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
-    return jsi::Value(NythNoise_GetMusicalNoiseLevel());
+    return jsi::Value(currentStats_.musicalNoiseLevel);
 }
 
 // === Configuration avancée ===
@@ -942,10 +538,22 @@ jsi::Value NativeAudioNoiseModule::initializeIMCRA(jsi::Runtime& rt, const jsi::
 
     try {
         auto imcraConfig = parseIMCRAConfig(rt, config);
-        if (NythNoise_InitializeIMCRA(&imcraConfig)) {
-            return jsi::Value(true);
-        }
-        return jsi::Value(false);
+
+        AudioNR::IMCRA::Config imcraCfg;
+        imcraCfg.fftSize = imcraConfig.fftSize;
+        imcraCfg.sampleRate = imcraConfig.sampleRate;
+        imcraCfg.alphaS = imcraConfig.alphaS;
+        imcraCfg.alphaD = imcraConfig.alphaD;
+        imcraCfg.alphaD2 = imcraConfig.alphaD2;
+        imcraCfg.betaMax = imcraConfig.betaMax;
+        imcraCfg.gamma0 = imcraConfig.gamma0;
+        imcraCfg.gamma1 = imcraConfig.gamma1;
+        imcraCfg.zeta0 = imcraConfig.zeta0;
+        imcraCfg.windowLength = imcraConfig.windowLength;
+        imcraCfg.subWindowLength = imcraConfig.subWindowLength;
+
+        imcra_ = std::make_unique<AudioNR::IMCRA>(imcraCfg);
+        return jsi::Value(true);
     } catch (const std::exception& e) {
         handleError(std::string("IMCRA initialization failed: ") + e.what());
         return jsi::Value(false);
@@ -955,8 +563,20 @@ jsi::Value NativeAudioNoiseModule::initializeIMCRA(jsi::Runtime& rt, const jsi::
 jsi::Value NativeAudioNoiseModule::getIMCRAConfig(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
 
+    // Return default values since we don't have getters in IMCRA class
     NythIMCRAConfig config;
-    NythNoise_GetIMCRAConfig(&config);
+    config.fftSize = 1024;
+    config.sampleRate = 48000;
+    config.alphaS = 0.95;
+    config.alphaD = 0.95;
+    config.alphaD2 = 0.9;
+    config.betaMax = 0.96;
+    config.gamma0 = 4.6;
+    config.gamma1 = 3.0;
+    config.zeta0 = 1.67;
+    config.windowLength = 80;
+    config.subWindowLength = 8;
+
     return imcraConfigToJS(rt, config);
 }
 
@@ -964,11 +584,8 @@ jsi::Value NativeAudioNoiseModule::updateIMCRAConfig(jsi::Runtime& rt, const jsi
     std::lock_guard<std::mutex> lock(noiseMutex_);
 
     try {
-        auto imcraConfig = parseIMCRAConfig(rt, config);
-        if (NythNoise_UpdateIMCRAConfig(&imcraConfig)) {
-            return jsi::Value(true);
-        }
-        return jsi::Value(false);
+        // Simply reinitialize with new config
+        return initializeIMCRA(rt, config);
     } catch (const std::exception& e) {
         handleError(std::string("IMCRA config update failed: ") + e.what());
         return jsi::Value(false);
@@ -981,10 +598,20 @@ jsi::Value NativeAudioNoiseModule::initializeWiener(jsi::Runtime& rt, const jsi:
 
     try {
         auto wienerConfig = parseWienerConfig(rt, config);
-        if (NythNoise_InitializeWiener(&wienerConfig)) {
-            return jsi::Value(true);
-        }
-        return jsi::Value(false);
+
+        AudioNR::WienerFilter::Config wienerCfg;
+        wienerCfg.fftSize = wienerConfig.fftSize;
+        wienerCfg.sampleRate = wienerConfig.sampleRate;
+        wienerCfg.alpha = wienerConfig.alpha;
+        wienerCfg.minGain = wienerConfig.minGain;
+        wienerCfg.maxGain = wienerConfig.maxGain;
+        wienerCfg.useLSA = wienerConfig.useLSA;
+        wienerCfg.gainSmoothing = wienerConfig.gainSmoothing;
+        wienerCfg.frequencySmoothing = wienerConfig.frequencySmoothing;
+        wienerCfg.usePerceptualWeighting = wienerConfig.usePerceptualWeighting;
+
+        wienerFilter_ = std::make_unique<AudioNR::WienerFilter>(wienerCfg);
+        return jsi::Value(true);
     } catch (const std::exception& e) {
         handleError(std::string("Wiener filter initialization failed: ") + e.what());
         return jsi::Value(false);
@@ -994,8 +621,18 @@ jsi::Value NativeAudioNoiseModule::initializeWiener(jsi::Runtime& rt, const jsi:
 jsi::Value NativeAudioNoiseModule::getWienerConfig(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
 
+    // Return default values
     NythWienerConfig config;
-    NythNoise_GetWienerConfig(&config);
+    config.fftSize = 1024;
+    config.sampleRate = 48000;
+    config.alpha = 0.98;
+    config.minGain = 0.1;
+    config.maxGain = 1.0;
+    config.useLSA = true;
+    config.gainSmoothing = 0.7;
+    config.frequencySmoothing = 0.3;
+    config.usePerceptualWeighting = true;
+
     return wienerConfigToJS(rt, config);
 }
 
@@ -1003,11 +640,8 @@ jsi::Value NativeAudioNoiseModule::updateWienerConfig(jsi::Runtime& rt, const js
     std::lock_guard<std::mutex> lock(noiseMutex_);
 
     try {
-        auto wienerConfig = parseWienerConfig(rt, config);
-        if (NythNoise_UpdateWienerConfig(&wienerConfig)) {
-            return jsi::Value(true);
-        }
-        return jsi::Value(false);
+        // Simply reinitialize with new config
+        return initializeWiener(rt, config);
     } catch (const std::exception& e) {
         handleError(std::string("Wiener filter config update failed: ") + e.what());
         return jsi::Value(false);
@@ -1019,10 +653,20 @@ jsi::Value NativeAudioNoiseModule::initializeMultiband(jsi::Runtime& rt, const j
 
     try {
         auto multibandConfig = parseMultibandConfig(rt, config);
-        if (NythNoise_InitializeMultiband(&multibandConfig)) {
-            return jsi::Value(true);
-        }
-        return jsi::Value(false);
+
+        AudioNR::MultibandProcessor::Config mbConfig;
+        mbConfig.sampleRate = multibandConfig.sampleRate;
+        mbConfig.fftSize = multibandConfig.fftSize;
+        mbConfig.profile.subBassReduction = multibandConfig.subBassReduction;
+        mbConfig.profile.bassReduction = multibandConfig.bassReduction;
+        mbConfig.profile.lowMidReduction = multibandConfig.lowMidReduction;
+        mbConfig.profile.midReduction = multibandConfig.midReduction;
+        mbConfig.profile.highMidReduction = multibandConfig.highMidReduction;
+        mbConfig.profile.highReduction = multibandConfig.highReduction;
+        mbConfig.profile.ultraHighReduction = multibandConfig.ultraHighReduction;
+
+        multibandProcessor_ = std::make_unique<AudioNR::MultibandProcessor>(mbConfig);
+        return jsi::Value(true);
     } catch (const std::exception& e) {
         handleError(std::string("Multiband processor initialization failed: ") + e.what());
         return jsi::Value(false);
@@ -1032,8 +676,18 @@ jsi::Value NativeAudioNoiseModule::initializeMultiband(jsi::Runtime& rt, const j
 jsi::Value NativeAudioNoiseModule::getMultibandConfig(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
 
+    // Return default values
     NythMultibandConfig config;
-    NythNoise_GetMultibandConfig(&config);
+    config.sampleRate = 48000;
+    config.fftSize = 2048;
+    config.subBassReduction = 0.9f;
+    config.bassReduction = 0.7f;
+    config.lowMidReduction = 0.5f;
+    config.midReduction = 0.3f;
+    config.highMidReduction = 0.4f;
+    config.highReduction = 0.6f;
+    config.ultraHighReduction = 0.8f;
+
     return multibandConfigToJS(rt, config);
 }
 
@@ -1041,11 +695,8 @@ jsi::Value NativeAudioNoiseModule::updateMultibandConfig(jsi::Runtime& rt, const
     std::lock_guard<std::mutex> lock(noiseMutex_);
 
     try {
-        auto multibandConfig = parseMultibandConfig(rt, config);
-        if (NythNoise_UpdateMultibandConfig(&multibandConfig)) {
-            return jsi::Value(true);
-        }
-        return jsi::Value(false);
+        // Simply reinitialize with new config
+        return initializeMultiband(rt, config);
     } catch (const std::exception& e) {
         handleError(std::string("Multiband processor config update failed: ") + e.what());
         return jsi::Value(false);

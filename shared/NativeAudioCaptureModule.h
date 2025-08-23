@@ -133,16 +133,6 @@ public:
     }
 };
 
-// Forward declarations for namespaces
-namespace Audio {
-namespace capture {
-struct AudioCaptureConfig;
-enum class CaptureState;
-struct CaptureStatistics;
-struct AudioDeviceInfo;
-} // namespace capture
-} // namespace Audio
-
 namespace facebook {
 namespace react {
 
@@ -276,17 +266,22 @@ private:
     std::condition_variable queueCV_;
 
     // Configuration actuelle
-    Audio::capture::AudioCaptureConfig currentConfig_;
+    struct AudioConfig {
+        int sampleRate;
+        int channelCount;
+        int bitsPerSample;
+        int bufferSizeFrames;
+    } currentConfig_;
 
     // État de l'enregistrement
     std::atomic<bool> isRecordingActive_{false};
     std::string currentRecordingPath_;
 
     // Méthodes privées améliorées
-    void initializeCapture(const Audio::capture::AudioCaptureConfig& config);
+    void initializeCapture(const AudioConfig& config);
     void handleAudioData(const float* data, size_t frameCount, int channels);
     void handleError(const std::string& error);
-    void handleStateChange(Audio::capture::CaptureState oldState, Audio::capture::CaptureState newState);
+    void handleStateChange(int oldState, int newState);
     void runAnalysisThread();
     void stopAnalysisThread();
 
@@ -294,15 +289,15 @@ private:
     void cleanup();
 
     // Validation et conversion sécurisées
-    Audio::capture::AudioCaptureConfig parseConfigSafe(jsi::Runtime& rt, const jsi::Object& jsConfig);
-    void validateAudioConfig(const Audio::capture::AudioCaptureConfig& config);
+    AudioConfig parseConfigSafe(jsi::Runtime& rt, const jsi::Object& jsConfig);
+    void validateAudioConfig(const AudioConfig& config);
 
     // Conversion JSI <-> Native
-    Audio::capture::AudioCaptureConfig parseConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
-    jsi::Object configToJS(jsi::Runtime& rt, const Audio::capture::AudioCaptureConfig& config);
-    jsi::Object statisticsToJS(jsi::Runtime& rt, const Audio::capture::CaptureStatistics& stats);
-    jsi::Object deviceToJS(jsi::Runtime& rt, const Audio::capture::AudioDeviceInfo& device);
-    jsi::Array devicesToJS(jsi::Runtime& rt, const std::vector<Audio::capture::AudioDeviceInfo>& devices);
+    AudioConfig parseConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
+    jsi::Object configToJS(jsi::Runtime& rt, const AudioConfig& config);
+    jsi::Object statisticsToJS(jsi::Runtime& rt, const AudioConfig& config);
+    jsi::Object deviceToJS(jsi::Runtime& rt, const AudioConfig& config);
+    jsi::Array devicesToJS(jsi::Runtime& rt, const std::vector<AudioConfig>& devices);
 
     // Invocation de callbacks JS sur le thread principal
     void invokeJSCallback(const std::string& callbackName, std::function<void(jsi::Runtime&)> invocation);

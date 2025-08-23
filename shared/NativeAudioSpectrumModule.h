@@ -2,130 +2,34 @@
 
 // Includes conditionnels pour la compatibilité
 #if defined(__has_include)
-  #if __has_include(<NythJSI.h>)
-    #include <NythJSI.h>
-  #endif
+#if __has_include(<NythJSI.h>)
+#include <NythJSI.h>
+#endif
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
-
 // Vérification de la disponibilité de TurboModule
-#if defined(__has_include) && \
-    __has_include(<ReactCommon/TurboModule.h>) && \
+#if defined(__has_include) && __has_include(<ReactCommon/TurboModule.h>) && \
     __has_include(<ReactCommon/TurboModuleUtils.h>)
 #define NYTH_AUDIO_SPECTRUM_ENABLED 1
 #else
 #define NYTH_AUDIO_SPECTRUM_ENABLED 0
 #endif
 
-// === API C globale pour l'analyse spectrale ===
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// === Types d'erreurs du module spectre ===
-typedef enum {
-    SPECTRUM_ERROR_OK = 0,
-    SPECTRUM_ERROR_NOT_INITIALIZED = -1,
-    SPECTRUM_ERROR_ALREADY_ANALYZING = -2,
-    SPECTRUM_ERROR_ALREADY_STOPPED = -3,
-    SPECTRUM_ERROR_FFT_FAILED = -4,
-    SPECTRUM_ERROR_INVALID_BUFFER = -5,
-    SPECTRUM_ERROR_MEMORY_ERROR = -6,
-    SPECTRUM_ERROR_THREAD_ERROR = -7
-} NythSpectrumError;
-
-// === États du module spectre ===
-typedef enum {
-    SPECTRUM_STATE_UNINITIALIZED = 0,
-    SPECTRUM_STATE_INITIALIZED,
-    SPECTRUM_STATE_ANALYZING,
-    SPECTRUM_STATE_ERROR
-} NythSpectrumState;
-
-// === Configuration de l'analyse spectrale ===
-typedef struct {
-    uint32_t sampleRate;
-    size_t fftSize;              // Taille FFT (puissance de 2)
-    size_t hopSize;              // Pas de déplacement (overlap)
-    size_t numBands;             // Nombre de bandes de fréquence
-    double minFreq;              // Fréquence minimale (Hz)
-    double maxFreq;              // Fréquence maximale (Hz)
-    bool useWindowing;           // Utiliser fenêtrage
-    bool useSIMD;                // Utiliser SIMD si disponible
-} NythSpectrumConfig;
-
-// === Données d'analyse spectrale ===
-typedef struct {
-    size_t numBands;
-    double timestamp;            // Timestamp en ms
-    float* magnitudes;           // Tableau des magnitudes (0-1)
-    float* frequencies;          // Tableau des fréquences centrales
-} NythSpectrumData;
-
-// === Callback pour les données spectrales ===
-typedef void (*NythSpectrumDataCallback)(const NythSpectrumData* data);
-typedef void (*NythSpectrumErrorCallback)(NythSpectrumError error, const char* message);
-typedef void (*NythSpectrumStateCallback)(NythSpectrumState oldState, NythSpectrumState newState);
-
-// === API de gestion du module spectre ===
-
-// === Gestion du cycle de vie ===
-bool NythSpectrum_Initialize(const NythSpectrumConfig* config);
-bool NythSpectrum_IsInitialized(void);
-void NythSpectrum_Release(void);
-
-// === État et informations ===
-NythSpectrumState NythSpectrum_GetState(void);
-const char* NythSpectrum_GetErrorString(NythSpectrumError error);
-
-// === Configuration ===
-bool NythSpectrum_SetConfig(const NythSpectrumConfig* config);
-void NythSpectrum_GetConfig(NythSpectrumConfig* config);
-
-// === Analyse spectrale ===
-bool NythSpectrum_StartAnalysis(void);
-bool NythSpectrum_StopAnalysis(void);
-bool NythSpectrum_IsAnalyzing(void);
-
-// === Traitement des données audio ===
-bool NythSpectrum_ProcessAudioBuffer(const float* audioBuffer, size_t numSamples);
-bool NythSpectrum_ProcessAudioBufferStereo(const float* audioBufferL, const float* audioBufferR, size_t numSamples);
-
-// === Récupération des données ===
-bool NythSpectrum_GetSpectrumData(NythSpectrumData* data);
-void NythSpectrum_ReleaseSpectrumData(NythSpectrumData* data);
-
-// === Callbacks ===
-void NythSpectrum_SetDataCallback(NythSpectrumDataCallback callback);
-void NythSpectrum_SetErrorCallback(NythSpectrumErrorCallback callback);
-void NythSpectrum_SetStateCallback(NythSpectrumStateCallback callback);
-
-// === Utilitaires ===
-size_t NythSpectrum_CalculateFFTSize(size_t desiredSize);
-bool NythSpectrum_ValidateConfig(const NythSpectrumConfig* config);
-
-#ifdef __cplusplus
-}
-#endif
-
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_SPECTRUM_ENABLED && defined(__cplusplus)
 
 // Includes C++ nécessaires pour TurboModule
-#include <string>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <string>
 #include <vector>
 
-#include <jsi/jsi.h>
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
+#include <atomic>
+#include <jsi/jsi.h>
 #include <memory>
 #include <mutex>
-#include <atomic>
 #include <queue>
 
 namespace facebook {
@@ -162,7 +66,8 @@ public:
 
     // Traitement des données
     jsi::Value processAudioBuffer(jsi::Runtime& rt, const jsi::Array& audioBuffer);
-    jsi::Value processAudioBufferStereo(jsi::Runtime& rt, const jsi::Array& audioBufferL, const jsi::Array& audioBufferR);
+    jsi::Value processAudioBufferStereo(jsi::Runtime& rt, const jsi::Array& audioBufferL,
+                                        const jsi::Array& audioBufferR);
 
     // Récupération des données spectrales
     jsi::Value getSpectrumData(jsi::Runtime& rt);
@@ -181,8 +86,8 @@ public:
 
 private:
     // Configuration actuelle
-    NythSpectrumConfig config_;
-    std::atomic<NythSpectrumState> currentState_{SPECTRUM_STATE_UNINITIALIZED};
+    jsi::Object config_;
+    std::atomic<int> currentState_{0}; // 0 = uninitialized
 
     // Mutex pour la thread safety
     mutable std::mutex spectrumMutex_;
@@ -208,15 +113,15 @@ private:
 
     // Méthodes privées
     bool validateConfigInternal() const;
-    NythSpectrumError convertError(const std::string& error) const;
-    void handleError(NythSpectrumError error, const std::string& message);
-    void handleStateChange(NythSpectrumState oldState, NythSpectrumState newState);
+    int convertError(const std::string& error) const;
+    void handleError(int error, const std::string& message);
+    void handleStateChange(int oldState, int newState);
     void handleSpectrumData(const std::vector<float>& magnitudes);
 
     // Conversion JSI <-> Native
-    NythSpectrumConfig parseSpectrumConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
-    jsi::Object spectrumConfigToJS(jsi::Runtime& rt, const NythSpectrumConfig& config) const;
-    jsi::Object spectrumDataToJS(jsi::Runtime& rt, const NythSpectrumData& data) const;
+    jsi::Object parseSpectrumConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
+    jsi::Object spectrumConfigToJS(jsi::Runtime& rt, const jsi::Object& config) const;
+    jsi::Object spectrumDataToJS(jsi::Runtime& rt, const jsi::Object& data) const;
 
     // Conversion d'arrays JSI
     std::vector<float> arrayToFloatVector(jsi::Runtime& rt, const jsi::Array& array) const;
@@ -232,8 +137,7 @@ private:
 };
 
 // === Fonction d'enregistrement du module ===
-JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioSpectrumModuleProvider(
-    std::shared_ptr<CallInvoker> jsInvoker);
+JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioSpectrumModuleProvider(std::shared_ptr<CallInvoker> jsInvoker);
 
 } // namespace react
 } // namespace facebook
