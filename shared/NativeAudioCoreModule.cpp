@@ -18,8 +18,9 @@
 #include <map>
 #include <sstream>
 
-
 // === Instance globale pour l'API C ===
+// Note: Ces variables globales sont utilisées par l'API C
+// La classe NativeAudioCoreModule a ses propres membres d'instance
 static std::unique_ptr<Audio::core::AudioEqualizer> g_audioEqualizer;
 static std::map<int64_t, std::unique_ptr<AudioFX::BiquadFilter>> g_activeFilters;
 static std::atomic<int64_t> g_nextFilterId{1};
@@ -1019,6 +1020,14 @@ void NativeAudioCoreModule::initializeEqualizer() {
 
 bool NativeAudioCoreModule::validateFilterId(int64_t filterId) {
     return m_filters.find(filterId) != m_filters.end();
+}
+
+AudioFX::BiquadFilter* NativeAudioCoreModule::getFilter(int64_t filterId) {
+    auto it = m_filters.find(filterId);
+    if (it != m_filters.end()) {
+        return it->second.get();
+    }
+    return nullptr;
 }
 
 NythCoreFilterType NativeAudioCoreModule::stringToFilterType(const std::string& typeStr) const {

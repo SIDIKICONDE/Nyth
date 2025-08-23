@@ -2,18 +2,17 @@
 
 // Includes conditionnels pour la compatibilité
 #if defined(__has_include)
-  #if __has_include(<NythJSI.h>)
-    #include <NythJSI.h>
-  #endif
+#if __has_include(<NythJSI.h>)
+#include <NythJSI.h>
+#endif
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 // Vérification de la disponibilité de TurboModule
-#if defined(__has_include) && \
-    __has_include(<ReactCommon/TurboModule.h>) && \
+#if defined(__has_include) && __has_include(<ReactCommon/TurboModule.h>) && \
     __has_include(<ReactCommon/TurboModuleUtils.h>)
 #define NYTH_AUDIO_PIPELINE_ENABLED 1
 #else
@@ -70,7 +69,7 @@ typedef struct {
     // Configuration des modules
     float safetyLimiterThreshold; // 0.0-1.0
     float noiseReductionStrength; // 0.0-1.0
-    size_t fftSize; // 256, 512, 1024, 2048, 4096
+    size_t fftSize;               // 256, 512, 1024, 2048, 4096
 
     // Configuration avancée
     bool lowLatencyMode;
@@ -113,7 +112,7 @@ typedef struct {
     int band; // 0-9 for 10-band EQ
     float frequency;
     float gain; // dB
-    float q; // Quality factor
+    float q;    // Quality factor
 } NythEqualizerBandConfig;
 
 // === API de gestion du pipeline ===
@@ -195,18 +194,18 @@ void NythPipeline_SetStateChangeCallback(NythPipelineStateChangeCallback callbac
 #if NYTH_AUDIO_PIPELINE_ENABLED && defined(__cplusplus)
 
 // Includes C++ nécessaires pour TurboModule
-#include <string>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <string>
 #include <vector>
 
-#include <jsi/jsi.h>
-#include <ReactCommon/TurboModule.h>
-#include <ReactCommon/TurboModuleUtils.h>
 #include "Audio/AudioPipeline.hpp"
 #include "NativeAudioEffectsModule.h"
-#include <mutex>
+#include <ReactCommon/TurboModule.h>
+#include <ReactCommon/TurboModuleUtils.h>
 #include <atomic>
+#include <jsi/jsi.h>
+#include <mutex>
 #include <queue>
 
 namespace facebook {
@@ -215,7 +214,7 @@ namespace react {
 class JSI_EXPORT NativeAudioPipelineModule : public TurboModule {
 public:
     explicit NativeAudioPipelineModule(std::shared_ptr<CallInvoker> jsInvoker)
-        : TurboModule("NativeAudioPipelineModule", jsInvoker) {
+        : TurboModule("NativeAudioPipelineModule", jsInvoker), jsInvoker_(jsInvoker) {
         currentSampleRate_ = 44100;
         currentChannels_ = 2;
     }
@@ -256,8 +255,7 @@ public:
     jsi::Value setEffectsEnabled(jsi::Runtime& rt, bool enabled);
     jsi::Value addEffect(jsi::Runtime& rt, const jsi::Object& effectConfig);
     jsi::Value removeEffect(jsi::Runtime& rt, const jsi::String& effectId);
-    jsi::Value setEffectParameter(jsi::Runtime& rt, const jsi::String& effectId,
-                                const jsi::String& param, float value);
+    jsi::Value setEffectParameter(jsi::Runtime& rt, const jsi::String& effectId, const jsi::String& param, float value);
     jsi::Value removeAllEffects(jsi::Runtime& rt);
 
     jsi::Value setSafetyLimiterEnabled(jsi::Runtime& rt, bool enabled);
@@ -299,6 +297,12 @@ private:
     // Pipeline audio principal
     std::unique_ptr<Nyth::Audio::AudioPipeline> audioPipeline_;
 
+    // CallInvoker pour l'invocation asynchrone
+    std::shared_ptr<CallInvoker> jsInvoker_;
+
+    // Runtime JavaScript (stocké lors de l'initialisation)
+    jsi::Runtime* runtime_ = nullptr;
+
     // Mutex pour la thread safety
     mutable std::mutex pipelineMutex_;
     mutable std::mutex callbackMutex_;
@@ -317,10 +321,14 @@ private:
 
     // Configuration actuelle
     NythPipelineConfig currentConfig_;
-    
+
     // Paramètres audio
     uint32_t currentSampleRate_;
     int currentChannels_;
+
+    // Métriques et état (remplace les variables globales)
+    NythPipelineMetrics currentMetrics_;
+    NythPipelineModuleStatus currentModuleStatus_;
 
     // Méthodes privées
     NythPipelineError convertError(const std::string& error) const;
@@ -347,8 +355,7 @@ private:
 };
 
 // === Fonction d'enregistrement du module ===
-JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioPipelineModuleProvider(
-    std::shared_ptr<CallInvoker> jsInvoker);
+JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioPipelineModuleProvider(std::shared_ptr<CallInvoker> jsInvoker);
 
 } // namespace react
 } // namespace facebook

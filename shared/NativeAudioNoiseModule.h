@@ -2,18 +2,17 @@
 
 // Includes conditionnels pour la compatibilité
 #if defined(__has_include)
-  #if __has_include(<NythJSI.h>)
-    #include <NythJSI.h>
-  #endif
+#if __has_include(<NythJSI.h>)
+#include <NythJSI.h>
+#endif
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 // Vérification de la disponibilité de TurboModule
-#if defined(__has_include) && \
-    __has_include(<ReactCommon/TurboModule.h>) && \
+#if defined(__has_include) && __has_include(<ReactCommon/TurboModule.h>) && \
     __has_include(<ReactCommon/TurboModuleUtils.h>)
 #define NYTH_AUDIO_NOISE_ENABLED 1
 #else
@@ -36,11 +35,7 @@ typedef enum {
 } NythNoiseAlgorithm;
 
 // === Méthodes d'estimation de bruit ===
-typedef enum {
-    NOISE_ESTIMATION_SIMPLE = 0,
-    NOISE_ESTIMATION_MCRA,
-    NOISE_ESTIMATION_IMCRA
-} NythNoiseEstimationMethod;
+typedef enum { NOISE_ESTIMATION_SIMPLE = 0, NOISE_ESTIMATION_MCRA, NOISE_ESTIMATION_IMCRA } NythNoiseEstimationMethod;
 
 // === État du système de bruit ===
 typedef enum {
@@ -58,17 +53,17 @@ typedef struct {
     int channels;
     size_t fftSize;
     size_t hopSize;
-    float aggressiveness;           // 0.0 - 3.0
+    float aggressiveness; // 0.0 - 3.0
     bool enableMultiband;
     bool preserveTransients;
     bool reduceMusicalNoise;
     // Paramètres avancés
     struct {
-        float beta;                // Over-subtraction factor
-        float floorGain;           // Spectral floor
-        float noiseUpdateRate;     // Noise estimation smoothing
-        float speechThreshold;     // Speech detection threshold
-        float transientThreshold;  // Transient detection
+        float beta;               // Over-subtraction factor
+        float floorGain;          // Spectral floor
+        float noiseUpdateRate;    // Noise estimation smoothing
+        float speechThreshold;    // Speech detection threshold
+        float transientThreshold; // Transient detection
     } advanced;
 } NythNoiseConfig;
 
@@ -89,13 +84,13 @@ typedef struct {
 typedef struct {
     size_t fftSize;
     uint32_t sampleRate;
-    double alphaS;      // Lissage spectral
-    double alphaD;      // Lissage bruit
-    double alphaD2;     // Lissage minima
-    double betaMax;     // Correction biais max
-    double gamma0;      // Seuil SNR
-    double gamma1;      // Seuil secondaire
-    double zeta0;       // Seuil SNR a priori
+    double alphaS;  // Lissage spectral
+    double alphaD;  // Lissage bruit
+    double alphaD2; // Lissage minima
+    double betaMax; // Correction biais max
+    double gamma0;  // Seuil SNR
+    double gamma1;  // Seuil secondaire
+    double zeta0;   // Seuil SNR a priori
     size_t windowLength;
     size_t subWindowLength;
 } NythIMCRAConfig;
@@ -104,10 +99,10 @@ typedef struct {
 typedef struct {
     size_t fftSize;
     uint32_t sampleRate;
-    double alpha;       // Smoothing factor
-    double minGain;     // Gain minimum
-    double maxGain;     // Gain maximum
-    bool useLSA;        // Log-Spectral Amplitude
+    double alpha;   // Smoothing factor
+    double minGain; // Gain minimum
+    double maxGain; // Gain maximum
+    bool useLSA;    // Log-Spectral Amplitude
     double gainSmoothing;
     double frequencySmoothing;
     bool usePerceptualWeighting;
@@ -145,8 +140,8 @@ bool NythNoise_SetAggressiveness(float aggressiveness);
 
 // === Traitement audio ===
 bool NythNoise_ProcessAudio(const float* input, float* output, size_t frameCount, int channels);
-bool NythNoise_ProcessAudioStereo(const float* inputL, const float* inputR,
-                                 float* outputL, float* outputR, size_t frameCount);
+bool NythNoise_ProcessAudioStereo(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                  size_t frameCount);
 
 // === Analyse audio ===
 float NythNoise_GetInputLevel(void);
@@ -189,23 +184,23 @@ void NythNoise_SetStateChangeCallback(NythNoiseStateChangeCallback callback);
 #if NYTH_AUDIO_NOISE_ENABLED && defined(__cplusplus)
 
 // Includes C++ nécessaires pour TurboModule
-#include <string>
-#include <memory>
 #include <functional>
-#include <vector>
 #include <map>
+#include <memory>
+#include <string>
+#include <vector>
 
-#include <jsi/jsi.h>
-#include <ReactCommon/TurboModule.h>
-#include <ReactCommon/TurboModuleUtils.h>
 #include "Audio/noise/AdvancedSpectralNR.hpp"
 #include "Audio/noise/IMCRA.hpp"
 #include "Audio/noise/MultibandProcessor.hpp"
-#include "Audio/noise/WienerFilter.hpp"
 #include "Audio/noise/NoiseReducer.hpp"
 #include "Audio/noise/RNNoiseSuppressor.hpp"
-#include <mutex>
+#include "Audio/noise/WienerFilter.hpp"
+#include <ReactCommon/TurboModule.h>
+#include <ReactCommon/TurboModuleUtils.h>
 #include <atomic>
+#include <jsi/jsi.h>
+#include <mutex>
 #include <queue>
 
 namespace facebook {
@@ -214,7 +209,7 @@ namespace react {
 class JSI_EXPORT NativeAudioNoiseModule : public TurboModule {
 public:
     explicit NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsInvoker)
-        : TurboModule("NativeAudioNoiseModule", jsInvoker) {
+        : TurboModule("NativeAudioNoiseModule", jsInvoker), jsInvoker_(jsInvoker) {
         currentConfig_.sampleRate = 48000;
         currentConfig_.channels = 2;
         currentConfig_.fftSize = 2048;
@@ -252,8 +247,7 @@ public:
 
     // Traitement audio
     jsi::Value processAudio(jsi::Runtime& rt, const jsi::Array& input, int channels);
-    jsi::Value processAudioStereo(jsi::Runtime& rt, const jsi::Array& inputL,
-                                const jsi::Array& inputR);
+    jsi::Value processAudioStereo(jsi::Runtime& rt, const jsi::Array& inputL, const jsi::Array& inputR);
 
     // Analyse audio
     jsi::Value getInputLevel(jsi::Runtime& rt);
@@ -292,6 +286,9 @@ private:
     std::unique_ptr<AudioNR::NoiseReducer> noiseReducer_;
     std::unique_ptr<AudioNR::RNNoiseSuppressor> rnNoiseSuppressor_;
 
+    // CallInvoker pour les callbacks JavaScript
+    std::shared_ptr<CallInvoker> jsInvoker_;
+
     // Mutex pour la thread safety
     mutable std::mutex noiseMutex_;
     mutable std::mutex callbackMutex_;
@@ -306,12 +303,6 @@ private:
     // Configuration actuelle
     NythNoiseConfig currentConfig_;
     std::atomic<NythNoiseState> currentState_{NOISE_STATE_UNINITIALIZED};
-
-    // Buffers de traitement
-    std::vector<float> inputBuffer_;
-    std::vector<float> outputBuffer_;
-    std::vector<float> tempBufferL_;
-    std::vector<float> tempBufferR_;
 
     // Statistiques
     NythNoiseStatistics currentStats_;
@@ -344,8 +335,7 @@ private:
 };
 
 // === Fonction d'enregistrement du module ===
-JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioNoiseModuleProvider(
-    std::shared_ptr<CallInvoker> jsInvoker);
+JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioNoiseModuleProvider(std::shared_ptr<CallInvoker> jsInvoker);
 
 } // namespace react
 } // namespace facebook

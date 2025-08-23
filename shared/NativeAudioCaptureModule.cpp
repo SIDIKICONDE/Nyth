@@ -283,41 +283,83 @@ namespace facebook {
 namespace react {
 
 NativeAudioCaptureModule::~NativeAudioCaptureModule() {
+    // Nettoyer toutes les ressources de manière sécurisée
+    cleanup();
+}
+
+// Nouvelle méthode pour nettoyer les ressources
+void NativeAudioCaptureModule::cleanup() {
+    // Arrêter le thread d'analyse
     stopAnalysisThread();
 
-    if (recorder_) {
-        recorder_->stopRecording();
+    // Nettoyer les callbacks sous protection mutex
+    {
+        std::lock_guard<std::mutex> lock(callbackMutex_);
+        jsCallbacks_.clear();
+        runtime_ = nullptr;
+        isRuntimeValid_ = false;
     }
 
-    if (capture_) {
-        capture_->stop();
-        capture_->release();
+    // Libérer la capture audio
+    {
+        std::lock_guard<std::mutex> lock(captureMutex_);
+        if (capture_) {
+            capture_->release();
+            capture_.reset();
+        }
+        if (recorder_) {
+            recorder_->stopRecording();
+            recorder_.reset();
+        }
     }
 }
 
-// === Méthodes de cycle de vie ===
+// === Méthodes publiques ===
 
+// Gestion du cycle de vie
 jsi::Value NativeAudioCaptureModule::initialize(jsi::Runtime& rt, const jsi::Object& config) {
     std::lock_guard<std::mutex> lock(captureMutex_);
 
     try {
-        currentConfig_ = parseConfig(rt, config);
+        // Validation et parsing sécurisé de la configuration
+        currentConfig_ = parseConfigSafe(rt, config);
+
+        // Valider la configuration
+        validateAudioConfig(currentConfig_);
+
+        // Sauvegarder le runtime pour les callbacks
+        runtime_ = &rt;
+        isRuntimeValid_ = true;
+
         initializeCapture(currentConfig_);
         return jsi::Value(true);
+    } catch (const jsi::JSError& e) {
+        // Erreur JS déjà formatée, la propager
+        throw;
     } catch (const std::exception& e) {
-        return jsi::Value(false);
+        // Convertir en erreur JS
+        throw jsi::JSError(rt, std::string("Failed to initialize capture: ") + e.what());
     }
 }
 
 jsi::Value NativeAudioCaptureModule::start(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(captureMutex_);
 
-    if (!capture_) {
-        initializeCapture(currentConfig_);
-    }
+    try {
+        if (!capture_) {
+            initializeCapture(currentConfig_);
+        }
 
-    bool success = capture_ && capture_->start();
-    return jsi::Value(success);
+        bool success = capture_ && capture_->start();
+        if (!success) {
+            throw jsi::JSError(rt, "Failed to start audio capture");
+        }
+        return jsi::Value(true);
+    } catch (const jsi::JSError& e) {
+        throw;
+    } catch (const std::exception& e) {
+        throw jsi::JSError(rt, std::string("Start failed: ") + e.what());
+    }
 }
 
 jsi::Value NativeAudioCaptureModule::stop(jsi::Runtime& rt) {
@@ -342,13 +384,7 @@ jsi::Value NativeAudioCaptureModule::resume(jsi::Runtime& rt) {
 }
 
 jsi::Value NativeAudioCaptureModule::dispose(jsi::Runtime& rt) {
-    std::lock_guard<std::mutex> lock(captureMutex_);
-
-    if (capture_) {
-        capture_->release();
-        capture_.reset();
-    }
-
+    cleanup();
     return jsi::Value::undefined();
 }
 
@@ -491,6 +527,12 @@ jsi::Value NativeAudioCaptureModule::getRMSdB(jsi::Runtime& rt) {
 }
 
 jsi::Value NativeAudioCaptureModule::isSilent(jsi::Runtime& rt, double threshold) {
+    // Valider le threshold
+    if (threshold < AudioLimits::MIN_THRESHOLD || threshold > AudioLimits::MAX_THRESHOLD) {
+        throw jsi::JSError(rt, "Threshold must be between " + std::to_string(AudioLimits::MIN_THRESHOLD) + " and " +
+                                   std::to_string(AudioLimits::MAX_THRESHOLD));
+    }
+
     double level = getCurrentLevel(rt).asNumber();
     return jsi::Value(level < threshold);
 }
@@ -686,57 +728,118 @@ jsi::Value NativeAudioCaptureModule::getRecordingInfo(jsi::Runtime& rt) {
 jsi::Value NativeAudioCaptureModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
 
-    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+    try {
+        // Valider que c'est bien une fonction
+        JSIValidator::validateFunction(rt, callback, "audioDataCallback");
 
-    if (capture_) {
-        capture_->setAudioDataCallback([this](const float* data, size_t frameCount, int channels) {
-            handleAudioData(data, frameCount, channels);
-        });
+        // Sauvegarder le callback et le runtime
+        jsCallbacks_.audioDataCallback =
+            std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+        runtime_ = &rt;
+        isRuntimeValid_ = true;
+
+        if (capture_) {
+            capture_->setAudioDataCallback([this](const float* data, size_t frameCount, int channels) {
+                // Vérifier que le runtime est toujours valide avant d'appeler
+                if (isRuntimeValid_.load()) {
+                    handleAudioData(data, frameCount, channels);
+                }
+            });
+        }
+
+        return jsi::Value::undefined();
+    } catch (const jsi::JSError& e) {
+        throw;
+    } catch (const std::exception& e) {
+        throw jsi::JSError(rt, std::string("Failed to set audio callback: ") + e.what());
     }
-
-    return jsi::Value::undefined();
 }
 
 jsi::Value NativeAudioCaptureModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
 
-    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+    try {
+        JSIValidator::validateFunction(rt, callback, "errorCallback");
 
-    if (capture_) {
-        capture_->setErrorCallback([this](const std::string& error) { handleError(error); });
+        jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+        runtime_ = &rt;
+        isRuntimeValid_ = true;
+
+        if (capture_) {
+            capture_->setErrorCallback([this](const std::string& error) {
+                if (isRuntimeValid_.load()) {
+                    handleError(error);
+                }
+            });
+        }
+
+        return jsi::Value::undefined();
+    } catch (const jsi::JSError& e) {
+        throw;
+    } catch (const std::exception& e) {
+        throw jsi::JSError(rt, std::string("Failed to set error callback: ") + e.what());
     }
-
-    return jsi::Value::undefined();
 }
 
 jsi::Value NativeAudioCaptureModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
 
-    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+    try {
+        JSIValidator::validateFunction(rt, callback, "stateChangeCallback");
 
-    if (capture_) {
-        capture_->setStateChangeCallback(
-            [this](Audio::capture::CaptureState oldState, Audio::capture::CaptureState newState) {
-                handleStateChange(oldState, newState);
-            });
+        jsCallbacks_.stateChangeCallback =
+            std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+        runtime_ = &rt;
+        isRuntimeValid_ = true;
+
+        if (capture_) {
+            capture_->setStateChangeCallback(
+                [this](Audio::capture::CaptureState oldState, Audio::capture::CaptureState newState) {
+                    if (isRuntimeValid_.load()) {
+                        handleStateChange(oldState, newState);
+                    }
+                });
+        }
+
+        return jsi::Value::undefined();
+    } catch (const jsi::JSError& e) {
+        throw;
+    } catch (const std::exception& e) {
+        throw jsi::JSError(rt, std::string("Failed to set state change callback: ") + e.what());
     }
-
-    return jsi::Value::undefined();
 }
 
 jsi::Value NativeAudioCaptureModule::setAnalysisCallback(jsi::Runtime& rt, const jsi::Function& callback,
                                                          double intervalMs) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
 
-    jsCallbacks_.analysisCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
-    analysisIntervalMs_ = intervalMs;
+    try {
+        JSIValidator::validateFunction(rt, callback, "analysisCallback");
 
-    // Démarrer le thread d'analyse
-    stopAnalysisThread();
-    analysisRunning_ = true;
-    analysisThread_ = std::thread(&NativeAudioCaptureModule::runAnalysisThread, this);
+        // Valider l'intervalle
+        if (intervalMs < AudioLimits::MIN_ANALYSIS_INTERVAL_MS || intervalMs > AudioLimits::MAX_ANALYSIS_INTERVAL_MS) {
+            throw jsi::JSError(rt, "Analysis interval must be between " +
+                                       std::to_string(AudioLimits::MIN_ANALYSIS_INTERVAL_MS) + " and " +
+                                       std::to_string(AudioLimits::MAX_ANALYSIS_INTERVAL_MS) + " ms");
+        }
 
-    return jsi::Value::undefined();
+        jsCallbacks_.analysisCallback =
+            std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+        analysisIntervalMs_ = intervalMs;
+        runtime_ = &rt;
+        isRuntimeValid_ = true;
+
+        // Démarrer le thread d'analyse si nécessaire
+        stopAnalysisThread();
+        analysisRunning_ = true;
+        analysisThread_ = std::thread(&NativeAudioCaptureModule::runAnalysisThread, this);
+
+        return jsi::Value::undefined();
+    } catch (const jsi::JSError& e) {
+        throw;
+    } catch (const std::exception& e) {
+        throw jsi::JSError(rt, std::string("Failed to set analysis callback: ") + e.what());
+    }
 }
 
 // === Méthodes privées ===
@@ -766,27 +869,79 @@ void NativeAudioCaptureModule::initializeCapture(const Audio::capture::AudioCapt
 }
 
 void NativeAudioCaptureModule::handleAudioData(const float* data, size_t frameCount, int channels) {
-    if (!jsCallbacks_.audioDataCallback)
+    if (!jsCallbacks_.audioDataCallback || !isRuntimeValid_.load())
         return;
 
-    // Copier les données pour éviter les problèmes de lifetime
-    std::vector<float> dataCopy(data, data + frameCount * channels);
+    // Vérifier la taille du buffer pour éviter les allocations excessives
+    size_t totalSamples = frameCount * channels;
+    if (totalSamples > AudioLimits::MAX_BUFFER_SIZE) {
+        handleError("Audio buffer too large: " + std::to_string(totalSamples) + " samples");
+        return;
+    }
 
-    invokeJSCallback("audioData",
-                     [this, dataCopy = std::move(dataCopy), frameCount, channels](jsi::Runtime& rt) mutable {
-                         // Créer un ArrayBuffer avec les données
-                         auto buffer = std::make_shared<VectorBuffer>(dataCopy.size() * sizeof(float));
-                         memcpy(buffer->data(), dataCopy.data(), buffer->size());
-                         auto arrayBuffer = jsi::ArrayBuffer(rt, std::move(buffer));
+    // Limiter la taille des données dans la queue pour éviter l'accumulation
+    {
+        std::lock_guard<std::mutex> lock(queueMutex_);
+        if (audioDataQueue_.size() > 10) { // Limiter à 10 buffers en attente
+            // Supprimer les anciens buffers si la queue est trop grande
+            while (audioDataQueue_.size() > 5) {
+                audioDataQueue_.pop();
+            }
+        }
 
-                         // Créer un Float32Array
-                         auto float32ArrayCtor = rt.global().getPropertyAsFunction(rt, "Float32Array");
-                         auto float32Array = float32ArrayCtor.callAsConstructor(rt, arrayBuffer).asObject(rt);
+        // Ajouter les nouvelles données
+        std::vector<float> buffer(data, data + totalSamples);
+        audioDataQueue_.push(std::move(buffer));
+    }
 
-                         // Appeler le callback
-                         jsCallbacks_.audioDataCallback->call(
-                             rt, float32Array, jsi::Value(static_cast<int>(frameCount)), jsi::Value(channels));
-                     });
+    queueCV_.notify_one();
+
+    // Invoquer le callback sur le thread JS de manière sécurisée
+    invokeJSCallback("audioData", [this, frameCount, channels](jsi::Runtime& rt) {
+        std::vector<float> buffer;
+        {
+            std::lock_guard<std::mutex> lock(queueMutex_);
+            if (!audioDataQueue_.empty()) {
+                buffer = std::move(audioDataQueue_.front());
+                audioDataQueue_.pop();
+            }
+        }
+
+        if (!buffer.empty() && jsCallbacks_.audioDataCallback && isRuntimeValid_.load()) {
+            try {
+                // Vérifier que Float32Array existe
+                if (!rt.global().hasProperty(rt, "Float32Array")) {
+                    throw jsi::JSError(rt, "Float32Array not available in this environment");
+                }
+
+                // Créer un Float32Array de manière sécurisée
+                size_t totalBytes = buffer.size() * sizeof(float);
+
+                // Limiter la taille pour la sécurité
+                if (totalBytes > AudioLimits::MAX_BUFFER_SIZE * sizeof(float)) {
+                    throw jsi::JSError(rt, "Buffer size exceeds maximum allowed");
+                }
+
+                auto arrayBuffer = jsi::ArrayBuffer(rt, std::make_shared<VectorBuffer>(totalBytes));
+
+                // Copier les données de manière sécurisée
+                float* bufferData = reinterpret_cast<float*>(arrayBuffer.data(rt));
+                std::memcpy(bufferData, buffer.data(), totalBytes);
+
+                auto float32ArrayCtor = rt.global().getPropertyAsFunction(rt, "Float32Array");
+                auto float32Array = float32ArrayCtor.callAsConstructor(rt, arrayBuffer).asObject(rt);
+
+                // Appeler le callback avec protection contre les exceptions
+                jsCallbacks_.audioDataCallback->call(rt, float32Array, jsi::Value(static_cast<int>(frameCount)),
+                                                     jsi::Value(channels));
+            } catch (const jsi::JSError& e) {
+                // L'erreur JS est déjà formatée, on peut la logger ou la traiter
+                handleError(std::string("JS callback error: ") + e.getMessage());
+            } catch (const std::exception& e) {
+                handleError(std::string("Native callback error: ") + e.what());
+            }
+        }
+    });
 }
 
 void NativeAudioCaptureModule::handleError(const std::string& error) {
@@ -879,39 +1034,100 @@ void NativeAudioCaptureModule::stopAnalysisThread() {
 
 // === Conversion helpers ===
 
-Audio::capture::AudioCaptureConfig NativeAudioCaptureModule::parseConfig(jsi::Runtime& rt,
-                                                                         const jsi::Object& jsConfig) {
+// Nouvelle méthode de parsing sécurisée avec validation
+Audio::capture::AudioCaptureConfig NativeAudioCaptureModule::parseConfigSafe(jsi::Runtime& rt,
+                                                                             const jsi::Object& jsConfig) {
     Audio::capture::AudioCaptureConfig config;
 
-    if (jsConfig.hasProperty(rt, "sampleRate")) {
-        config.sampleRate = static_cast<int>(jsConfig.getProperty(rt, "sampleRate").asNumber());
-    }
+    try {
+        // Sample Rate - avec validation de plage
+        if (jsConfig.hasProperty(rt, "sampleRate")) {
+            auto prop = jsConfig.getProperty(rt, "sampleRate");
+            config.sampleRate = static_cast<int>(JSIValidator::validateNumberInRange(
+                rt, prop, "sampleRate", AudioLimits::MIN_SAMPLE_RATE, AudioLimits::MAX_SAMPLE_RATE));
+        }
 
-    if (jsConfig.hasProperty(rt, "channelCount")) {
-        config.channelCount = static_cast<int>(jsConfig.getProperty(rt, "channelCount").asNumber());
-    }
+        // Channel Count - avec validation
+        if (jsConfig.hasProperty(rt, "channelCount")) {
+            auto prop = jsConfig.getProperty(rt, "channelCount");
+            config.channelCount = static_cast<int>(JSIValidator::validateNumberInRange(
+                rt, prop, "channelCount", AudioLimits::MIN_CHANNELS, AudioLimits::MAX_CHANNELS));
+        }
 
-    if (jsConfig.hasProperty(rt, "bitsPerSample")) {
-        config.bitsPerSample = static_cast<int>(jsConfig.getProperty(rt, "bitsPerSample").asNumber());
-    }
+        // Bits per sample - avec validation
+        if (jsConfig.hasProperty(rt, "bitsPerSample")) {
+            auto prop = jsConfig.getProperty(rt, "bitsPerSample");
+            int bits = static_cast<int>(JSIValidator::validateNumberInRange(
+                rt, prop, "bitsPerSample", AudioLimits::MIN_BITS_PER_SAMPLE, AudioLimits::MAX_BITS_PER_SAMPLE));
+            // Vérifier que c'est une valeur valide (8, 16, 24, ou 32)
+            if (bits != 8 && bits != 16 && bits != 24 && bits != 32) {
+                throw jsi::JSError(rt, "bitsPerSample must be 8, 16, 24, or 32");
+            }
+            config.bitsPerSample = bits;
+        }
 
-    if (jsConfig.hasProperty(rt, "bufferSizeFrames")) {
-        config.bufferSizeFrames = static_cast<int>(jsConfig.getProperty(rt, "bufferSizeFrames").asNumber());
-    }
+        // Buffer size - avec validation
+        if (jsConfig.hasProperty(rt, "bufferSizeFrames")) {
+            auto prop = jsConfig.getProperty(rt, "bufferSizeFrames");
+            config.bufferSizeFrames = static_cast<int>(
+                JSIValidator::validateNumberInRange(rt, prop, "bufferSizeFrames", AudioLimits::MIN_BUFFER_SIZE_FRAMES,
+                                                    AudioLimits::MAX_BUFFER_SIZE_FRAMES));
+        }
 
-    if (jsConfig.hasProperty(rt, "enableEchoCancellation")) {
-        config.enableEchoCancellation = jsConfig.getProperty(rt, "enableEchoCancellation").asBool();
-    }
+        // Options booléennes avec validation de type
+        if (jsConfig.hasProperty(rt, "enableEchoCancellation")) {
+            auto prop = jsConfig.getProperty(rt, "enableEchoCancellation");
+            JSIValidator::validateBool(rt, prop, "enableEchoCancellation");
+            config.enableEchoCancellation = prop.asBool();
+        }
 
-    if (jsConfig.hasProperty(rt, "enableNoiseSuppression")) {
-        config.enableNoiseSuppression = jsConfig.getProperty(rt, "enableNoiseSuppression").asBool();
-    }
+        if (jsConfig.hasProperty(rt, "enableNoiseSuppression")) {
+            auto prop = jsConfig.getProperty(rt, "enableNoiseSuppression");
+            JSIValidator::validateBool(rt, prop, "enableNoiseSuppression");
+            config.enableNoiseSuppression = prop.asBool();
+        }
 
-    if (jsConfig.hasProperty(rt, "enableAutoGainControl")) {
-        config.enableAutoGainControl = jsConfig.getProperty(rt, "enableAutoGainControl").asBool();
+        if (jsConfig.hasProperty(rt, "enableAutoGainControl")) {
+            auto prop = jsConfig.getProperty(rt, "enableAutoGainControl");
+            JSIValidator::validateBool(rt, prop, "enableAutoGainControl");
+            config.enableAutoGainControl = prop.asBool();
+        }
+
+    } catch (const jsi::JSError& e) {
+        // Propager les erreurs JS
+        throw;
+    } catch (const std::exception& e) {
+        // Convertir les autres erreurs en erreurs JS
+        throw jsi::JSError(rt, std::string("Invalid configuration: ") + e.what());
     }
 
     return config;
+}
+
+// Validation de la configuration audio
+void NativeAudioCaptureModule::validateAudioConfig(const Audio::capture::AudioCaptureConfig& config) {
+    // Vérifications supplémentaires de cohérence
+
+    // Vérifier que la taille du buffer est appropriée pour le sample rate
+    double bufferDurationMs = (config.bufferSizeFrames * 1000.0) / config.sampleRate;
+    if (bufferDurationMs < 1.0) {
+        throw std::runtime_error("Buffer duration too short (< 1ms)");
+    }
+    if (bufferDurationMs > 1000.0) {
+        throw std::runtime_error("Buffer duration too long (> 1s)");
+    }
+
+    // Vérifier la cohérence des options de traitement
+    if (config.enableEchoCancellation && config.sampleRate < 16000) {
+        throw std::runtime_error("Echo cancellation requires sample rate >= 16kHz");
+    }
+}
+
+// Méthode originale améliorée avec validation basique
+Audio::capture::AudioCaptureConfig NativeAudioCaptureModule::parseConfig(jsi::Runtime& rt,
+                                                                         const jsi::Object& jsConfig) {
+    // Utiliser la version sécurisée
+    return parseConfigSafe(rt, jsConfig);
 }
 
 jsi::Object NativeAudioCaptureModule::configToJS(jsi::Runtime& rt, const Audio::capture::AudioCaptureConfig& config) {

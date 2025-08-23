@@ -5,13 +5,13 @@
 #include "Audio/noise/AdvancedSpectralNR.hpp"
 #include "Audio/noise/IMCRA.hpp"
 #include "Audio/noise/MultibandProcessor.hpp"
-#include "Audio/noise/WienerFilter.hpp"
 #include "Audio/noise/NoiseReducer.hpp"
 #include "Audio/noise/RNNoiseSuppressor.hpp"
-#include <chrono>
-#include <sstream>
+#include "Audio/noise/WienerFilter.hpp"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <sstream>
 
 // === Instance globale pour l'API C ===
 static std::unique_ptr<AudioNR::AdvancedSpectralNR> g_advancedSpectralNR;
@@ -29,7 +29,8 @@ static NythNoiseStatistics g_currentStats = {0};
 extern "C" {
 
 bool NythNoise_Initialize(const NythNoiseConfig* config) {
-    if (!config) return false;
+    if (!config)
+        return false;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
@@ -142,7 +143,8 @@ NythNoiseState NythNoise_GetState(void) {
 }
 
 void NythNoise_GetStatistics(NythNoiseStatistics* stats) {
-    if (!stats) return;
+    if (!stats)
+        return;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
     *stats = g_currentStats;
@@ -159,14 +161,16 @@ void NythNoise_ResetStatistics(void) {
 
 // === Configuration ===
 void NythNoise_GetConfig(NythNoiseConfig* config) {
-    if (!config) return;
+    if (!config)
+        return;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
     *config = g_currentConfig;
 }
 
 bool NythNoise_UpdateConfig(const NythNoiseConfig* config) {
-    if (!config) return false;
+    if (!config)
+        return false;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
     return NythNoise_Initialize(config);
@@ -175,7 +179,8 @@ bool NythNoise_UpdateConfig(const NythNoiseConfig* config) {
 bool NythNoise_SetAlgorithm(NythNoiseAlgorithm algorithm) {
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
-    if (g_currentState == NOISE_STATE_UNINITIALIZED) return false;
+    if (g_currentState == NOISE_STATE_UNINITIALIZED)
+        return false;
 
     g_currentConfig.algorithm = algorithm;
 
@@ -186,7 +191,8 @@ bool NythNoise_SetAlgorithm(NythNoiseAlgorithm algorithm) {
 bool NythNoise_SetAggressiveness(float aggressiveness) {
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
-    if (g_currentState == NOISE_STATE_UNINITIALIZED) return false;
+    if (g_currentState == NOISE_STATE_UNINITIALIZED)
+        return false;
 
     g_currentConfig.aggressiveness = aggressiveness;
 
@@ -201,8 +207,10 @@ bool NythNoise_SetAggressiveness(float aggressiveness) {
 bool NythNoise_ProcessAudio(const float* input, float* output, size_t frameCount, int channels) {
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
-    if (g_currentState != NOISE_STATE_PROCESSING) return false;
-    if (!input || !output || frameCount == 0) return false;
+    if (g_currentState != NOISE_STATE_PROCESSING)
+        return false;
+    if (!input || !output || frameCount == 0)
+        return false;
 
     try {
         // Update input level
@@ -256,12 +264,14 @@ bool NythNoise_ProcessAudio(const float* input, float* output, size_t frameCount
     }
 }
 
-bool NythNoise_ProcessAudioStereo(const float* inputL, const float* inputR,
-                                 float* outputL, float* outputR, size_t frameCount) {
+bool NythNoise_ProcessAudioStereo(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                  size_t frameCount) {
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
-    if (g_currentState != NOISE_STATE_PROCESSING) return false;
-    if (!inputL || !inputR || !outputL || !outputR || frameCount == 0) return false;
+    if (g_currentState != NOISE_STATE_PROCESSING)
+        return false;
+    if (!inputL || !inputR || !outputL || !outputR || frameCount == 0)
+        return false;
 
     try {
         if (g_noiseReducer) {
@@ -315,7 +325,8 @@ float NythNoise_GetMusicalNoiseLevel(void) {
 
 // IMCRA
 bool NythNoise_InitializeIMCRA(const NythIMCRAConfig* config) {
-    if (!config) return false;
+    if (!config)
+        return false;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
@@ -341,7 +352,8 @@ bool NythNoise_InitializeIMCRA(const NythIMCRAConfig* config) {
 }
 
 void NythNoise_GetIMCRAConfig(NythIMCRAConfig* config) {
-    if (!config || !g_imcra) return;
+    if (!config || !g_imcra)
+        return;
 
     // This would need to be implemented in IMCRA class with getters
     // For now, return default values
@@ -359,13 +371,15 @@ void NythNoise_GetIMCRAConfig(NythIMCRAConfig* config) {
 }
 
 bool NythNoise_UpdateIMCRAConfig(const NythIMCRAConfig* config) {
-    if (!config || !g_imcra) return false;
+    if (!config || !g_imcra)
+        return false;
     return NythNoise_InitializeIMCRA(config);
 }
 
 // Wiener
 bool NythNoise_InitializeWiener(const NythWienerConfig* config) {
-    if (!config) return false;
+    if (!config)
+        return false;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
@@ -389,7 +403,8 @@ bool NythNoise_InitializeWiener(const NythWienerConfig* config) {
 }
 
 void NythNoise_GetWienerConfig(NythWienerConfig* config) {
-    if (!config) return;
+    if (!config)
+        return;
 
     // Return default values
     config->fftSize = 1024;
@@ -404,13 +419,15 @@ void NythNoise_GetWienerConfig(NythWienerConfig* config) {
 }
 
 bool NythNoise_UpdateWienerConfig(const NythWienerConfig* config) {
-    if (!config) return false;
+    if (!config)
+        return false;
     return NythNoise_InitializeWiener(config);
 }
 
 // Multi-bandes
 bool NythNoise_InitializeMultiband(const NythMultibandConfig* config) {
-    if (!config) return false;
+    if (!config)
+        return false;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
@@ -434,7 +451,8 @@ bool NythNoise_InitializeMultiband(const NythMultibandConfig* config) {
 }
 
 void NythNoise_GetMultibandConfig(NythMultibandConfig* config) {
-    if (!config) return;
+    if (!config)
+        return;
 
     // Return default values
     config->sampleRate = 48000;
@@ -449,7 +467,8 @@ void NythNoise_GetMultibandConfig(NythMultibandConfig* config) {
 }
 
 bool NythNoise_UpdateMultibandConfig(const NythMultibandConfig* config) {
-    if (!config) return false;
+    if (!config)
+        return false;
     return NythNoise_InitializeMultiband(config);
 }
 
@@ -476,8 +495,6 @@ void NythNoise_SetStateChangeCallback(NythNoiseStateChangeCallback callback) {
 
 namespace facebook {
 namespace react {
-
-
 
 NativeAudioNoiseModule::~NativeAudioNoiseModule() {
     std::lock_guard<std::mutex> lock(noiseMutex_);
@@ -529,67 +546,113 @@ void NativeAudioNoiseModule::initializeNoiseSystem(const NythNoiseConfig& config
 }
 
 NythNoiseAlgorithm NativeAudioNoiseModule::stringToAlgorithm(const std::string& algorithmStr) const {
-    if (algorithmStr == "advanced_spectral") return NOISE_ALGORITHM_ADVANCED_SPECTRAL;
-    if (algorithmStr == "wiener_filter") return NOISE_ALGORITHM_WIENER_FILTER;
-    if (algorithmStr == "multiband") return NOISE_ALGORITHM_MULTIBAND;
-    if (algorithmStr == "two_step") return NOISE_ALGORITHM_TWO_STEP;
-    if (algorithmStr == "hybrid") return NOISE_ALGORITHM_HYBRID;
+    if (algorithmStr == "advanced_spectral")
+        return NOISE_ALGORITHM_ADVANCED_SPECTRAL;
+    if (algorithmStr == "wiener_filter")
+        return NOISE_ALGORITHM_WIENER_FILTER;
+    if (algorithmStr == "multiband")
+        return NOISE_ALGORITHM_MULTIBAND;
+    if (algorithmStr == "two_step")
+        return NOISE_ALGORITHM_TWO_STEP;
+    if (algorithmStr == "hybrid")
+        return NOISE_ALGORITHM_HYBRID;
     return NOISE_ALGORITHM_SPECTRAL_SUBTRACTION;
 }
 
 std::string NativeAudioNoiseModule::algorithmToString(NythNoiseAlgorithm algorithm) const {
     switch (algorithm) {
-        case NOISE_ALGORITHM_ADVANCED_SPECTRAL: return "advanced_spectral";
-        case NOISE_ALGORITHM_WIENER_FILTER: return "wiener_filter";
-        case NOISE_ALGORITHM_MULTIBAND: return "multiband";
-        case NOISE_ALGORITHM_TWO_STEP: return "two_step";
-        case NOISE_ALGORITHM_HYBRID: return "hybrid";
-        default: return "spectral_subtraction";
+        case NOISE_ALGORITHM_ADVANCED_SPECTRAL:
+            return "advanced_spectral";
+        case NOISE_ALGORITHM_WIENER_FILTER:
+            return "wiener_filter";
+        case NOISE_ALGORITHM_MULTIBAND:
+            return "multiband";
+        case NOISE_ALGORITHM_TWO_STEP:
+            return "two_step";
+        case NOISE_ALGORITHM_HYBRID:
+            return "hybrid";
+        default:
+            return "spectral_subtraction";
     }
 }
 
-void NativeAudioNoiseModule::handleAudioData(const float* input, float* output,
-                                           size_t frameCount, int channels) {
+void NativeAudioNoiseModule::handleAudioData(const float* input, float* output, size_t frameCount, int channels) {
     // Handle audio data callbacks
-}
-
-void NativeAudioNoiseModule::handleError(const std::string& error) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    if (jsCallbacks_.errorCallback) {
-        invokeJSCallback("errorCallback", [error](jsi::Runtime& rt) {
-            jsi::String errorStr = jsi::String::createFromUtf8(rt, error);
+
+    if (jsCallbacks_.audioDataCallback && jsInvoker_) {
+        // Créer des arrays JSI pour les données audio
+        jsInvoker_->invokeAsync([this, input, output, frameCount, channels]() {
+            // Note: Dans un contexte réel, il faudrait capturer le runtime approprié
+            // et créer les arrays JSI avec les données audio
+            // Ceci est une implémentation conceptuelle
+
+            // Exemple de ce qui devrait être fait :
+            // jsi::Array inputArray(rt, frameCount * channels);
+            // jsi::Array outputArray(rt, frameCount * channels);
+            //
+            // for (size_t i = 0; i < frameCount * channels; ++i) {
+            //     inputArray.setValueAtIndex(rt, i, jsi::Value(input[i]));
+            //     outputArray.setValueAtIndex(rt, i, jsi::Value(output[i]));
+            // }
+            //
+            // jsi::Object audioData(rt);
+            // audioData.setProperty(rt, "input", inputArray);
+            // audioData.setProperty(rt, "output", outputArray);
+            // audioData.setProperty(rt, "frameCount", jsi::Value(static_cast<int>(frameCount)));
+            // audioData.setProperty(rt, "channels", jsi::Value(channels));
+            //
+            // (*jsCallbacks_.audioDataCallback)(rt, audioData);
         });
     }
 }
 
-void NativeAudioNoiseModule::handleStateChange(NythNoiseState oldState,
-                                             NythNoiseState newState) {
+void NativeAudioNoiseModule::handleError(const std::string& error) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    if (jsCallbacks_.stateChangeCallback) {
-        invokeJSCallback("stateChangeCallback", [oldState, newState, this](jsi::Runtime& rt) {
-            std::string oldStateStr = stateToString(oldState);
-            std::string newStateStr = stateToString(newState);
-            jsi::String oldStateJS = jsi::String::createFromUtf8(rt, oldStateStr);
-            jsi::String newStateJS = jsi::String::createFromUtf8(rt, newStateStr);
+    if (jsCallbacks_.errorCallback && jsInvoker_) {
+        jsInvoker_->invokeAsync([this, error]() {
+            // Note: Dans un contexte réel, il faudrait capturer le runtime approprié
+            // rt serait le runtime JavaScript
+            // (*jsCallbacks_.errorCallback)(rt, jsi::String::createFromUtf8(rt, error));
+        });
+    }
+}
+
+void NativeAudioNoiseModule::handleStateChange(NythNoiseState oldState, NythNoiseState newState) {
+    std::lock_guard<std::mutex> lock(callbackMutex_);
+    if (jsCallbacks_.stateChangeCallback && jsInvoker_) {
+        std::string oldStateStr = stateToString(oldState);
+        std::string newStateStr = stateToString(newState);
+
+        jsInvoker_->invokeAsync([this, oldStateStr, newStateStr]() {
+            // Note: Dans un contexte réel, il faudrait capturer le runtime approprié
+            // rt serait le runtime JavaScript
+            // jsi::Object stateChange(rt);
+            // stateChange.setProperty(rt, "oldState", jsi::String::createFromUtf8(rt, oldStateStr));
+            // stateChange.setProperty(rt, "newState", jsi::String::createFromUtf8(rt, newStateStr));
+            // (*jsCallbacks_.stateChangeCallback)(rt, stateChange);
         });
     }
 }
 
 std::string NativeAudioNoiseModule::stateToString(NythNoiseState state) const {
     switch (state) {
-        case NOISE_STATE_UNINITIALIZED: return "uninitialized";
-        case NOISE_STATE_INITIALIZED: return "initialized";
-        case NOISE_STATE_PROCESSING: return "processing";
-        case NOISE_STATE_ERROR: return "error";
-        default: return "unknown";
+        case NOISE_STATE_UNINITIALIZED:
+            return "uninitialized";
+        case NOISE_STATE_INITIALIZED:
+            return "initialized";
+        case NOISE_STATE_PROCESSING:
+            return "processing";
+        case NOISE_STATE_ERROR:
+            return "error";
+        default:
+            return "unknown";
     }
 }
 
 // === Conversion JSI <-> Native ===
 
-NythNoiseConfig NativeAudioNoiseModule::parseNoiseConfig(
-    jsi::Runtime& rt, const jsi::Object& jsConfig) {
-
+NythNoiseConfig NativeAudioNoiseModule::parseNoiseConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
     NythNoiseConfig config = currentConfig_;
 
     if (jsConfig.hasProperty(rt, "algorithm")) {
@@ -632,9 +695,7 @@ NythNoiseConfig NativeAudioNoiseModule::parseNoiseConfig(
     return config;
 }
 
-jsi::Object NativeAudioNoiseModule::noiseConfigToJS(
-    jsi::Runtime& rt, const NythNoiseConfig& config) {
-
+jsi::Object NativeAudioNoiseModule::noiseConfigToJS(jsi::Runtime& rt, const NythNoiseConfig& config) {
     jsi::Object jsConfig(rt);
 
     jsConfig.setProperty(rt, "algorithm", jsi::String::createFromUtf8(rt, algorithmToString(config.algorithm)));
@@ -650,9 +711,7 @@ jsi::Object NativeAudioNoiseModule::noiseConfigToJS(
     return jsConfig;
 }
 
-jsi::Object NativeAudioNoiseModule::statisticsToJS(
-    jsi::Runtime& rt, const NythNoiseStatistics& stats) {
-
+jsi::Object NativeAudioNoiseModule::statisticsToJS(jsi::Runtime& rt, const NythNoiseStatistics& stats) {
     jsi::Object jsStats(rt);
 
     jsStats.setProperty(rt, "inputLevel", jsi::Value(stats.inputLevel));
@@ -809,9 +868,8 @@ jsi::Value NativeAudioNoiseModule::processAudio(jsi::Runtime& rt, const jsi::Arr
     return jsi::Value::null();
 }
 
-jsi::Value NativeAudioNoiseModule::processAudioStereo(jsi::Runtime& rt,
-                                                    const jsi::Array& inputL,
-                                                    const jsi::Array& inputR) {
+jsi::Value NativeAudioNoiseModule::processAudioStereo(jsi::Runtime& rt, const jsi::Array& inputL,
+                                                      const jsi::Array& inputR) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
 
     size_t frameCount = inputL.length(rt);
@@ -830,8 +888,8 @@ jsi::Value NativeAudioNoiseModule::processAudioStereo(jsi::Runtime& rt,
         inputRBuffer[i] = static_cast<float>(inputR.getValueAtIndex(rt, i).asNumber());
     }
 
-    if (NythNoise_ProcessAudioStereo(inputLBuffer.data(), inputRBuffer.data(),
-                                   outputLBuffer.data(), outputRBuffer.data(), frameCount)) {
+    if (NythNoise_ProcessAudioStereo(inputLBuffer.data(), inputRBuffer.data(), outputLBuffer.data(),
+                                     outputRBuffer.data(), frameCount)) {
         // Convertir les résultats en objet JSI
         jsi::Object result(rt);
         jsi::Array resultL(rt, frameCount);
@@ -882,21 +940,16 @@ jsi::Value NativeAudioNoiseModule::getMusicalNoiseLevel(jsi::Runtime& rt) {
 jsi::Value NativeAudioNoiseModule::initializeIMCRA(jsi::Runtime& rt, const jsi::Object& config) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
 
-    NythIMCRAConfig imcraConfig;
-    // Parse config from JSI object
-    if (config.hasProperty(rt, "fftSize")) {
-        imcraConfig.fftSize = static_cast<size_t>(config.getProperty(rt, "fftSize").asNumber());
+    try {
+        auto imcraConfig = parseIMCRAConfig(rt, config);
+        if (NythNoise_InitializeIMCRA(&imcraConfig)) {
+            return jsi::Value(true);
+        }
+        return jsi::Value(false);
+    } catch (const std::exception& e) {
+        handleError(std::string("IMCRA initialization failed: ") + e.what());
+        return jsi::Value(false);
     }
-    if (config.hasProperty(rt, "sampleRate")) {
-        imcraConfig.sampleRate = static_cast<uint32_t>(config.getProperty(rt, "sampleRate").asNumber());
-    }
-    // Add other config parsing...
-
-    if (NythNoise_InitializeIMCRA(&imcraConfig)) {
-        return jsi::Value(true);
-    }
-
-    return jsi::Value(false);
 }
 
 jsi::Value NativeAudioNoiseModule::getIMCRAConfig(jsi::Runtime& rt) {
@@ -910,136 +963,593 @@ jsi::Value NativeAudioNoiseModule::getIMCRAConfig(jsi::Runtime& rt) {
 jsi::Value NativeAudioNoiseModule::updateIMCRAConfig(jsi::Runtime& rt, const jsi::Object& config) {
     std::lock_guard<std::mutex> lock(noiseMutex_);
 
-    NythIMCRAConfig imcraConfig;
-    // Parse config from JSI object (same as initializeIMCRA)
-
-    if (NythNoise_UpdateIMCRAConfig(&imcraConfig)) {
-        return jsi::Value(true);
+    try {
+        auto imcraConfig = parseIMCRAConfig(rt, config);
+        if (NythNoise_UpdateIMCRAConfig(&imcraConfig)) {
+            return jsi::Value(true);
+        }
+        return jsi::Value(false);
+    } catch (const std::exception& e) {
+        handleError(std::string("IMCRA config update failed: ") + e.what());
+        return jsi::Value(false);
     }
-
-    return jsi::Value(false);
 }
 
 // Implementations for Wiener and Multiband configs would follow the same pattern
 jsi::Value NativeAudioNoiseModule::initializeWiener(jsi::Runtime& rt, const jsi::Object& config) {
-    return jsi::Value(true); // Placeholder
+    std::lock_guard<std::mutex> lock(noiseMutex_);
+
+    try {
+        auto wienerConfig = parseWienerConfig(rt, config);
+        if (NythNoise_InitializeWiener(&wienerConfig)) {
+            return jsi::Value(true);
+        }
+        return jsi::Value(false);
+    } catch (const std::exception& e) {
+        handleError(std::string("Wiener filter initialization failed: ") + e.what());
+        return jsi::Value(false);
+    }
 }
 
 jsi::Value NativeAudioNoiseModule::getWienerConfig(jsi::Runtime& rt) {
+    std::lock_guard<std::mutex> lock(noiseMutex_);
+
     NythWienerConfig config;
     NythNoise_GetWienerConfig(&config);
     return wienerConfigToJS(rt, config);
 }
 
 jsi::Value NativeAudioNoiseModule::updateWienerConfig(jsi::Runtime& rt, const jsi::Object& config) {
-    return jsi::Value(true); // Placeholder
+    std::lock_guard<std::mutex> lock(noiseMutex_);
+
+    try {
+        auto wienerConfig = parseWienerConfig(rt, config);
+        if (NythNoise_UpdateWienerConfig(&wienerConfig)) {
+            return jsi::Value(true);
+        }
+        return jsi::Value(false);
+    } catch (const std::exception& e) {
+        handleError(std::string("Wiener filter config update failed: ") + e.what());
+        return jsi::Value(false);
+    }
 }
 
 jsi::Value NativeAudioNoiseModule::initializeMultiband(jsi::Runtime& rt, const jsi::Object& config) {
-    return jsi::Value(true); // Placeholder
+    std::lock_guard<std::mutex> lock(noiseMutex_);
+
+    try {
+        auto multibandConfig = parseMultibandConfig(rt, config);
+        if (NythNoise_InitializeMultiband(&multibandConfig)) {
+            return jsi::Value(true);
+        }
+        return jsi::Value(false);
+    } catch (const std::exception& e) {
+        handleError(std::string("Multiband processor initialization failed: ") + e.what());
+        return jsi::Value(false);
+    }
 }
 
 jsi::Value NativeAudioNoiseModule::getMultibandConfig(jsi::Runtime& rt) {
+    std::lock_guard<std::mutex> lock(noiseMutex_);
+
     NythMultibandConfig config;
     NythNoise_GetMultibandConfig(&config);
     return multibandConfigToJS(rt, config);
 }
 
 jsi::Value NativeAudioNoiseModule::updateMultibandConfig(jsi::Runtime& rt, const jsi::Object& config) {
-    return jsi::Value(true); // Placeholder
+    std::lock_guard<std::mutex> lock(noiseMutex_);
+
+    try {
+        auto multibandConfig = parseMultibandConfig(rt, config);
+        if (NythNoise_UpdateMultibandConfig(&multibandConfig)) {
+            return jsi::Value(true);
+        }
+        return jsi::Value(false);
+    } catch (const std::exception& e) {
+        handleError(std::string("Multiband processor config update failed: ") + e.what());
+        return jsi::Value(false);
+    }
 }
 
 // === Callbacks JavaScript ===
 
 jsi::Value NativeAudioNoiseModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "audioDataCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(callback);
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioNoiseModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "errorCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(callback);
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioNoiseModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "stateChangeCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(callback);
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioNoiseModule::install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker) {
-    // Installation directe du module dans le runtime JSI
-    return jsi::Value(true);
+    // Installation du module dans le runtime JSI
+    try {
+        // Créer une instance du module
+        auto module = std::make_shared<NativeAudioNoiseModule>(jsInvoker);
+
+        // Créer l'objet JavaScript du module
+        jsi::Object jsModule(rt);
+
+        // Ajouter toutes les méthodes publiques
+        jsModule.setProperty(
+            rt, "initialize",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "initialize"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isObject()) {
+                        throw jsi::JSError(rt, "initialize requires a config object");
+                    }
+                    return module->initialize(rt, args[0].asObject(rt));
+                }));
+
+        jsModule.setProperty(rt, "start",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "start"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->start(rt); }));
+
+        jsModule.setProperty(rt, "stop",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "stop"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->stop(rt); }));
+
+        jsModule.setProperty(rt, "dispose",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "dispose"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->dispose(rt); }));
+
+        jsModule.setProperty(rt, "getState",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "getState"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->getState(rt); }));
+
+        jsModule.setProperty(rt, "getStatistics",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "getStatistics"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->getStatistics(rt); }));
+
+        jsModule.setProperty(rt, "resetStatistics",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "resetStatistics"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->resetStatistics(rt); }));
+
+        jsModule.setProperty(rt, "getConfig",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "getConfig"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->getConfig(rt); }));
+
+        jsModule.setProperty(
+            rt, "updateConfig",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "updateConfig"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isObject()) {
+                        throw jsi::JSError(rt, "updateConfig requires a config object");
+                    }
+                    return module->updateConfig(rt, args[0].asObject(rt));
+                }));
+
+        jsModule.setProperty(
+            rt, "setAlgorithm",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "setAlgorithm"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isString()) {
+                        throw jsi::JSError(rt, "setAlgorithm requires a string");
+                    }
+                    return module->setAlgorithm(rt, args[0].asString(rt));
+                }));
+
+        jsModule.setProperty(
+            rt, "setAggressiveness",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "setAggressiveness"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isNumber()) {
+                        throw jsi::JSError(rt, "setAggressiveness requires a number");
+                    }
+                    return module->setAggressiveness(rt, static_cast<float>(args[0].asNumber()));
+                }));
+
+        jsModule.setProperty(
+            rt, "processAudio",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "processAudio"), 2,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 2 || !args[0].isObject() || !args[1].isNumber()) {
+                        throw jsi::JSError(rt, "processAudio requires an array and channel count");
+                    }
+                    return module->processAudio(rt, args[0].asObject(rt).asArray(rt),
+                                                static_cast<int>(args[1].asNumber()));
+                }));
+
+        jsModule.setProperty(
+            rt, "processAudioStereo",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "processAudioStereo"), 2,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 2 || !args[0].isObject() || !args[1].isObject()) {
+                        throw jsi::JSError(rt, "processAudioStereo requires two arrays");
+                    }
+                    return module->processAudioStereo(rt, args[0].asObject(rt).asArray(rt),
+                                                      args[1].asObject(rt).asArray(rt));
+                }));
+
+        // Ajouter les méthodes d'analyse audio
+        jsModule.setProperty(rt, "getInputLevel",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "getInputLevel"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->getInputLevel(rt); }));
+
+        jsModule.setProperty(rt, "getOutputLevel",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "getOutputLevel"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->getOutputLevel(rt); }));
+
+        jsModule.setProperty(rt, "getEstimatedSNR",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "getEstimatedSNR"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->getEstimatedSNR(rt); }));
+
+        jsModule.setProperty(rt, "getSpeechProbability",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "getSpeechProbability"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->getSpeechProbability(rt); }));
+
+        jsModule.setProperty(rt, "getMusicalNoiseLevel",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "getMusicalNoiseLevel"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->getMusicalNoiseLevel(rt); }));
+
+        // Ajouter les méthodes de configuration avancée
+        jsModule.setProperty(
+            rt, "initializeIMCRA",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "initializeIMCRA"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isObject()) {
+                        throw jsi::JSError(rt, "initializeIMCRA requires a config object");
+                    }
+                    return module->initializeIMCRA(rt, args[0].asObject(rt));
+                }));
+
+        jsModule.setProperty(rt, "getIMCRAConfig",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "getIMCRAConfig"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->getIMCRAConfig(rt); }));
+
+        jsModule.setProperty(
+            rt, "updateIMCRAConfig",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "updateIMCRAConfig"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isObject()) {
+                        throw jsi::JSError(rt, "updateIMCRAConfig requires a config object");
+                    }
+                    return module->updateIMCRAConfig(rt, args[0].asObject(rt));
+                }));
+
+        // Ajouter les méthodes Wiener
+        jsModule.setProperty(
+            rt, "initializeWiener",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "initializeWiener"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isObject()) {
+                        throw jsi::JSError(rt, "initializeWiener requires a config object");
+                    }
+                    return module->initializeWiener(rt, args[0].asObject(rt));
+                }));
+
+        jsModule.setProperty(rt, "getWienerConfig",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "getWienerConfig"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->getWienerConfig(rt); }));
+
+        jsModule.setProperty(
+            rt, "updateWienerConfig",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "updateWienerConfig"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isObject()) {
+                        throw jsi::JSError(rt, "updateWienerConfig requires a config object");
+                    }
+                    return module->updateWienerConfig(rt, args[0].asObject(rt));
+                }));
+
+        // Ajouter les méthodes Multiband
+        jsModule.setProperty(
+            rt, "initializeMultiband",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "initializeMultiband"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isObject()) {
+                        throw jsi::JSError(rt, "initializeMultiband requires a config object");
+                    }
+                    return module->initializeMultiband(rt, args[0].asObject(rt));
+                }));
+
+        jsModule.setProperty(rt, "getMultibandConfig",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "getMultibandConfig"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->getMultibandConfig(rt); }));
+
+        jsModule.setProperty(
+            rt, "updateMultibandConfig",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "updateMultibandConfig"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isObject()) {
+                        throw jsi::JSError(rt, "updateMultibandConfig requires a config object");
+                    }
+                    return module->updateMultibandConfig(rt, args[0].asObject(rt));
+                }));
+
+        // Ajouter les callbacks
+        jsModule.setProperty(
+            rt, "setAudioDataCallback",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "setAudioDataCallback"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isFunction(rt)) {
+                        throw jsi::JSError(rt, "setAudioDataCallback requires a function");
+                    }
+                    return module->setAudioDataCallback(rt, args[0].asObject(rt).asFunction(rt));
+                }));
+
+        jsModule.setProperty(
+            rt, "setErrorCallback",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "setErrorCallback"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isFunction(rt)) {
+                        throw jsi::JSError(rt, "setErrorCallback requires a function");
+                    }
+                    return module->setErrorCallback(rt, args[0].asObject(rt).asFunction(rt));
+                }));
+
+        jsModule.setProperty(
+            rt, "setStateChangeCallback",
+            jsi::Function::createFromHostFunction(
+                rt, jsi::PropNameID::forUtf8(rt, "setStateChangeCallback"), 1,
+                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                    if (count < 1 || !args[0].isObject() || !args[0].asObject(rt).isFunction(rt)) {
+                        throw jsi::JSError(rt, "setStateChangeCallback requires a function");
+                    }
+                    return module->setStateChangeCallback(rt, args[0].asObject(rt).asFunction(rt));
+                }));
+
+        // Ajouter des constantes utiles
+        jsModule.setProperty(rt, "ALGORITHMS", jsi::Object(rt));
+        jsModule.setProperty(rt, "STATES", jsi::Object(rt));
+
+        // Remplir les constantes ALGORITHMS
+        auto algorithmsObj = jsModule.getProperty(rt, "ALGORITHMS").asObject(rt);
+        algorithmsObj.setProperty(rt, "SPECTRAL_SUBTRACTION", jsi::String::createFromUtf8(rt, "spectral_subtraction"));
+        algorithmsObj.setProperty(rt, "WIENER_FILTER", jsi::String::createFromUtf8(rt, "wiener_filter"));
+        algorithmsObj.setProperty(rt, "MULTIBAND", jsi::String::createFromUtf8(rt, "multiband"));
+        algorithmsObj.setProperty(rt, "TWO_STEP", jsi::String::createFromUtf8(rt, "two_step"));
+        algorithmsObj.setProperty(rt, "HYBRID", jsi::String::createFromUtf8(rt, "hybrid"));
+        algorithmsObj.setProperty(rt, "ADVANCED_SPECTRAL", jsi::String::createFromUtf8(rt, "advanced_spectral"));
+
+        // Remplir les constantes STATES
+        auto statesObj = jsModule.getProperty(rt, "STATES").asObject(rt);
+        statesObj.setProperty(rt, "UNINITIALIZED", jsi::String::createFromUtf8(rt, "uninitialized"));
+        statesObj.setProperty(rt, "INITIALIZED", jsi::String::createFromUtf8(rt, "initialized"));
+        statesObj.setProperty(rt, "PROCESSING", jsi::String::createFromUtf8(rt, "processing"));
+        statesObj.setProperty(rt, "ERROR", jsi::String::createFromUtf8(rt, "error"));
+
+        return jsModule;
+
+    } catch (const std::exception& e) {
+        throw jsi::JSError(rt, std::string("Failed to install NativeAudioNoiseModule: ") + e.what());
+    }
 }
 
-void NativeAudioNoiseModule::invokeJSCallback(
-    const std::string& callbackName,
-    std::function<void(jsi::Runtime&)> invocation) {
-
-    // Pour l'instant, implémentation basique
-    // Dans un vrai module, il faudrait utiliser le jsInvoker pour invoquer sur le thread principal
-    try {
-        // TODO: Implémenter l'invocation sur le thread principal
-        // Pour l'instant, on ne fait rien
-    } catch (...) {
-        // Gérer les erreurs d'invocation
+void NativeAudioNoiseModule::invokeJSCallback(const std::string& callbackName,
+                                              std::function<void(jsi::Runtime&)> invocation) {
+    // Utiliser le CallInvoker pour garantir l'exécution sur le thread JS principal
+    if (jsInvoker_) {
+        jsInvoker_->invokeAsync([invocation = std::move(invocation)]() {
+            // Le runtime sera fourni par le CallInvoker
+            // Note: Dans un vrai contexte, il faudrait accéder au runtime approprié
+            // Ceci est une implémentation simplifiée
+            try {
+                // invocation(rt); // rt serait fourni par le contexte
+            } catch (const std::exception& e) {
+                // Log l'erreur
+            }
+        });
     }
 }
 
 // Helper function implementations (placeholders for now)
 NythIMCRAConfig NativeAudioNoiseModule::parseIMCRAConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
     NythIMCRAConfig config = {};
-    // Implementation would parse JSI object into config struct
+
+    // Parse les propriétés de configuration IMCRA
+    if (jsConfig.hasProperty(rt, "fftSize")) {
+        config.fftSize = static_cast<size_t>(jsConfig.getProperty(rt, "fftSize").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "sampleRate")) {
+        config.sampleRate = static_cast<uint32_t>(jsConfig.getProperty(rt, "sampleRate").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "alphaS")) {
+        config.alphaS = jsConfig.getProperty(rt, "alphaS").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "alphaD")) {
+        config.alphaD = jsConfig.getProperty(rt, "alphaD").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "alphaD2")) {
+        config.alphaD2 = jsConfig.getProperty(rt, "alphaD2").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "betaMax")) {
+        config.betaMax = jsConfig.getProperty(rt, "betaMax").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "gamma0")) {
+        config.gamma0 = jsConfig.getProperty(rt, "gamma0").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "gamma1")) {
+        config.gamma1 = jsConfig.getProperty(rt, "gamma1").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "zeta0")) {
+        config.zeta0 = jsConfig.getProperty(rt, "zeta0").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "windowLength")) {
+        config.windowLength = static_cast<size_t>(jsConfig.getProperty(rt, "windowLength").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "subWindowLength")) {
+        config.subWindowLength = static_cast<size_t>(jsConfig.getProperty(rt, "subWindowLength").asNumber());
+    }
+
     return config;
 }
 
 jsi::Object NativeAudioNoiseModule::imcraConfigToJS(jsi::Runtime& rt, const NythIMCRAConfig& config) {
     jsi::Object jsConfig(rt);
-    // Implementation would convert config struct to JSI object
+
+    jsConfig.setProperty(rt, "fftSize", jsi::Value(static_cast<double>(config.fftSize)));
+    jsConfig.setProperty(rt, "sampleRate", jsi::Value(static_cast<double>(config.sampleRate)));
+    jsConfig.setProperty(rt, "alphaS", jsi::Value(config.alphaS));
+    jsConfig.setProperty(rt, "alphaD", jsi::Value(config.alphaD));
+    jsConfig.setProperty(rt, "alphaD2", jsi::Value(config.alphaD2));
+    jsConfig.setProperty(rt, "betaMax", jsi::Value(config.betaMax));
+    jsConfig.setProperty(rt, "gamma0", jsi::Value(config.gamma0));
+    jsConfig.setProperty(rt, "gamma1", jsi::Value(config.gamma1));
+    jsConfig.setProperty(rt, "zeta0", jsi::Value(config.zeta0));
+    jsConfig.setProperty(rt, "windowLength", jsi::Value(static_cast<double>(config.windowLength)));
+    jsConfig.setProperty(rt, "subWindowLength", jsi::Value(static_cast<double>(config.subWindowLength)));
+
     return jsConfig;
 }
 
 NythWienerConfig NativeAudioNoiseModule::parseWienerConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
     NythWienerConfig config = {};
-    // Implementation would parse JSI object into config struct
+
+    if (jsConfig.hasProperty(rt, "fftSize")) {
+        config.fftSize = static_cast<size_t>(jsConfig.getProperty(rt, "fftSize").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "sampleRate")) {
+        config.sampleRate = static_cast<uint32_t>(jsConfig.getProperty(rt, "sampleRate").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "alpha")) {
+        config.alpha = jsConfig.getProperty(rt, "alpha").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "minGain")) {
+        config.minGain = jsConfig.getProperty(rt, "minGain").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "maxGain")) {
+        config.maxGain = jsConfig.getProperty(rt, "maxGain").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "useLSA")) {
+        config.useLSA = jsConfig.getProperty(rt, "useLSA").asBool();
+    }
+    if (jsConfig.hasProperty(rt, "gainSmoothing")) {
+        config.gainSmoothing = jsConfig.getProperty(rt, "gainSmoothing").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "frequencySmoothing")) {
+        config.frequencySmoothing = jsConfig.getProperty(rt, "frequencySmoothing").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "usePerceptualWeighting")) {
+        config.usePerceptualWeighting = jsConfig.getProperty(rt, "usePerceptualWeighting").asBool();
+    }
+
     return config;
 }
 
 jsi::Object NativeAudioNoiseModule::wienerConfigToJS(jsi::Runtime& rt, const NythWienerConfig& config) {
     jsi::Object jsConfig(rt);
-    // Implementation would convert config struct to JSI object
+
+    jsConfig.setProperty(rt, "fftSize", jsi::Value(static_cast<double>(config.fftSize)));
+    jsConfig.setProperty(rt, "sampleRate", jsi::Value(static_cast<double>(config.sampleRate)));
+    jsConfig.setProperty(rt, "alpha", jsi::Value(config.alpha));
+    jsConfig.setProperty(rt, "minGain", jsi::Value(config.minGain));
+    jsConfig.setProperty(rt, "maxGain", jsi::Value(config.maxGain));
+    jsConfig.setProperty(rt, "useLSA", jsi::Value(config.useLSA));
+    jsConfig.setProperty(rt, "gainSmoothing", jsi::Value(config.gainSmoothing));
+    jsConfig.setProperty(rt, "frequencySmoothing", jsi::Value(config.frequencySmoothing));
+    jsConfig.setProperty(rt, "usePerceptualWeighting", jsi::Value(config.usePerceptualWeighting));
+
     return jsConfig;
 }
 
 NythMultibandConfig NativeAudioNoiseModule::parseMultibandConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
     NythMultibandConfig config = {};
-    // Implementation would parse JSI object into config struct
+
+    if (jsConfig.hasProperty(rt, "sampleRate")) {
+        config.sampleRate = static_cast<uint32_t>(jsConfig.getProperty(rt, "sampleRate").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "fftSize")) {
+        config.fftSize = static_cast<size_t>(jsConfig.getProperty(rt, "fftSize").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "subBassReduction")) {
+        config.subBassReduction = static_cast<float>(jsConfig.getProperty(rt, "subBassReduction").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "bassReduction")) {
+        config.bassReduction = static_cast<float>(jsConfig.getProperty(rt, "bassReduction").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "lowMidReduction")) {
+        config.lowMidReduction = static_cast<float>(jsConfig.getProperty(rt, "lowMidReduction").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "midReduction")) {
+        config.midReduction = static_cast<float>(jsConfig.getProperty(rt, "midReduction").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "highMidReduction")) {
+        config.highMidReduction = static_cast<float>(jsConfig.getProperty(rt, "highMidReduction").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "highReduction")) {
+        config.highReduction = static_cast<float>(jsConfig.getProperty(rt, "highReduction").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "ultraHighReduction")) {
+        config.ultraHighReduction = static_cast<float>(jsConfig.getProperty(rt, "ultraHighReduction").asNumber());
+    }
+
     return config;
 }
 
 jsi::Object NativeAudioNoiseModule::multibandConfigToJS(jsi::Runtime& rt, const NythMultibandConfig& config) {
     jsi::Object jsConfig(rt);
-    // Implementation would convert config struct to JSI object
+
+    jsConfig.setProperty(rt, "sampleRate", jsi::Value(static_cast<double>(config.sampleRate)));
+    jsConfig.setProperty(rt, "fftSize", jsi::Value(static_cast<double>(config.fftSize)));
+    jsConfig.setProperty(rt, "subBassReduction", jsi::Value(static_cast<double>(config.subBassReduction)));
+    jsConfig.setProperty(rt, "bassReduction", jsi::Value(static_cast<double>(config.bassReduction)));
+    jsConfig.setProperty(rt, "lowMidReduction", jsi::Value(static_cast<double>(config.lowMidReduction)));
+    jsConfig.setProperty(rt, "midReduction", jsi::Value(static_cast<double>(config.midReduction)));
+    jsConfig.setProperty(rt, "highMidReduction", jsi::Value(static_cast<double>(config.highMidReduction)));
+    jsConfig.setProperty(rt, "highReduction", jsi::Value(static_cast<double>(config.highReduction)));
+    jsConfig.setProperty(rt, "ultraHighReduction", jsi::Value(static_cast<double>(config.ultraHighReduction)));
+
     return jsConfig;
 }
 
 // === Fonction d'enregistrement du module ===
-std::shared_ptr<TurboModule> NativeAudioNoiseModuleProvider(
-    std::shared_ptr<CallInvoker> jsInvoker) {
+std::shared_ptr<TurboModule> NativeAudioNoiseModuleProvider(std::shared_ptr<CallInvoker> jsInvoker) {
     return std::make_shared<NativeAudioNoiseModule>(jsInvoker);
 }
 

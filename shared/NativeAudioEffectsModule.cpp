@@ -5,9 +5,10 @@
 #include "Audio/effects/Compressor.hpp"
 #include "Audio/effects/Delay.hpp"
 #include "Audio/effects/EffectConstants.hpp"
+#include <algorithm>
 #include <chrono>
 #include <sstream>
-#include <algorithm>
+
 
 // === Instance globale pour l'API C ===
 static std::unique_ptr<AudioFX::EffectChain> g_effectChain;
@@ -16,6 +17,12 @@ static std::atomic<int> g_nextEffectId{1};
 static std::mutex g_globalMutex;
 static uint32_t g_currentSampleRate = 44100;
 static int g_currentChannels = 2;
+
+// Instance statique pour les callbacks
+namespace {
+facebook::react::NativeAudioEffectsModule* g_moduleInstance = nullptr;
+std::mutex g_instanceMutex;
+} // namespace
 
 // === Implémentation de l'API C ===
 extern "C" {
@@ -53,12 +60,14 @@ void NythEffects_Release(void) {
 // === État et informations ===
 NythEffectsState NythEffects_GetState(void) {
     std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (!g_effectChain) return EFFECTS_STATE_UNINITIALIZED;
+    if (!g_effectChain)
+        return EFFECTS_STATE_UNINITIALIZED;
     return EFFECTS_STATE_INITIALIZED;
 }
 
 void NythEffects_GetStatistics(NythEffectsStatistics* stats) {
-    if (!stats) return;
+    if (!stats)
+        return;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
     if (g_effectChain) {
@@ -77,10 +86,12 @@ void NythEffects_ResetStatistics(void) {
 
 // === Gestion des effets individuels ===
 int NythEffects_CreateEffect(const NythEffectConfig* config) {
-    if (!config) return -1;
+    if (!config)
+        return -1;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
-    if (!g_effectChain) return -1;
+    if (!g_effectChain)
+        return -1;
 
     try {
         std::unique_ptr<AudioFX::IAudioEffect> effect;
@@ -88,24 +99,17 @@ int NythEffects_CreateEffect(const NythEffectConfig* config) {
         switch (config->type) {
             case EFFECT_TYPE_COMPRESSOR: {
                 auto compressor = std::make_unique<AudioFX::CompressorEffect>();
-                compressor->setParameters(
-                    config->config.compressor.thresholdDb,
-                    config->config.compressor.ratio,
-                    config->config.compressor.attackMs,
-                    config->config.compressor.releaseMs,
-                    config->config.compressor.makeupDb
-                );
+                compressor->setParameters(config->config.compressor.thresholdDb, config->config.compressor.ratio,
+                                          config->config.compressor.attackMs, config->config.compressor.releaseMs,
+                                          config->config.compressor.makeupDb);
                 compressor->setSampleRate(config->sampleRate, config->channels);
                 effect = std::move(compressor);
                 break;
             }
             case EFFECT_TYPE_DELAY: {
                 auto delay = std::make_unique<AudioFX::DelayEffect>();
-                delay->setParameters(
-                    config->config.delay.delayMs,
-                    config->config.delay.feedback,
-                    config->config.delay.mix
-                );
+                delay->setParameters(config->config.delay.delayMs, config->config.delay.feedback,
+                                     config->config.delay.mix);
                 delay->setSampleRate(config->sampleRate, config->channels);
                 effect = std::move(delay);
                 break;
@@ -140,7 +144,8 @@ bool NythEffects_DestroyEffect(int effectId) {
 }
 
 bool NythEffects_UpdateEffect(int effectId, const NythEffectConfig* config) {
-    if (!config) return false;
+    if (!config)
+        return false;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
@@ -149,24 +154,17 @@ bool NythEffects_UpdateEffect(int effectId, const NythEffectConfig* config) {
         switch (config->type) {
             case EFFECT_TYPE_COMPRESSOR: {
                 if (auto compressor = dynamic_cast<AudioFX::CompressorEffect*>(it->second.get())) {
-                    compressor->setParameters(
-                        config->config.compressor.thresholdDb,
-                        config->config.compressor.ratio,
-                        config->config.compressor.attackMs,
-                        config->config.compressor.releaseMs,
-                        config->config.compressor.makeupDb
-                    );
+                    compressor->setParameters(config->config.compressor.thresholdDb, config->config.compressor.ratio,
+                                              config->config.compressor.attackMs, config->config.compressor.releaseMs,
+                                              config->config.compressor.makeupDb);
                     return true;
                 }
                 break;
             }
             case EFFECT_TYPE_DELAY: {
                 if (auto delay = dynamic_cast<AudioFX::DelayEffect*>(it->second.get())) {
-                    delay->setParameters(
-                        config->config.delay.delayMs,
-                        config->config.delay.feedback,
-                        config->config.delay.mix
-                    );
+                    delay->setParameters(config->config.delay.delayMs, config->config.delay.feedback,
+                                         config->config.delay.mix);
                     return true;
                 }
                 break;
@@ -179,7 +177,8 @@ bool NythEffects_UpdateEffect(int effectId, const NythEffectConfig* config) {
 }
 
 bool NythEffects_GetEffectConfig(int effectId, NythEffectConfig* config) {
-    if (!config) return false;
+    if (!config)
+        return false;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
@@ -260,8 +259,8 @@ const int* NythEffects_GetActiveEffectIds(size_t* count) {
 // === Configuration des effets spécifiques ===
 
 // Compresseur
-bool NythEffects_SetCompressorParameters(int effectId, float thresholdDb, float ratio,
-                                       float attackMs, float releaseMs, float makeupDb) {
+bool NythEffects_SetCompressorParameters(int effectId, float thresholdDb, float ratio, float attackMs, float releaseMs,
+                                         float makeupDb) {
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
     auto it = g_activeEffects.find(effectId);
@@ -274,9 +273,10 @@ bool NythEffects_SetCompressorParameters(int effectId, float thresholdDb, float 
     return false;
 }
 
-bool NythEffects_GetCompressorParameters(int effectId, float* thresholdDb, float* ratio,
-                                       float* attackMs, float* releaseMs, float* makeupDb) {
-    if (!thresholdDb || !ratio || !attackMs || !releaseMs || !makeupDb) return false;
+bool NythEffects_GetCompressorParameters(int effectId, float* thresholdDb, float* ratio, float* attackMs,
+                                         float* releaseMs, float* makeupDb) {
+    if (!thresholdDb || !ratio || !attackMs || !releaseMs || !makeupDb)
+        return false;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
@@ -310,7 +310,8 @@ bool NythEffects_SetDelayParameters(int effectId, float delayMs, float feedback,
 }
 
 bool NythEffects_GetDelayParameters(int effectId, float* delayMs, float* feedback, float* mix) {
-    if (!delayMs || !feedback || !mix) return false;
+    if (!delayMs || !feedback || !mix)
+        return false;
 
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
@@ -366,8 +367,8 @@ bool NythEffects_ProcessAudio(const float* input, float* output, size_t frameCou
     }
 }
 
-bool NythEffects_ProcessAudioStereo(const float* inputL, const float* inputR,
-                                   float* outputL, float* outputR, size_t frameCount) {
+bool NythEffects_ProcessAudioStereo(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                    size_t frameCount) {
     std::lock_guard<std::mutex> lock(g_globalMutex);
 
     if (!g_effectChain || !inputL || !inputR || !outputL || !outputR || frameCount == 0) {
@@ -429,11 +430,28 @@ namespace facebook {
 namespace react {
 
 NativeAudioEffectsModule::~NativeAudioEffectsModule() {
+    // Nettoyer l'instance globale
+    {
+        std::lock_guard<std::mutex> instanceLock(g_instanceMutex);
+        if (g_moduleInstance == this) {
+            g_moduleInstance = nullptr;
+        }
+    }
+
+    // Nettoyer les ressources
     std::lock_guard<std::mutex> lock(effectsMutex_);
     if (effectChain_) {
         effectChain_.reset();
     }
     activeEffects_.clear();
+
+    // Nettoyer les callbacks
+    {
+        std::lock_guard<std::mutex> callbackLock(callbackMutex_);
+        jsCallbacks_.audioDataCallback = {};
+        jsCallbacks_.errorCallback = {};
+        jsCallbacks_.stateChangeCallback = {};
+    }
 }
 
 // === Méthodes privées ===
@@ -449,120 +467,257 @@ bool NativeAudioEffectsModule::validateEffectId(int effectId) const {
 }
 
 NythEffectType NativeAudioEffectsModule::stringToEffectType(const std::string& typeStr) const {
-    if (typeStr == "compressor") return EFFECT_TYPE_COMPRESSOR;
-    if (typeStr == "delay") return EFFECT_TYPE_DELAY;
+    if (typeStr == "compressor")
+        return EFFECT_TYPE_COMPRESSOR;
+    if (typeStr == "delay")
+        return EFFECT_TYPE_DELAY;
     return EFFECT_TYPE_UNKNOWN;
 }
 
 std::string NativeAudioEffectsModule::effectTypeToString(NythEffectType type) const {
     switch (type) {
-        case EFFECT_TYPE_COMPRESSOR: return "compressor";
-        case EFFECT_TYPE_DELAY: return "delay";
-        default: return "unknown";
+        case EFFECT_TYPE_COMPRESSOR:
+            return "compressor";
+        case EFFECT_TYPE_DELAY:
+            return "delay";
+        default:
+            return "unknown";
     }
 }
 
-void NativeAudioEffectsModule::handleAudioData(const float* input, float* output,
-                                             size_t frameCount, int channels) {
-    // Callback pour les données audio traitées
-}
-
-void NativeAudioEffectsModule::handleError(const std::string& error) {
+void NativeAudioEffectsModule::handleAudioData(const float* input, float* output, size_t frameCount, int channels) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    if (jsCallbacks_.errorCallback) {
-        invokeJSCallback("errorCallback", [error](jsi::Runtime& rt) {
-            jsi::String errorStr = jsi::String::createFromUtf8(rt, error);
-            // jsCallbacks_.errorCallback->call(rt, errorStr);
+
+    // Traiter les données audio avec la chaîne d'effets
+    if (effectChain_ && currentState_ == EFFECTS_STATE_PROCESSING) {
+        // Appliquer les effets
+        if (channels == 1) {
+            // Traitement mono
+            std::vector<float> inputVec(input, input + frameCount);
+            std::vector<float> outputVec(frameCount);
+            effectChain_->processMono(inputVec, outputVec);
+            std::copy(outputVec.begin(), outputVec.end(), output);
+        } else if (channels == 2) {
+            // Traitement stéréo - données entrelacées
+            size_t samplesPerChannel = frameCount / 2;
+            std::vector<float> inputL(samplesPerChannel);
+            std::vector<float> inputR(samplesPerChannel);
+            std::vector<float> outputL(samplesPerChannel);
+            std::vector<float> outputR(samplesPerChannel);
+
+            // Désentrelacer les canaux
+            for (size_t i = 0; i < samplesPerChannel; ++i) {
+                inputL[i] = input[i * 2];
+                inputR[i] = input[i * 2 + 1];
+            }
+
+            // Traiter
+            effectChain_->processStereo(inputL, inputR, outputL, outputR);
+
+            // Réentrelacer les canaux
+            for (size_t i = 0; i < samplesPerChannel; ++i) {
+                output[i * 2] = outputL[i];
+                output[i * 2 + 1] = outputR[i];
+            }
+        }
+    } else {
+        // Passthrough si pas de traitement
+        if (output != input) {
+            std::copy(input, input + frameCount * channels, output);
+        }
+    }
+
+    // Appeler le callback JavaScript si défini
+    if (jsCallbacks_.audioDataCallback.function && jsCallbacks_.audioDataCallback.runtime && jsInvoker_) {
+        auto callback = jsCallbacks_.audioDataCallback.function;
+        auto runtime = jsCallbacks_.audioDataCallback.runtime;
+
+        // Créer des copies des données pour le callback
+        std::vector<float> inputCopy(input, input + frameCount * channels);
+        std::vector<float> outputCopy(output, output + frameCount * channels);
+
+        jsInvoker_->invokeAsync([callback, runtime, inputCopy, outputCopy, frameCount, channels]() {
+            try {
+                // Créer les arrays JSI
+                jsi::Array inputArray(*runtime, inputCopy.size());
+                jsi::Array outputArray(*runtime, outputCopy.size());
+
+                for (size_t i = 0; i < inputCopy.size(); ++i) {
+                    inputArray.setValueAtIndex(*runtime, i, jsi::Value(inputCopy[i]));
+                }
+                for (size_t i = 0; i < outputCopy.size(); ++i) {
+                    outputArray.setValueAtIndex(*runtime, i, jsi::Value(outputCopy[i]));
+                }
+
+                // Créer l'objet de métadonnées
+                jsi::Object metadata(*runtime);
+                metadata.setProperty(*runtime, "frameCount", jsi::Value(static_cast<double>(frameCount)));
+                metadata.setProperty(*runtime, "channels", jsi::Value(channels));
+
+                // Appeler le callback avec les données
+                callback->call(*runtime, std::move(inputArray), std::move(outputArray), std::move(metadata));
+            } catch (const jsi::JSError& e) {
+                // Log l'erreur mais ne pas propager
+            }
         });
     }
 }
 
-void NativeAudioEffectsModule::handleStateChange(NythEffectsState oldState,
-                                               NythEffectsState newState) {
+void NativeAudioEffectsModule::handleError(const std::string& error) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    if (jsCallbacks_.stateChangeCallback) {
-        invokeJSCallback("stateChangeCallback", [oldState, newState, this](jsi::Runtime& rt) {
-            std::string oldStateStr = stateToString(oldState);
-            std::string newStateStr = stateToString(newState);
-            jsi::String oldStateJS = jsi::String::createFromUtf8(rt, oldStateStr);
-            jsi::String newStateJS = jsi::String::createFromUtf8(rt, newStateStr);
-            // jsCallbacks_.stateChangeCallback->call(rt, oldStateJS, newStateJS);
+    if (jsCallbacks_.errorCallback.function && jsCallbacks_.errorCallback.runtime && jsInvoker_) {
+        // Capturer les références nécessaires
+        auto callback = jsCallbacks_.errorCallback.function;
+        auto runtime = jsCallbacks_.errorCallback.runtime;
+
+        jsInvoker_->invokeAsync([callback, runtime, error]() {
+            try {
+                // Créer l'argument string JSI
+                jsi::String errorStr = jsi::String::createFromUtf8(*runtime, error);
+                // Appeler le callback JavaScript avec l'erreur
+                callback->call(*runtime, errorStr);
+            } catch (const jsi::JSError& e) {
+                // Log l'erreur mais ne pas propager pour éviter un crash
+                // Dans un environnement de production, on pourrait logger ceci
+            }
+        });
+    }
+}
+
+void NativeAudioEffectsModule::handleStateChange(NythEffectsState oldState, NythEffectsState newState) {
+    std::lock_guard<std::mutex> lock(callbackMutex_);
+    if (jsCallbacks_.stateChangeCallback.function && jsCallbacks_.stateChangeCallback.runtime && jsInvoker_) {
+        // Capturer les références nécessaires
+        auto callback = jsCallbacks_.stateChangeCallback.function;
+        auto runtime = jsCallbacks_.stateChangeCallback.runtime;
+        std::string oldStateStr = stateToString(oldState);
+        std::string newStateStr = stateToString(newState);
+
+        jsInvoker_->invokeAsync([callback, runtime, oldStateStr, newStateStr]() {
+            try {
+                // Créer les arguments string JSI
+                jsi::String oldStateJS = jsi::String::createFromUtf8(*runtime, oldStateStr);
+                jsi::String newStateJS = jsi::String::createFromUtf8(*runtime, newStateStr);
+                // Appeler le callback JavaScript avec les états
+                callback->call(*runtime, oldStateJS, newStateJS);
+            } catch (const jsi::JSError& e) {
+                // Log l'erreur mais ne pas propager pour éviter un crash
+            }
         });
     }
 }
 
 std::string NativeAudioEffectsModule::stateToString(NythEffectsState state) const {
     switch (state) {
-        case EFFECTS_STATE_UNINITIALIZED: return "uninitialized";
-        case EFFECTS_STATE_INITIALIZED: return "initialized";
-        case EFFECTS_STATE_PROCESSING: return "processing";
-        case EFFECTS_STATE_ERROR: return "error";
-        default: return "unknown";
+        case EFFECTS_STATE_UNINITIALIZED:
+            return "uninitialized";
+        case EFFECTS_STATE_INITIALIZED:
+            return "initialized";
+        case EFFECTS_STATE_PROCESSING:
+            return "processing";
+        case EFFECTS_STATE_ERROR:
+            return "error";
+        default:
+            return "unknown";
     }
 }
 
-NythEffectConfig NativeAudioEffectsModule::parseEffectConfig(
-    jsi::Runtime& rt, const jsi::Object& jsConfig) {
-
+NythEffectConfig NativeAudioEffectsModule::parseEffectConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
     NythEffectConfig config = {};
 
+    // Validation et extraction du type
     if (jsConfig.hasProperty(rt, "type")) {
-        std::string typeStr = jsConfig.getProperty(rt, "type").asString(rt).utf8(rt);
-        config.type = stringToEffectType(typeStr);
+        auto typeValue = jsConfig.getProperty(rt, "type");
+        if (typeValue.isString()) {
+            std::string typeStr = typeValue.asString(rt).utf8(rt);
+            config.type = stringToEffectType(typeStr);
+        } else {
+            throw jsi::JSError(rt, "Effect type must be a string");
+        }
     }
 
+    // Validation et extraction de enabled
     if (jsConfig.hasProperty(rt, "enabled")) {
-        config.enabled = jsConfig.getProperty(rt, "enabled").asBool();
+        auto enabledValue = jsConfig.getProperty(rt, "enabled");
+        if (enabledValue.isBool()) {
+            config.enabled = enabledValue.asBool();
+        } else {
+            throw jsi::JSError(rt, "Enabled property must be a boolean");
+        }
     }
 
     config.sampleRate = currentSampleRate_;
     config.channels = currentChannels_;
 
-    // Configuration spécifique selon le type
+    // Configuration spécifique selon le type avec validation
     if (config.type == EFFECT_TYPE_COMPRESSOR && jsConfig.hasProperty(rt, "compressor")) {
-        jsi::Object compConfig = jsConfig.getProperty(rt, "compressor").asObject(rt);
+        auto compValue = jsConfig.getProperty(rt, "compressor");
+        if (!compValue.isObject()) {
+            throw jsi::JSError(rt, "Compressor config must be an object");
+        }
+        jsi::Object compConfig = compValue.asObject(rt);
+
         if (compConfig.hasProperty(rt, "thresholdDb")) {
-            config.config.compressor.thresholdDb = static_cast<float>(
-                compConfig.getProperty(rt, "thresholdDb").asNumber());
+            auto value = compConfig.getProperty(rt, "thresholdDb");
+            if (value.isNumber()) {
+                config.config.compressor.thresholdDb = static_cast<float>(value.asNumber());
+            }
         }
         if (compConfig.hasProperty(rt, "ratio")) {
-            config.config.compressor.ratio = static_cast<float>(
-                compConfig.getProperty(rt, "ratio").asNumber());
+            auto value = compConfig.getProperty(rt, "ratio");
+            if (value.isNumber()) {
+                config.config.compressor.ratio = static_cast<float>(value.asNumber());
+            }
         }
         if (compConfig.hasProperty(rt, "attackMs")) {
-            config.config.compressor.attackMs = static_cast<float>(
-                compConfig.getProperty(rt, "attackMs").asNumber());
+            auto value = compConfig.getProperty(rt, "attackMs");
+            if (value.isNumber()) {
+                config.config.compressor.attackMs = static_cast<float>(value.asNumber());
+            }
         }
         if (compConfig.hasProperty(rt, "releaseMs")) {
-            config.config.compressor.releaseMs = static_cast<float>(
-                compConfig.getProperty(rt, "releaseMs").asNumber());
+            auto value = compConfig.getProperty(rt, "releaseMs");
+            if (value.isNumber()) {
+                config.config.compressor.releaseMs = static_cast<float>(value.asNumber());
+            }
         }
         if (compConfig.hasProperty(rt, "makeupDb")) {
-            config.config.compressor.makeupDb = static_cast<float>(
-                compConfig.getProperty(rt, "makeupDb").asNumber());
+            auto value = compConfig.getProperty(rt, "makeupDb");
+            if (value.isNumber()) {
+                config.config.compressor.makeupDb = static_cast<float>(value.asNumber());
+            }
         }
     } else if (config.type == EFFECT_TYPE_DELAY && jsConfig.hasProperty(rt, "delay")) {
-        jsi::Object delayConfig = jsConfig.getProperty(rt, "delay").asObject(rt);
+        auto delayValue = jsConfig.getProperty(rt, "delay");
+        if (!delayValue.isObject()) {
+            throw jsi::JSError(rt, "Delay config must be an object");
+        }
+        jsi::Object delayConfig = delayValue.asObject(rt);
+
         if (delayConfig.hasProperty(rt, "delayMs")) {
-            config.config.delay.delayMs = static_cast<float>(
-                delayConfig.getProperty(rt, "delayMs").asNumber());
+            auto value = delayConfig.getProperty(rt, "delayMs");
+            if (value.isNumber()) {
+                config.config.delay.delayMs = static_cast<float>(value.asNumber());
+            }
         }
         if (delayConfig.hasProperty(rt, "feedback")) {
-            config.config.delay.feedback = static_cast<float>(
-                delayConfig.getProperty(rt, "feedback").asNumber());
+            auto value = delayConfig.getProperty(rt, "feedback");
+            if (value.isNumber()) {
+                config.config.delay.feedback = static_cast<float>(value.asNumber());
+            }
         }
         if (delayConfig.hasProperty(rt, "mix")) {
-            config.config.delay.mix = static_cast<float>(
-                delayConfig.getProperty(rt, "mix").asNumber());
+            auto value = delayConfig.getProperty(rt, "mix");
+            if (value.isNumber()) {
+                config.config.delay.mix = static_cast<float>(value.asNumber());
+            }
         }
     }
 
     return config;
 }
 
-jsi::Object NativeAudioEffectsModule::effectConfigToJS(
-    jsi::Runtime& rt, const NythEffectConfig& config) {
-
+jsi::Object NativeAudioEffectsModule::effectConfigToJS(jsi::Runtime& rt, const NythEffectConfig& config) {
     jsi::Object jsConfig(rt);
 
     jsConfig.setProperty(rt, "effectId", jsi::Value(config.effectId));
@@ -590,24 +745,20 @@ jsi::Object NativeAudioEffectsModule::effectConfigToJS(
     return jsConfig;
 }
 
-jsi::Object NativeAudioEffectsModule::statisticsToJS(
-    jsi::Runtime& rt, const NythEffectsStatistics& stats) {
-
+jsi::Object NativeAudioEffectsModule::statisticsToJS(jsi::Runtime& rt, const NythEffectsStatistics& stats) {
     jsi::Object jsStats(rt);
 
     jsStats.setProperty(rt, "inputLevel", jsi::Value(stats.inputLevel));
     jsStats.setProperty(rt, "outputLevel", jsi::Value(stats.outputLevel));
-    jsStats.setProperty(rt, "processedFrames", jsi::Value(static_cast<int>(stats.processedFrames)));
-    jsStats.setProperty(rt, "processedSamples", jsi::Value(static_cast<int>(stats.processedSamples)));
-    jsStats.setProperty(rt, "durationMs", jsi::Value(static_cast<int>(stats.durationMs)));
+    jsStats.setProperty(rt, "processedFrames", jsi::Value(static_cast<double>(stats.processedFrames)));
+    jsStats.setProperty(rt, "processedSamples", jsi::Value(static_cast<double>(stats.processedSamples)));
+    jsStats.setProperty(rt, "durationMs", jsi::Value(static_cast<double>(stats.durationMs)));
     jsStats.setProperty(rt, "activeEffectsCount", jsi::Value(stats.activeEffectsCount));
 
     return jsStats;
 }
 
-jsi::Array NativeAudioEffectsModule::effectIdsToJS(
-    jsi::Runtime& rt, const std::vector<int>& effectIds) {
-
+jsi::Array NativeAudioEffectsModule::effectIdsToJS(jsi::Runtime& rt, const std::vector<int>& effectIds) {
     jsi::Array jsArray(rt, effectIds.size());
     for (size_t i = 0; i < effectIds.size(); ++i) {
         jsArray.setValueAtIndex(rt, i, jsi::Value(effectIds[i]));
@@ -616,17 +767,26 @@ jsi::Array NativeAudioEffectsModule::effectIdsToJS(
     return jsArray;
 }
 
-void NativeAudioEffectsModule::invokeJSCallback(
-    const std::string& callbackName,
-    std::function<void(jsi::Runtime&)> invocation) {
+void NativeAudioEffectsModule::invokeJSCallback(const std::string& callbackName,
+                                                std::function<void(jsi::Runtime&)> invocation) {
+    // Utiliser le jsInvoker pour exécuter le callback sur le thread JavaScript principal
+    if (jsInvoker_ && runtime_) {
+        // Capturer le runtime pour l'utiliser dans le callback
+        auto runtime = runtime_;
 
-    // Pour l'instant, implémentation basique
-    // Dans un vrai module, il faudrait utiliser le jsInvoker pour invoquer sur le thread principal
-    try {
-        // TODO: Implémenter l'invocation sur le thread principal
-        // Pour l'instant, on ne fait rien
-    } catch (...) {
-        // Gérer les erreurs d'invocation
+        jsInvoker_->invokeAsync([runtime, invocation = std::move(invocation)]() {
+            try {
+                // Exécuter la fonction d'invocation avec le runtime
+                if (runtime) {
+                    invocation(*runtime);
+                }
+            } catch (const jsi::JSError& e) {
+                // En production, on pourrait logger cette erreur
+                // Pour l'instant, on évite juste le crash
+            } catch (const std::exception& e) {
+                // Gérer les autres exceptions
+            }
+        });
     }
 }
 
@@ -636,9 +796,43 @@ void NativeAudioEffectsModule::initialize(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     try {
+        // Stocker la référence au runtime
+        runtime_ = &rt;
+
+        // Enregistrer cette instance comme instance globale
+        {
+            std::lock_guard<std::mutex> instanceLock(g_instanceMutex);
+            g_moduleInstance = this;
+        }
+
+        // Initialiser la chaîne d'effets
         initializeEffectChain();
+
+        // Configurer les callbacks C globaux pour rediriger vers cette instance
+        NythEffects_SetAudioDataCallback([](const float* input, float* output, size_t frameCount, int channels) {
+            std::lock_guard<std::mutex> instanceLock(g_instanceMutex);
+            if (g_moduleInstance) {
+                g_moduleInstance->handleAudioData(input, output, frameCount, channels);
+            }
+        });
+
+        NythEffects_SetErrorCallback([](const char* error) {
+            std::lock_guard<std::mutex> instanceLock(g_instanceMutex);
+            if (g_moduleInstance) {
+                g_moduleInstance->handleError(std::string(error));
+            }
+        });
+
+        NythEffects_SetStateChangeCallback([](NythEffectsState oldState, NythEffectsState newState) {
+            std::lock_guard<std::mutex> instanceLock(g_instanceMutex);
+            if (g_moduleInstance) {
+                g_moduleInstance->handleStateChange(oldState, newState);
+            }
+        });
+
     } catch (const std::exception& e) {
         handleError(std::string("Initialization failed: ") + e.what());
+        throw jsi::JSError(rt, std::string("Failed to initialize audio effects: ") + e.what());
     }
 }
 
@@ -700,16 +894,58 @@ jsi::Value NativeAudioEffectsModule::createEffect(jsi::Runtime& rt, const jsi::O
 
     try {
         auto nativeConfig = parseEffectConfig(rt, config);
-        int effectId = NythEffects_CreateEffect(&nativeConfig);
 
-        if (effectId >= 0) {
-            return jsi::Value(effectId);
+        // Créer l'effet directement dans notre module
+        std::unique_ptr<AudioFX::IAudioEffect> effect;
+
+        switch (nativeConfig.type) {
+            case EFFECT_TYPE_COMPRESSOR: {
+                auto compressor = std::make_unique<AudioFX::CompressorEffect>();
+                compressor->setParameters(nativeConfig.config.compressor.thresholdDb,
+                                          nativeConfig.config.compressor.ratio, nativeConfig.config.compressor.attackMs,
+                                          nativeConfig.config.compressor.releaseMs,
+                                          nativeConfig.config.compressor.makeupDb);
+                compressor->setSampleRate(currentSampleRate_, currentChannels_);
+                compressor->setEnabled(nativeConfig.enabled);
+                effect = std::move(compressor);
+                break;
+            }
+            case EFFECT_TYPE_DELAY: {
+                auto delay = std::make_unique<AudioFX::DelayEffect>();
+                delay->setParameters(nativeConfig.config.delay.delayMs, nativeConfig.config.delay.feedback,
+                                     nativeConfig.config.delay.mix);
+                delay->setSampleRate(currentSampleRate_, currentChannels_);
+                delay->setEnabled(nativeConfig.enabled);
+                effect = std::move(delay);
+                break;
+            }
+            default:
+                throw jsi::JSError(rt, "Unknown effect type");
         }
+
+        // Générer un ID unique
+        int effectId = nextEffectId_++;
+
+        // Ajouter l'effet à notre map locale
+        activeEffects_[effectId] = std::move(effect);
+
+        // Ajouter aussi à la chaîne d'effets si elle existe
+        if (effectChain_) {
+            // Note: effectChain_ ne supporte pas l'ajout dynamique après création
+            // Il faudrait recréer la chaîne ou implémenter une méthode addEffect
+            // Pour l'instant, on garde l'effet dans activeEffects_ pour un traitement manuel
+        }
+
+        // Appeler aussi l'API C pour la compatibilité
+        nativeConfig.effectId = effectId;
+        int cEffectId = NythEffects_CreateEffect(&nativeConfig);
+
+        return jsi::Value(effectId);
+
     } catch (const std::exception& e) {
         handleError(std::string("Create effect failed: ") + e.what());
+        throw jsi::JSError(rt, std::string("Failed to create effect: ") + e.what());
     }
-
-    return jsi::Value(-1);
 }
 
 jsi::Value NativeAudioEffectsModule::destroyEffect(jsi::Runtime& rt, int effectId) {
@@ -783,9 +1019,9 @@ jsi::Value NativeAudioEffectsModule::getActiveEffectIds(jsi::Runtime& rt) {
     return effectIdsToJS(rt, effectIds);
 }
 
-jsi::Value NativeAudioEffectsModule::setCompressorParameters(jsi::Runtime& rt, int effectId,
-                                                            float thresholdDb, float ratio,
-                                                            float attackMs, float releaseMs, float makeupDb) {
+jsi::Value NativeAudioEffectsModule::setCompressorParameters(jsi::Runtime& rt, int effectId, float thresholdDb,
+                                                             float ratio, float attackMs, float releaseMs,
+                                                             float makeupDb) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     if (NythEffects_SetCompressorParameters(effectId, thresholdDb, ratio, attackMs, releaseMs, makeupDb)) {
@@ -812,8 +1048,8 @@ jsi::Value NativeAudioEffectsModule::getCompressorParameters(jsi::Runtime& rt, i
     return jsi::Value::null();
 }
 
-jsi::Value NativeAudioEffectsModule::setDelayParameters(jsi::Runtime& rt, int effectId,
-                                                       float delayMs, float feedback, float mix) {
+jsi::Value NativeAudioEffectsModule::setDelayParameters(jsi::Runtime& rt, int effectId, float delayMs, float feedback,
+                                                        float mix) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     if (NythEffects_SetDelayParameters(effectId, delayMs, feedback, mix)) {
@@ -862,9 +1098,8 @@ jsi::Value NativeAudioEffectsModule::processAudio(jsi::Runtime& rt, const jsi::A
     return jsi::Value::null();
 }
 
-jsi::Value NativeAudioEffectsModule::processAudioStereo(jsi::Runtime& rt,
-                                                       const jsi::Array& inputL,
-                                                       const jsi::Array& inputR) {
+jsi::Value NativeAudioEffectsModule::processAudioStereo(jsi::Runtime& rt, const jsi::Array& inputL,
+                                                        const jsi::Array& inputR) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     size_t frameCount = inputL.length(rt);
@@ -883,8 +1118,8 @@ jsi::Value NativeAudioEffectsModule::processAudioStereo(jsi::Runtime& rt,
         inputRBuffer[i] = static_cast<float>(inputR.getValueAtIndex(rt, i).asNumber());
     }
 
-    if (NythEffects_ProcessAudioStereo(inputLBuffer.data(), inputRBuffer.data(),
-                                      outputLBuffer.data(), outputRBuffer.data(), frameCount)) {
+    if (NythEffects_ProcessAudioStereo(inputLBuffer.data(), inputRBuffer.data(), outputLBuffer.data(),
+                                       outputRBuffer.data(), frameCount)) {
         // Convertir les résultats en objet JSI
         jsi::Object result(rt);
         jsi::Array resultL(rt, frameCount);
@@ -913,43 +1148,40 @@ jsi::Value NativeAudioEffectsModule::getOutputLevel(jsi::Runtime& rt) {
 
 jsi::Value NativeAudioEffectsModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "audioDataCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    // Stocker le callback et le runtime
+    jsCallbacks_.audioDataCallback.function = std::make_shared<jsi::Function>(callback.getFunction(rt));
+    jsCallbacks_.audioDataCallback.runtime = &rt;
+    runtime_ = &rt; // Stocker aussi une référence globale au runtime
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioEffectsModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "errorCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    // Stocker le callback et le runtime
+    jsCallbacks_.errorCallback.function = std::make_shared<jsi::Function>(callback.getFunction(rt));
+    jsCallbacks_.errorCallback.runtime = &rt;
+    runtime_ = &rt; // Stocker aussi une référence globale au runtime
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioEffectsModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "stateChangeCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    // Stocker le callback et le runtime
+    jsCallbacks_.stateChangeCallback.function = std::make_shared<jsi::Function>(callback.getFunction(rt));
+    jsCallbacks_.stateChangeCallback.runtime = &rt;
+    runtime_ = &rt; // Stocker aussi une référence globale au runtime
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioEffectsModule::install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker) {
     // Installation directe du module dans le runtime JSI
     // À implémenter selon les besoins
+    jsInvoker_ = jsInvoker;
     return jsi::Value(true);
 }
 
 // === Fonction d'enregistrement du module ===
-std::shared_ptr<TurboModule> NativeAudioEffectsModuleProvider(
-    std::shared_ptr<CallInvoker> jsInvoker) {
+std::shared_ptr<TurboModule> NativeAudioEffectsModuleProvider(std::shared_ptr<CallInvoker> jsInvoker) {
     return std::make_shared<NativeAudioEffectsModule>(jsInvoker);
 }
 

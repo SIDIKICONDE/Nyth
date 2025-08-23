@@ -2,18 +2,18 @@
 
 // Includes conditionnels pour la compatibilité
 #if defined(__has_include)
-  #if __has_include(<NythJSI.h>)
-    #include <NythJSI.h>
-  #endif
+#if __has_include(<NythJSI.h>)
+#include <NythJSI.h>
+#endif
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
 
 // Vérification de la disponibilité de TurboModule
-#if defined(__has_include) && \
-    __has_include(<ReactCommon/TurboModule.h>) && \
+#if defined(__has_include) && __has_include(<ReactCommon/TurboModule.h>) && \
     __has_include(<ReactCommon/TurboModuleUtils.h>)
 #define NYTH_AUDIO_EFFECTS_ENABLED 1
 #else
@@ -26,11 +26,7 @@ extern "C" {
 #endif
 
 // === Types d'effets ===
-typedef enum {
-    EFFECT_TYPE_COMPRESSOR = 0,
-    EFFECT_TYPE_DELAY,
-    EFFECT_TYPE_UNKNOWN
-} NythEffectType;
+typedef enum { EFFECT_TYPE_COMPRESSOR = 0, EFFECT_TYPE_DELAY, EFFECT_TYPE_UNKNOWN } NythEffectType;
 
 // === État des effets ===
 typedef enum {
@@ -102,10 +98,10 @@ const int* NythEffects_GetActiveEffectIds(size_t* count);
 // === Configuration des effets spécifiques ===
 
 // Compresseur
-bool NythEffects_SetCompressorParameters(int effectId, float thresholdDb, float ratio,
-                                       float attackMs, float releaseMs, float makeupDb);
-bool NythEffects_GetCompressorParameters(int effectId, float* thresholdDb, float* ratio,
-                                       float* attackMs, float* releaseMs, float* makeupDb);
+bool NythEffects_SetCompressorParameters(int effectId, float thresholdDb, float ratio, float attackMs, float releaseMs,
+                                         float makeupDb);
+bool NythEffects_GetCompressorParameters(int effectId, float* thresholdDb, float* ratio, float* attackMs,
+                                         float* releaseMs, float* makeupDb);
 
 // Délai
 bool NythEffects_SetDelayParameters(int effectId, float delayMs, float feedback, float mix);
@@ -113,8 +109,8 @@ bool NythEffects_GetDelayParameters(int effectId, float* delayMs, float* feedbac
 
 // === Traitement audio ===
 bool NythEffects_ProcessAudio(const float* input, float* output, size_t frameCount, int channels);
-bool NythEffects_ProcessAudioStereo(const float* inputL, const float* inputR,
-                                   float* outputL, float* outputR, size_t frameCount);
+bool NythEffects_ProcessAudioStereo(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                    size_t frameCount);
 
 // === Analyse audio ===
 float NythEffects_GetInputLevel(void);
@@ -137,27 +133,29 @@ void NythEffects_SetStateChangeCallback(NythEffectsStateChangeCallback callback)
 #if NYTH_AUDIO_EFFECTS_ENABLED && defined(__cplusplus)
 
 // Includes C++ nécessaires pour TurboModule
-#include <string>
-#include <memory>
 #include <functional>
-#include <vector>
 #include <map>
+#include <memory>
+#include <string>
+#include <vector>
 
-#include <jsi/jsi.h>
+
+#include "Audio/effects/EffectBase.hpp"
+#include "Audio/effects/EffectChain.hpp"
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
-#include "Audio/effects/EffectChain.hpp"
-#include "Audio/effects/EffectBase.hpp"
-#include <mutex>
 #include <atomic>
+#include <jsi/jsi.h>
+#include <mutex>
 #include <queue>
+
 
 // Forward declarations for Nyth namespace
 namespace Nyth {
 namespace Audio {
-    class IAudioEffect;
+class IAudioEffect;
 }
-}
+} // namespace Nyth
 
 namespace facebook {
 namespace react {
@@ -165,7 +163,7 @@ namespace react {
 class JSI_EXPORT NativeAudioEffectsModule : public TurboModule {
 public:
     explicit NativeAudioEffectsModule(std::shared_ptr<CallInvoker> jsInvoker)
-        : TurboModule("NativeAudioEffectsModule", jsInvoker) {}
+        : TurboModule("NativeAudioEffectsModule", jsInvoker), jsInvoker_(jsInvoker) {}
     ~NativeAudioEffectsModule() override;
 
     // === Méthodes TurboModule ===
@@ -197,17 +195,15 @@ public:
     jsi::Value getActiveEffectIds(jsi::Runtime& rt);
 
     // Configuration des effets spécifiques
-    jsi::Value setCompressorParameters(jsi::Runtime& rt, int effectId, float thresholdDb,
-                                     float ratio, float attackMs, float releaseMs, float makeupDb);
+    jsi::Value setCompressorParameters(jsi::Runtime& rt, int effectId, float thresholdDb, float ratio, float attackMs,
+                                       float releaseMs, float makeupDb);
     jsi::Value getCompressorParameters(jsi::Runtime& rt, int effectId);
-    jsi::Value setDelayParameters(jsi::Runtime& rt, int effectId, float delayMs,
-                                float feedback, float mix);
+    jsi::Value setDelayParameters(jsi::Runtime& rt, int effectId, float delayMs, float feedback, float mix);
     jsi::Value getDelayParameters(jsi::Runtime& rt, int effectId);
 
     // Traitement audio
     jsi::Value processAudio(jsi::Runtime& rt, const jsi::Array& input, int channels);
-    jsi::Value processAudioStereo(jsi::Runtime& rt, const jsi::Array& inputL,
-                                const jsi::Array& inputR);
+    jsi::Value processAudioStereo(jsi::Runtime& rt, const jsi::Array& inputL, const jsi::Array& inputR);
 
     // Analyse audio
     jsi::Value getInputLevel(jsi::Runtime& rt);
@@ -229,11 +225,22 @@ private:
     mutable std::mutex effectsMutex_;
     mutable std::mutex callbackMutex_;
 
-    // Callbacks JavaScript
+    // JSInvoker pour l'exécution sur le thread JS
+    std::shared_ptr<CallInvoker> jsInvoker_;
+
+    // Runtime reference (weak to avoid circular dependency)
+    jsi::Runtime* runtime_ = nullptr;
+
+    // Callbacks JavaScript avec runtime
+    struct CallbackInfo {
+        std::shared_ptr<jsi::Function> function;
+        jsi::Runtime* runtime = nullptr;
+    };
+
     struct {
-        std::shared_ptr<jsi::Function> audioDataCallback;
-        std::shared_ptr<jsi::Function> errorCallback;
-        std::shared_ptr<jsi::Function> stateChangeCallback;
+        CallbackInfo audioDataCallback;
+        CallbackInfo errorCallback;
+        CallbackInfo stateChangeCallback;
     } jsCallbacks_;
 
     // Configuration actuelle
@@ -272,8 +279,7 @@ private:
 };
 
 // === Fonction d'enregistrement du module ===
-JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioEffectsModuleProvider(
-    std::shared_ptr<CallInvoker> jsInvoker);
+JSI_EXPORT std::shared_ptr<TurboModule> NativeAudioEffectsModuleProvider(std::shared_ptr<CallInvoker> jsInvoker);
 
 } // namespace react
 } // namespace facebook
