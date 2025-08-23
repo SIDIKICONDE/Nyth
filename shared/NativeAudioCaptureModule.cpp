@@ -7,6 +7,7 @@
 #include "Audio/capture/AudioFileWriter.hpp"
 #include <chrono>
 #include <sstream>
+#include <cmath>
 
 namespace {
 class VectorBuffer : public facebook::jsi::MutableBuffer {
@@ -25,7 +26,7 @@ private:
 } // namespace
 
 // === Instance globale pour l'API C ===
-static std::unique_ptr<Audio::capture::AudioCapture> g_captureInstance;
+static std::shared_ptr<Audio::capture::AudioCapture> g_captureInstance;
 static std::unique_ptr<Nyth::Audio::AudioRecorder> g_recorderInstance;
 static std::mutex g_globalMutex;
 
@@ -47,7 +48,8 @@ bool NythCapture_Initialize(const NythCaptureConfig* config) {
     nativeConfig.enableNoiseSuppression = config->enableNoiseSuppression;
     nativeConfig.enableAutoGainControl = config->enableAutoGainControl;
 
-    g_captureInstance = Audio::capture::AudioCapture::create(nativeConfig);
+    auto uniqueCapture = Audio::capture::AudioCapture::create(nativeConfig);
+    g_captureInstance = std::shared_ptr<Audio::capture::AudioCapture>(std::move(uniqueCapture));
     return g_captureInstance != nullptr;
 }
 
@@ -208,8 +210,7 @@ bool NythCapture_StartRecording(const char* filePath) {
     writerConfig.bitsPerSample = g_captureInstance->getConfig().bitsPerSample;
 
     g_recorderInstance = std::make_unique<Nyth::Audio::AudioRecorder>();
-    if (g_recorderInstance->initialize(std::shared_ptr<Audio::capture::AudioCapture>(g_captureInstance.get()),
-                                       writerConfig)) {
+    if (g_recorderInstance->initialize(g_captureInstance, writerConfig)) {
         return g_recorderInstance->startRecording();
     }
 
@@ -255,7 +256,14 @@ float NythCapture_GetRecordingDuration(void) {
 
 uint64_t NythCapture_GetRecordingSize(void) {
     std::lock_guard<std::mutex> lock(g_globalMutex);
-    return g_recorderInstance ? g_recorderInstance->getFramesRecorded() * 2 : 0; // Approximation
+    if (!g_recorderInstance || !g_captureInstance) {
+        return 0;
+    }
+    const auto cfg = g_captureInstance->getConfig();
+    const uint64_t bytesPerSample = static_cast<uint64_t>(cfg.bitsPerSample / 8);
+    const uint64_t channels = static_cast<uint64_t>(cfg.channelCount);
+    const uint64_t frames = static_cast<uint64_t>(g_recorderInstance->getFramesRecorded());
+    return frames * channels * bytesPerSample;
 }
 
 // === Callbacks C ===
@@ -685,8 +693,9 @@ jsi::Value NativeAudioCaptureModule::getRecordingInfo(jsi::Runtime& rt) {
 
 jsi::Value NativeAudioCaptureModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
+    runtime_ = &rt;
 
-    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(callback);
 
     if (capture_) {
         capture_->setAudioDataCallback([this](const float* data, size_t frameCount, int channels) {
@@ -699,8 +708,9 @@ jsi::Value NativeAudioCaptureModule::setAudioDataCallback(jsi::Runtime& rt, cons
 
 jsi::Value NativeAudioCaptureModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
+    runtime_ = &rt;
 
-    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(callback);
 
     if (capture_) {
         capture_->setErrorCallback([this](const std::string& error) { handleError(error); });
@@ -711,8 +721,9 @@ jsi::Value NativeAudioCaptureModule::setErrorCallback(jsi::Runtime& rt, const js
 
 jsi::Value NativeAudioCaptureModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
+    runtime_ = &rt;
 
-    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(callback);
 
     if (capture_) {
         capture_->setStateChangeCallback(
@@ -727,8 +738,9 @@ jsi::Value NativeAudioCaptureModule::setStateChangeCallback(jsi::Runtime& rt, co
 jsi::Value NativeAudioCaptureModule::setAnalysisCallback(jsi::Runtime& rt, const jsi::Function& callback,
                                                          double intervalMs) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
+    runtime_ = &rt;
 
-    jsCallbacks_.analysisCallback = std::make_shared<jsi::Function>(std::move(const_cast<jsi::Function&>(callback)));
+    jsCallbacks_.analysisCallback = std::make_shared<jsi::Function>(callback);
     analysisIntervalMs_ = intervalMs;
 
     // Démarrer le thread d'analyse
@@ -742,7 +754,10 @@ jsi::Value NativeAudioCaptureModule::setAnalysisCallback(jsi::Runtime& rt, const
 // === Méthodes privées ===
 
 void NativeAudioCaptureModule::initializeCapture(const Audio::capture::AudioCaptureConfig& config) {
-    capture_ = std::shared_ptr<Audio::capture::AudioCapture>(Audio::capture::AudioCapture::create(config).release());
+    {
+    auto uniqueCapture = Audio::capture::AudioCapture::create(config);
+    capture_ = std::shared_ptr<Audio::capture::AudioCapture>(std::move(uniqueCapture));
+}
 
     if (capture_) {
         // Configurer les callbacks si déjà définis
@@ -970,11 +985,15 @@ jsi::Array NativeAudioCaptureModule::devicesToJS(jsi::Runtime& rt,
     return jsDevices;
 }
 
-void NativeAudioCaptureModule::invokeJSCallback(const std::string& callbackName,
-                                                std::function<void(jsi::Runtime&)> invocation) {
-    if (jsInvoker_) {
-        jsInvoker_->invokeAsync(std::move(invocation));
+void NativeAudioCaptureModule::invokeJSCallback(const std::string& /*callbackName*/,
+                                               std::function<void(jsi::Runtime&)> invocation) {
+    if (!jsInvoker_ || runtime_ == nullptr) {
+        return;
     }
+    auto runtimePtr = runtime_;
+    jsInvoker_->invokeAsync([invocation = std::move(invocation), runtimePtr]() mutable {
+        invocation(*runtimePtr);
+    });
 }
 
 // === Méthodes utilitaires ===
@@ -1001,6 +1020,7 @@ jsi::Value NativeAudioCaptureModule::analyzeAudioFile(jsi::Runtime& rt, const js
 
 jsi::Value NativeAudioCaptureModule::install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker) {
     auto module = std::make_shared<NativeAudioCaptureModule>(jsInvoker);
+    module->runtime_ = &rt;
 
     auto object = jsi::Object(rt);
 
