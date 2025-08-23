@@ -27,25 +27,14 @@
 //    }
 // }
 
-// Note: React Native includes commented out to avoid compilation issues
-// The modules are properly configured in CMakeLists.txt for compilation
-/*
 #include <DefaultComponentsRegistry.h>
 #include <DefaultTurboModuleManagerDelegate.h>
 #include <autolinking.h>
 #include <fbjni/fbjni.h>
 #include <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>
 #include <rncore.h>
-*/
 
-// Standard C++ includes for basic functionality
-#include <memory>
-#include <string>
-#include <functional>
-
-// Note: Custom TurboModule includes commented out due to path resolution issues
-// Only the essential modules are included to avoid compilation errors
-/*
+// Custom TurboModule includes
 #include "../../../../../../shared/NativeAudioEffectsModule.h"
 #include "../../../../../../shared/NativeAudioNoiseModule.h"
 #include "../../../../../../shared/NativeAudioSafetyModule.h"
@@ -63,11 +52,6 @@
 #include REACT_NATIVE_APP_COMPONENT_DESCRIPTORS_HEADER
 #endif
 
-// Note: TurboModule registration commented out due to React Native compatibility issues
-// The NativeAudioSpectrumModule is properly configured in CMakeLists.txt for compilation
-// TODO: Re-enable when React Native configuration is resolved
-
-/*
 namespace facebook::react {
 
 void registerComponents(
@@ -99,10 +83,6 @@ std::shared_ptr<TurboModule> cxxModuleProvider(
   // }
 
   // Register custom TurboModules
-  if (name == facebook::react::NativeAudioEqualizerModule::kModuleName) {
-    return std::make_shared<facebook::react::NativeAudioEqualizerModule>(jsInvoker);
-  }
-
   if (name == facebook::react::NativeAudioEffectsModule::kModuleName) {
     return std::make_shared<facebook::react::NativeAudioEffectsModule>(jsInvoker);
   }
@@ -142,10 +122,7 @@ std::shared_ptr<TurboModule> cxxModuleProvider(
   // And we fallback to the CXX module providers autolinked
   return autolinking_cxxModuleProvider(name, jsInvoker);
 }
-*/
 
-// Note: javaModuleProvider commented out due to React Native compatibility issues
-/*
 std::shared_ptr<TurboModule> javaModuleProvider(
     const std::string& name,
     const JavaTurboModule::InitParams& params) {
@@ -181,10 +158,7 @@ std::shared_ptr<TurboModule> javaModuleProvider(
 }
 
 } // namespace facebook::react
-*/
 
-// Note: JNI_OnLoad commented out due to React Native compatibility issues
-/*
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
   return facebook::jni::initialize(vm, [] {
     facebook::react::DefaultTurboModuleManagerDelegate::cxxModuleProvider =
@@ -196,4 +170,3 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
             &facebook::react::registerComponents;
   });
 }
-*/

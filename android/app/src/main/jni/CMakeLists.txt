@@ -245,13 +245,10 @@ endif()
 
 #Audio System C++ 20 Sources
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    ../../../../../shared/NativeAudioEqualizerModule.cpp
     ../../../../../shared/NativeAudioCaptureModule.cpp
     ../../../../../shared/NativeAudioSpectrumModule.cpp
     ../../../../../shared/NativeAudioCoreModule.cpp
     ../../../../../shared/Audio/fft/FFTEngine.hpp
-    ../../../../../shared/Audio/core/AudioEqualizer.cpp
-    ../../../../../shared/Audio/core/AudioEqualizerTemplates.hpp
     ../../../../../shared/Audio/core/BiquadFilter.cpp
     ../../../../../shared/Audio/core/EQBand.hpp
     ../../../../../shared/Audio/core/EQPreset.hpp

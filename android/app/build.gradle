@@ -108,6 +108,14 @@ android {
         }
     }
     
+    // Configuration pour compiler les modules natifs C++
+    externalNativeBuild {
+        cmake {
+            path "src/main/jni/CMakeLists.txt"
+            version "3.18.1"
+        }
+    }
+    
     // Activer la séparation par architecture pour réduire la taille
     splits {
         abi {
