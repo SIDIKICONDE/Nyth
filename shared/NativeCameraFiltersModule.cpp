@@ -26,11 +26,13 @@ static NaayaAdvancedFilterParams g_naaya_filters_advanced_params = {
   0.0  // grain
 };
 #if NAAYA_CAMERA_FILTERS_ENABLED
+#include "filters/common/FilterTypes.hpp"
 #include "filters/FilterManager.hpp"
 #include "filters/FilterFactory.hpp"
 #include "filters/FFmpegFilterProcessor.hpp"
 #include "filters/ProductionConfig.hpp"
 #include "filters/ProductionSetup.hpp"
+#include "filters/OpenGLFilterProcessor.hpp"
 #include <iostream>
 
 namespace facebook::react {
@@ -772,47 +774,8 @@ bool NativeCameraFiltersModule::setCacheSize(jsi::Runtime& rt, double sizeInMB) 
 
 } // namespace facebook::react
 
-
-#endif // NAAYA_CAMERA_FILTERS_ENABLED
-
-// Implémentation de l'API C minimale pour l'accès Objective-C (toujours dispo)
-extern "C" bool NaayaFilters_HasFilter();
-extern "C" const char* NaayaFilters_GetCurrentName();
-extern "C" double NaayaFilters_GetCurrentIntensity();
-extern "C" bool NaayaFilters_GetAdvancedParams(NaayaAdvancedFilterParams* outParams);
-
-extern "C" bool NaayaFilters_HasFilter() {
-  std::lock_guard<std::mutex> lock(g_naaya_filters_mutex);
-  return g_naaya_filters_hasFilter;
-}
-
-extern "C" const char* NaayaFilters_GetCurrentName() {
-  std::lock_guard<std::mutex> lock(g_naaya_filters_mutex);
-  return g_naaya_filters_name.c_str();
-}
-
-extern "C" double NaayaFilters_GetCurrentIntensity() {
-  std::lock_guard<std::mutex> lock(g_naaya_filters_mutex);
-  return g_naaya_filters_intensity;
-}
-
-extern "C" bool NaayaFilters_GetAdvancedParams(NaayaAdvancedFilterParams* outParams) {
-  if (!outParams) return false;
-  std::lock_guard<std::mutex> lock(g_naaya_filters_mutex);
-  *outParams = g_naaya_filters_advanced_params;
-  return true;
-}
-
 // === API de traitement FFmpeg pour iOS ===
 // Traite un buffer BGRA via FFmpeg si disponible
-extern "C" bool NaayaFilters_ProcessBGRA(const uint8_t* inData,
-                                         int inStride,
-                                         int width,
-                                         int height,
-                                         double fps,
-                                         uint8_t* outData,
-                                         int outStride);
-
 extern "C" bool NaayaFilters_ProcessBGRA(const uint8_t* inData,
                                          int inStride,
                                          int width,
@@ -909,4 +872,34 @@ extern "C" bool NaayaFilters_ProcessBGRA(const uint8_t* inData,
                                               outData,
                                               outStride);
   return ok;
+}
+
+#endif // NAAYA_CAMERA_FILTERS_ENABLED
+
+// Implémentation de l'API C minimale pour l'accès Objective-C (toujours dispo)
+extern "C" bool NaayaFilters_HasFilter();
+extern "C" const char* NaayaFilters_GetCurrentName();
+extern "C" double NaayaFilters_GetCurrentIntensity();
+extern "C" bool NaayaFilters_GetAdvancedParams(NaayaAdvancedFilterParams* outParams);
+
+extern "C" bool NaayaFilters_HasFilter() {
+  std::lock_guard<std::mutex> lock(g_naaya_filters_mutex);
+  return g_naaya_filters_hasFilter;
+}
+
+extern "C" const char* NaayaFilters_GetCurrentName() {
+  std::lock_guard<std::mutex> lock(g_naaya_filters_mutex);
+  return g_naaya_filters_name.c_str();
+}
+
+extern "C" double NaayaFilters_GetCurrentIntensity() {
+  std::lock_guard<std::mutex> lock(g_naaya_filters_mutex);
+  return g_naaya_filters_intensity;
+}
+
+extern "C" bool NaayaFilters_GetAdvancedParams(NaayaAdvancedFilterParams* outParams) {
+  if (!outParams) return false;
+  std::lock_guard<std::mutex> lock(g_naaya_filters_mutex);
+  *outParams = g_naaya_filters_advanced_params;
+  return true;
 }

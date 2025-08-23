@@ -311,7 +311,7 @@ jsi::Value NativeAudioCaptureModule::resume(jsi::Runtime& rt) {
     return jsi::Value(success);
 }
 
-jsi::Value NativeAudioCaptureModule::release(jsi::Runtime& rt) {
+jsi::Value NativeAudioCaptureModule::dispose(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(captureMutex_);
     
     if (capture_) {

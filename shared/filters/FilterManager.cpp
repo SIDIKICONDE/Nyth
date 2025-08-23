@@ -1,4 +1,5 @@
 #include "FilterManager.hpp"
+#include <iostream>
 #include <cstdio>
 #include <algorithm>
 #include <cstring>
@@ -60,8 +61,8 @@ FilterManager::FilterManager() {
     threadPool_ = std::make_unique<ThreadPool>(numThreads);
     parallelBuffers_.resize(numThreads);
 
-    // Initialiser le gestionnaire de mémoire
-    memoryManager_ = std::make_unique<MemoryManager>();
+    // Utiliser l'instance singleton du gestionnaire de mémoire
+    memoryManager_ = &MemoryManager::getInstance();
 }
 
 FilterManager::~FilterManager() {

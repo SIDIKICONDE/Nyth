@@ -11,6 +11,7 @@ import Animated, {
   withTiming,
   runOnJS,
   withSequence,
+  interpolate,
 } from 'react-native-reanimated';
 
 // Hooks et contextes
@@ -65,7 +66,9 @@ export default function AudioFolderCard({
 
   const glowStyle = useAnimatedStyle(() => ({
     opacity: glowOpacity.value,
-    transform: [{ scale: 1.05 }],
+    transform: [
+      { scale: interpolate(glowOpacity.value, [0, 0.3], [1, 1.05]) },
+    ],
   }));
 
   // Gestion des animations avec micro-interactions

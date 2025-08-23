@@ -178,7 +178,7 @@ private:
     mutable std::vector<std::vector<uint8_t>> parallelBuffers_;
 
     // Gestionnaire de mémoire
-    std::unique_ptr<MemoryManager> memoryManager_;
+    MemoryManager* memoryManager_; // Singleton instance
 
     // Performance monitoring
     mutable bool profilingEnabled_{false};

@@ -57,94 +57,87 @@ export default function UltraModernUI({
   const { currentTheme } = useTheme();
   const { t } = useTranslation();
 
-  // Animations pour les éléments flottants
-  const [floatingAnimations] = useState([
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-  ]);
+  // Skia animations - valeurs animées natives Skia
+  const clock = useClockValue();
+  const particleClock = useClockValue();
 
-  // Animation des particules
-  const [particleAnimations] = useState(
-    Array.from({ length: 20 }, () => ({
-      x: new Animated.Value(Math.random() * width),
-      y: new Animated.Value(Math.random() * height),
-      scale: new Animated.Value(Math.random() * 0.5 + 0.5),
-      opacity: new Animated.Value(Math.random() * 0.7 + 0.3),
-    })),
-  );
+  // Valeurs Skia pour les animations des éléments flottants
+  const floatingProgress1 = useValue(0);
+  const floatingProgress2 = useValue(0);
+  const floatingProgress3 = useValue(0);
 
-  useEffect(() => {
-    // Animation des éléments flottants
-    const floatingAnimation = () => {
-      floatingAnimations.forEach((animation, index) => {
-        Animated.sequence([
-          Animated.timing(animation, {
-            toValue: 1,
-            duration: 3000 + index * 500,
-            easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
-            useNativeDriver: true,
-          }),
-          Animated.timing(animation, {
-            toValue: 0,
-            duration: 3000 + index * 500,
-            easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
-            useNativeDriver: true,
-          }),
-        ]).start();
-      });
-    };
+  // Valeurs Skia pour les particules avec animations avancées
+  const particlesCount = 30; // Augmenté pour plus d'effet
+  const particlePositions = Array.from({ length: particlesCount }, (_, index) => ({
+    x: useValue(Math.random() * width),
+    y: useValue(Math.random() * height),
+    scale: useValue(Math.random() * 0.8 + 0.4),
+    opacity: useValue(Math.random() * 0.6 + 0.2),
+    phase: useValue(index * (Math.PI * 2) / particlesCount),
+  }));
 
-    // Animation des particules
-    const particleAnimation = () => {
-      particleAnimations.forEach((particle, index) => {
-        const animate = () => {
-          Animated.parallel([
-            Animated.timing(particle.x, {
-              toValue: Math.random() * width,
-              duration: 8000 + Math.random() * 4000,
-              easing: Easing.linear,
-              useNativeDriver: true,
-            }),
-            Animated.timing(particle.y, {
-              toValue: Math.random() * height,
-              duration: 8000 + Math.random() * 4000,
-              easing: Easing.linear,
-              useNativeDriver: true,
-            }),
-            Animated.timing(particle.scale, {
-              toValue: Math.random() * 0.8 + 0.2,
-              duration: 4000 + Math.random() * 2000,
-              easing: Easing.elastic(1),
-              useNativeDriver: true,
-            }),
-            Animated.timing(particle.opacity, {
-              toValue: Math.random() * 0.6 + 0.2,
-              duration: 3000 + Math.random() * 2000,
-              easing: Easing.sin,
-              useNativeDriver: true,
-            }),
-          ]).start(() => {
-            setTimeout(animate, Math.random() * 5000);
-          });
-        };
-        setTimeout(animate, index * 200);
-      });
-    };
+  // Animation globale de pulse avec Skia
+  const globalPulse = useValue(1);
+  const glowIntensity = useValue(0.5);
 
-    floatingAnimation();
-    if (showParticles) particleAnimation();
+  // Animations Skia computed pour les éléments flottants
+  const floatingElement1Transform = useComputedValue(() => {
+    const progress = floatingProgress1.current;
+    const translateY = -20 * Math.sin(progress * Math.PI * 2);
+    const rotate = 5 * Math.sin(progress * Math.PI * 2);
+    const scale = 0.8 + 0.2 * Math.sin(progress * Math.PI * 2);
+    return [{ translateY }, { rotate: `${rotate}deg` }, { scale }];
+  }, [floatingProgress1]);
 
-    return () => {
-      floatingAnimations.forEach(animation => animation.stopAnimation());
-      particleAnimations.forEach(particle => {
-        particle.x.stopAnimation();
-        particle.y.stopAnimation();
-        particle.scale.stopAnimation();
-        particle.opacity.stopAnimation();
-      });
-    };
-  }, [floatingAnimations, particleAnimations, showParticles]);
+  const floatingElement2Transform = useComputedValue(() => {
+    const progress = floatingProgress2.current;
+    const translateY = -15 * Math.sin(progress * Math.PI * 2);
+    const scale = 0.8 + 0.3 * Math.sin(progress * Math.PI * 2 + Math.PI/4);
+    return [{ translateY }, { scale }];
+  }, [floatingProgress2]);
+
+  const floatingElement3Transform = useComputedValue(() => {
+    const progress = floatingProgress3.current;
+    const translateX = 10 * Math.sin(progress * Math.PI * 2);
+    const rotate = -8 * Math.sin(progress * Math.PI * 2 + Math.PI/2);
+    return [{ translateX }, { rotate: `${rotate}deg` }];
+  }, [floatingProgress3]);
+
+  // Animation frame callback pour les mises à jour Skia
+  useFrameCallback((frameInfo) => {
+    const time = frameInfo.timeSinceFirstFrame / 1000; // en secondes
+
+    // Animations des éléments flottants avec Skia
+    floatingProgress1.current = (time / 4) % 1; // 4 secondes par cycle
+    floatingProgress2.current = (time / 3.5) % 1; // 3.5 secondes par cycle
+    floatingProgress3.current = (time / 4.5) % 1; // 4.5 secondes par cycle
+
+    // Animation globale de pulse
+    globalPulse.current = 1 + 0.02 * Math.sin(time * 2);
+
+    // Animation de glow
+    glowIntensity.current = 0.3 + 0.5 * Math.sin(time * 0.5);
+  });
+
+  // Animation des particules avec Skia
+  useFrameCallback((frameInfo) => {
+    const time = frameInfo.timeSinceFirstFrame / 1000;
+
+    particlePositions.forEach((particle, index) => {
+      const phase = particle.phase.current;
+      const speed = 0.5 + (index / particlesCount) * 0.5; // Vitesse variable
+
+      // Animation fluide avec sinusoïdes
+      particle.x.current = (width / 2) + Math.sin(time * speed + phase) * (width * 0.4);
+      particle.y.current = (height / 2) + Math.cos(time * speed * 0.7 + phase) * (height * 0.3);
+
+      // Animation d'échelle organique
+      particle.scale.current = 0.4 + 0.4 * Math.sin(time * 2 + phase * 2) + 0.2;
+
+      // Animation d'opacité avec fade
+      particle.opacity.current = 0.3 + 0.4 * Math.sin(time * 1.5 + phase * 3) + 0.3;
+    });
+  }, [particleClock, showParticles]);
 
   return (
     <View style={tw`flex-1`}>
@@ -315,64 +308,102 @@ function LoadingSpinner() {
 }
 
 // Composant de particules ultra-moderne avec Skia
+// Composant UltraModernParticles optimisé avec Skia
 function UltraModernParticles({
-  count = 25,
-  colors = ['#3B82F6', '#8B5CF6', '#EF4444', '#10B981'],
+  count = 30,
+  colors = ['#3B82F6', '#8B5CF6', '#EF4444', '#10B981', '#F59E0B'],
 }: {
   count?: number;
   colors?: string[];
 }) {
   const clock = useClockValue();
+  const { currentTheme } = useTheme();
 
-  // Générer des positions initiales aléatoires
+  // Générer des particules avec animations Skia natives
   const particles = Array.from({ length: count }, (_, i) => {
-    const x = Math.random() * Dimensions.get('window').width;
-    const y = Math.random() * Dimensions.get('window').height;
+    const phase = (i / count) * Math.PI * 2;
     const color = colors[i % colors.length];
 
     return {
       id: i,
-      x,
-      y,
+      phase,
       color,
-      // Animation individuelle pour chaque particule
-      animation: useDerivedValue(() => {
+      // Animation Skia dérivée avec physique avancée
+      animation: useComputedValue(() => {
         const time = clock.current * 0.001;
-        const offset = i * 0.1;
-        const wave1 = Math.sin(time + offset) * 2;
-        const wave2 = Math.cos(time * 0.7 + offset * 2) * 1.5;
-        const wave3 = Math.sin(time * 0.3 + offset * 3) * 3;
+        const speed = 0.3 + (i / count) * 0.4;
+        const radius = 120 + Math.sin(time * 0.5 + phase) * 40;
 
-        return {
-          x: x + wave1 + wave2,
-          y: y + wave2 + wave3,
-          scale: 0.5 + Math.sin(time * 2 + offset) * 0.3,
-          opacity: 0.3 + Math.sin(time * 1.5 + offset * 1.5) * 0.4,
-        };
-      }, [clock, x, y]),
+        // Mouvement orbital fluide
+        const x = (width / 2) + Math.cos(time * speed + phase) * radius;
+        const y = (height / 2) + Math.sin(time * speed * 0.7 + phase) * (radius * 0.6);
+
+        // Animation d'échelle avec rebonds
+        const scale = 0.6 + 0.4 * Math.sin(time * 2 + phase * 2) + 0.2;
+
+        // Animation d'opacité avec fade organique
+        const opacity = 0.25 + 0.45 * Math.sin(time * 1.2 + phase * 3) + 0.3;
+
+        return { x, y, scale, opacity };
+      }, [clock]),
     };
   });
 
   return (
     <Canvas style={tw`absolute inset-0`}>
       {particles.map(particle => (
-        <Circle
-          key={particle.id}
-          cx={particle.animation.current.x}
-          cy={particle.animation.current.y}
-          r={3 * particle.animation.current.scale}
-          opacity={particle.animation.current.opacity}
-        >
-          <RadialGradient
-            c={vec(particle.animation.current.x, particle.animation.current.y)}
-            r={6}
-            colors={[
-              particle.color + 'A0',
-              particle.color + '40',
-              'transparent',
-            ]}
-          />
-        </Circle>
+        <Group key={particle.id}>
+          {/* Particule principale avec gradient radial */}
+          <Circle
+            cx={particle.animation.current.x}
+            cy={particle.animation.current.y}
+            r={4 * particle.animation.current.scale}
+          >
+            <RadialGradient
+              c={vec(particle.animation.current.x, particle.animation.current.y)}
+              r={8 * particle.animation.current.scale}
+              colors={[
+                particle.color + 'E0',
+                particle.color + '80',
+                particle.color + '20',
+                'transparent',
+              ]}
+              positions={[0, 0.4, 0.7, 1]}
+            />
+          </Circle>
+
+          {/* Aura lumineuse autour de la particule */}
+          <Circle
+            cx={particle.animation.current.x}
+            cy={particle.animation.current.y}
+            r={12 * particle.animation.current.scale}
+            opacity={particle.animation.current.opacity * 0.3}
+          >
+            <RadialGradient
+              c={vec(particle.animation.current.x, particle.animation.current.y)}
+              r={16 * particle.animation.current.scale}
+              colors={[
+                particle.color + '40',
+                particle.color + '10',
+                'transparent',
+              ]}
+            />
+          </Circle>
+
+          {/* Traînée subtile */}
+          <Circle
+            cx={particle.animation.current.x - 6}
+            cy={particle.animation.current.y - 6}
+            r={2 * particle.animation.current.scale}
+            opacity={particle.animation.current.opacity * 0.5}
+          >
+            <RadialGradient
+              c={vec(particle.animation.current.x - 6, particle.animation.current.y - 6)}
+              r={4 * particle.animation.current.scale}
+              colors={[particle.color + '60', 'transparent']}
+            />
+          </Circle>
+        </Group>
       ))}
     </Canvas>
   );

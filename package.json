@@ -119,21 +119,22 @@
     "resolve.exports": "^2.0.3",
     "typescript": "^5.9.2"
   },
-  "engines": {
-    "codegenConfig": {
-      "name": "Nyth",
-      "type": "modules",
-      "jsSrcsDir": "specs",
-      "android": {
-        "javaPackageName": "com.nyth.specs"
-      },
-      "ios": {
-        "modulesProvider": {
-          "NativeCameraFiltersModule": "NativeCameraFiltersModuleProvider",
-          "NativeAudioEqualizerModule": "NativeAudioEqualizerModuleProvider",
-          "NativeAudioCaptureModule": "NativeAudioCaptureModuleProvider"
-        }
+  "codegenConfig": {
+    "name": "Nyth",
+    "type": "modules",
+    "jsSrcsDir": "specs",
+    "android": {
+      "javaPackageName": "com.nyth.specs"
+    },
+    "ios": {
+      "modulesProvider": {
+        "NativeCameraFiltersModule": "NativeCameraFiltersModuleProvider",
+        "NativeAudioEqualizerModule": "NativeAudioEqualizerModuleProvider",
+        "NativeAudioCaptureModule": "NativeAudioCaptureModuleProvider"
       }
     }
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

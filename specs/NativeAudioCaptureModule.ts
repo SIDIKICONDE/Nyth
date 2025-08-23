@@ -66,7 +66,7 @@ export interface AudioAnalysis {
 // === Callbacks types ===
 
 export type AudioDataCallback = (
-  data: Float32Array,
+  data: number[],
   frameCount: number,
   channels: number,
 ) => void;
@@ -103,7 +103,7 @@ export interface Spec extends TurboModule {
   readonly resume: () => boolean;
 
   // Libère toutes les ressources
-  readonly release: () => void;
+  readonly dispose: () => void;
 
   // === État et informations ===
 
@@ -168,8 +168,8 @@ export interface Spec extends TurboModule {
   // Vérifie si les permissions sont accordées
   readonly hasPermission: () => boolean;
 
-  // Demande les permissions nécessaires (retourne une Promise)
-  readonly requestPermission: () => Promise<boolean>;
+  // Demande les permissions nécessaires
+  readonly requestPermission: (callback: PermissionCallback) => void;
 
   // === Enregistrement ===
 
@@ -215,15 +215,15 @@ export interface Spec extends TurboModule {
 
   // Convertit des données audio entre différents formats
   readonly convertAudioFormat: (params: {
-    input: ArrayBuffer;
+    input: number[];
     inputFormat: 'int16' | 'int32' | 'float32';
     outputFormat: 'int16' | 'int32' | 'float32';
     sampleRate?: number;
     channels?: number;
-  }) => ArrayBuffer;
+  }) => number[];
 
   // Analyse un fichier audio existant
-  readonly analyzeAudioFile: (filePath: string) => Promise<{
+  readonly analyzeAudioFile: (filePath: string, callback: (result: {
     duration: number;
     sampleRate: number;
     channels: number;
@@ -232,7 +232,7 @@ export interface Spec extends TurboModule {
     averageLevel: number;
     peakLevel: number;
     hasClipping: boolean;
-  }>;
+  }) => void) => void;
 
   // === Installation du module (pour JSI direct) ===
 

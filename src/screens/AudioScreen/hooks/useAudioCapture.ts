@@ -57,9 +57,12 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
 
       // Vérifier les permissions sur mobile
       if (Platform.OS !== 'web') {
-        const permissionGranted =
-          await NativeAudioCaptureModule.requestPermission();
-        setHasPermission(permissionGranted);
+        const permissionGranted = await new Promise<boolean>((resolve) => {
+          NativeAudioCaptureModule.requestPermission((granted) => {
+            setHasPermission(granted);
+            resolve(granted);
+          });
+        });
 
         if (!permissionGranted) {
           Alert.alert(
@@ -231,11 +234,12 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
     async (filePath: string) => {
       try {
         logger.debug('📊 Analyse du fichier audio:', filePath);
-        const analysis = await NativeAudioCaptureModule.analyzeAudioFile(
-          filePath,
-        );
-        logger.debug('✅ Analyse terminée:', analysis);
-        return analysis;
+        return new Promise((resolve, reject) => {
+          NativeAudioCaptureModule.analyzeAudioFile(filePath, (analysis) => {
+            logger.debug('✅ Analyse terminée:', analysis);
+            resolve(analysis);
+          });
+        });
       } catch (error) {
         logger.error("❌ Erreur lors de l'analyse:", error);
         onError?.(String(error));
@@ -257,7 +261,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
         NativeAudioCaptureModule.stopRecording();
       }
 
-      NativeAudioCaptureModule.release();
+      NativeAudioCaptureModule.dispose();
       setIsInitialized(false);
       setIsRecording(false);
       setIsPaused(false);

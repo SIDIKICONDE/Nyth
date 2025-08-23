@@ -1,7 +1,27 @@
 #include "FilterFactory.hpp"
 #include "FFmpegFilterProcessor.hpp"
 #include "OpenGLFilterProcessor.hpp"
+#include <iostream>
 #include <cstdio>
+#include <sstream>
+
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#endif
+
+// Fonction de logging compatible iOS
+inline void logFilterFactory(const std::string& message) {
+#ifdef TARGET_OS_IOS
+    // Pour iOS, on peut utiliser NSLog ou simplement ignorer
+    // NSLog(@"[FilterFactory] %s", message.c_str());
+    (void)message; // Supprime l'avertissement de paramètre non utilisé
+#else
+    std::cout << "[FilterFactory] " << message << std::endl;
+#endif
+}
+
+// Macro helper pour les messages avec flux
+#define LOG_FILTER_FACTORY(msg) do { std::stringstream ss; ss << msg; logFilterFactory(ss.str()); } while(0)
 
 namespace Camera {
 
@@ -18,31 +38,31 @@ std::shared_ptr<IFilterProcessor> FilterFactory::createProcessor(ProcessorType t
 
         case ProcessorType::CUSTOM:
             // FFmpeg obligatoire pour les processeurs personnalisés
-            std::cout << "[FilterFactory] Processeur CUSTOM - utilisation FFmpeg obligatoire" << std::endl;
+            LOG_FILTER_FACTORY("Processeur CUSTOM - utilisation FFmpeg obligatoire");
             return createFFmpegProcessor();
 
         default:
-            std::cout << "[FilterFactory] Type de processeur inconnu - utilisation FFmpeg obligatoire" << std::endl;
+            LOG_FILTER_FACTORY("Type de processeur inconnu - utilisation FFmpeg obligatoire");
             return createFFmpegProcessor();
     }
 }
 
 std::shared_ptr<IFilterProcessor> FilterFactory::createFFmpegProcessor() {
-    std::cout << "[FilterFactory] Création du processeur FFmpeg" << std::endl;
+    LOG_FILTER_FACTORY("Création du processeur FFmpeg");
     return std::make_shared<FFmpegFilterProcessor>();
 }
 
 
 
 std::shared_ptr<IFilterProcessor> FilterFactory::createOpenGLProcessor() {
-    std::cout << "[FilterFactory] Création du processeur OpenGL" << std::endl;
+    LOG_FILTER_FACTORY("Création du processeur OpenGL");
 
     auto processor = std::make_shared<OpenGLFilterProcessor>();
     if (processor && processor->initialize()) {
-        std::cout << "[FilterFactory] Processeur OpenGL créé avec succès" << std::endl;
+        LOG_FILTER_FACTORY("Processeur OpenGL créé avec succès");
         return processor;
     } else {
-        std::cout << "[FilterFactory] Échec création OpenGL - fallback vers FFmpeg" << std::endl;
+        LOG_FILTER_FACTORY("Échec création OpenGL - fallback vers FFmpeg");
         return createFFmpegProcessor();
     }
 }
@@ -85,9 +105,9 @@ bool FilterFactory::isProcessorTypeAvailable(ProcessorType type) {
 void FilterFactory::setDefaultProcessor(ProcessorType type) {
     if (isProcessorTypeAvailable(type)) {
         defaultProcessor_ = type;
-        std::cout << "[FilterFactory] Processeur par défaut défini: " << static_cast<int>(type) << std::endl;
+        LOG_FILTER_FACTORY("Processeur par défaut défini: " << static_cast<int>(type));
     } else {
-        std::cout << "[FilterFactory] Processeur non disponible: " << static_cast<int>(type) << std::endl;
+        LOG_FILTER_FACTORY("Processeur non disponible: " << static_cast<int>(type));
     }
 }
 

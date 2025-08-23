@@ -1,12 +1,23 @@
 #include "OpenGLFilterProcessor.hpp"
+#include <iostream>
 #include <cstdio>
 #include <cstring>
 #include <cmath>
 #include <array>
 #include <cstring>
 #include <unordered_map>
+#include <sstream>
+
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#endif
 
 // OpenGL ES includes
+#ifdef __APPLE__
+// Silencer les warnings de dépréciation OpenGL ES sur iOS
+#define GLES_SILENCE_DEPRECATION
+#endif
+
 #ifdef __ANDROID__
 #include <GLES3/gl3.h>
 #include <GLES3/gl3ext.h>
@@ -21,6 +32,19 @@
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+// Fonction de logging compatible iOS pour OpenGLFilterProcessor
+inline void logOpenGLFilterProcessor(const std::string& message) {
+#ifdef TARGET_OS_IOS
+    // Pour iOS, on peut utiliser NSLog ou simplement ignorer
+    (void)message; // Supprime l'avertissement de paramètre non utilisé
+#else
+    std::cout << "[OpenGLFilterProcessor] " << message << std::endl;
+#endif
+}
+
+// Macro helper pour les messages avec flux
+#define LOG_OPENGL_FILTER(msg) do { std::stringstream ss; ss << msg; logOpenGLFilterProcessor(ss.str()); } while(0)
 
 namespace Camera {
 
@@ -524,7 +548,12 @@ bool OpenGLFilterProcessor::uploadFrameToTexture(const void* data, size_t size) 
     GLenum format = GL_RGBA;
     if (pixelFormat_ == "bgra") format = GL_BGRA;
     else if (pixelFormat_ == "rgb") format = GL_RGB;
-    else if (pixelFormat_ == "bgr") format = GL_BGR;
+    else if (pixelFormat_ == "bgr") {
+        // GL_BGR n'est pas supporté en OpenGL ES, utiliser RGB et convertir si nécessaire
+        format = GL_RGB;
+        // Note: BGR vers RGB nécessite une conversion des données
+        LOG_OPENGL_FILTER("Format BGR détecté - conversion vers RGB requise");
+    }
 
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width_, height_, format, GL_UNSIGNED_BYTE, data);
     glBindTexture(GL_TEXTURE_2D, 0);

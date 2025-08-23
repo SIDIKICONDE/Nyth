@@ -135,8 +135,8 @@ export class AudioCapture {
   /**
    * Libère toutes les ressources
    */
-  release(): void {
-    NativeAudioCaptureModule.release();
+  dispose(): void {
+    NativeAudioCaptureModule.dispose();
     this.isInitialized = false;
   }
 

@@ -16,6 +16,7 @@ import Svg, {
 } from 'react-native-svg';
 import Animated, {
   useAnimatedProps,
+  useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
@@ -48,6 +49,9 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
 }) => {
   const { currentTheme } = useTheme();
   const animatedValues = useRef<Animated.SharedValue<number>[]>([]);
+
+  // Animation pour l'effet de glow
+  const glowIntensity = useSharedValue(0.5);
   
   // Initialiser les valeurs animées
   useEffect(() => {
@@ -73,7 +77,14 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
         }
       }
     });
-  }, [data, animate]);
+
+    // Calculer l'intensité moyenne du spectre pour l'effet de glow
+    const avgMagnitude = data.magnitudes.reduce((sum, mag) => sum + mag, 0) / data.magnitudes.length;
+    glowIntensity.value = withSpring(Math.max(0.3, Math.min(1, avgMagnitude * 1.5)), {
+      damping: 20,
+      stiffness: 100
+    });
+  }, [data, animate, glowIntensity]);
 
   // Calculer les dimensions des barres
   const barWidth = useMemo(() => {
@@ -87,6 +98,12 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
       ? ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
       : ['#FF416C', '#FF4B2B', '#C33764', '#F77062'];
   }, [currentTheme.isDark]);
+
+  // Style animé pour l'effet de glow
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(glowIntensity.value, [0.3, 1], [0.05, 0.15]),
+    transform: [{ scale: interpolate(glowIntensity.value, [0.3, 1], [0.8, 1.2]) }],
+  }));
 
   // Rendu des barres
   const renderBars = () => {
@@ -194,14 +211,14 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
         </G>
       </Svg>
       
-      {/* Effet de brillance */}
-      <View 
+      {/* Effet de brillance animé */}
+      <Animated.View
         style={[
           styles.glowEffect,
           {
             backgroundColor: currentTheme.colors.primary,
-            opacity: currentTheme.isDark ? 0.1 : 0.05
-          }
+          },
+          glowStyle
         ]}
         pointerEvents="none"
       />

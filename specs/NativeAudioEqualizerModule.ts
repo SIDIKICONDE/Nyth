@@ -125,8 +125,6 @@ export interface Spec extends TurboModule {
 }
 
 
-const _directAudioModule = TurboModuleRegistry.getEnforcing<Spec>('NativeAudioEqualizerModule');
-
 let _nativeAudioModule: Spec | null = null;
 const getNativeAudioModule = (): Spec => {
   if (!_nativeAudioModule) {

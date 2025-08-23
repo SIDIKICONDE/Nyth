@@ -1,6 +1,8 @@
 #include "NativeAudioEqualizerModule.h"
 #include <atomic>
 #include <mutex>
+#include <algorithm>
+#include <iostream>
 
 // === API C globale (accessible depuis ObjC/Java) pour l'état EQ par défaut ===
 // Ces symboles existent toujours (stubs si NAAYA_AUDIO_EQ_ENABLED=0)
@@ -186,21 +188,22 @@ size_t NaayaAudioSpectrumCopyMagnitudes(float* outBuffer, size_t maxCount);
 namespace facebook {
 namespace react {
 
-NativeAudioEqualizerModule::NativeAudioEqualizerModule(std::shared_ptr<CallInvoker> jsInvoker)
-    : TurboModule("NativeAudioEqualizerModule", jsInvoker)
-    , m_nextEqualizerId(1)
+// Pure C++17 implementation without JSI dependencies
+NativeAudioEqualizerModule::NativeAudioEqualizerModule()
+    : m_nextEqualizerId(1)
     , defaultEqualizerId_(0)
     , bypassed_(true)
     , currentPresetName_("flat")
     , analysisRunning_(false) {
-    
-    // Register methods
-    methodMap_["createEqualizer"] = MethodMetadata{2, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
-        auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
-        return self.createEqualizer(rt, args[0].asNumber(), args[1].asNumber());
-    }};
-    
-    methodMap_["destroyEqualizer"] = MethodMetadata{1, [](jsi::Runtime& rt, TurboModule& turboModule, const jsi::Value* args, size_t count) -> jsi::Value {
+
+    std::cout << "[NativeAudioEqualizerModule] C++17 constructor completed" << std::endl;
+}
+
+NativeAudioEqualizerModule::~NativeAudioEqualizerModule() {
+    std::cout << "[NativeAudioEqualizerModule] C++17 destructor" << std::endl;
+}
+
+int32_t NativeAudioEqualizerModule::createEqualizer(size_t numBands, double sampleRate) {
         auto& self = static_cast<NativeAudioEqualizerModule&>(turboModule);
         self.destroyEqualizer(rt, args[0].asNumber());
         return jsi::Value::undefined();
@@ -1034,7 +1037,7 @@ void NativeAudioEqualizerModule::endParameterUpdate(jsi::Runtime& rt, double equ
 }
 
 // Helper methods
-AudioEqualizer::AudioEqualizer* NativeAudioEqualizerModule::getEqualizer(int32_t equalizerId) {
+AudioFX::AudioEqualizer* NativeAudioEqualizerModule::getEqualizer(int32_t equalizerId) {
     std::lock_guard<std::mutex> lock(m_equalizersMutex);
     
     auto it = m_equalizers.find(equalizerId);
@@ -1045,31 +1048,31 @@ AudioEqualizer::AudioEqualizer* NativeAudioEqualizerModule::getEqualizer(int32_t
     return nullptr;
 }
 
-AudioEqualizer::FilterType NativeAudioEqualizerModule::jsNumberToFilterType(double type) {
+AudioFX::FilterType NativeAudioEqualizerModule::jsNumberToFilterType(double type) {
     int typeInt = static_cast<int>(type);
     switch (typeInt) {
-        case 0: return AudioEqualizer::FilterType::LOWPASS;
-        case 1: return AudioEqualizer::FilterType::HIGHPASS;
-        case 2: return AudioEqualizer::FilterType::BANDPASS;
-        case 3: return AudioEqualizer::FilterType::NOTCH;
-        case 4: return AudioEqualizer::FilterType::PEAK;
-        case 5: return AudioEqualizer::FilterType::LOWSHELF;
-        case 6: return AudioEqualizer::FilterType::HIGHSHELF;
-        case 7: return AudioEqualizer::FilterType::ALLPASS;
-        default: return AudioEqualizer::FilterType::PEAK;
+        case 0: return AudioFX::FilterType::LOWPASS;
+        case 1: return AudioFX::FilterType::HIGHPASS;
+        case 2: return AudioFX::FilterType::BANDPASS;
+        case 3: return AudioFX::FilterType::NOTCH;
+        case 4: return AudioFX::FilterType::PEAK;
+        case 5: return AudioFX::FilterType::LOWSHELF;
+        case 6: return AudioFX::FilterType::HIGHSHELF;
+        case 7: return AudioFX::FilterType::ALLPASS;
+        default: return AudioFX::FilterType::PEAK;
     }
 }
 
-double NativeAudioEqualizerModule::filterTypeToJsNumber(AudioEqualizer::FilterType type) {
+double NativeAudioEqualizerModule::filterTypeToJsNumber(AudioFX::FilterType type) {
     switch (type) {
-        case AudioEqualizer::FilterType::LOWPASS: return 0.0;
-        case AudioEqualizer::FilterType::HIGHPASS: return 1.0;
-        case AudioEqualizer::FilterType::BANDPASS: return 2.0;
-        case AudioEqualizer::FilterType::NOTCH: return 3.0;
-        case AudioEqualizer::FilterType::PEAK: return 4.0;
-        case AudioEqualizer::FilterType::LOWSHELF: return 5.0;
-        case AudioEqualizer::FilterType::HIGHSHELF: return 6.0;
-        case AudioEqualizer::FilterType::ALLPASS: return 7.0;
+        case AudioFX::FilterType::LOWPASS: return 0.0;
+        case AudioFX::FilterType::HIGHPASS: return 1.0;
+        case AudioFX::FilterType::BANDPASS: return 2.0;
+        case AudioFX::FilterType::NOTCH: return 3.0;
+        case AudioFX::FilterType::PEAK: return 4.0;
+        case AudioFX::FilterType::LOWSHELF: return 5.0;
+        case AudioFX::FilterType::HIGHSHELF: return 6.0;
+        case AudioFX::FilterType::ALLPASS: return 7.0;
         default: return 4.0;
     }
 }
@@ -1099,6 +1102,15 @@ jsi::Object NativeAudioEqualizerModule::floatVectorToJsArray(jsi::Runtime& rt, c
     }
     
     return array;
+}
+
+// Helper methods implementations
+AudioFX::FilterType NativeAudioEqualizerModule::intToFilterType(int type) {
+    return jsNumberToFilterType(static_cast<double>(type));
+}
+
+int NativeAudioEqualizerModule::filterTypeToInt(AudioFX::FilterType type) {
+    return static_cast<int>(filterTypeToJsNumber(type));
 }
 
 } // namespace react

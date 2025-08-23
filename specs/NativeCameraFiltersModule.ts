@@ -198,7 +198,6 @@ export interface Spec extends TurboModule {
 }
 
 
-const _directCameraModule = TurboModuleRegistry.getEnforcing<Spec>('NativeCameraFiltersModule');
 let _nativeCameraModule: Spec | null = null;
 const getNativeCameraModule = (): Spec => {
   if (!_nativeCameraModule) {

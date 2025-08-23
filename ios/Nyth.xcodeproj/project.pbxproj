@@ -13,17 +13,16 @@
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		EAD25BD3403910B8C726EA19 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
-		FF2000012F5A6B8C0099AABB /* libavcodec.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = FF1000012F5A6B8C0099AABB /* libavcodec.xcframework */; };
+		FF2000012F5A6B8C0099AABB /* BuildFile in Frameworks */ = {isa = PBXBuildFile; };
 		SA2000012F5A6B8C0099AABB /* AudioEqualizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000012F5A6B8C0099AABB /* AudioEqualizer.cpp */; };
 		SA2000022F5A6B8C0099AABB /* BiquadFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000032F5A6B8C0099AABB /* BiquadFilter.cpp */; };
-		SA2000092F5A6B8C0099AABB /* EQPresetFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000072F5A6B8C0099AABB /* EQPresetFactory.cpp */; };
 		SA2000032F5A6B8C0099AABB /* NoiseReducer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000092F5A6B8C0099AABB /* NoiseReducer.cpp */; };
 		SA2000042F5A6B8C0099AABB /* RNNoiseSuppressor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000112F5A6B8C0099AABB /* RNNoiseSuppressor.cpp */; };
 		SA2000052F5A6B8C0099AABB /* SpectralNR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000132F5A6B8C0099AABB /* SpectralNR.cpp */; };
 		SA2000062F5A6B8C0099AABB /* AudioSafety.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000152F5A6B8C0099AABB /* AudioSafety.cpp */; };
 		SA2000072F5A6B8C0099AABB /* AudioBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000172F5A6B8C0099AABB /* AudioBuffer.cpp */; };
 		SA2000082F5A6B8C0099AABB /* NativeAudioEqualizerModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000202F5A6B8C0099AABB /* NativeAudioEqualizerModule.cpp */; };
-		SF2000012F5A6B8C0099AABB /* FFmpegFilterProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000032F5A6B8C0099AABB /* FFmpegFilterProcessor.cpp */; };
+		SA2000092F5A6B8C0099AABB /* EQPresetFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000072F5A6B8C0099AABB /* EQPresetFactory.cpp */; };
 		SF2000022F5A6B8C0099AABB /* FilterFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000052F5A6B8C0099AABB /* FilterFactory.cpp */; };
 		SF2000032F5A6B8C0099AABB /* FilterManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000072F5A6B8C0099AABB /* FilterManager.cpp */; };
 		SF2000052F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000102F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp */; };
@@ -31,7 +30,6 @@
 		SF2000072F5A6B8C0099AABB /* MemoryManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000142F5A6B8C0099AABB /* MemoryManager.cpp */; };
 		SF2000082F5A6B8C0099AABB /* ProductionConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SF1000152F5A6B8C0099AABB /* ProductionConfig.cpp */; };
 		SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */; };
-		SP2000022F5A6B8C0099AABB /* integrated_audio_example.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SP1000032F5A6B8C0099AABB /* integrated_audio_example.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,18 +46,8 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Nyth/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Nyth/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		FF1000012F5A6B8C0099AABB /* libavcodec.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libavcodec.xcframework; path = FFmpeg/libavcodec.xcframework; sourceTree = "<group>"; };
-		FF1000022F5A6B8C0099AABB /* libavfilter.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libavfilter.xcframework; path = FFmpeg/libavfilter.xcframework; sourceTree = "<group>"; };
-		FF1000032F5A6B8C0099AABB /* libavformat.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libavformat.xcframework; path = FFmpeg/libavformat.xcframework; sourceTree = "<group>"; };
-		FF1000042F5A6B8C0099AABB /* libavutil.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libavutil.xcframework; path = FFmpeg/libavutil.xcframework; sourceTree = "<group>"; };
-		FF1000052F5A6B8C0099AABB /* libswresample.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libswresample.xcframework; path = FFmpeg/libswresample.xcframework; sourceTree = "<group>"; };
-		FF1000062F5A6B8C0099AABB /* libswscale.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libswscale.xcframework; path = FFmpeg/libswscale.xcframework; sourceTree = "<group>"; };
 		SA1000012F5A6B8C0099AABB /* AudioEqualizer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioEqualizer.cpp; path = ../shared/Audio/core/AudioEqualizer.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000022F5A6B8C0099AABB /* EQBand.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = EQBand.hpp; path = ../shared/Audio/core/EQBand.hpp; sourceTree = SOURCE_ROOT; };
 		SA1000032F5A6B8C0099AABB /* BiquadFilter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = BiquadFilter.cpp; path = ../shared/Audio/core/BiquadFilter.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000042F5A6B8C0099AABB /* EQPreset.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = EQPreset.hpp; path = ../shared/Audio/core/EQPreset.hpp; sourceTree = SOURCE_ROOT; };
-		SA1000052F5A6B8C0099AABB /* AudioEqualizerTemplates.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioEqualizerTemplates.hpp; path = ../shared/Audio/core/AudioEqualizerTemplates.hpp; sourceTree = SOURCE_ROOT; };
-		SA1000062F5A6B8C0099AABB /* EQPresetFactory.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = EQPresetFactory.hpp; path = ../shared/Audio/core/EQPresetFactory.hpp; sourceTree = SOURCE_ROOT; };
 		SA1000072F5A6B8C0099AABB /* EQPresetFactory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EQPresetFactory.cpp; path = ../shared/Audio/core/EQPresetFactory.cpp; sourceTree = SOURCE_ROOT; };
 		SA1000092F5A6B8C0099AABB /* NoiseReducer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NoiseReducer.cpp; path = ../shared/Audio/noise/NoiseReducer.cpp; sourceTree = SOURCE_ROOT; };
 		SA1000112F5A6B8C0099AABB /* RNNoiseSuppressor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = RNNoiseSuppressor.cpp; path = ../shared/Audio/noise/RNNoiseSuppressor.cpp; sourceTree = SOURCE_ROOT; };
@@ -67,21 +55,13 @@
 		SA1000152F5A6B8C0099AABB /* AudioSafety.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioSafety.cpp; path = ../shared/Audio/safety/AudioSafety.cpp; sourceTree = SOURCE_ROOT; };
 		SA1000172F5A6B8C0099AABB /* AudioBuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioBuffer.cpp; path = ../shared/Audio/utils/AudioBuffer.cpp; sourceTree = SOURCE_ROOT; };
 		SA1000202F5A6B8C0099AABB /* NativeAudioEqualizerModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeAudioEqualizerModule.cpp; path = ../shared/NativeAudioEqualizerModule.cpp; sourceTree = SOURCE_ROOT; };
-		SF1000032F5A6B8C0099AABB /* FFmpegFilterProcessor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FFmpegFilterProcessor.cpp; path = ../shared/filters/FFmpegFilterProcessor.cpp; sourceTree = SOURCE_ROOT; };
 		SF1000052F5A6B8C0099AABB /* FilterFactory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FilterFactory.cpp; path = ../shared/filters/FilterFactory.cpp; sourceTree = SOURCE_ROOT; };
 		SF1000072F5A6B8C0099AABB /* FilterManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FilterManager.cpp; path = ../shared/filters/FilterManager.cpp; sourceTree = SOURCE_ROOT; };
 		SF1000102F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeCameraFiltersModule.cpp; path = ../shared/NativeCameraFiltersModule.cpp; sourceTree = SOURCE_ROOT; };
-		SF1000112F5A6B8C0099AABB /* OpenGLFilterProcessor.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = OpenGLFilterProcessor.hpp; path = ../shared/filters/OpenGLFilterProcessor.hpp; sourceTree = SOURCE_ROOT; };
 		SF1000122F5A6B8C0099AABB /* OpenGLFilterProcessor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OpenGLFilterProcessor.cpp; path = ../shared/filters/OpenGLFilterProcessor.cpp; sourceTree = SOURCE_ROOT; };
-		SF1000132F5A6B8C0099AABB /* MemoryManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = MemoryManager.hpp; path = ../shared/filters/MemoryManager.hpp; sourceTree = SOURCE_ROOT; };
 		SF1000142F5A6B8C0099AABB /* MemoryManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryManager.cpp; path = ../shared/filters/MemoryManager.cpp; sourceTree = SOURCE_ROOT; };
 		SF1000152F5A6B8C0099AABB /* ProductionConfig.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ProductionConfig.cpp; path = ../shared/filters/ProductionConfig.cpp; sourceTree = SOURCE_ROOT; };
-		SP1000012F5A6B8C0099AABB /* AudioPipeline.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioPipeline.hpp; path = ../shared/Audio/AudioPipeline.hpp; sourceTree = SOURCE_ROOT; };
 		SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioPipeline.cpp; path = ../shared/Audio/AudioPipeline.cpp; sourceTree = SOURCE_ROOT; };
-		SP1000032F5A6B8C0099AABB /* integrated_audio_example.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = integrated_audio_example.cpp; path = ../shared/Audio/examples/integrated_audio_example.cpp; sourceTree = SOURCE_ROOT; };
-		SP1000042F5A6B8C0099AABB /* AudioCaptureException.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCaptureException.hpp; path = ../shared/Audio/capture/AudioCaptureException.hpp; sourceTree = SOURCE_ROOT; };
-		SP1000052F5A6B8C0099AABB /* AudioCaptureMetrics.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCaptureMetrics.hpp; path = ../shared/Audio/capture/AudioCaptureMetrics.hpp; sourceTree = SOURCE_ROOT; };
-		SP1000062F5A6B8C0099AABB /* AudioCaptureSIMD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioCaptureSIMD.hpp; path = ../shared/Audio/capture/AudioCaptureSIMD.hpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,7 +70,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2CD21A4F6CC75A4E0927DFA1 /* Pods_Nyth.framework in Frameworks */,
-				FF2000012F5A6B8C0099AABB /* libavcodec.xcframework in Frameworks */,
+				FF2000012F5A6B8C0099AABB /* BuildFile in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -116,12 +96,6 @@
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				7109FE2993414209DDFB9998 /* Pods_Nyth.framework */,
-				FF1000012F5A6B8C0099AABB /* libavcodec.xcframework */,
-				FF1000022F5A6B8C0099AABB /* libavfilter.xcframework */,
-				FF1000032F5A6B8C0099AABB /* libavformat.xcframework */,
-				FF1000042F5A6B8C0099AABB /* libavutil.xcframework */,
-				FF1000052F5A6B8C0099AABB /* libswresample.xcframework */,
-				FF1000062F5A6B8C0099AABB /* libswscale.xcframework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -338,7 +312,6 @@
 				SA2000062F5A6B8C0099AABB /* AudioSafety.cpp in Sources */,
 				SA2000072F5A6B8C0099AABB /* AudioBuffer.cpp in Sources */,
 				SA2000082F5A6B8C0099AABB /* NativeAudioEqualizerModule.cpp in Sources */,
-				SF2000012F5A6B8C0099AABB /* FFmpegFilterProcessor.cpp in Sources */,
 				SF2000022F5A6B8C0099AABB /* FilterFactory.cpp in Sources */,
 				SF2000032F5A6B8C0099AABB /* FilterManager.cpp in Sources */,
 				SF2000052F5A6B8C0099AABB /* NativeCameraFiltersModule.cpp in Sources */,
@@ -346,7 +319,6 @@
 				SF2000072F5A6B8C0099AABB /* MemoryManager.cpp in Sources */,
 				SF2000082F5A6B8C0099AABB /* ProductionConfig.cpp in Sources */,
 				SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */,
-				SP2000022F5A6B8C0099AABB /* integrated_audio_example.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -361,12 +333,11 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = NO;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				// GCC_PREFIX_HEADER = "$(SRCROOT)/../shared/pch.hpp"; // DESACTIVE
 				CODE_SIGN_ENTITLEMENTS = Nyth/Nyth.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8GNN55S9HG;
 				ENABLE_BITCODE = NO;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				INFOPLIST_FILE = Nyth/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Nyth;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -375,22 +346,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"\"$(SRCROOT)/FFmpeg/libavfilter.xcframework/ios-arm64\"",
-					"\"$(SRCROOT)/FFmpeg/libavformat.xcframework/ios-arm64\"",
-					"\"$(SRCROOT)/FFmpeg/libavutil.xcframework/ios-arm64\"",
-					"\"$(SRCROOT)/FFmpeg/libswresample.xcframework/ios-arm64\"",
-					"\"$(SRCROOT)/FFmpeg/libswscale.xcframework/ios-arm64\"",
-				);
-				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = (
-					"$(inherited)",
-					"\"$(SRCROOT)/FFmpeg/libavfilter.xcframework/ios-arm64-simulator\"",
-					"\"$(SRCROOT)/FFmpeg/libavformat.xcframework/ios-arm64-simulator\"",
-					"\"$(SRCROOT)/FFmpeg/libavutil.xcframework/ios-arm64-simulator\"",
-					"\"$(SRCROOT)/FFmpeg/libswresample.xcframework/ios-arm64-simulator\"",
-					"\"$(SRCROOT)/FFmpeg/libswscale.xcframework/ios-arm64-simulator\"",
-				);
+				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = "$(inherited)";
+				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(inherited)";
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
@@ -418,11 +375,10 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = NO;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				// GCC_PREFIX_HEADER = "$(SRCROOT)/../shared/pch.hpp"; // DESACTIVE
 				CODE_SIGN_ENTITLEMENTS = Nyth/NythRelease.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8GNN55S9HG;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				INFOPLIST_FILE = Nyth/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Nyth;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -431,22 +387,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"\"$(SRCROOT)/FFmpeg/libavfilter.xcframework/ios-arm64\"",
-					"\"$(SRCROOT)/FFmpeg/libavformat.xcframework/ios-arm64\"",
-					"\"$(SRCROOT)/FFmpeg/libavutil.xcframework/ios-arm64\"",
-					"\"$(SRCROOT)/FFmpeg/libswresample.xcframework/ios-arm64\"",
-					"\"$(SRCROOT)/FFmpeg/libswscale.xcframework/ios-arm64\"",
-				);
-				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = (
-					"$(inherited)",
-					"\"$(SRCROOT)/FFmpeg/libavfilter.xcframework/ios-arm64-simulator\"",
-					"\"$(SRCROOT)/FFmpeg/libavformat.xcframework/ios-arm64-simulator\"",
-					"\"$(SRCROOT)/FFmpeg/libavutil.xcframework/ios-arm64-simulator\"",
-					"\"$(SRCROOT)/FFmpeg/libswresample.xcframework/ios-arm64-simulator\"",
-					"\"$(SRCROOT)/FFmpeg/libswscale.xcframework/ios-arm64-simulator\"",
-				);
+				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = "$(inherited)";
+				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(inherited)";
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
@@ -524,12 +466,6 @@
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-NativeModulesApple/React_NativeModulesApple.framework/Headers",
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers",
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios",
-					"\"$(SRCROOT)/FFmpeg/libavutil.xcframework/**\"",
-					"\"$(SRCROOT)/FFmpeg/libavcodec.xcframework/**\"",
-					"\"$(SRCROOT)/FFmpeg/libavformat.xcframework/**\"",
-					"\"$(SRCROOT)/FFmpeg/libavfilter.xcframework/**\"",
-					"\"$(SRCROOT)/FFmpeg/libswresample.xcframework/**\"",
-					"\"$(SRCROOT)/FFmpeg/libswscale.xcframework/**\"",
 					"\"$(SRCROOT)/../shared\"",
 					"\"$(SRCROOT)/../shared/Audio/**\"",
 					"\"$(SRCROOT)/../shared/filters\"",
@@ -576,6 +512,8 @@
 					"-march=armv8-a+simd",
 					"-mcpu=apple-a12",
 					"-flto",
+					"-Wno-c++20-extensions",
+					"-Wno-c++2a-extensions",
 				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
@@ -636,12 +574,6 @@
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-NativeModulesApple/React_NativeModulesApple.framework/Headers",
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers",
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios",
-					"\"$(SRCROOT)/FFmpeg/libavutil.xcframework/**\"",
-					"\"$(SRCROOT)/FFmpeg/libavcodec.xcframework/**\"",
-					"\"$(SRCROOT)/FFmpeg/libavformat.xcframework/**\"",
-					"\"$(SRCROOT)/FFmpeg/libavfilter.xcframework/**\"",
-					"\"$(SRCROOT)/FFmpeg/libswresample.xcframework/**\"",
-					"\"$(SRCROOT)/FFmpeg/libswscale.xcframework/**\"",
 					"\"$(SRCROOT)/../shared\"",
 					"\"$(SRCROOT)/../shared/Audio/**\"",
 					"\"$(SRCROOT)/../shared/filters\"",
@@ -687,6 +619,8 @@
 					"-march=armv8-a+simd",
 					"-mcpu=apple-a12",
 					"-flto",
+					"-Wno-c++20-extensions",
+					"-Wno-c++2a-extensions",
 				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;

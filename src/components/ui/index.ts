@@ -71,3 +71,73 @@ export {
 
 // Exemple d'utilisation
 export { CentralizedFontExample } from "../examples/CentralizedFontExample";
+
+// 🆕 AMÉLIORATIONS UX
+
+// Tooltips informatifs pour les gestes
+export {
+  Tooltip,
+  GestureTooltip,
+  InfoTooltip,
+  DestructiveActionTooltip
+} from './Tooltip';
+
+// Indicateurs de progrès et états de chargement
+export {
+  ProgressBar,
+  LoadingIndicator,
+  StatusIndicator,
+  DownloadIndicator
+} from './ProgressIndicators';
+
+// Skeletons de chargement
+export {
+  Skeleton,
+  SkeletonBookItem,
+  SkeletonVideoItem,
+  SkeletonShelf,
+  SkeletonVideoShelf,
+  SkeletonLibrary
+} from './SkeletonLoading';
+
+// Exemple complet des améliorations UX
+export { UXImprovementsExample } from './UXImprovementsExample';
+
+// Variantes de composants BookItem
+export {
+  CompactBookItem,
+  InteractiveBookItem,
+  LoadingBookItem,
+  ListBookItem,
+  CardBookItem,
+  MiniBookItem,
+  ActionableBookItem,
+  FavoriteBookItem,
+  NewBookItem,
+  EditingBookItem,
+  createBookItemVariant,
+  useBookItemVariant
+} from '../home/library/BookItemVariants';
+
+// Variantes de composants VideoItem
+export {
+  CompactVideoItem,
+  InteractiveVideoItem,
+  LoadingVideoItem,
+  ListVideoItem,
+  CardVideoItem,
+  MiniVideoItem,
+  ActionableVideoItem,
+  RecentVideoItem,
+  DownloadingVideoItem,
+  OverlayVideoItem,
+  PremiumVideoItem,
+  createVideoItemVariant,
+  useVideoItemVariant
+} from '../home/video-library/VideoItemVariants';
+
+// Bibliothèque améliorée avec UX
+export { LibraryWithUX } from '../home/library/LibraryWithUX';
+
+// Exemples d'intégration
+export { UXIntegrationExample } from '../examples/UXIntegrationExample';

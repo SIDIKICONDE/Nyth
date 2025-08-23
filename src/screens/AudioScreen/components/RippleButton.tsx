@@ -60,6 +60,8 @@ export default function RippleButton({
 }: RippleButtonProps) {
   const [ripples, setRipples] = useState<any[]>([]);
   const scale = useSharedValue(1);
+  const rippleScale = useSharedValue(0);
+  const rippleOpacity = useSharedValue(1);
   const rippleIdCounter = useSharedValue(0);
 
   // Configuration des types de haptic feedback
@@ -101,20 +103,20 @@ export default function RippleButton({
         id,
         x,
         y,
-        scale: useSharedValue(0),
-        opacity: useSharedValue(1),
+        scale: rippleScale,
+        opacity: rippleOpacity,
       };
 
       setRipples(prev => [...prev, newRipple]);
 
-      // Animation du ripple
-      newRipple.scale.value = withTiming(1, { duration: duration / 2 });
-      newRipple.opacity.value = withTiming(0, { duration }, () => {
+      // Animation du ripple avec les variables partagées
+      rippleScale.value = withTiming(1, { duration: duration / 2 });
+      rippleOpacity.value = withTiming(0, { duration }, () => {
         // Supprimer le ripple après l'animation
         runOnJS(setRipples)(prev => prev.filter(r => r.id !== id));
       });
     },
-    [duration, rippleIdCounter],
+    [duration, rippleIdCounter, rippleScale, rippleOpacity],
   );
 
   // Gestion du press

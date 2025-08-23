@@ -150,7 +150,7 @@ public:
     jsi::Value stop(jsi::Runtime& rt);
     jsi::Value pause(jsi::Runtime& rt);
     jsi::Value resume(jsi::Runtime& rt);
-    jsi::Value release(jsi::Runtime& rt);
+    jsi::Value dispose(jsi::Runtime& rt);
     
     // État et informations
     jsi::Value getState(jsi::Runtime& rt);
