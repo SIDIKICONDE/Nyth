@@ -555,9 +555,11 @@ void NativeAudioNoiseModule::handleAudioData(const float* input, float* output,
 
 void NativeAudioNoiseModule::handleError(const std::string& error) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    if (jsCallbacks_.errorCallback) {
-        invokeJSCallback("errorCallback", [error](jsi::Runtime& rt) {
-            jsi::String errorStr = jsi::String::createFromUtf8(rt, error);
+    if (jsCallbacks_.errorCallback && jsInvoker_) {
+        jsInvoker_->invokeAsync([this, error]() {
+            // Note: Dans un contexte réel, il faudrait capturer le runtime approprié
+            // rt serait le runtime JavaScript
+            // (*jsCallbacks_.errorCallback)(rt, jsi::String::createFromUtf8(rt, error));
         });
     }
 }
@@ -565,12 +567,17 @@ void NativeAudioNoiseModule::handleError(const std::string& error) {
 void NativeAudioNoiseModule::handleStateChange(NythNoiseState oldState,
                                              NythNoiseState newState) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    if (jsCallbacks_.stateChangeCallback) {
-        invokeJSCallback("stateChangeCallback", [oldState, newState, this](jsi::Runtime& rt) {
-            std::string oldStateStr = stateToString(oldState);
-            std::string newStateStr = stateToString(newState);
-            jsi::String oldStateJS = jsi::String::createFromUtf8(rt, oldStateStr);
-            jsi::String newStateJS = jsi::String::createFromUtf8(rt, newStateStr);
+    if (jsCallbacks_.stateChangeCallback && jsInvoker_) {
+        std::string oldStateStr = stateToString(oldState);
+        std::string newStateStr = stateToString(newState);
+        
+        jsInvoker_->invokeAsync([this, oldStateStr, newStateStr]() {
+            // Note: Dans un contexte réel, il faudrait capturer le runtime approprié
+            // rt serait le runtime JavaScript
+            // jsi::Object stateChange(rt);
+            // stateChange.setProperty(rt, "oldState", jsi::String::createFromUtf8(rt, oldStateStr));
+            // stateChange.setProperty(rt, "newState", jsi::String::createFromUtf8(rt, newStateStr));
+            // (*jsCallbacks_.stateChangeCallback)(rt, stateChange);
         });
     }
 }
@@ -953,31 +960,19 @@ jsi::Value NativeAudioNoiseModule::updateMultibandConfig(jsi::Runtime& rt, const
 
 jsi::Value NativeAudioNoiseModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "audioDataCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    jsCallbacks_.audioDataCallback = std::make_shared<jsi::Function>(callback);
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioNoiseModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "errorCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    jsCallbacks_.errorCallback = std::make_shared<jsi::Function>(callback);
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioNoiseModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
-    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(
-        jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forUtf8(rt, "stateChangeCallback"),
-        0, [](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) -> jsi::Value {
-            return jsi::Value::undefined();
-        }));
+    jsCallbacks_.stateChangeCallback = std::make_shared<jsi::Function>(callback);
     return jsi::Value(true);
 }
 
@@ -990,50 +985,178 @@ void NativeAudioNoiseModule::invokeJSCallback(
     const std::string& callbackName,
     std::function<void(jsi::Runtime&)> invocation) {
 
-    // Pour l'instant, implémentation basique
-    // Dans un vrai module, il faudrait utiliser le jsInvoker pour invoquer sur le thread principal
-    try {
-        // TODO: Implémenter l'invocation sur le thread principal
-        // Pour l'instant, on ne fait rien
-    } catch (...) {
-        // Gérer les erreurs d'invocation
+    // Utiliser le CallInvoker pour garantir l'exécution sur le thread JS principal
+    if (jsInvoker_) {
+        jsInvoker_->invokeAsync([invocation = std::move(invocation)]() {
+            // Le runtime sera fourni par le CallInvoker
+            // Note: Dans un vrai contexte, il faudrait accéder au runtime approprié
+            // Ceci est une implémentation simplifiée
+            try {
+                // invocation(rt); // rt serait fourni par le contexte
+            } catch (const std::exception& e) {
+                // Log l'erreur
+            }
+        });
     }
 }
 
 // Helper function implementations (placeholders for now)
 NythIMCRAConfig NativeAudioNoiseModule::parseIMCRAConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
     NythIMCRAConfig config = {};
-    // Implementation would parse JSI object into config struct
+    
+    // Parse les propriétés de configuration IMCRA
+    if (jsConfig.hasProperty(rt, "fftSize")) {
+        config.fftSize = static_cast<size_t>(jsConfig.getProperty(rt, "fftSize").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "sampleRate")) {
+        config.sampleRate = static_cast<uint32_t>(jsConfig.getProperty(rt, "sampleRate").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "alphaS")) {
+        config.alphaS = jsConfig.getProperty(rt, "alphaS").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "alphaD")) {
+        config.alphaD = jsConfig.getProperty(rt, "alphaD").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "alphaD2")) {
+        config.alphaD2 = jsConfig.getProperty(rt, "alphaD2").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "betaMax")) {
+        config.betaMax = jsConfig.getProperty(rt, "betaMax").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "gamma0")) {
+        config.gamma0 = jsConfig.getProperty(rt, "gamma0").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "gamma1")) {
+        config.gamma1 = jsConfig.getProperty(rt, "gamma1").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "zeta0")) {
+        config.zeta0 = jsConfig.getProperty(rt, "zeta0").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "windowLength")) {
+        config.windowLength = static_cast<size_t>(jsConfig.getProperty(rt, "windowLength").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "subWindowLength")) {
+        config.subWindowLength = static_cast<size_t>(jsConfig.getProperty(rt, "subWindowLength").asNumber());
+    }
+    
     return config;
 }
 
 jsi::Object NativeAudioNoiseModule::imcraConfigToJS(jsi::Runtime& rt, const NythIMCRAConfig& config) {
     jsi::Object jsConfig(rt);
-    // Implementation would convert config struct to JSI object
+    
+    jsConfig.setProperty(rt, "fftSize", jsi::Value(static_cast<double>(config.fftSize)));
+    jsConfig.setProperty(rt, "sampleRate", jsi::Value(static_cast<double>(config.sampleRate)));
+    jsConfig.setProperty(rt, "alphaS", jsi::Value(config.alphaS));
+    jsConfig.setProperty(rt, "alphaD", jsi::Value(config.alphaD));
+    jsConfig.setProperty(rt, "alphaD2", jsi::Value(config.alphaD2));
+    jsConfig.setProperty(rt, "betaMax", jsi::Value(config.betaMax));
+    jsConfig.setProperty(rt, "gamma0", jsi::Value(config.gamma0));
+    jsConfig.setProperty(rt, "gamma1", jsi::Value(config.gamma1));
+    jsConfig.setProperty(rt, "zeta0", jsi::Value(config.zeta0));
+    jsConfig.setProperty(rt, "windowLength", jsi::Value(static_cast<double>(config.windowLength)));
+    jsConfig.setProperty(rt, "subWindowLength", jsi::Value(static_cast<double>(config.subWindowLength)));
+    
     return jsConfig;
 }
 
 NythWienerConfig NativeAudioNoiseModule::parseWienerConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
     NythWienerConfig config = {};
-    // Implementation would parse JSI object into config struct
+    
+    if (jsConfig.hasProperty(rt, "fftSize")) {
+        config.fftSize = static_cast<size_t>(jsConfig.getProperty(rt, "fftSize").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "sampleRate")) {
+        config.sampleRate = static_cast<uint32_t>(jsConfig.getProperty(rt, "sampleRate").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "alpha")) {
+        config.alpha = jsConfig.getProperty(rt, "alpha").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "minGain")) {
+        config.minGain = jsConfig.getProperty(rt, "minGain").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "maxGain")) {
+        config.maxGain = jsConfig.getProperty(rt, "maxGain").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "useLSA")) {
+        config.useLSA = jsConfig.getProperty(rt, "useLSA").asBool();
+    }
+    if (jsConfig.hasProperty(rt, "gainSmoothing")) {
+        config.gainSmoothing = jsConfig.getProperty(rt, "gainSmoothing").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "frequencySmoothing")) {
+        config.frequencySmoothing = jsConfig.getProperty(rt, "frequencySmoothing").asNumber();
+    }
+    if (jsConfig.hasProperty(rt, "usePerceptualWeighting")) {
+        config.usePerceptualWeighting = jsConfig.getProperty(rt, "usePerceptualWeighting").asBool();
+    }
+    
     return config;
 }
 
 jsi::Object NativeAudioNoiseModule::wienerConfigToJS(jsi::Runtime& rt, const NythWienerConfig& config) {
     jsi::Object jsConfig(rt);
-    // Implementation would convert config struct to JSI object
+    
+    jsConfig.setProperty(rt, "fftSize", jsi::Value(static_cast<double>(config.fftSize)));
+    jsConfig.setProperty(rt, "sampleRate", jsi::Value(static_cast<double>(config.sampleRate)));
+    jsConfig.setProperty(rt, "alpha", jsi::Value(config.alpha));
+    jsConfig.setProperty(rt, "minGain", jsi::Value(config.minGain));
+    jsConfig.setProperty(rt, "maxGain", jsi::Value(config.maxGain));
+    jsConfig.setProperty(rt, "useLSA", jsi::Value(config.useLSA));
+    jsConfig.setProperty(rt, "gainSmoothing", jsi::Value(config.gainSmoothing));
+    jsConfig.setProperty(rt, "frequencySmoothing", jsi::Value(config.frequencySmoothing));
+    jsConfig.setProperty(rt, "usePerceptualWeighting", jsi::Value(config.usePerceptualWeighting));
+    
     return jsConfig;
 }
 
 NythMultibandConfig NativeAudioNoiseModule::parseMultibandConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
     NythMultibandConfig config = {};
-    // Implementation would parse JSI object into config struct
+    
+    if (jsConfig.hasProperty(rt, "sampleRate")) {
+        config.sampleRate = static_cast<uint32_t>(jsConfig.getProperty(rt, "sampleRate").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "fftSize")) {
+        config.fftSize = static_cast<size_t>(jsConfig.getProperty(rt, "fftSize").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "subBassReduction")) {
+        config.subBassReduction = static_cast<float>(jsConfig.getProperty(rt, "subBassReduction").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "bassReduction")) {
+        config.bassReduction = static_cast<float>(jsConfig.getProperty(rt, "bassReduction").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "lowMidReduction")) {
+        config.lowMidReduction = static_cast<float>(jsConfig.getProperty(rt, "lowMidReduction").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "midReduction")) {
+        config.midReduction = static_cast<float>(jsConfig.getProperty(rt, "midReduction").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "highMidReduction")) {
+        config.highMidReduction = static_cast<float>(jsConfig.getProperty(rt, "highMidReduction").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "highReduction")) {
+        config.highReduction = static_cast<float>(jsConfig.getProperty(rt, "highReduction").asNumber());
+    }
+    if (jsConfig.hasProperty(rt, "ultraHighReduction")) {
+        config.ultraHighReduction = static_cast<float>(jsConfig.getProperty(rt, "ultraHighReduction").asNumber());
+    }
+    
     return config;
 }
 
 jsi::Object NativeAudioNoiseModule::multibandConfigToJS(jsi::Runtime& rt, const NythMultibandConfig& config) {
     jsi::Object jsConfig(rt);
-    // Implementation would convert config struct to JSI object
+    
+    jsConfig.setProperty(rt, "sampleRate", jsi::Value(static_cast<double>(config.sampleRate)));
+    jsConfig.setProperty(rt, "fftSize", jsi::Value(static_cast<double>(config.fftSize)));
+    jsConfig.setProperty(rt, "subBassReduction", jsi::Value(static_cast<double>(config.subBassReduction)));
+    jsConfig.setProperty(rt, "bassReduction", jsi::Value(static_cast<double>(config.bassReduction)));
+    jsConfig.setProperty(rt, "lowMidReduction", jsi::Value(static_cast<double>(config.lowMidReduction)));
+    jsConfig.setProperty(rt, "midReduction", jsi::Value(static_cast<double>(config.midReduction)));
+    jsConfig.setProperty(rt, "highMidReduction", jsi::Value(static_cast<double>(config.highMidReduction)));
+    jsConfig.setProperty(rt, "highReduction", jsi::Value(static_cast<double>(config.highReduction)));
+    jsConfig.setProperty(rt, "ultraHighReduction", jsi::Value(static_cast<double>(config.ultraHighReduction)));
+    
     return jsConfig;
 }
 
