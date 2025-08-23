@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/AudioEqualizer.hpp"
+#include "NoiseConstants.hpp"
 #include <memory>
 #include <vector>
 
@@ -19,25 +20,25 @@ public:
             MEL_SCALE
         };
         
-        uint32_t sampleRate = 48000;
-        size_t fftSize = 2048;
+        uint32_t sampleRate = MultibandProcessorConstants::DEFAULT_SAMPLE_RATE;
+        size_t fftSize = MultibandProcessorConstants::DEFAULT_FFT_SIZE;
         BandMode bandMode = BARK_SCALE;
         
         // Profil de réduction par bande
         struct BandProfile {
-            float subBassReduction = 0.9f;     // < 60 Hz
-            float bassReduction = 0.7f;        // 60-250 Hz
-            float lowMidReduction = 0.5f;      // 250-500 Hz
-            float midReduction = 0.3f;         // 500-2k Hz
-            float highMidReduction = 0.4f;     // 2k-4k Hz
-            float highReduction = 0.6f;        // 4k-8k Hz
-            float ultraHighReduction = 0.8f;   // > 8k Hz
+            float subBassReduction = MultibandProcessorConstants::DEFAULT_SUB_BASS_REDUCTION;     // < 60 Hz
+            float bassReduction = MultibandProcessorConstants::DEFAULT_BASS_REDUCTION;            // 60-250 Hz
+            float lowMidReduction = MultibandProcessorConstants::DEFAULT_LOW_MID_REDUCTION;       // 250-500 Hz
+            float midReduction = MultibandProcessorConstants::DEFAULT_MID_REDUCTION;              // 500-2k Hz
+            float highMidReduction = MultibandProcessorConstants::DEFAULT_HIGH_MID_REDUCTION;     // 2k-4k Hz
+            float highReduction = MultibandProcessorConstants::DEFAULT_HIGH_REDUCTION;            // 4k-8k Hz
+            float ultraHighReduction = MultibandProcessorConstants::DEFAULT_ULTRA_HIGH_REDUCTION; // > 8k Hz
         } profile;
     };
     
     explicit MultibandProcessor(const Config& config)
         : config_(config)
-        , equalizer_(std::make_unique<Audio::core::AudioEqualizer>(7, config.sampleRate))
+        , equalizer_(std::make_unique<Audio::core::AudioEqualizer>(MultibandProcessorConstants::NUM_BANDS, config.sampleRate))
     {
         setupBands();
     }
@@ -56,11 +57,19 @@ public:
 private:
     void setupBands() {
         // Configuration des bandes de fréquence selon le mode
-        const float frequencies[] = {60.0f, 250.0f, 500.0f, 2000.0f, 4000.0f, 8000.0f, 16000.0f};
+        const float frequencies[] = {
+            MultibandProcessorConstants::FREQ_SUB_BASS,
+            MultibandProcessorConstants::FREQ_BASS,
+            MultibandProcessorConstants::FREQ_LOW_MID,
+            MultibandProcessorConstants::FREQ_MID,
+            MultibandProcessorConstants::FREQ_HIGH_MID,
+            MultibandProcessorConstants::FREQ_HIGH,
+            MultibandProcessorConstants::FREQ_ULTRA_HIGH
+        };
         
-        for (size_t i = 0; i < 7; ++i) {
+        for (size_t i = 0; i < MultibandProcessorConstants::NUM_BANDS; ++i) {
             equalizer_->setBandFrequency(i, frequencies[i]);
-            equalizer_->setBandQ(i, 0.707f); // Q standard
+            equalizer_->setBandQ(i, MultibandProcessorConstants::DEFAULT_Q_FACTOR); // Q standard
             equalizer_->setBandType(i, Audio::AudioFX::FilterType::PEAKING);
         }
         
@@ -69,16 +78,16 @@ private:
     
     void updateBandGains() {
         const float gains[] = {
-            -20.0f * config_.profile.subBassReduction,
-            -20.0f * config_.profile.bassReduction,
-            -20.0f * config_.profile.lowMidReduction,
-            -20.0f * config_.profile.midReduction,
-            -20.0f * config_.profile.highMidReduction,
-            -20.0f * config_.profile.highReduction,
-            -20.0f * config_.profile.ultraHighReduction
+            MultibandProcessorConstants::DB_REDUCTION_FACTOR * config_.profile.subBassReduction,
+            MultibandProcessorConstants::DB_REDUCTION_FACTOR * config_.profile.bassReduction,
+            MultibandProcessorConstants::DB_REDUCTION_FACTOR * config_.profile.lowMidReduction,
+            MultibandProcessorConstants::DB_REDUCTION_FACTOR * config_.profile.midReduction,
+            MultibandProcessorConstants::DB_REDUCTION_FACTOR * config_.profile.highMidReduction,
+            MultibandProcessorConstants::DB_REDUCTION_FACTOR * config_.profile.highReduction,
+            MultibandProcessorConstants::DB_REDUCTION_FACTOR * config_.profile.ultraHighReduction
         };
         
-        for (size_t i = 0; i < 7; ++i) {
+        for (size_t i = 0; i < MultibandProcessorConstants::NUM_BANDS; ++i) {
             equalizer_->setBandGain(i, gains[i]);
         }
     }

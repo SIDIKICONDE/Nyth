@@ -227,3 +227,37 @@ namespace SpectralNRConstants {
     constexpr size_t SPECTRUM_NYQUIST_OFFSET = 1;         // Nyquist offset
     constexpr long long SHIFT_CAST_OFFSET = 0;            // Shift cast offset
 }
+
+// MultibandProcessor specific constants
+namespace MultibandProcessorConstants {
+    // Fréquences de coupure par défaut (Hz)
+    constexpr float FREQ_SUB_BASS = 60.0f;           // Sub-bass upper limit
+    constexpr float FREQ_BASS = 250.0f;              // Bass upper limit
+    constexpr float FREQ_LOW_MID = 500.0f;           // Low-mid upper limit
+    constexpr float FREQ_MID = 2000.0f;              // Mid upper limit
+    constexpr float FREQ_HIGH_MID = 4000.0f;         // High-mid upper limit
+    constexpr float FREQ_HIGH = 8000.0f;             // High upper limit
+    constexpr float FREQ_ULTRA_HIGH = 16000.0f;      // Ultra-high upper limit
+    
+    // Valeurs de réduction par défaut (0.0 - 1.0)
+    constexpr float DEFAULT_SUB_BASS_REDUCTION = 0.9f;
+    constexpr float DEFAULT_BASS_REDUCTION = 0.7f;
+    constexpr float DEFAULT_LOW_MID_REDUCTION = 0.5f;
+    constexpr float DEFAULT_MID_REDUCTION = 0.3f;
+    constexpr float DEFAULT_HIGH_MID_REDUCTION = 0.4f;
+    constexpr float DEFAULT_HIGH_REDUCTION = 0.6f;
+    constexpr float DEFAULT_ULTRA_HIGH_REDUCTION = 0.8f;
+    
+    // Q factor standard pour les filtres
+    constexpr float DEFAULT_Q_FACTOR = 0.707f;       // Butterworth response
+    
+    // Nombre de bandes
+    constexpr size_t NUM_BANDS = 7;
+    
+    // Facteur de conversion gain en dB
+    constexpr float DB_REDUCTION_FACTOR = -20.0f;
+    
+    // Configuration par défaut
+    constexpr uint32_t DEFAULT_SAMPLE_RATE = 48000;
+    constexpr size_t DEFAULT_FFT_SIZE = 2048;
+}

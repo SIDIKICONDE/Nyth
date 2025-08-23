@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include "NoiseContants.hpp"
+#include "NoiseConstants.hpp"
 #include "../fft/FFTEngine.hpp"
 
 namespace AudioNR {

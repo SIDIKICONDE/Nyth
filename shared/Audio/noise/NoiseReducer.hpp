@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 #include "../core/BiquadFilter.hpp"
-#include "NoiseContants.hpp"
+#include "NoiseConstants.hpp"
 
 namespace AudioNR {
 

@@ -3,7 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <vector>
-#include "NoiseContants.hpp"
+#include "NoiseConstants.hpp"
 
 namespace AudioNR {
 

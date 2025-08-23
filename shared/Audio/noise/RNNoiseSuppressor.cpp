@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <memory>
 #include <stdexcept>
-#include "NoiseContants.hpp"
+#include "NoiseConstants.hpp"
 
 namespace {
 template <typename T>

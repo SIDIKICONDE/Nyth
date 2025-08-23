@@ -8,6 +8,7 @@
 #include "Audio/noise/NoiseReducer.hpp"
 #include "Audio/noise/RNNoiseSuppressor.hpp"
 #include "Audio/noise/WienerFilter.hpp"
+#include "Audio/noise/NoiseConstants.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -420,13 +421,13 @@ void NythNoise_GetWienerConfig(NythWienerConfig* config) {
         config->usePerceptualWeighting = wienerCfg.usePerceptualWeighting;
     } else {
         // Valeurs par défaut si l'objet n'existe pas
-        config->fftSize = 1024;
-        config->sampleRate = 48000;
-        config->alpha = 0.98;
-        config->minGain = 0.1;
-        config->maxGain = 1.0;
+        config->fftSize = SpectralNRConstants::DEFAULT_FFT_SIZE;
+        config->sampleRate = RNNoiseSuppressorConstants::MIN_SAMPLE_RATE * 6; // 48000
+        config->alpha = SpectralNRConstants::DEFAULT_NOISE_UPDATE;
+        config->minGain = SpectralNRConstants::DEFAULT_FLOOR_GAIN * 2; // 0.1
+        config->maxGain = SpectralNRConstants::ONE;
         config->useLSA = true;
-        config->gainSmoothing = 0.7;
+        config->gainSmoothing = RNNoiseSuppressorConstants::SpectralMapping::NOISE_UPDATE_BASE - 0.25; // 0.7
         config->frequencySmoothing = 0.3;
         config->usePerceptualWeighting = true;
     }
@@ -482,15 +483,15 @@ void NythNoise_GetMultibandConfig(NythMultibandConfig* config) {
         config->ultraHighReduction = mbConfig.profile.ultraHighReduction;
     } else {
         // Valeurs par défaut si l'objet n'existe pas
-        config->sampleRate = 48000;
-        config->fftSize = 2048;
-        config->subBassReduction = 0.9f;
-        config->bassReduction = 0.7f;
-        config->lowMidReduction = 0.5f;
-        config->midReduction = 0.3f;
-        config->highMidReduction = 0.4f;
-        config->highReduction = 0.6f;
-        config->ultraHighReduction = 0.8f;
+        config->sampleRate = MultibandProcessorConstants::DEFAULT_SAMPLE_RATE;
+        config->fftSize = MultibandProcessorConstants::DEFAULT_FFT_SIZE;
+        config->subBassReduction = MultibandProcessorConstants::DEFAULT_SUB_BASS_REDUCTION;
+        config->bassReduction = MultibandProcessorConstants::DEFAULT_BASS_REDUCTION;
+        config->lowMidReduction = MultibandProcessorConstants::DEFAULT_LOW_MID_REDUCTION;
+        config->midReduction = MultibandProcessorConstants::DEFAULT_MID_REDUCTION;
+        config->highMidReduction = MultibandProcessorConstants::DEFAULT_HIGH_MID_REDUCTION;
+        config->highReduction = MultibandProcessorConstants::DEFAULT_HIGH_REDUCTION;
+        config->ultraHighReduction = MultibandProcessorConstants::DEFAULT_ULTRA_HIGH_REDUCTION;
     }
 }
 

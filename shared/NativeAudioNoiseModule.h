@@ -53,7 +53,7 @@ typedef struct {
     int channels;
     size_t fftSize;
     size_t hopSize;
-    float aggressiveness; // 0.0 - 3.0
+    float aggressiveness; // RNNoiseSuppressorConstants::MIN_AGGRESSIVENESS - RNNoiseSuppressorConstants::MAX_AGGRESSIVENESS
     bool enableMultiband;
     bool preserveTransients;
     bool reduceMusicalNoise;
@@ -196,6 +196,7 @@ void NythNoise_SetStateChangeCallback(NythNoiseStateChangeCallback callback);
 #include "Audio/noise/NoiseReducer.hpp"
 #include "Audio/noise/RNNoiseSuppressor.hpp"
 #include "Audio/noise/WienerFilter.hpp"
+#include "Audio/noise/NoiseConstants.hpp"
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
 #include <atomic>
@@ -210,13 +211,13 @@ class JSI_EXPORT NativeAudioNoiseModule : public TurboModule {
 public:
     explicit NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsInvoker)
         : TurboModule("NativeAudioNoiseModule", jsInvoker), jsInvoker_(jsInvoker) {
-        currentConfig_.sampleRate = 48000;
-        currentConfig_.channels = 2;
-        currentConfig_.fftSize = 2048;
-        currentConfig_.hopSize = 512;
+        currentConfig_.sampleRate = RNNoiseSuppressorConstants::MIN_SAMPLE_RATE * 6; // 48000
+        currentConfig_.channels = RNNoiseSuppressorConstants::STEREO_CHANNELS;
+        currentConfig_.fftSize = SpectralNRConstants::DEFAULT_FFT_SIZE * 2; // 2048
+        currentConfig_.hopSize = SpectralNRConstants::DEFAULT_FFT_SIZE / 2; // 512
         currentConfig_.algorithm = NOISE_ALGORITHM_ADVANCED_SPECTRAL;
         currentConfig_.noiseMethod = NOISE_ESTIMATION_IMCRA;
-        currentConfig_.aggressiveness = 0.7f;
+        currentConfig_.aggressiveness = RNNoiseSuppressorConstants::SpectralMapping::NOISE_UPDATE_BASE - 0.25f; // 0.7
         currentConfig_.enableMultiband = true;
         currentConfig_.preserveTransients = true;
         currentConfig_.reduceMusicalNoise = true;
