@@ -35,6 +35,92 @@
 #include <mutex>
 #include <unordered_map>
 
+// Forward declarations
+namespace AudioFX {
+    class BiquadFilter;
+    class ErrorHandler;
+    template<typename T> class LockFreeMemoryPool;
+}
+
+namespace Audio {
+namespace core {
+    class AudioEqualizer;
+}
+}
+
+// === Définition des types et énumérations ===
+
+// États du module
+typedef enum {
+    CORE_STATE_UNINITIALIZED = 0,
+    CORE_STATE_INITIALIZED = 1,
+    CORE_STATE_PROCESSING = 2,
+    CORE_STATE_ERROR = 3
+} NythCoreState;
+
+// Codes d'erreur
+typedef enum {
+    CORE_ERROR_OK = 0,
+    CORE_ERROR_NOT_INITIALIZED = 1,
+    CORE_ERROR_ALREADY_RUNNING = 2,
+    CORE_ERROR_ALREADY_STOPPED = 3,
+    CORE_ERROR_MODULE_ERROR = 4,
+    CORE_ERROR_CONFIG_ERROR = 5,
+    CORE_ERROR_PROCESSING_FAILED = 6,
+    CORE_ERROR_MEMORY_ERROR = 7,
+    CORE_ERROR_THREAD_ERROR = 8
+} NythCoreError;
+
+// Types de filtres
+typedef enum {
+    CORE_FILTER_LOWPASS = 0,
+    CORE_FILTER_HIGHPASS = 1,
+    CORE_FILTER_BANDPASS = 2,
+    CORE_FILTER_NOTCH = 3,
+    CORE_FILTER_PEAK = 4,
+    CORE_FILTER_LOWSHELF = 5,
+    CORE_FILTER_HIGHSHELF = 6,
+    CORE_FILTER_ALLPASS = 7
+} NythCoreFilterType;
+
+// Structures de configuration
+typedef struct {
+    size_t numBands;
+    uint32_t sampleRate;
+    double masterGainDB;
+    bool bypass;
+} NythCoreEqualizerConfig;
+
+typedef struct {
+    size_t numBands;
+    uint32_t sampleRate;
+    double masterGainDB;
+    bool bypass;
+    NythCoreState state;
+} NythCoreEqualizerInfo;
+
+typedef struct {
+    size_t bandIndex;
+    double frequency;
+    double gainDB;
+    double q;
+    NythCoreFilterType type;
+    bool enabled;
+} NythCoreBandConfig;
+
+typedef struct {
+    double frequency;
+    double q;
+    double gainDB;
+    NythCoreFilterType type;
+} NythCoreFilterConfig;
+
+typedef struct {
+    double a0, a1, a2;
+    double b1, b2;
+    double y1, y2;
+} NythCoreFilterInfo;
+
 namespace facebook {
 namespace react {
 
@@ -163,100 +249,41 @@ public:
     static jsi::Value install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker);
 
 private:
-    // Égaliseur principal
+    // === Membres privés ===
+    std::shared_ptr<CallInvoker> m_jsInvoker;
     std::unique_ptr<Audio::core::AudioEqualizer> m_equalizer;
-
-    // Pool de filtres biquad individuels
-    std::unordered_map<int64_t, std::unique_ptr<AudioFX::BiquadFilter>> m_filters;
-    std::atomic<int64_t> m_nextFilterId{1};
-
-    // Gestionnaire de mémoire
     std::unique_ptr<AudioFX::LockFreeMemoryPool<float>> m_memoryPool;
-
-    // Mutex pour la thread safety
+    std::unique_ptr<AudioFX::ErrorHandler> m_errorHandler;
+    
+    std::map<int64_t, std::unique_ptr<AudioFX::BiquadFilter>> m_filters;
+    std::atomic<int64_t> m_nextFilterId{1};
+    
+    std::atomic<NythCoreState> m_currentState{CORE_STATE_UNINITIALIZED};
+    uint32_t currentSampleRate_ = 48000;
+    
     mutable std::mutex m_coreMutex;
     mutable std::mutex m_filterMutex;
-
-    // Callbacks JavaScript
+    
+    // JavaScript callbacks
+    jsi::Runtime* m_runtime = nullptr;
     struct {
         std::shared_ptr<jsi::Function> audioCallback;
         std::shared_ptr<jsi::Function> errorCallback;
         std::shared_ptr<jsi::Function> stateCallback;
     } m_jsCallbacks;
 
-    // État actuel
-    std::atomic<int> m_currentState{0}; // 0 = UNINITIALIZED
-
-    // Variables de configuration audio
-    uint32_t currentSampleRate_;
-    int currentChannels_;
-
-    // Runtime JSI pour les callbacks
-    jsi::Runtime* m_runtime{nullptr};
-
-    // Méthodes privées
+    // === Méthodes privées ===
     void initializeEqualizer();
-    int convertError(const std::string& error) const;
-    std::string stateToString(int state) const;
-    std::string errorToString(int error) const;
-    int stringToFilterType(const std::string& typeStr) const;
-    std::string filterTypeToString(int type) const;
-
-    // Conversion JSI <-> Native
-    struct EqualizerConfig {
-        size_t numBands;
-        uint32_t sampleRate;
-        double masterGainDB;
-        bool bypass;
-    };
-
-    struct BandConfig {
-        size_t bandIndex;
-        double frequency;
-        double gainDB;
-        double q;
-        int type;
-        bool enabled;
-    };
-
-    struct FilterConfig {
-        double frequency;
-        double q;
-        double gainDB;
-        int type;
-    };
-
-    EqualizerConfig parseEqualizerConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
-    jsi::Object equalizerConfigToJS(jsi::Runtime& rt, const EqualizerConfig& config) const;
-    jsi::Object equalizerInfoToJS(jsi::Runtime& rt, const EqualizerConfig& config) const;
-
-    BandConfig parseBandConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
-    jsi::Object bandConfigToJS(jsi::Runtime& rt, const BandConfig& config) const;
-
-    FilterConfig parseFilterConfig(jsi::Runtime& rt, const jsi::Object& jsConfig);
-    jsi::Object filterConfigToJS(jsi::Runtime& rt, const FilterConfig& config) const;
-    jsi::Object filterInfoToJS(jsi::Runtime& rt, const FilterConfig& config) const;
-
-    // Gestion des filtres
-    AudioFX::BiquadFilter* getFilter(int64_t filterId);
     bool validateFilterId(int64_t filterId);
-
-    // Conversion des vecteurs
-    std::vector<float> arrayToFloatVector(jsi::Runtime& rt, const jsi::Array& array) const;
-    jsi::Array floatVectorToArray(jsi::Runtime& rt, const std::vector<float>& vector) const;
-
-    // Gestion des callbacks
+    AudioFX::BiquadFilter* getFilter(int64_t filterId);
+    
     void handleAudioData(const float* data, size_t frameCount, int channels);
-    void handleError(int error, const std::string& message);
-    void handleStateChange(int oldState, int newState);
-
-    // Invocation de callbacks JS sur le thread principal
+    void handleError(NythCoreError error, const std::string& message);
+    void handleStateChange(NythCoreState oldState, NythCoreState newState);
     void invokeJSCallback(const std::string& callbackName, std::function<void(jsi::Runtime&)> invocation);
-
-    // Gestion d'erreurs avancée avec AudioError
+    
+    // Helper methods
     void handleErrorWithAudioError(AudioFX::AudioError error, const std::string& context);
-
-    // Traitement audio avec sélection automatique du meilleur algorithme
     void processAudioWithBestAlgorithm(const float* input, float* output, size_t numSamples);
 };
 
