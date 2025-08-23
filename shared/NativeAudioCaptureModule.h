@@ -134,6 +134,8 @@ void NythCapture_SetStateChangeCallback(NythStateChangeCallback callback);
 #include <mutex>
 #include <atomic>
 #include <queue>
+#include <thread>
+#include <condition_variable>
 
 // Forward declarations for namespaces
 namespace Audio {
@@ -267,6 +269,9 @@ private:
     
     // Configuration actuelle
     Audio::capture::AudioCaptureConfig currentConfig_;
+
+    // Contexte JSI
+    jsi::Runtime* runtime_ = nullptr;
 
     // État de l'enregistrement
     std::atomic<bool> isRecordingActive_{false};
