@@ -65,7 +65,7 @@ export interface AudioAnalysis {
 // === Callbacks types ===
 
 export type AudioDataCallback = (
-  data: number[],
+  data: number[] | Float32Array,
   frameCount: number,
   channels: number,
 ) => void;

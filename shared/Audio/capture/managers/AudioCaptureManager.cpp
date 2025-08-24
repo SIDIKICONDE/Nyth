@@ -339,6 +339,78 @@ void AudioCaptureManager::requestPermission(std::function<void(bool)> callback) 
     }
 }
 
+// === Enregistrement ===
+bool AudioCaptureManager::startRecording(const std::string& filePath,
+                                         const Nyth::Audio::AudioFileWriterConfig& writerConfig,
+                                         float maxDurationSeconds,
+                                         size_t maxFileSizeBytes) {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+
+    if (!isInitialized_.load() || !capture_) {
+        return false;
+    }
+
+    if (!recorder_) {
+        recorder_ = std::make_unique<Nyth::Audio::AudioRecorder>();
+    }
+
+    currentRecordingPath_ = filePath;
+    auto cfg = writerConfig;
+    cfg.filePath = filePath;
+
+    if (!recorder_->initialize(capture_, cfg)) {
+        return false;
+    }
+
+    if (maxDurationSeconds > 0.0f) {
+        recorder_->setDurationLimit(maxDurationSeconds);
+    }
+    if (maxFileSizeBytes > 0) {
+        recorder_->setFileSizeLimit(maxFileSizeBytes);
+    }
+
+    return recorder_->startRecording();
+}
+
+void AudioCaptureManager::stopRecording() {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    if (recorder_) {
+        recorder_->stopRecording();
+    }
+}
+
+void AudioCaptureManager::pauseRecording() {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    if (recorder_) {
+        recorder_->pauseRecording();
+    }
+}
+
+void AudioCaptureManager::resumeRecording() {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    if (recorder_) {
+        recorder_->resumeRecording();
+    }
+}
+
+bool AudioCaptureManager::isRecording() const {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    return recorder_ && recorder_->isRecording();
+}
+
+AudioCaptureManager::RecordingInfo AudioCaptureManager::getRecordingInfo() const {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    RecordingInfo info;
+    if (recorder_) {
+        info.durationSeconds = recorder_->getRecordingDuration();
+        info.frames = recorder_->getFramesRecorded();
+        info.path = currentRecordingPath_;
+        info.recording = recorder_->isRecording();
+        info.paused = recorder_->isPaused();
+    }
+    return info;
+}
+
 // === Conversion entre les configurations ===
 Nyth::Audio::AudioCaptureConfig AudioCaptureManager::convertToEngineConfig(
     const Nyth::Audio::AudioCaptureConfig& config) const {

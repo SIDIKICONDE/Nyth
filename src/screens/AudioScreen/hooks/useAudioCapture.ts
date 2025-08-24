@@ -158,12 +158,8 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
 
       // Vérifier les permissions sur mobile
       if (Platform.OS !== 'web') {
-        const permissionGranted = await new Promise<boolean>((resolve) => {
-          NativeAudioCaptureModule.requestPermission((granted) => {
-            setHasPermission(granted);
-            resolve(granted);
-          });
-        });
+        const permissionGranted = await NativeAudioCaptureModule.requestPermission();
+        setHasPermission(permissionGranted);
 
         if (!permissionGranted) {
           const error = createError(

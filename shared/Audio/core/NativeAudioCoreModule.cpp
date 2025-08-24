@@ -622,69 +622,204 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
 
     auto object = jsi::Object(rt);
 
-// Macro pour enregistrer une méthode
-#define REGISTER_METHOD(name, paramCount)                                                                  \
-    object.setProperty(rt, name,                                                                           \
-                       jsi::Function::createFromHostFunction(                                              \
-                           rt, jsi::PropNameID::forAscii(rt, name), static_cast<unsigned int>(paramCount), \
-                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args,           \
-                                    size_t count) -> jsi::Value { return module->name(rt, ##__VA_ARGS__); }))
+// Helpers d'enregistrement (style Capture)
+#define REG0(name) object.setProperty(rt, #name, jsi::Function::createFromHostFunction( \
+  rt, jsi::PropNameID::forAscii(rt, #name), 0, \
+  [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value*, size_t) -> jsi::Value { \
+    return module->name(rt); }))
+
+#define REG1_NUM(name) object.setProperty(rt, #name, jsi::Function::createFromHostFunction( \
+  rt, jsi::PropNameID::forAscii(rt, #name), 1, \
+  [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value { \
+    if (c < 1 || !args[0].isNumber()) throw jsi::JSError(rt, #name " expects number"); \
+    return module->name(rt, args[0].asNumber()); }))
+
+#define REG1_OBJ(name) object.setProperty(rt, #name, jsi::Function::createFromHostFunction( \
+  rt, jsi::PropNameID::forAscii(rt, #name), 1, \
+  [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value { \
+    if (c < 1 || !args[0].isObject()) throw jsi::JSError(rt, #name " expects object"); \
+    return module->name(rt, args[0].asObject(rt)); }))
+
+#define REG2_MIX(name) object.setProperty(rt, #name, jsi::Function::createFromHostFunction( \
+  rt, jsi::PropNameID::forAscii(rt, #name), 2, \
+  [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value { \
+    if (c < 2) throw jsi::JSError(rt, #name " expects 2 args"); \
+    return module->name(rt, args[0], args[1]); }))
 
     // Enregistrer les méthodes
-    REGISTER_METHOD(initialize, 0);
-    REGISTER_METHOD(isInitialized, 0);
-    REGISTER_METHOD(dispose, 0);
-    REGISTER_METHOD(getState, 0);
-    REGISTER_METHOD(getErrorString, 1);
+    REG0(initialize);
+    REG0(isInitialized);
+    REG0(dispose);
+    REG0(getState);
+    REG1_NUM(getErrorString);
 
     // Égaliseur
-    REGISTER_METHOD(equalizerInitialize, 1);
-    REGISTER_METHOD(equalizerIsInitialized, 0);
-    REGISTER_METHOD(equalizerRelease, 0);
-    REGISTER_METHOD(equalizerSetMasterGain, 1);
-    REGISTER_METHOD(equalizerSetBypass, 1);
-    REGISTER_METHOD(equalizerSetSampleRate, 1);
-    REGISTER_METHOD(equalizerSetBand, 2);
-    REGISTER_METHOD(equalizerGetBand, 1);
-    REGISTER_METHOD(equalizerSetBandGain, 2);
-    REGISTER_METHOD(equalizerSetBandFrequency, 2);
-    REGISTER_METHOD(equalizerSetBandQ, 2);
-    REGISTER_METHOD(equalizerSetBandType, 2);
-    REGISTER_METHOD(equalizerSetBandEnabled, 2);
-    REGISTER_METHOD(equalizerGetInfo, 0);
-    REGISTER_METHOD(equalizerGetNumBands, 0);
-    REGISTER_METHOD(equalizerProcessMono, 1);
-    REGISTER_METHOD(equalizerProcessStereo, 2);
-    REGISTER_METHOD(equalizerLoadPreset, 1);
-    REGISTER_METHOD(equalizerSavePreset, 1);
-    REGISTER_METHOD(equalizerResetAllBands, 0);
+    REG1_OBJ(equalizerInitialize);
+    REG0(equalizerIsInitialized);
+    REG0(equalizerRelease);
+    REG1_NUM(equalizerSetMasterGain);
+    object.setProperty(rt, "equalizerSetBypass", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "equalizerSetBypass"), 1,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value {
+            if (c < 1 || !args[0].isBool()) throw jsi::JSError(rt, "equalizerSetBypass expects boolean");
+            return module->equalizerSetBypass(rt, args[0].getBool());
+        }));
+    REG1_NUM(equalizerSetSampleRate);
+    // Méthodes Equalizer multi-args: on valide explicitement
+    object.setProperty(rt, "equalizerSetBand", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "equalizerSetBand"), 2,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value {
+            if (c < 2 || !args[0].isNumber() || !args[1].isObject())
+                throw jsi::JSError(rt, "equalizerSetBand expects (number, object)");
+            size_t idx = static_cast<size_t>(args[0].asNumber());
+            return module->equalizerSetBand(rt, idx, args[1].asObject(rt));
+        }));
+    REG1_NUM(equalizerGetBand);
+    object.setProperty(rt, "equalizerSetBandGain", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "equalizerSetBandGain"), 2,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 2 || !a[0].isNumber() || !a[1].isNumber()) throw jsi::JSError(rt, "equalizerSetBandGain expects (number, number)");
+            return module->equalizerSetBandGain(rt, static_cast<size_t>(a[0].asNumber()), a[1].asNumber());
+        }));
+    object.setProperty(rt, "equalizerSetBandFrequency", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "equalizerSetBandFrequency"), 2,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 2 || !a[0].isNumber() || !a[1].isNumber()) throw jsi::JSError(rt, "equalizerSetBandFrequency expects (number, number)");
+            return module->equalizerSetBandFrequency(rt, static_cast<size_t>(a[0].asNumber()), a[1].asNumber());
+        }));
+    object.setProperty(rt, "equalizerSetBandQ", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "equalizerSetBandQ"), 2,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 2 || !a[0].isNumber() || !a[1].isNumber()) throw jsi::JSError(rt, "equalizerSetBandQ expects (number, number)");
+            return module->equalizerSetBandQ(rt, static_cast<size_t>(a[0].asNumber()), a[1].asNumber());
+        }));
+    object.setProperty(rt, "equalizerSetBandType", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "equalizerSetBandType"), 2,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 2 || !a[0].isNumber() || !a[1].isNumber()) throw jsi::JSError(rt, "equalizerSetBandType expects (number, number)");
+            return module->equalizerSetBandType(rt, static_cast<size_t>(a[0].asNumber()), static_cast<int>(a[1].asNumber()));
+        }));
+    object.setProperty(rt, "equalizerSetBandEnabled", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "equalizerSetBandEnabled"), 2,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 2 || !a[0].isNumber() || !a[1].isBool()) throw jsi::JSError(rt, "equalizerSetBandEnabled expects (number, boolean)");
+            return module->equalizerSetBandEnabled(rt, static_cast<size_t>(a[0].asNumber()), a[1].getBool());
+        }));
+    REG0(equalizerGetInfo);
+    REG0(equalizerGetNumBands);
+    REG1_OBJ(equalizerProcessMono);
+    object.setProperty(rt, "equalizerProcessStereo", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "equalizerProcessStereo"), 2,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 2 || !a[0].isObject() || !a[1].isObject()) throw jsi::JSError(rt, "equalizerProcessStereo expects (array, array)");
+            return module->equalizerProcessStereo(rt, a[0].asObject(rt).asArray(rt), a[1].asObject(rt).asArray(rt));
+        }));
+    object.setProperty(rt, "equalizerLoadPreset", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "equalizerLoadPreset"), 1,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 1 || !a[0].isString()) throw jsi::JSError(rt, "equalizerLoadPreset expects (string)");
+            return module->equalizerLoadPreset(rt, a[0].asString(rt));
+        }));
+    object.setProperty(rt, "equalizerSavePreset", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "equalizerSavePreset"), 1,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 1 || !a[0].isString()) throw jsi::JSError(rt, "equalizerSavePreset expects (string)");
+            return module->equalizerSavePreset(rt, a[0].asString(rt));
+        }));
+    REG0(equalizerResetAllBands);
 
     // Filtres
-    REGISTER_METHOD(filterCreate, 0);
-    REGISTER_METHOD(filterDestroy, 1);
-    REGISTER_METHOD(filterSetConfig, 2);
-    REGISTER_METHOD(filterGetConfig, 1);
-    REGISTER_METHOD(filterSetLowpass, 4);
-    REGISTER_METHOD(filterSetHighpass, 4);
-    REGISTER_METHOD(filterSetBandpass, 4);
-    REGISTER_METHOD(filterSetNotch, 4);
-    REGISTER_METHOD(filterSetPeaking, 5);
-    REGISTER_METHOD(filterSetLowShelf, 5);
-    REGISTER_METHOD(filterSetHighShelf, 5);
-    REGISTER_METHOD(filterSetAllpass, 4);
-    REGISTER_METHOD(filterProcessMono, 2);
-    REGISTER_METHOD(filterProcessStereo, 3);
-    REGISTER_METHOD(filterGetInfo, 1);
-    REGISTER_METHOD(filterReset, 1);
+    REG0(filterCreate);
+    object.setProperty(rt, "filterDestroy", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "filterDestroy"), 1,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 1 || !a[0].isNumber()) throw jsi::JSError(rt, "filterDestroy expects (number)");
+            return module->filterDestroy(rt, static_cast<int64_t>(a[0].asNumber()));
+        }));
+    object.setProperty(rt, "filterSetConfig", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "filterSetConfig"), 2,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 2 || !a[0].isNumber() || !a[1].isObject()) throw jsi::JSError(rt, "filterSetConfig expects (number, object)");
+            return module->filterSetConfig(rt, static_cast<int64_t>(a[0].asNumber()), a[1].asObject(rt));
+        }));
+    object.setProperty(rt, "filterGetConfig", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "filterGetConfig"), 1,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 1 || !a[0].isNumber()) throw jsi::JSError(rt, "filterGetConfig expects (number)");
+            return module->filterGetConfig(rt, static_cast<int64_t>(a[0].asNumber()));
+        }));
+    auto set4 = [&](const char* name, auto fn){
+        object.setProperty(rt, name, jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forAscii(rt, name), 4,
+            [module, fn](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+                if (c < 4 || !a[0].isNumber() || !a[1].isNumber() || !a[2].isNumber() || !a[3].isNumber())
+                    throw jsi::JSError(rt, std::string(name) + " expects (number, number, number, number)");
+                return (module.get()->*fn)(rt, static_cast<int64_t>(a[0].asNumber()), a[1].asNumber(), a[2].asNumber(), a[3].asNumber());
+            }));
+    };
+    set4("filterSetLowpass", &NativeAudioCoreModule::filterSetLowpass);
+    set4("filterSetHighpass", &NativeAudioCoreModule::filterSetHighpass);
+    set4("filterSetBandpass", &NativeAudioCoreModule::filterSetBandpass);
+    set4("filterSetNotch", &NativeAudioCoreModule::filterSetNotch);
+    object.setProperty(rt, "filterSetPeaking", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "filterSetPeaking"), 5,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 5) throw jsi::JSError(rt, "filterSetPeaking expects 5 args");
+            return module->filterSetPeaking(rt, static_cast<int64_t>(a[0].asNumber()), a[1].asNumber(), a[2].asNumber(), a[3].asNumber(), a[4].asNumber());
+        }));
+    object.setProperty(rt, "filterSetLowShelf", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "filterSetLowShelf"), 5,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 5) throw jsi::JSError(rt, "filterSetLowShelf expects 5 args");
+            return module->filterSetLowShelf(rt, static_cast<int64_t>(a[0].asNumber()), a[1].asNumber(), a[2].asNumber(), a[3].asNumber(), a[4].asNumber());
+        }));
+    object.setProperty(rt, "filterSetHighShelf", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "filterSetHighShelf"), 5,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 5) throw jsi::JSError(rt, "filterSetHighShelf expects 5 args");
+            return module->filterSetHighShelf(rt, static_cast<int64_t>(a[0].asNumber()), a[1].asNumber(), a[2].asNumber(), a[3].asNumber(), a[4].asNumber());
+        }));
+    set4("filterSetAllpass", &NativeAudioCoreModule::filterSetAllpass);
+    object.setProperty(rt, "filterProcessMono", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "filterProcessMono"), 2,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 2 || !a[0].isNumber() || !a[1].isObject()) throw jsi::JSError(rt, "filterProcessMono expects (number, array)");
+            return module->filterProcessMono(rt, static_cast<int64_t>(a[0].asNumber()), a[1].asObject(rt).asArray(rt));
+        }));
+    object.setProperty(rt, "filterProcessStereo", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "filterProcessStereo"), 3,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 3 || !a[0].isNumber() || !a[1].isObject() || !a[2].isObject()) throw jsi::JSError(rt, "filterProcessStereo expects (number, array, array)");
+            return module->filterProcessStereo(rt, static_cast<int64_t>(a[0].asNumber()), a[1].asObject(rt).asArray(rt), a[2].asObject(rt).asArray(rt));
+        }));
+    object.setProperty(rt, "filterGetInfo", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "filterGetInfo"), 1,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 1 || !a[0].isNumber()) throw jsi::JSError(rt, "filterGetInfo expects (number)");
+            return module->filterGetInfo(rt, static_cast<int64_t>(a[0].asNumber()));
+        }));
+    object.setProperty(rt, "filterReset", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "filterReset"), 1,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 1 || !a[0].isNumber()) throw jsi::JSError(rt, "filterReset expects (number)");
+            return module->filterReset(rt, static_cast<int64_t>(a[0].asNumber()));
+        }));
 
     // Utilitaires
-    REGISTER_METHOD(dbToLinear, 1);
-    REGISTER_METHOD(linearToDb, 1);
-    REGISTER_METHOD(validateFrequency, 2);
-    REGISTER_METHOD(validateQ, 1);
-    REGISTER_METHOD(validateGainDB, 1);
+    REG1_NUM(dbToLinear);
+    REG1_NUM(linearToDb);
+    object.setProperty(rt, "validateFrequency", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "validateFrequency"), 2,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 2 || !a[0].isNumber() || !a[1].isNumber()) throw jsi::JSError(rt, "validateFrequency expects (number, number)");
+            return module->validateFrequency(rt, a[0].asNumber(), a[1].asNumber());
+        }));
+    REG1_NUM(validateQ);
+    REG1_NUM(validateGainDB);
 
-#undef REGISTER_METHOD
+#undef REG0
+#undef REG1_NUM
+#undef REG1_OBJ
 
     rt.global().setProperty(rt, "NativeAudioCoreModule", object);
     return object;

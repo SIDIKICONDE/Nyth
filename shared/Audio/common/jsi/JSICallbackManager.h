@@ -83,7 +83,7 @@ private:
     struct CallbackData {
         std::shared_ptr<jsi::Function> function;
         jsi::Runtime* runtime = nullptr;
-        bool isValid = false;
+        std::atomic<bool> isValid{false};
 
         // Constructeur par défaut
         CallbackData() = default;

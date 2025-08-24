@@ -12,10 +12,21 @@
 #include <thread>
 
 #ifdef __ANDROID__
+#if defined(__has_include)
+#  if __has_include(<oboe/Oboe.h>)
+#    define NYTH_HAS_OBOE 1
+#  else
+#    define NYTH_HAS_OBOE 0
+#  endif
+#else
+#  define NYTH_HAS_OBOE 0
+#endif
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 #include <aaudio/AAudio.h>
+#if NYTH_HAS_OBOE
 #include <oboe/Oboe.h>
+#endif
 #endif
 
 #ifdef __APPLE__
@@ -53,6 +64,7 @@ private:
     } aaudio_;
 
     // Option 3: Oboe (wrapper moderne, recommandé)
+#if NYTH_HAS_OBOE
     class OboeCallback : public oboe::AudioStreamDataCallback {
     public:
         AudioCaptureAndroid* parent = nullptr;
@@ -65,6 +77,7 @@ private:
 
     std::shared_ptr<oboe::AudioStream> oboeStream_;
     std::unique_ptr<OboeCallback> oboeCallback_;
+#endif
 
     // Méthodes privées
     bool initializeOpenSL();

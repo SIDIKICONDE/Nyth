@@ -254,6 +254,10 @@ jsi::Array JSIConverter::createEmptyArray(jsi::Runtime& rt) {
     return jsi::Array(rt, 0);
 }
 
+jsi::Array JSIConverter::createEmptyArray(jsi::Runtime& rt, size_t size) {
+    return jsi::Array(rt, size);
+}
+
 jsi::Array JSIConverter::convertSampleRatesToJS(jsi::Runtime& rt, const std::vector<int>& sampleRates) {
     auto jsArray = jsi::Array(rt, sampleRates.size());
     for (size_t i = 0; i < sampleRates.size(); ++i) {

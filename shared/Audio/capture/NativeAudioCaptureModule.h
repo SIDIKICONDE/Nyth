@@ -34,7 +34,7 @@
 #include <jsi/jsi.h>
 
 // Includes des composants refactorisés
-#include "config/AudioConfig.h"
+#include "../../common/config/AudioConfig.h"
 #include "../../common/config/AudioLimits.h"
 #include "../../common/jsi/JSICallbackManager.h"
 #include "jsi/JSIConverter.h"
@@ -113,8 +113,11 @@ private:
     std::unique_ptr<AudioCaptureManager> captureManager_;
     std::unique_ptr<JSICallbackManager> callbackManager_;
 
+    // Invoker JS pour les appels asynchrones
+    std::shared_ptr<CallInvoker> jsInvoker_;
+
     // === Configuration ===
-    Nyth::Audio::AudioConfig config_;
+    Nyth::Audio::AudioCaptureConfig config_;
 
     // === État interne ===
     std::atomic<bool> isInitialized_{false};
@@ -131,6 +134,17 @@ private:
 
     // Gestion des erreurs
     void handleError(const std::string& error);
+
+    // Conversion de configuration
+    Nyth::Audio::AudioCaptureConfig toCaptureConfig(const Nyth::Audio::AudioConfig& config) const;
+    Nyth::Audio::AudioConfig toAudioConfig(const Nyth::Audio::AudioCaptureConfig& config) const;
+
+    // Analyse périodique
+    std::thread analysisThread_;
+    std::atomic<bool> analysisRunning_{false};
+    std::atomic<int> analysisIntervalMs_{100};
+    void startAnalysisLoop();
+    void stopAnalysisLoop();
 };
 
 // === Fonction d'enregistrement du module ===
