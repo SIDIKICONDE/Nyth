@@ -26,6 +26,10 @@ constexpr int MIN_BUFFER_SIZE_FRAMES = 64;
 constexpr int MAX_BUFFER_SIZE_FRAMES = 8192;
 constexpr int DEFAULT_BUFFER_SIZE_FRAMES = 1024;
 
+constexpr int MIN_NUM_BUFFERS = 2;  // Minimum pour le double buffering
+constexpr int MAX_NUM_BUFFERS = 5;  // Maximum raisonnable
+constexpr int DEFAULT_NUM_BUFFERS = 3;  // Triple buffering par défaut
+
 // === Limites de niveau audio ===
 constexpr float MIN_THRESHOLD = 0.0f;
 constexpr float MAX_THRESHOLD = 1.0f;

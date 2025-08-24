@@ -31,6 +31,13 @@ Nyth::Audio::AudioConfig JSIConverter::jsToAudioConfig(jsi::Runtime& rt, const j
         auto prop = jsConfig.getProperty(rt, "bufferSizeFrames");
         config.bufferSizeFrames = Nyth::Audio::JSIValidator::validateBufferSizeFrames(rt, prop);
     }
+    
+    // Number of buffers
+    if (jsConfig.hasProperty(rt, "numBuffers")) {
+        auto prop = jsConfig.getProperty(rt, "numBuffers");
+        config.numBuffers = static_cast<int>(Nyth::Audio::JSIValidator::validateNumberInRange(
+            rt, prop, "numBuffers", Nyth::Audio::Limits::MIN_NUM_BUFFERS, Nyth::Audio::Limits::MAX_NUM_BUFFERS));
+    }
 
     // Options booléennes
     if (jsConfig.hasProperty(rt, "enableEchoCancellation")) {
@@ -78,6 +85,7 @@ jsi::Object JSIConverter::audioConfigToJS(jsi::Runtime& rt, const Nyth::Audio::A
     jsConfig.setProperty(rt, "channelCount", jsi::Value(config.channelCount));
     jsConfig.setProperty(rt, "bitsPerSample", jsi::Value(config.bitsPerSample));
     jsConfig.setProperty(rt, "bufferSizeFrames", jsi::Value(config.bufferSizeFrames));
+    jsConfig.setProperty(rt, "numBuffers", jsi::Value(config.numBuffers));
     jsConfig.setProperty(rt, "enableEchoCancellation", jsi::Value(config.enableEchoCancellation));
     jsConfig.setProperty(rt, "enableNoiseSuppression", jsi::Value(config.enableNoiseSuppression));
     jsConfig.setProperty(rt, "enableAutoGainControl", jsi::Value(config.enableAutoGainControl));
