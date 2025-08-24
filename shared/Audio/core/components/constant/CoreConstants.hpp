@@ -11,6 +11,8 @@
 #include <cstring>
 #include <string>
 
+#include "../../common/config/utilsConstants.hpp"
+
 // ============================================================================
 // COMPATIBILITÉ CROSS-PLATFORM POUR XCODE/CLANG/GCC
 // ============================================================================

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include "../../common/config/NoiseContants.hpp"
 #include <string>
 #include <vector>
 
@@ -27,11 +27,11 @@ enum class NoiseState { UNINITIALIZED = 0, INITIALIZED = 1, PROCESSING = 2, ERRO
 struct NoiseConfig {
     NoiseAlgorithm algorithm = NoiseAlgorithm::ADVANCED_SPECTRAL;
     NoiseEstimationMethod noiseMethod = NoiseEstimationMethod::IMCRA;
-    uint32_t sampleRate = 48000;
-    int channels = 2;
-    size_t fftSize = 2048;
-    size_t hopSize = 512;
-    float aggressiveness = 0.7f; // 0.0 - 3.0
+    uint32_t sampleRate = GlobalAudioConstants::DEFAULT_SAMPLE_RATE;
+    int channels = GlobalAudioConstants::STEREO_CHANNELS;
+    size_t fftSize = GlobalAudioConstants::DEFAULT_FFT_SIZE;
+    size_t hopSize = GlobalAudioConstants::DEFAULT_HOP_SIZE;
+    float aggressiveness = GlobalValidationConstants::DEFAULT_AGGRESSIVENESS;
     bool enableMultiband = true;
     bool preserveTransients = true;
     bool reduceMusicalNoise = true;
@@ -48,8 +48,8 @@ struct NoiseConfig {
 
 // === Configuration IMCRA ===
 struct IMCRAConfig {
-    size_t fftSize = 1024;
-    uint32_t sampleRate = 48000;
+    size_t fftSize = GlobalAudioConstants::DEFAULT_FFT_SIZE;
+    uint32_t sampleRate = GlobalAudioConstants::DEFAULT_SAMPLE_RATE;
     double alphaS = 0.95;  // Lissage spectral
     double alphaD = 0.95;  // Lissage bruit
     double alphaD2 = 0.9;  // Lissage minima
@@ -63,12 +63,12 @@ struct IMCRAConfig {
 
 // === Configuration Wiener ===
 struct WienerConfig {
-    size_t fftSize = 1024;
-    uint32_t sampleRate = 48000;
-    double alpha = 0.98;  // Smoothing factor
-    double minGain = 0.1; // Gain minimum
-    double maxGain = 1.0; // Gain maximum
-    bool useLSA = true;   // Log-Spectral Amplitude
+    size_t fftSize = GlobalAudioConstants::DEFAULT_FFT_SIZE;
+    uint32_t sampleRate = GlobalAudioConstants::DEFAULT_SAMPLE_RATE;
+    double alpha = GlobalValidationConstants::DEFAULT_ALPHA;
+    double minGain = GlobalValidationConstants::DEFAULT_MIN_GAIN;
+    double maxGain = GlobalValidationConstants::DEFAULT_MAX_GAIN;
+    bool useLSA = true; // Log-Spectral Amplitude
     double gainSmoothing = 0.7;
     double frequencySmoothing = 0.3;
     bool usePerceptualWeighting = true;
@@ -76,8 +76,8 @@ struct WienerConfig {
 
 // === Configuration Multi-bandes ===
 struct MultibandConfig {
-    uint32_t sampleRate = 48000;
-    size_t fftSize = 2048;
+    uint32_t sampleRate = GlobalAudioConstants::DEFAULT_SAMPLE_RATE;
+    size_t fftSize = GlobalAudioConstants::DEFAULT_FFT_SIZE;
     float subBassReduction = 0.9f;
     float bassReduction = 0.7f;
     float lowMidReduction = 0.5f;

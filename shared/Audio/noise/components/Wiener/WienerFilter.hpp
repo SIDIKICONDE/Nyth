@@ -1,11 +1,12 @@
 #pragma once
 
 #ifdef __cplusplus
-#include "IMCRA.hpp"
+#include "../Imcra/Imcra.hpp"
 #include <cstdint>
 #include <memory>
 #include <vector>
 
+#include "../../common/utils/MathUtils.hpp"
 
 namespace AudioNR {
 
@@ -29,26 +30,26 @@ public:
      */
     struct Config {
         // Core parameters
-        size_t fftSize = 1024;
-        uint32_t sampleRate = 48000;
+        size_t fftSize = WienerFilterConstants::DEFAULT_FFT_SIZE;
+        uint32_t sampleRate = WienerFilterConstants::DEFAULT_SAMPLE_RATE;
 
         // Wiener filter parameters
-        double alpha = 0.98;  ///< Decision-directed smoothing factor
-        double minGain = 0.1; ///< Minimum gain floor (prevents over-suppression)
-        double maxGain = 1.0; ///< Maximum gain ceiling
+        double alpha = WienerFilterConstants::DEFAULT_ALPHA;  ///< Decision-directed smoothing factor
+        double minGain = WienerFilterConstants::DEFAULT_MIN_GAIN; ///< Minimum gain floor (prevents over-suppression)
+        double maxGain = WienerFilterConstants::DEFAULT_MAX_GAIN; ///< Maximum gain ceiling
 
         // MMSE-LSA parameters
         bool useLSA = true;    ///< Use Log-Spectral Amplitude estimator
-        double xiMin = 0.001;  ///< Minimum a priori SNR
-        double xiMax = 1000.0; ///< Maximum a priori SNR
+        double xiMin = WienerFilterConstants::DEFAULT_XI_MIN;  ///< Minimum a priori SNR
+        double xiMax = WienerFilterConstants::DEFAULT_XI_MAX; ///< Maximum a priori SNR
 
         // Musical noise reduction
-        double gainSmoothing = 0.7;      ///< Temporal gain smoothing
-        double frequencySmoothing = 0.3; ///< Spectral gain smoothing
+        double gainSmoothing = WienerFilterConstants::DEFAULT_GAIN_SMOOTHING;      ///< Temporal gain smoothing
+        double frequencySmoothing = WienerFilterConstants::DEFAULT_FREQUENCY_SMOOTHING; ///< Spectral gain smoothing
 
         // Perceptual weighting
         bool usePerceptualWeighting = true;
-        double perceptualFactor = 0.5; ///< Strength of perceptual weighting
+        double perceptualFactor = WienerFilterConstants::DEFAULT_PERCEPTUAL_FACTOR; ///< Strength of perceptual weighting
 
         // Noise estimation mode
         enum NoiseEstimationMode {
@@ -138,8 +139,7 @@ private:
     void computeMMSE_LSA_Gain();
     void applyGainSmoothing();
 
-    // Mathematical functions
-    float expint(float x);
+    // Mathematical functions are now in MathUtils or std
     float besselI0(float x);
     float besselI1(float x);
 
@@ -167,15 +167,15 @@ public:
      */
     struct ParametricConfig : public WienerFilter::Config {
         // Trade-off parameters
-        double beta = 1.0;             ///< Over-subtraction factor
-        double musicNoiseFloor = 0.01; ///< Floor for musical noise
+        double beta = ParametricWienerConstants::DEFAULT_BETA;             ///< Over-subtraction factor
+        double musicNoiseFloor = ParametricWienerConstants::DEFAULT_MUSIC_NOISE_FLOOR; ///< Floor for musical noise
 
         // Adaptive parameters based on SNR
         struct SNRAdaptive {
-            double lowSNR = -5.0;       ///< Low SNR threshold (dB)
-            double highSNR = 20.0;      ///< High SNR threshold (dB)
-            double aggressiveLow = 0.9; ///< Aggressive reduction at low SNR
-            double gentleHigh = 0.3;    ///< Gentle reduction at high SNR
+            double lowSNR = ParametricWienerConstants::DEFAULT_LOW_SNR_THRESHOLD;       ///< Low SNR threshold (dB)
+            double highSNR = ParametricWienerConstants::DEFAULT_HIGH_SNR_THRESHOLD;      ///< High SNR threshold (dB)
+            double aggressiveLow = ParametricWienerConstants::DEFAULT_AGGRESSIVE_LOW; ///< Aggressive reduction at low SNR
+            double gentleHigh = ParametricWienerConstants::DEFAULT_GENTLE_HIGH;    ///< Gentle reduction at high SNR
         } snrAdaptive;
 
         // Frequency-dependent parameters
@@ -213,20 +213,20 @@ private:
 class TwoStepNoiseReduction {
 public:
     struct Config {
-        size_t fftSize = 1024;
-        uint32_t sampleRate = 48000;
+        size_t fftSize = TwoStepNoiseReductionConstants::DEFAULT_FFT_SIZE;
+        uint32_t sampleRate = TwoStepNoiseReductionConstants::DEFAULT_SAMPLE_RATE;
 
         // First step: Conservative Wiener filter
-        double step1MinGain = 0.3;
-        double step1Alpha = 0.95;
+        double step1MinGain = TwoStepNoiseReductionConstants::DEFAULT_STEP1_MIN_GAIN;
+        double step1Alpha = TwoStepNoiseReductionConstants::DEFAULT_STEP1_ALPHA;
 
         // Second step: Aggressive filtering on residual noise
-        double step2MinGain = 0.1;
-        double step2Alpha = 0.98;
+        double step2MinGain = TwoStepNoiseReductionConstants::DEFAULT_STEP2_MIN_GAIN;
+        double step2Alpha = TwoStepNoiseReductionConstants::DEFAULT_STEP2_ALPHA;
 
         // Residual noise estimation
-        double residualThreshold = 0.5; ///< Threshold for residual detection
-        double residualSmoothing = 0.9; ///< Smoothing for residual estimate
+        double residualThreshold = TwoStepNoiseReductionConstants::DEFAULT_RESIDUAL_THRESHOLD; ///< Threshold for residual detection
+        double residualSmoothing = TwoStepNoiseReductionConstants::DEFAULT_RESIDUAL_SMOOTHING; ///< Smoothing for residual estimate
     };
 
     explicit TwoStepNoiseReduction(const Config& cfg);

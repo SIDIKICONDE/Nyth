@@ -219,12 +219,51 @@ std::string SpectrumManager::getLastError() const {
 
 bool SpectrumManager::initializeFFT() {
     try {
+        // Validation de la taille FFT
+        if (!isValidFFTSize()) {
+            lastError_ = "Invalid FFT size: " + std::to_string(config_.fftSize) + " (must be power of 2)";
+            return false;
+        }
+
+        // Création du moteur FFT avec gestion d'erreur
         fftEngine_ = AudioFX::createFFTEngine(config_.fftSize);
-        return fftEngine_ != nullptr;
+
+        if (!fftEngine_) {
+            lastError_ = "Failed to create FFT engine";
+            return false;
+        }
+
+        // Validation de l'interface FFT
+        if (fftEngine_->getSize() != config_.fftSize) {
+            lastError_ = "FFT engine size mismatch: expected " + std::to_string(config_.fftSize) + ", got " +
+                         std::to_string(fftEngine_->getSize());
+            fftEngine_.reset();
+            return false;
+        }
+
+        return true;
     } catch (const std::exception& e) {
-        lastError_ = e.what();
+        lastError_ = std::string("FFT initialization failed: ") + e.what();
+        fftEngine_.reset();
         return false;
     }
+}
+
+bool SpectrumManager::isValidFFTSize() const {
+    size_t fftSize = config_.fftSize;
+
+    // Vérifier que ce n'est pas zéro
+    if (fftSize == 0) {
+        return false;
+    }
+
+    // Vérifier que c'est une puissance de 2
+    if ((fftSize & (fftSize - 1)) != 0) {
+        return false;
+    }
+
+    // Vérifier les limites
+    return fftSize >= 64 && fftSize <= 8192;
 }
 
 void SpectrumManager::calculateFrequencyBands() {

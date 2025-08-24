@@ -31,7 +31,7 @@ Nyth::Audio::AudioConfig JSIConverter::jsToAudioConfig(jsi::Runtime& rt, const j
         auto prop = jsConfig.getProperty(rt, "bufferSizeFrames");
         config.bufferSizeFrames = Nyth::Audio::JSIValidator::validateBufferSizeFrames(rt, prop);
     }
-    
+
     // Number of buffers
     if (jsConfig.hasProperty(rt, "numBuffers")) {
         auto prop = jsConfig.getProperty(rt, "numBuffers");
@@ -140,7 +140,7 @@ jsi::Object JSIConverter::audioRecordingConfigToJS(jsi::Runtime& rt, const Nyth:
 }
 
 // === Conversion des statistiques ===
-jsi::Object JSIConverter::audioStatisticsToJS(jsi::Runtime& rt, const Audio::capture::CaptureStatistics& stats) {
+jsi::Object JSIConverter::audioStatisticsToJS(jsi::Runtime& rt, const Nyth::Audio::CaptureStatistics& stats) {
     auto jsStats = createEmptyObject(rt);
 
     jsStats.setProperty(rt, "framesProcessed", jsi::Value(static_cast<double>(stats.framesProcessed)));
@@ -155,7 +155,7 @@ jsi::Object JSIConverter::audioStatisticsToJS(jsi::Runtime& rt, const Audio::cap
 }
 
 // === Conversion des périphériques ===
-jsi::Object JSIConverter::audioDeviceToJS(jsi::Runtime& rt, const Audio::capture::AudioDeviceInfo& device) {
+jsi::Object JSIConverter::audioDeviceToJS(jsi::Runtime& rt, const Nyth::Audio::AudioDeviceInfo& device) {
     auto jsDevice = createEmptyObject(rt);
 
     jsDevice.setProperty(rt, "id", jsi::String::createFromUtf8(rt, device.id));
@@ -169,8 +169,7 @@ jsi::Object JSIConverter::audioDeviceToJS(jsi::Runtime& rt, const Audio::capture
     return jsDevice;
 }
 
-jsi::Array JSIConverter::audioDevicesToJS(jsi::Runtime& rt,
-                                          const std::vector<Audio::capture::AudioDeviceInfo>& devices) {
+jsi::Array JSIConverter::audioDevicesToJS(jsi::Runtime& rt, const std::vector<Nyth::Audio::AudioDeviceInfo>& devices) {
     auto jsDevices = createEmptyArray(rt, devices.size());
 
     for (size_t i = 0; i < devices.size(); ++i) {
@@ -199,51 +198,51 @@ jsi::Object JSIConverter::createAnalysisData(jsi::Runtime& rt, float currentLeve
 }
 
 // === Conversion des états ===
-std::string JSIConverter::stateToString(Audio::capture::CaptureState state) {
+std::string JSIConverter::stateToString(Nyth::Audio::CaptureState state) {
     switch (state) {
-        case Audio::capture::CaptureState::Uninitialized:
+        case Nyth::Audio::CaptureState::Uninitialized:
             return "uninitialized";
-        case Audio::capture::CaptureState::Initialized:
+        case Nyth::Audio::CaptureState::Initialized:
             return "initialized";
-        case Audio::capture::CaptureState::Starting:
+        case Nyth::Audio::CaptureState::Starting:
             return "starting";
-        case Audio::capture::CaptureState::Running:
+        case Nyth::Audio::CaptureState::Running:
             return "running";
-        case Audio::capture::CaptureState::Pausing:
+        case Nyth::Audio::CaptureState::Pausing:
             return "pausing";
-        case Audio::capture::CaptureState::Paused:
+        case Nyth::Audio::CaptureState::Paused:
             return "paused";
-        case Audio::capture::CaptureState::Stopping:
+        case Nyth::Audio::CaptureState::Stopping:
             return "stopping";
-        case Audio::capture::CaptureState::Stopped:
+        case Nyth::Audio::CaptureState::Stopped:
             return "stopped";
-        case Audio::capture::CaptureState::Error:
+        case Nyth::Audio::CaptureState::Error:
             return "error";
         default:
             return "unknown";
     }
 }
 
-Audio::capture::CaptureState JSIConverter::stringToState(const std::string& stateStr) {
+Nyth::Audio::CaptureState JSIConverter::stringToState(const std::string& stateStr) {
     if (stateStr == "uninitialized")
-        return Audio::capture::CaptureState::Uninitialized;
+        return Nyth::Audio::CaptureState::Uninitialized;
     if (stateStr == "initialized")
-        return Audio::capture::CaptureState::Initialized;
+        return Nyth::Audio::CaptureState::Initialized;
     if (stateStr == "starting")
-        return Audio::capture::CaptureState::Starting;
+        return Nyth::Audio::CaptureState::Starting;
     if (stateStr == "running")
-        return Audio::capture::CaptureState::Running;
+        return Nyth::Audio::CaptureState::Running;
     if (stateStr == "pausing")
-        return Audio::capture::CaptureState::Pausing;
+        return Nyth::Audio::CaptureState::Pausing;
     if (stateStr == "paused")
-        return Audio::capture::CaptureState::Paused;
+        return Nyth::Audio::CaptureState::Paused;
     if (stateStr == "stopping")
-        return Audio::capture::CaptureState::Stopping;
+        return Nyth::Audio::CaptureState::Stopping;
     if (stateStr == "stopped")
-        return Audio::capture::CaptureState::Stopped;
+        return Nyth::Audio::CaptureState::Stopped;
     if (stateStr == "error")
-        return Audio::capture::CaptureState::Error;
-    return Audio::capture::CaptureState::Uninitialized;
+        return Nyth::Audio::CaptureState::Error;
+    return Nyth::Audio::CaptureState::Uninitialized;
 }
 
 // === Méthodes helpers ===

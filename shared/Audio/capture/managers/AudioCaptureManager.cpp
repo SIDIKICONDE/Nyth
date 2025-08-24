@@ -13,7 +13,7 @@ AudioCaptureManager::~AudioCaptureManager() {
 }
 
 // === Cycle de vie ===
-bool AudioCaptureManager::initialize(const Nyth::Audio::AudioConfig& config) {
+bool AudioCaptureManager::initialize(const Nyth::Audio::AudioCaptureConfig& config) {
     if (!validateConfig(config)) {
         return false;
     }
@@ -28,10 +28,10 @@ bool AudioCaptureManager::initialize(const Nyth::Audio::AudioConfig& config) {
         }
 
         // Convertir la configuration pour le moteur
-        Audio::capture::AudioCaptureConfig engineConfig = convertToEngineConfig(config);
+        Nyth::Audio::AudioCaptureConfig engineConfig = convertToEngineConfig(config);
 
         // Créer une nouvelle instance de capture avec le moteur existant
-        capture_ = Audio::capture::AudioCapture::create(engineConfig);
+        capture_ = Nyth::Audio::AudioCapture::create(engineConfig);
 
         if (!capture_) {
             if (callbackManager_) {
@@ -136,21 +136,21 @@ bool AudioCaptureManager::isCapturing() const {
 }
 
 // === État et informations ===
-Audio::capture::CaptureState AudioCaptureManager::getState() const {
+Nyth::Audio::CaptureState AudioCaptureManager::getState() const {
     std::lock_guard<std::mutex> lock(captureMutex_);
 
     if (!isInitialized_.load() || !capture_) {
-        return Audio::capture::CaptureState::Uninitialized;
+        return Nyth::Audio::CaptureState::Uninitialized;
     }
 
     return capture_->getState();
 }
 
-Audio::capture::CaptureStatistics AudioCaptureManager::getStatistics() const {
+Nyth::Audio::CaptureStatistics AudioCaptureManager::getStatistics() const {
     std::lock_guard<std::mutex> lock(captureMutex_);
 
     if (!isInitialized_.load() || !capture_) {
-        return Audio::capture::CaptureStatistics{};
+        return Nyth::Audio::CaptureStatistics{};
     }
 
     return capture_->getStatistics();
@@ -165,7 +165,7 @@ void AudioCaptureManager::resetStatistics() {
 }
 
 // === Configuration ===
-bool AudioCaptureManager::updateConfig(const Nyth::Audio::AudioConfig& config) {
+bool AudioCaptureManager::updateConfig(const Nyth::Audio::AudioCaptureConfig& config) {
     if (!validateConfig(config)) {
         return false;
     }
@@ -190,7 +190,7 @@ bool AudioCaptureManager::updateConfig(const Nyth::Audio::AudioConfig& config) {
     }
 }
 
-Nyth::Audio::AudioConfig AudioCaptureManager::getConfig() const {
+Nyth::Audio::AudioCaptureConfig AudioCaptureManager::getConfig() const {
     std::lock_guard<std::mutex> lock(captureMutex_);
     return config_;
 }
@@ -248,7 +248,7 @@ bool AudioCaptureManager::hasClipping() const {
 }
 
 // === Périphériques ===
-std::vector<Audio::capture::AudioDeviceInfo> AudioCaptureManager::getAvailableDevices() const {
+std::vector<Nyth::Audio::AudioDeviceInfo> AudioCaptureManager::getAvailableDevices() const {
     std::lock_guard<std::mutex> lock(captureMutex_);
 
     if (!isInitialized_.load() || !capture_) {
@@ -282,11 +282,11 @@ bool AudioCaptureManager::selectDevice(const std::string& deviceId) {
     }
 }
 
-Audio::capture::AudioDeviceInfo AudioCaptureManager::getCurrentDevice() const {
+Nyth::Audio::AudioDeviceInfo AudioCaptureManager::getCurrentDevice() const {
     std::lock_guard<std::mutex> lock(captureMutex_);
 
     if (!isInitialized_.load() || !capture_) {
-        return Audio::capture::AudioDeviceInfo{};
+        return Nyth::Audio::AudioDeviceInfo{};
     }
 
     try {
@@ -295,7 +295,7 @@ Audio::capture::AudioDeviceInfo AudioCaptureManager::getCurrentDevice() const {
         if (callbackManager_) {
             callbackManager_->invokeErrorCallback(std::string("Failed to get current device: ") + e.what());
         }
-        return Audio::capture::AudioDeviceInfo{};
+        return Nyth::Audio::AudioDeviceInfo{};
     }
 }
 
@@ -340,40 +340,14 @@ void AudioCaptureManager::requestPermission(std::function<void(bool)> callback) 
 }
 
 // === Conversion entre les configurations ===
-Audio::capture::AudioCaptureConfig AudioCaptureManager::convertToEngineConfig(
-    const Nyth::Audio::AudioConfig& config) const {
-    Audio::capture::AudioCaptureConfig engineConfig;
-
-    engineConfig.sampleRate = config.sampleRate;
-    engineConfig.channelCount = config.channelCount;
-    engineConfig.bitsPerSample = config.bitsPerSample;
-    engineConfig.bufferSizeFrames = config.bufferSizeFrames;
-    engineConfig.numBuffers = config.numBuffers;
-
-    engineConfig.enableEchoCancellation = config.enableEchoCancellation;
-    engineConfig.enableNoiseSuppression = config.enableNoiseSuppression;
-    engineConfig.enableAutoGainControl = config.enableAutoGainControl;
-
-    engineConfig.requestPermissionOnInit = true;
-
-    return engineConfig;
+Nyth::Audio::AudioCaptureConfig AudioCaptureManager::convertToEngineConfig(
+    const Nyth::Audio::AudioCaptureConfig& config) const {
+    return config; // Already the correct type
 }
 
-Nyth::Audio::AudioConfig AudioCaptureManager::convertFromEngineConfig(
-    const Audio::capture::AudioCaptureConfig& engineConfig) const {
-    Nyth::Audio::AudioConfig config;
-
-    config.sampleRate = engineConfig.sampleRate;
-    config.channelCount = engineConfig.channelCount;
-    config.bitsPerSample = engineConfig.bitsPerSample;
-    config.bufferSizeFrames = engineConfig.bufferSizeFrames;
-    config.numBuffers = engineConfig.numBuffers;
-
-    config.enableEchoCancellation = engineConfig.enableEchoCancellation;
-    config.enableNoiseSuppression = engineConfig.enableNoiseSuppression;
-    config.enableAutoGainControl = engineConfig.enableAutoGainControl;
-
-    return config;
+Nyth::Audio::AudioCaptureConfig AudioCaptureManager::convertFromEngineConfig(
+    const Nyth::Audio::AudioCaptureConfig& engineConfig) const {
+    return engineConfig; // Already the correct type
 }
 
 // === Méthodes privées ===
@@ -390,10 +364,9 @@ void AudioCaptureManager::setupCallbacks() {
     capture_->setErrorCallback([this](const std::string& error) { onError(error); });
 
     // Callback pour les changements d'état - connecte le moteur aux callbacks JS
-    capture_->setStateChangeCallback(
-        [this](Audio::capture::CaptureState oldState, Audio::capture::CaptureState newState) {
-            onStateChange(oldState, newState);
-        });
+    capture_->setStateChangeCallback([this](Nyth::Audio::CaptureState oldState, Nyth::Audio::CaptureState newState) {
+        onStateChange(oldState, newState);
+    });
 }
 
 void AudioCaptureManager::onAudioData(const float* data, size_t frameCount, int channels) {
@@ -408,30 +381,30 @@ void AudioCaptureManager::onError(const std::string& error) {
     }
 }
 
-void AudioCaptureManager::onStateChange(Audio::capture::CaptureState oldState, Audio::capture::CaptureState newState) {
+void AudioCaptureManager::onStateChange(Nyth::Audio::CaptureState oldState, Nyth::Audio::CaptureState newState) {
     if (callbackManager_) {
         // Convertir les états en strings pour le callback JS
         std::string oldStateStr, newStateStr;
 
-        auto stateToString = [](Audio::capture::CaptureState state) -> std::string {
+        auto stateToString = [](Nyth::Audio::CaptureState state) -> std::string {
             switch (state) {
-                case Audio::capture::CaptureState::Uninitialized:
+                case Nyth::Audio::CaptureState::Uninitialized:
                     return "uninitialized";
-                case Audio::capture::CaptureState::Initialized:
+                case Nyth::Audio::CaptureState::Initialized:
                     return "initialized";
-                case Audio::capture::CaptureState::Starting:
+                case Nyth::Audio::CaptureState::Starting:
                     return "starting";
-                case Audio::capture::CaptureState::Running:
+                case Nyth::Audio::CaptureState::Running:
                     return "running";
-                case Audio::capture::CaptureState::Pausing:
+                case Nyth::Audio::CaptureState::Pausing:
                     return "pausing";
-                case Audio::capture::CaptureState::Paused:
+                case Nyth::Audio::CaptureState::Paused:
                     return "paused";
-                case Audio::capture::CaptureState::Stopping:
+                case Nyth::Audio::CaptureState::Stopping:
                     return "stopping";
-                case Audio::capture::CaptureState::Stopped:
+                case Nyth::Audio::CaptureState::Stopped:
                     return "stopped";
-                case Audio::capture::CaptureState::Error:
+                case Nyth::Audio::CaptureState::Error:
                     return "error";
                 default:
                     return "unknown";
@@ -463,8 +436,13 @@ void AudioCaptureManager::cleanup() {
     isInitialized_.store(false);
 }
 
-bool AudioCaptureManager::validateConfig(const Nyth::Audio::AudioConfig& config) const {
-    return config.isValid();
+bool AudioCaptureManager::validateConfig(const Nyth::Audio::AudioCaptureConfig& config) const {
+    // Basic validation for AudioCaptureConfig
+    return config.sampleRate > 0 &&
+           config.channelCount > 0 &&
+           config.bitsPerSample > 0 &&
+           config.bufferSizeFrames > 0 &&
+           config.numBuffers > 0;
 }
 
 } // namespace react

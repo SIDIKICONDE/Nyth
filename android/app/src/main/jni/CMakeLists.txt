@@ -264,7 +264,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/Audio/safety/AudioSafety.cpp
     ../../../../../shared/Audio/utils/AudioBuffer.cpp
 #Enhanced Audio Capture System with SIMD optimizations
-    ../../../../../shared/Audio/capture/AudioCapture.hpp
     ../../../../../shared/Audio/capture/AudioCaptureImpl.cpp
     ../../../../../shared/Audio/capture/AudioCaptureUtils.hpp
     ../../../../../shared/Audio/capture/AudioCaptureUtils.cpp
@@ -335,6 +334,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 
 #Define where CMake can find the additional header files
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
+    ${REACT_ANDROID_DIR}/../ReactCommon
+    ${REACT_ANDROID_DIR}/../ReactAndroid/src/main/jni/first-party
     ../../../../../shared
     ../../../../../shared/Audio
     ../../../../../shared/Audio/core

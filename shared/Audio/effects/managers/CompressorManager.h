@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "../../capture/jsi/JSICallbackManager.h"
+#include "../../common/jsi/JSICallbackManager.h"
 #include "../components/Compressor.hpp"
 #include "../config/EffectsConfig.h"
 

@@ -1,5 +1,5 @@
 #include "AudioSafety.hpp"
-#include "../core/DbLookupTable.hpp" // Integration of LUT for dB conversions
+#include "../../common/utils/DbLookupTable.hpp" // Integration of LUT for dB conversions
 #include <cmath>
 #include <cstddef>
 #include <cstdint>

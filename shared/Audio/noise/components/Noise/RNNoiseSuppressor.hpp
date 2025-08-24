@@ -16,7 +16,7 @@
 
 #include "SpectralNR.hpp"
 #include "NoiseReducer.hpp"
-#include "NoiseContants.hpp"
+#include "../../common/config/NoiseContants.hpp"
 
 namespace AudioNR {
 

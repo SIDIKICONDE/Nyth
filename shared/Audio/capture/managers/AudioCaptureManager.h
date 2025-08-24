@@ -2,11 +2,14 @@
 
 #include "../components/AudioCapture.hpp"
 #include "../config/AudioConfig.h"
-#include "../jsi/JSICallbackManager.h"
+#include "../../common/jsi/JSICallbackManager.h"
 #include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <string>
+#include <vector>
+
 
 namespace facebook {
 namespace react {
@@ -17,7 +20,7 @@ public:
     ~AudioCaptureManager();
 
     // === Cycle de vie ===
-    bool initialize(const Nyth::Audio::AudioConfig& config);
+    bool initialize(const Nyth::Audio::AudioCaptureConfig& config);
     bool start();
     bool stop();
     bool pause();
@@ -25,13 +28,13 @@ public:
     bool isCapturing() const;
 
     // === État et informations ===
-    Audio::capture::CaptureState getState() const;
-    Audio::capture::CaptureStatistics getStatistics() const;
+    Nyth::Audio::CaptureState getState() const;
+    Nyth::Audio::CaptureStatistics getStatistics() const;
     void resetStatistics();
 
     // === Configuration ===
-    bool updateConfig(const Nyth::Audio::AudioConfig& config);
-    Nyth::Audio::AudioConfig getConfig() const;
+    bool updateConfig(const Nyth::Audio::AudioCaptureConfig& config);
+    Nyth::Audio::AudioCaptureConfig getConfig() const;
 
     // === Niveaux audio ===
     float getCurrentLevel() const;
@@ -45,9 +48,9 @@ public:
     bool hasClipping() const;
 
     // === Périphériques ===
-    std::vector<Audio::capture::AudioDeviceInfo> getAvailableDevices() const;
+    std::vector<Nyth::Audio::AudioDeviceInfo> getAvailableDevices() const;
     bool selectDevice(const std::string& deviceId);
-    Audio::capture::AudioDeviceInfo getCurrentDevice() const;
+    Nyth::Audio::AudioDeviceInfo getCurrentDevice() const;
 
     // === Permissions ===
     bool hasPermission() const;
@@ -55,26 +58,26 @@ public:
 
 private:
     // === Membres privés ===
-    std::unique_ptr<Audio::capture::AudioCapture> capture_;
-    Nyth::Audio::AudioConfig config_;
+    std::unique_ptr<Nyth::Audio::AudioCapture> capture_;
+    Nyth::Audio::AudioCaptureConfig config_;
     std::shared_ptr<JSICallbackManager> callbackManager_;
 
     mutable std::mutex captureMutex_;
     std::atomic<bool> isInitialized_{false};
 
     // === Conversion entre les configurations ===
-    Audio::capture::AudioCaptureConfig convertToEngineConfig(const Nyth::Audio::AudioConfig& config) const;
-    Nyth::Audio::AudioConfig convertFromEngineConfig(const Audio::capture::AudioCaptureConfig& engineConfig) const;
+    Nyth::Audio::AudioCaptureConfig convertToEngineConfig(const Nyth::Audio::AudioCaptureConfig& config) const;
+    Nyth::Audio::AudioCaptureConfig convertFromEngineConfig(const Nyth::Audio::AudioCaptureConfig& engineConfig) const;
 
     // === Callbacks natifs ===
     void setupCallbacks();
     void onAudioData(const float* data, size_t frameCount, int channels);
     void onError(const std::string& error);
-    void onStateChange(Audio::capture::CaptureState oldState, Audio::capture::CaptureState newState);
+    void onStateChange(Nyth::Audio::CaptureState oldState, Nyth::Audio::CaptureState newState);
 
     // === Méthodes helpers ===
     void cleanup();
-    bool validateConfig(const Nyth::Audio::AudioConfig& config) const;
+    bool validateConfig(const Nyth::Audio::AudioCaptureConfig& config) const;
 };
 
 } // namespace react

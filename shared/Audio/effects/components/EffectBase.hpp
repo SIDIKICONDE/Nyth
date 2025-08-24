@@ -12,7 +12,7 @@
 
 
 #include "../../core/components/constant/CoreConstants.hpp"
-#include "constant/EffectConstants.hpp"
+#include "../../common/config/EffectConstants.hpp"
 
 
 namespace AudioFX {

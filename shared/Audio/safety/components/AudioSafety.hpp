@@ -18,7 +18,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #endif
-#include "constant/SafetyConstants.hpp"
+#include "../../common/config/SafetyConstants.hpp"
 
 namespace AudioSafety {
 
@@ -30,15 +30,15 @@ using namespace SafetyConstants;
  * Real-time safe alternative to exceptions
  */
 enum class SafetyError : int32_t {
-    OK = 0,
-    NULL_BUFFER = -1,
-    INVALID_SAMPLE_RATE = -2,
-    INVALID_CHANNELS = -3,
-    INVALID_THRESHOLD_DB = -4,
-    INVALID_KNEE_WIDTH = -5,
-    INVALID_DC_THRESHOLD = -6,
-    INVALID_FEEDBACK_THRESHOLD = -7,
-    PROCESSING_FAILED = -8
+    OK = ERROR_CODE_OK,
+    NULL_BUFFER = ERROR_CODE_NULL_BUFFER,
+    INVALID_SAMPLE_RATE = ERROR_CODE_INVALID_SAMPLE_RATE,
+    INVALID_CHANNELS = ERROR_CODE_INVALID_CHANNELS,
+    INVALID_THRESHOLD_DB = ERROR_CODE_INVALID_THRESHOLD_DB,
+    INVALID_KNEE_WIDTH = ERROR_CODE_INVALID_KNEE_WIDTH,
+    INVALID_DC_THRESHOLD = ERROR_CODE_INVALID_DC_THRESHOLD,
+    INVALID_FEEDBACK_THRESHOLD = ERROR_CODE_INVALID_FEEDBACK_THRESHOLD,
+    PROCESSING_FAILED = ERROR_CODE_PROCESSING_FAILED
 };
 
 /**
@@ -170,25 +170,25 @@ protected:
 inline const char* safetyErrorToString(SafetyError error) noexcept {
     switch (error) {
         case SafetyError::OK:
-            return "OK";
+            return ERROR_MESSAGE_OK;
         case SafetyError::NULL_BUFFER:
-            return "Null buffer";
+            return ERROR_MESSAGE_NULL_BUFFER;
         case SafetyError::INVALID_SAMPLE_RATE:
-            return "Invalid sample rate";
+            return ERROR_MESSAGE_INVALID_SAMPLE_RATE;
         case SafetyError::INVALID_CHANNELS:
-            return "Invalid channels";
+            return ERROR_MESSAGE_INVALID_CHANNELS;
         case SafetyError::INVALID_THRESHOLD_DB:
-            return "Invalid threshold dB";
+            return ERROR_MESSAGE_INVALID_THRESHOLD_DB;
         case SafetyError::INVALID_KNEE_WIDTH:
-            return "Invalid knee width";
+            return ERROR_MESSAGE_INVALID_KNEE_WIDTH;
         case SafetyError::INVALID_DC_THRESHOLD:
-            return "Invalid DC threshold";
+            return ERROR_MESSAGE_INVALID_DC_THRESHOLD;
         case SafetyError::INVALID_FEEDBACK_THRESHOLD:
-            return "Invalid feedback threshold";
+            return ERROR_MESSAGE_INVALID_FEEDBACK_THRESHOLD;
         case SafetyError::PROCESSING_FAILED:
-            return "Processing failed";
+            return ERROR_MESSAGE_PROCESSING_FAILED;
         default:
-            return "Unknown error";
+            return ERROR_MESSAGE_UNKNOWN;
     }
 }
 

@@ -7,15 +7,19 @@
 #include <string>
 #include <vector>
 
-#include "../../capture/jsi/JSICallbackManager.h"
+#include "../../common/jsi/JSICallbackManager.h"
 #include "../components/EffectBase.hpp"
+#include "../components/EffectChain.hpp"
 #include "../config/EffectsConfig.h"
 #include "../config/EffectsLimits.h"
 #include <jsi/jsi.h>
 
-
 namespace facebook {
 namespace react {
+
+// Alias pour les types d'effets
+using EffectType = Nyth::Audio::Effects::EffectType;
+using EffectState = Nyth::Audio::Effects::EffectState;
 
 class EffectManager {
 public:
@@ -28,7 +32,7 @@ public:
     void release();
 
     // === Gestion des effets ===
-    int createEffect(Nyth::Audio::Effects::EffectType type);
+    int createEffect(EffectType type);
     bool destroyEffect(int effectId);
     bool hasEffect(int effectId) const;
     std::vector<int> getActiveEffects() const;
@@ -67,6 +71,16 @@ public:
     size_t getMaxEffects() const;
     uint32_t getLatency() const;
 
+    // === Accès aux effets individuels ===
+    AudioFX::IAudioEffect* getEffect(int effectId);
+    EffectType getEffectType(int effectId) const;
+    EffectState getEffectState(int effectId) const;
+    uint32_t getEffectLatency(int effectId) const;
+
+    // === Conversion string ↔ enum ===
+    std::string effectTypeToString(EffectType type) const;
+    std::string effectStateToString(EffectState state) const;
+
     // === Callbacks ===
     using ProcessingCallback = std::function<void(const ProcessingMetrics& metrics)>;
     using EffectCallback = std::function<void(int effectId, const std::string& event)>;
@@ -101,18 +115,21 @@ private:
     ProcessingCallback processingCallback_;
     EffectCallback effectCallback_;
 
+    // === Chaîne d'effets ===
+    AudioFX::EffectChain effectChain_;
+
     // === Buffers de travail ===
     std::vector<float> workBufferL_;
     std::vector<float> workBufferR_;
 
     // === Méthodes privées ===
-    bool validateEffectType(Nyth::Audio::Effects::EffectType type) const;
-    std::unique_ptr<AudioFX::IAudioEffect> createEffectByType(Nyth::Audio::Effects::EffectType type);
+    bool validateEffectType(EffectType type) const;
+    std::unique_ptr<AudioFX::IAudioEffect> createEffectByType(EffectType type);
     void updateMetrics();
     void notifyProcessingCallback();
     void notifyEffectCallback(int effectId, const std::string& event);
-    Nyth::Audio::Effects::EffectType stringToEffectType(const std::string& typeStr) const;
-    std::string effectTypeToString(Nyth::Audio::Effects::EffectType type) const;
+    EffectType stringToEffectType(const std::string& typeStr) const;
+    std::string effectTypeToString(EffectType type) const;
 };
 
 } // namespace react

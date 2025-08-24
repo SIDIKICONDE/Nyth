@@ -1,20 +1,24 @@
 #include "RNNoiseSuppressor.hpp"
+#include "../../common/config/NoiseContants.hpp"
 #include <algorithm>
 #include <memory>
 #include <stdexcept>
-#include "NoiseContants.hpp"
 
 namespace {
 template <typename T>
-inline T maxValue(const T& a, const T& b) { return (a < b) ? b : a; }
+inline T maxValue(const T& a, const T& b) {
+    return (a < b) ? b : a;
+}
 
 template <typename T>
-inline T minValue(const T& a, const T& b) { return (b < a) ? b : a; }
+inline T minValue(const T& a, const T& b) {
+    return (b < a) ? b : a;
+}
 
 // Import des constantes pour éviter la répétition des namespace
 using namespace RNNoiseSuppressorConstants;
 using namespace SpectralNRConstants;
-}
+} // namespace
 
 namespace AudioNR {
 
@@ -23,11 +27,17 @@ RNNoiseSuppressor::~RNNoiseSuppressor() = default;
 
 bool RNNoiseSuppressor::initialize(uint32_t sampleRate, int numChannels) {
     // Validate inputs
-    if (sampleRate < RNNoiseSuppressorConstants::MIN_SAMPLE_RATE || sampleRate > RNNoiseSuppressorConstants::MAX_SAMPLE_RATE) {
-        throw std::invalid_argument("Sample rate must be between 8000 and 192000 Hz");
+    if (sampleRate < RNNoiseSuppressorConstants::MIN_SAMPLE_RATE ||
+        sampleRate > RNNoiseSuppressorConstants::MAX_SAMPLE_RATE) {
+        throw std::invalid_argument("Sample rate must be between " +
+                                    std::to_string(RNNoiseSuppressorConstants::MIN_SAMPLE_RATE) + " and " +
+                                    std::to_string(RNNoiseSuppressorConstants::MAX_SAMPLE_RATE) + " Hz");
     }
-    if (numChannels < RNNoiseSuppressorConstants::MIN_CHANNELS || numChannels > RNNoiseSuppressorConstants::MAX_CHANNELS) {
-        throw std::invalid_argument("Number of channels must be 1 or 2");
+    if (numChannels < RNNoiseSuppressorConstants::MIN_CHANNELS ||
+        numChannels > RNNoiseSuppressorConstants::MAX_CHANNELS) {
+        throw std::invalid_argument("Number of channels must be " +
+                                    std::to_string(RNNoiseSuppressorConstants::MIN_CHANNELS) + " or " +
+                                    std::to_string(RNNoiseSuppressorConstants::MAX_CHANNELS));
     }
 
     sampleRate_ = sampleRate;
@@ -58,7 +68,9 @@ bool RNNoiseSuppressor::initialize(uint32_t sampleRate, int numChannels) {
     return true;
 }
 
-bool RNNoiseSuppressor::isAvailable() const { return available_; }
+bool RNNoiseSuppressor::isAvailable() const {
+    return available_;
+}
 
 void RNNoiseSuppressor::setAggressiveness(double aggressiveness) {
     // Clamp within valid range
@@ -66,7 +78,8 @@ void RNNoiseSuppressor::setAggressiveness(double aggressiveness) {
         aggressiveness = maxValue(MIN_AGGRESSIVENESS, minValue(MAX_AGGRESSIVENESS, aggressiveness));
     }
     aggressiveness_ = aggressiveness;
-    if (!available_) return;
+    if (!available_)
+        return;
     applyAggressivenessToConfigs();
     gate_->setConfig(gateCfg_);
     spectral_->setConfig(spectralCfg_);
@@ -76,14 +89,17 @@ void RNNoiseSuppressor::processMono(const float* input, float* output, size_t nu
     if (!input || !output) {
         throw std::invalid_argument("Input and output buffers must not be null");
     }
-    if (numSamples == 0) return;
+    if (numSamples == 0)
+        return;
     if (!available_ || !gate_ || !spectral_) {
-        if (output != input) std::copy_n(input, numSamples, output);
+        if (output != input)
+            std::copy_n(input, numSamples, output);
         return;
     }
 
     // Assurer les tampons
-    if (scratchOut_.size() < numSamples) scratchOut_.resize(numSamples);
+    if (scratchOut_.size() < numSamples)
+        scratchOut_.resize(numSamples);
 
     // Étape 1: gate temporel
     gate_->processMono(input, scratchOut_.data(), numSamples);
@@ -92,26 +108,31 @@ void RNNoiseSuppressor::processMono(const float* input, float* output, size_t nu
     spectral_->process(scratchOut_.data(), output, numSamples);
 }
 
-void RNNoiseSuppressor::processStereo(const float* inL, const float* inR,
-                                      float* outL, float* outR,
-                                      size_t numSamples) {
+void RNNoiseSuppressor::processStereo(const float* inL, const float* inR, float* outL, float* outR, size_t numSamples) {
     if (!inL || !inR || !outL || !outR) {
         throw std::invalid_argument("All input and output buffers must not be null");
     }
-    if (numSamples == 0) return;
+    if (numSamples == 0)
+        return;
     if (!available_ || !gate_ || !spectral_) {
-        if (outL != inL) std::copy_n(inL, numSamples, outL);
-        if (outR != inR) std::copy_n(inR, numSamples, outR);
+        if (outL != inL)
+            std::copy_n(inL, numSamples, outL);
+        if (outR != inR)
+            std::copy_n(inR, numSamples, outR);
         return;
     }
 
     // Assurer tampons
-    if (scratchMono_.size() < numSamples) scratchMono_.resize(numSamples);
-    if (scratchOut_.size() < numSamples) scratchOut_.resize(numSamples);
+    if (scratchMono_.size() < numSamples)
+        scratchMono_.resize(numSamples);
+    if (scratchOut_.size() < numSamples)
+        scratchOut_.resize(numSamples);
 
     // 1) Gate stéréo (par canal) pour éviter les fuites avant mixage
-    if (scratchL_.size() < numSamples) scratchL_.resize(numSamples);
-    if (scratchR_.size() < numSamples) scratchR_.resize(numSamples);
+    if (scratchL_.size() < numSamples)
+        scratchL_.resize(numSamples);
+    if (scratchR_.size() < numSamples)
+        scratchR_.resize(numSamples);
     gate_->processStereo(inL, inR, scratchL_.data(), scratchR_.data(), numSamples);
 
     // 2) Downmix vers mono pour réduction spectrale partagée
@@ -146,8 +167,8 @@ void RNNoiseSuppressor::applyAggressivenessToConfigs() {
     // SpectralNR mapping
     spectralCfg_.enabled = (a > MIN_AGGRESSIVENESS);
     spectralCfg_.sampleRate = sampleRate_;
-    spectralCfg_.fftSize = SpectralMapping::FFT_SIZE;                     // fixe et robuste
-    spectralCfg_.hopSize = SpectralMapping::HOP_SIZE;                      // 75% overlap
+    spectralCfg_.fftSize = SpectralMapping::FFT_SIZE; // fixe et robuste
+    spectralCfg_.hopSize = SpectralMapping::HOP_SIZE; // 75% overlap
     spectralCfg_.beta = SpectralMapping::BETA_BASE + SpectralMapping::BETA_RANGE * t;
     spectralCfg_.floorGain = SpectralMapping::FLOOR_GAIN_BASE + SpectralMapping::FLOOR_GAIN_RANGE * t;
     spectralCfg_.noiseUpdate = SpectralMapping::NOISE_UPDATE_BASE + SpectralMapping::NOISE_UPDATE_RANGE * t;

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <cstddef>
+#include "AudioCapture.hpp"
+#include "../../common/config/Constant.hpp"
 #include <chrono>
+#include <cstddef>
 #include <exception>
 #include <string>
-#include "AudioCapture.hpp"
-
 
 namespace Nyth {
 namespace Audio {
@@ -103,7 +103,18 @@ public:
 class AudioConfigValidator {
 public:
     static void validateSampleRate(int sampleRate) {
-        const int validRates[] = {8000, 11025, 16000, 22050, 44100, 48000, 88200, 96000, 176400, 192000};
+        const int validRates[] = {
+            Constants::SAMPLE_RATE_8KHZ,
+            Constants::SAMPLE_RATE_11KHZ,
+            Constants::SAMPLE_RATE_16KHZ,
+            Constants::SAMPLE_RATE_22KHZ,
+            Constants::SAMPLE_RATE_44KHZ,
+            Constants::SAMPLE_RATE_48KHZ,
+            Constants::SAMPLE_RATE_88KHZ,
+            Constants::SAMPLE_RATE_96KHZ,
+            Constants::SAMPLE_RATE_176KHZ,
+            Constants::SAMPLE_RATE_192KHZ
+        };
         bool isValid = false;
         for (int rate : validRates) {
             if (sampleRate == rate) {
@@ -119,21 +130,22 @@ public:
     }
 
     static void validateChannelCount(int channels) {
-        if (channels < 1 || channels > 8) {
+        if (channels < Constants::MIN_CHANNEL_COUNT || channels > Constants::MAX_CHANNEL_COUNT) {
             throw InvalidConfigurationException("Invalid channel count: " + std::to_string(channels) +
                                                 ". Must be between 1 and 8");
         }
     }
 
     static void validateBitsPerSample(int bits) {
-        if (bits != 8 && bits != 16 && bits != 24 && bits != 32) {
+        if (bits != Constants::BITS_PER_SAMPLE_8 && bits != Constants::BITS_PER_SAMPLE_16 &&
+            bits != Constants::BITS_PER_SAMPLE_24 && bits != Constants::BITS_PER_SAMPLE_32) {
             throw InvalidConfigurationException("Invalid bits per sample: " + std::to_string(bits) +
                                                 ". Must be 8, 16, 24, or 32");
         }
     }
 
     static void validateBufferSize(int bufferSize) {
-        if (bufferSize < 64 || bufferSize > 8192) {
+        if (bufferSize < Constants::MIN_BUFFER_SIZE || bufferSize > Constants::MAX_BUFFER_SIZE) {
             throw InvalidConfigurationException("Invalid buffer size: " + std::to_string(bufferSize) +
                                                 ". Must be between 64 and 8192 frames");
         }
@@ -143,13 +155,13 @@ public:
         }
     }
 
-    static void validateConfig(const Audio::capture::AudioCaptureConfig& config) {
+    static void validateConfig(const AudioCaptureConfig& config) {
         validateSampleRate(config.sampleRate);
         validateChannelCount(config.channelCount);
         validateBitsPerSample(config.bitsPerSample);
         validateBufferSize(config.bufferSizeFrames);
 
-        if (config.numBuffers < 2 || config.numBuffers > 10) {
+        if (config.numBuffers < Constants::MIN_NUM_BUFFERS || config.numBuffers > Constants::MAX_NUM_BUFFERS) {
             throw InvalidConfigurationException("Number of buffers must be between 2 and 10");
         }
     }

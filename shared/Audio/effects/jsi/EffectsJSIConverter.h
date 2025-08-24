@@ -5,13 +5,16 @@
 #include <string>
 
 #include "../config/EffectsConfig.h"
-#include "../managers/CompressorManager.h"
-#include "../managers/DelayManager.h"
-#include "../managers/EffectManager.h"
-
+#include "../config/EffectsLimits.h"
+#include "../components/Compressor.hpp"
+#include "../components/Delay.hpp"
 
 namespace facebook {
 namespace react {
+
+// Alias pour les types d'effets
+using EffectType = Nyth::Audio::Effects::EffectType;
+using EffectState = Nyth::Audio::Effects::EffectState;
 
 class EffectsJSIConverter {
 public:
@@ -30,18 +33,19 @@ public:
 
     // === Conversion des métriques ===
     static jsi::Object processingMetricsToJS(jsi::Runtime& rt, const EffectManager::ProcessingMetrics& metrics);
-    static jsi::Object compressorMetricsToJS(jsi::Runtime& rt, const CompressorManager::CompressorMetrics& metrics);
-    static jsi::Object delayMetricsToJS(jsi::Runtime& rt, const DelayManager::DelayMetrics& metrics);
+    // Note: CompressorMetrics et DelayMetrics définis dans les classes respectives
+    static jsi::Object compressorMetricsToJS(jsi::Runtime& rt, const AudioFX::CompressorEffect::CompressorMetrics& metrics);
+    static jsi::Object delayMetricsToJS(jsi::Runtime& rt, const AudioFX::DelayEffect::DelayMetrics& metrics);
 
     // === Conversion des statistiques ===
     static jsi::Object statisticsToJS(jsi::Runtime& rt, const Nyth::Audio::EffectsStatistics& stats);
 
     // === Utilitaires de conversion ===
-    static Nyth::Audio::Effects::EffectType stringToEffectType(const std::string& typeStr);
-    static std::string effectTypeToString(Nyth::Audio::Effects::EffectType type);
+    static EffectType stringToEffectType(const std::string& typeStr);
+    static std::string effectTypeToString(EffectType type);
 
-    static Nyth::Audio::Effects::EffectState stringToEffectState(const std::string& stateStr);
-    static std::string effectStateToString(Nyth::Audio::Effects::EffectState state);
+    static EffectState stringToEffectState(const std::string& stateStr);
+    static std::string effectStateToString(EffectState state);
 
     // === Validation et conversion d'arrays ===
     static std::vector<float> arrayToVector(jsi::Runtime& rt, const jsi::Array& array);

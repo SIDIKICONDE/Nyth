@@ -12,30 +12,27 @@ namespace AudioNR {
 class MultibandProcessor {
 public:
     struct Config {
-        enum BandMode {
-            LINEAR,
-            BARK_SCALE,
-            MEL_SCALE,
-            ERB_SCALE
-        };
-        
-        BandMode bandMode = BARK_SCALE;
-        size_t numBands = 24;
-        float lowFreq = 20.0f;
-        float highFreq = 20000.0f;
+        enum BandMode { LINEAR, BARK_SCALE, MEL_SCALE, ERB_SCALE };
+
+        BandMode bandMode = MultibandProcessorConstants::DEFAULT_BAND_MODE;
+        size_t numBands = MultibandProcessorConstants::DEFAULT_NUM_BANDS;
+        float lowFreq = MultibandProcessorConstants::DEFAULT_LOW_FREQ;
+        float highFreq = MultibandProcessorConstants::DEFAULT_HIGH_FREQ;
     };
-    
+
     explicit MultibandProcessor(const Config& config);
     ~MultibandProcessor();
-    
+
     // Process methods
     void process(const float* input, float* output, size_t frameSize);
     void processBands(const std::vector<float>& spectrum, std::vector<float>& output);
-    
+
     // Configuration
     void setConfig(const Config& config);
-    const Config& getConfig() const { return config_; }
-    
+    const Config& getConfig() const {
+        return config_;
+    }
+
 private:
     Config config_;
     std::vector<float> bandGains_;

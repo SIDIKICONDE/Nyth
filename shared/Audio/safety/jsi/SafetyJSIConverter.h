@@ -5,7 +5,7 @@
 #include <vector>
 
 
-#include "../../jsi/JSICallbackManager.h"
+#include "../../common/jsi/JSICallbackManager.h"
 #include "../config/SafetyConfig.h"
 
 
@@ -150,4 +150,3 @@ private:
 
 } // namespace react
 } // namespace facebook
-

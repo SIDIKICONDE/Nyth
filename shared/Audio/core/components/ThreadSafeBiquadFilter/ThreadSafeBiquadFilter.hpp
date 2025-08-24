@@ -2,8 +2,7 @@
 #ifndef THREADSAFE_BIQUADFILTER_HPP
 #define THREADSAFE_BIQUADFILTER_HPP
 
-#include "AudioError.hpp"
-#include "BiquadFilter.hpp"
+#include "../../../common/dsp/BiquadFilter.hpp"
 #include <atomic>
 #include <cstring> // for memcpy
 #include <mutex>

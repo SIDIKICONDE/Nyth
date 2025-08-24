@@ -1,25 +1,28 @@
 #include "NoiseConfig.h"
+#include "../../common/config/NoiseContants.hpp"
 
 namespace Nyth {
 namespace Audio {
 
 // === Constantes de validation ===
-constexpr uint32_t MIN_SAMPLE_RATE = 8000;
-constexpr uint32_t MAX_SAMPLE_RATE = 192000;
-constexpr int MIN_CHANNELS = 1;
-constexpr int MAX_CHANNELS = 8;
-constexpr size_t MIN_FFT_SIZE = 128;
-constexpr size_t MAX_FFT_SIZE = 8192;
-constexpr size_t MIN_HOP_SIZE = 32;
-constexpr size_t MAX_HOP_SIZE = 4096;
-constexpr float MIN_AGGRESSIVENESS = 0.0f;
-constexpr float MAX_AGGRESSIVENESS = 3.0f;
+// Utilise les constantes globales unifiées pour la cohérence
+constexpr uint32_t MIN_SAMPLE_RATE = GlobalAudioConstants::MIN_SAMPLE_RATE;
+constexpr uint32_t MAX_SAMPLE_RATE = GlobalAudioConstants::MAX_SAMPLE_RATE;
+constexpr int MIN_CHANNELS = GlobalAudioConstants::MIN_CHANNELS;
+constexpr int MAX_CHANNELS = GlobalAudioConstants::MAX_CHANNELS;
+constexpr size_t MIN_FFT_SIZE = GlobalAudioConstants::MIN_FFT_SIZE;
+constexpr size_t MAX_FFT_SIZE = GlobalAudioConstants::MAX_FFT_SIZE;
+constexpr size_t MIN_HOP_SIZE = GlobalAudioConstants::MIN_HOP_SIZE;
+constexpr size_t MAX_HOP_SIZE = GlobalAudioConstants::MAX_HOP_SIZE;
+constexpr float MIN_AGGRESSIVENESS = GlobalValidationConstants::MIN_AGGRESSIVENESS;
+constexpr float MAX_AGGRESSIVENESS = GlobalValidationConstants::MAX_AGGRESSIVENESS;
 
 // === Implémentation NoiseConfigValidator ===
 
 bool NoiseConfigValidator::validate(const NoiseConfig& config, std::string& error) {
     if (config.sampleRate < MIN_SAMPLE_RATE || config.sampleRate > MAX_SAMPLE_RATE) {
-        error = "Sample rate must be between " + std::to_string(MIN_SAMPLE_RATE) + " and " + std::to_string(MAX_SAMPLE_RATE) + " Hz";
+        error = "Sample rate must be between " + std::to_string(MIN_SAMPLE_RATE) + " and " +
+                std::to_string(MAX_SAMPLE_RATE) + " Hz";
         return false;
     }
 
@@ -39,7 +42,8 @@ bool NoiseConfigValidator::validate(const NoiseConfig& config, std::string& erro
     }
 
     if (config.aggressiveness < MIN_AGGRESSIVENESS || config.aggressiveness > MAX_AGGRESSIVENESS) {
-        error = "Aggressiveness must be between " + std::to_string(MIN_AGGRESSIVENESS) + " and " + std::to_string(MAX_AGGRESSIVENESS);
+        error = "Aggressiveness must be between " + std::to_string(MIN_AGGRESSIVENESS) + " and " +
+                std::to_string(MAX_AGGRESSIVENESS);
         return false;
     }
 
@@ -63,12 +67,14 @@ bool NoiseConfigValidator::validate(const NoiseConfig& config, std::string& erro
 
 bool NoiseConfigValidator::validate(const IMCRAConfig& config, std::string& error) {
     if (config.fftSize < MIN_FFT_SIZE || config.fftSize > MAX_FFT_SIZE) {
-        error = "IMCRA FFT size must be between " + std::to_string(MIN_FFT_SIZE) + " and " + std::to_string(MAX_FFT_SIZE);
+        error =
+            "IMCRA FFT size must be between " + std::to_string(MIN_FFT_SIZE) + " and " + std::to_string(MAX_FFT_SIZE);
         return false;
     }
 
     if (config.sampleRate < MIN_SAMPLE_RATE || config.sampleRate > MAX_SAMPLE_RATE) {
-        error = "IMCRA sample rate must be between " + std::to_string(MIN_SAMPLE_RATE) + " and " + std::to_string(MAX_SAMPLE_RATE) + " Hz";
+        error = "IMCRA sample rate must be between " + std::to_string(MIN_SAMPLE_RATE) + " and " +
+                std::to_string(MAX_SAMPLE_RATE) + " Hz";
         return false;
     }
 
@@ -97,12 +103,14 @@ bool NoiseConfigValidator::validate(const IMCRAConfig& config, std::string& erro
 
 bool NoiseConfigValidator::validate(const WienerConfig& config, std::string& error) {
     if (config.fftSize < MIN_FFT_SIZE || config.fftSize > MAX_FFT_SIZE) {
-        error = "Wiener FFT size must be between " + std::to_string(MIN_FFT_SIZE) + " and " + std::to_string(MAX_FFT_SIZE);
+        error =
+            "Wiener FFT size must be between " + std::to_string(MIN_FFT_SIZE) + " and " + std::to_string(MAX_FFT_SIZE);
         return false;
     }
 
     if (config.sampleRate < MIN_SAMPLE_RATE || config.sampleRate > MAX_SAMPLE_RATE) {
-        error = "Wiener sample rate must be between " + std::to_string(MIN_SAMPLE_RATE) + " and " + std::to_string(MAX_SAMPLE_RATE) + " Hz";
+        error = "Wiener sample rate must be between " + std::to_string(MIN_SAMPLE_RATE) + " and " +
+                std::to_string(MAX_SAMPLE_RATE) + " Hz";
         return false;
     }
 
@@ -126,21 +134,21 @@ bool NoiseConfigValidator::validate(const WienerConfig& config, std::string& err
 
 bool NoiseConfigValidator::validate(const MultibandConfig& config, std::string& error) {
     if (config.sampleRate < MIN_SAMPLE_RATE || config.sampleRate > MAX_SAMPLE_RATE) {
-        error = "Multiband sample rate must be between " + std::to_string(MIN_SAMPLE_RATE) + " and " + std::to_string(MAX_SAMPLE_RATE) + " Hz";
+        error = "Multiband sample rate must be between " + std::to_string(MIN_SAMPLE_RATE) + " and " +
+                std::to_string(MAX_SAMPLE_RATE) + " Hz";
         return false;
     }
 
     if (config.fftSize < MIN_FFT_SIZE || config.fftSize > MAX_FFT_SIZE) {
-        error = "Multiband FFT size must be between " + std::to_string(MIN_FFT_SIZE) + " and " + std::to_string(MAX_FFT_SIZE);
+        error = "Multiband FFT size must be between " + std::to_string(MIN_FFT_SIZE) + " and " +
+                std::to_string(MAX_FFT_SIZE);
         return false;
     }
 
     // Validation des niveaux de réduction (doivent être entre 0.0 et 1.0)
-    const float reductions[] = {
-        config.subBassReduction, config.bassReduction, config.lowMidReduction,
-        config.midReduction, config.highMidReduction, config.highReduction,
-        config.ultraHighReduction
-    };
+    const float reductions[] = {config.subBassReduction,  config.bassReduction,    config.lowMidReduction,
+                                config.midReduction,      config.highMidReduction, config.highReduction,
+                                config.ultraHighReduction};
 
     for (float reduction : reductions) {
         if (reduction < 0.0f || reduction > 1.0f) {
@@ -158,8 +166,8 @@ NoiseConfig NoiseConfigValidator::getDefault() {
 
 IMCRAConfig NoiseConfigValidator::getDefaultIMCRA() {
     IMCRAConfig config;
-    config.fftSize = 1024;
-    config.sampleRate = 48000;
+    config.fftSize = GlobalAudioConstants::DEFAULT_FFT_SIZE;
+    config.sampleRate = GlobalAudioConstants::DEFAULT_SAMPLE_RATE;
     config.alphaS = 0.95;
     config.alphaD = 0.95;
     config.alphaD2 = 0.9;
@@ -174,11 +182,11 @@ IMCRAConfig NoiseConfigValidator::getDefaultIMCRA() {
 
 WienerConfig NoiseConfigValidator::getDefaultWiener() {
     WienerConfig config;
-    config.fftSize = 1024;
-    config.sampleRate = 48000;
-    config.alpha = 0.98;
-    config.minGain = 0.1;
-    config.maxGain = 1.0;
+    config.fftSize = GlobalAudioConstants::DEFAULT_FFT_SIZE;
+    config.sampleRate = GlobalAudioConstants::DEFAULT_SAMPLE_RATE;
+    config.alpha = GlobalValidationConstants::DEFAULT_ALPHA;
+    config.minGain = GlobalValidationConstants::DEFAULT_MIN_GAIN;
+    config.maxGain = GlobalValidationConstants::DEFAULT_MAX_GAIN;
     config.useLSA = true;
     config.gainSmoothing = 0.7;
     config.frequencySmoothing = 0.3;
@@ -188,8 +196,8 @@ WienerConfig NoiseConfigValidator::getDefaultWiener() {
 
 MultibandConfig NoiseConfigValidator::getDefaultMultiband() {
     MultibandConfig config;
-    config.sampleRate = 48000;
-    config.fftSize = 2048;
+    config.sampleRate = GlobalAudioConstants::DEFAULT_SAMPLE_RATE;
+    config.fftSize = 2048; // Valeur spécifique pour multiband
     config.subBassReduction = 0.9f;
     config.bassReduction = 0.7f;
     config.lowMidReduction = 0.5f;

@@ -28,6 +28,11 @@ struct SafetyLimits {
     static constexpr double MAX_DC_THRESHOLD = 0.1;       // ~ -20 dBFS
     static constexpr double DEFAULT_DC_THRESHOLD = 0.002; // ~ -54 dBFS
 
+    // Constantes calculées pour les niveaux DC (pour référence)
+    static constexpr double MIN_DC_THRESHOLD_DB = -120.0; // dBFS équivalent de MIN_DC_THRESHOLD
+    static constexpr double MAX_DC_THRESHOLD_DB = -20.0;  // dBFS équivalent de MAX_DC_THRESHOLD
+    static constexpr double DEFAULT_DC_THRESHOLD_DB = -54.0; // dBFS équivalent de DEFAULT_DC_THRESHOLD
+
     // === Plages limiter ===
     static constexpr double MIN_LIMITER_THRESHOLD_DB = -60.0;    // dBFS
     static constexpr double MAX_LIMITER_THRESHOLD_DB = 0.0;      // dBFS
@@ -60,8 +65,10 @@ struct SafetyLimits {
     static constexpr size_t DEFAULT_MEMORY_POOL_SIZE = 32;
 
     // === Constantes mathématiques ===
-    static constexpr double DB_TO_LINEAR_FACTOR = 20.0 / 2.302585092994046; // 20/log(10)
-    static constexpr double LINEAR_TO_DB_FACTOR = 2.302585092994046 / 20.0; // log(10)/20
+    static constexpr double LOG10_VALUE = 2.302585092994046; // Valeur de log(10)
+    static constexpr double DB_SCALE_FACTOR = 20.0;          // Facteur d'échelle pour dB
+    static constexpr double DB_TO_LINEAR_FACTOR = DB_SCALE_FACTOR / LOG10_VALUE; // 20/log(10)
+    static constexpr double LINEAR_TO_DB_FACTOR = LOG10_VALUE / DB_SCALE_FACTOR; // log(10)/20
 
     // === Constantes de sécurité ===
     static constexpr double MAX_OVERLOAD_TIME_MS = 1000.0;        // Temps maximum en surcharge
@@ -70,6 +77,12 @@ struct SafetyLimits {
     // === Paramètres de callback ===
     static constexpr uint32_t MAX_CALLBACK_QUEUE_SIZE = 100; // Taille max de la queue de callbacks
     static constexpr uint32_t CALLBACK_TIMEOUT_MS = 5000;    // Timeout pour les callbacks JS
+
+    // Constantes pour les seuils de callback
+    static constexpr uint32_t DEFAULT_CALLBACK_QUEUE_SIZE = 100;
+    static constexpr uint32_t MIN_CALLBACK_TIMEOUT_MS = 1000;    // Timeout minimum
+    static constexpr uint32_t MAX_CALLBACK_TIMEOUT_MS = 30000;   // Timeout maximum
+    static constexpr uint32_t DEFAULT_CALLBACK_TIMEOUT_MS = 5000; // Timeout par défaut
 };
 
 // === Validation des paramètres ===
@@ -112,8 +125,15 @@ public:
     static bool isValidMemoryPoolSize(size_t poolSize) {
         return poolSize >= SafetyLimits::MIN_MEMORY_POOL_SIZE && poolSize <= SafetyLimits::MAX_MEMORY_POOL_SIZE;
     }
+
+    static bool isValidCallbackTimeout(uint32_t timeoutMs) {
+        return timeoutMs >= SafetyLimits::MIN_CALLBACK_TIMEOUT_MS && timeoutMs <= SafetyLimits::MAX_CALLBACK_TIMEOUT_MS;
+    }
+
+    static bool isValidCallbackQueueSize(uint32_t queueSize) {
+        return queueSize >= 1 && queueSize <= SafetyLimits::MAX_CALLBACK_QUEUE_SIZE;
+    }
 };
 
 } // namespace Audio
 } // namespace Nyth
-

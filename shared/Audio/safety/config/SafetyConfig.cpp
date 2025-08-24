@@ -17,29 +17,29 @@ SafetyConfig SafetyConfig::getDefault() {
     config.channels = SafetyLimits::DEFAULT_CHANNELS;
     config.enabled = true;
     config.autoGainControl = false;
-    config.maxProcessingTimeMs = 10.0;
+    config.maxProcessingTimeMs = DEFAULT_MAX_PROCESSING_TIME_MS;
 
     // Configuration DC par défaut
     config.dcConfig.enabled = true;
     config.dcConfig.threshold = SafetyLimits::DEFAULT_DC_THRESHOLD;
-    config.dcConfig.smoothingFactor = 0.95;
+    config.dcConfig.smoothingFactor = DEFAULT_SMOOTHING_FACTOR;
 
     // Configuration limiter par défaut
     config.limiterConfig.enabled = true;
     config.limiterConfig.thresholdDb = SafetyLimits::DEFAULT_LIMITER_THRESHOLD_DB;
     config.limiterConfig.softKnee = true;
     config.limiterConfig.kneeWidthDb = SafetyLimits::DEFAULT_KNEE_WIDTH_DB;
-    config.limiterConfig.attackTimeMs = 10.0;
-    config.limiterConfig.releaseTimeMs = 100.0;
-    config.limiterConfig.makeupGainDb = 0.0;
+    config.limiterConfig.attackTimeMs = DEFAULT_ATTACK_TIME_MS;
+    config.limiterConfig.releaseTimeMs = DEFAULT_RELEASE_TIME_MS;
+    config.limiterConfig.makeupGainDb = DEFAULT_MAKEUP_GAIN_DB;
 
     // Configuration feedback par défaut
     config.feedbackConfig.enabled = true;
     config.feedbackConfig.threshold = SafetyLimits::DEFAULT_FEEDBACK_THRESHOLD;
-    config.feedbackConfig.sensitivity = 0.8;
-    config.feedbackConfig.analysisWindowMs = 100;
-    config.feedbackConfig.minFrequencyHz = 20;
-    config.feedbackConfig.maxFrequencyHz = 20000;
+    config.feedbackConfig.sensitivity = DEFAULT_FEEDBACK_SENSITIVITY;
+    config.feedbackConfig.analysisWindowMs = DEFAULT_ANALYSIS_WINDOW_MS;
+    config.feedbackConfig.minFrequencyHz = DEFAULT_MIN_FREQUENCY_HZ;
+    config.feedbackConfig.maxFrequencyHz = DEFAULT_MAX_FREQUENCY_HZ;
 
     // Configuration optimisation par défaut
     config.optimizationConfig.useOptimizedEngine = false;
@@ -57,14 +57,14 @@ double dbToLinear(double db) {
     if (db <= SafetyLimits::MIN_LEVEL_DB) {
         return SafetyLimits::MIN_LEVEL_LINEAR;
     }
-    return std::pow(10.0, db / 20.0);
+    return std::pow(DB_CONVERSION_BASE, db / DB_CONVERSION_FACTOR);
 }
 
 double linearToDb(double linear) {
     if (linear <= SafetyLimits::MIN_LEVEL_LINEAR) {
         return SafetyLimits::MIN_LEVEL_DB;
     }
-    return 20.0 * std::log10(linear);
+    return DB_CONVERSION_FACTOR * std::log10(linear);
 }
 
 // === Validation avancée des configurations ===
@@ -133,27 +133,27 @@ SafetyConfig sanitizeConfig(const SafetyConfig& input) {
     output.sampleRate =
         std::max(SafetyLimits::MIN_SAMPLE_RATE, std::min(SafetyLimits::MAX_SAMPLE_RATE, output.sampleRate));
     output.channels = std::max(SafetyLimits::MIN_CHANNELS, std::min(SafetyLimits::MAX_CHANNELS, output.channels));
-    output.maxProcessingTimeMs = std::max(1.0, std::min(1000.0, output.maxProcessingTimeMs));
+    output.maxProcessingTimeMs = std::max(MIN_PROCESSING_TIME_MS, std::min(MAX_PROCESSING_TIME_MS, output.maxProcessingTimeMs));
 
     // Correction DC
     output.dcConfig.threshold = clampDCThreshold(output.dcConfig.threshold);
-    output.dcConfig.smoothingFactor = std::max(0.0, std::min(1.0, output.dcConfig.smoothingFactor));
+    output.dcConfig.smoothingFactor = std::max(SMOOTHING_FACTOR_MIN, std::min(SMOOTHING_FACTOR_MAX, output.dcConfig.smoothingFactor));
 
     // Correction limiter
     output.limiterConfig.thresholdDb = clampLimiterThreshold(output.limiterConfig.thresholdDb);
     output.limiterConfig.kneeWidthDb = clampKneeWidth(output.limiterConfig.kneeWidthDb);
-    output.limiterConfig.attackTimeMs = std::max(0.1, std::min(1000.0, output.limiterConfig.attackTimeMs));
-    output.limiterConfig.releaseTimeMs = std::max(1.0, std::min(10000.0, output.limiterConfig.releaseTimeMs));
-    output.limiterConfig.makeupGainDb = std::max(-20.0, std::min(20.0, output.limiterConfig.makeupGainDb));
+    output.limiterConfig.attackTimeMs = std::max(MIN_ATTACK_TIME_MS, std::min(MAX_ATTACK_TIME_MS, output.limiterConfig.attackTimeMs));
+    output.limiterConfig.releaseTimeMs = std::max(MIN_RELEASE_TIME_MS, std::min(MAX_RELEASE_TIME_MS, output.limiterConfig.releaseTimeMs));
+    output.limiterConfig.makeupGainDb = std::max(MIN_MAKEUP_GAIN_DB, std::min(MAX_MAKEUP_GAIN_DB, output.limiterConfig.makeupGainDb));
 
     // Correction feedback
     output.feedbackConfig.threshold = clampFeedbackThreshold(output.feedbackConfig.threshold);
-    output.feedbackConfig.sensitivity = std::max(0.0, std::min(1.0, output.feedbackConfig.sensitivity));
-    output.feedbackConfig.analysisWindowMs = std::max(10u, std::min(1000u, output.feedbackConfig.analysisWindowMs));
+    output.feedbackConfig.sensitivity = std::max(SENSITIVITY_MIN, std::min(SENSITIVITY_MAX, output.feedbackConfig.sensitivity));
+    output.feedbackConfig.analysisWindowMs = std::max(MIN_ANALYSIS_WINDOW_MS, std::min(MAX_ANALYSIS_WINDOW_MS, output.feedbackConfig.analysisWindowMs));
     output.feedbackConfig.minFrequencyHz =
-        std::max(20u, std::min(output.feedbackConfig.maxFrequencyHz - 100, output.feedbackConfig.minFrequencyHz));
+        std::max(MIN_FEEDBACK_FREQUENCY_HZ, std::min(output.feedbackConfig.maxFrequencyHz - MIN_FREQUENCY_DIFFERENCE_HZ, output.feedbackConfig.minFrequencyHz));
     output.feedbackConfig.maxFrequencyHz =
-        std::max(output.feedbackConfig.minFrequencyHz + 100, std::min(50000u, output.feedbackConfig.maxFrequencyHz));
+        std::max(output.feedbackConfig.minFrequencyHz + MIN_FREQUENCY_DIFFERENCE_HZ, std::min(MAX_FEEDBACK_FREQUENCY_HZ, output.feedbackConfig.maxFrequencyHz));
 
     // Correction optimisation
     output.optimizationConfig.memoryPoolSize = clampMemoryPoolSize(output.optimizationConfig.memoryPoolSize);
@@ -165,25 +165,25 @@ SafetyConfig sanitizeConfig(const SafetyConfig& input) {
 
 bool configsEqual(const SafetyConfig& a, const SafetyConfig& b) {
     return a.sampleRate == b.sampleRate && a.channels == b.channels && a.enabled == b.enabled &&
-           a.autoGainControl == b.autoGainControl && std::abs(a.maxProcessingTimeMs - b.maxProcessingTimeMs) < 1e-6 &&
+           a.autoGainControl == b.autoGainControl && std::abs(a.maxProcessingTimeMs - b.maxProcessingTimeMs) < CONFIG_COMPARISON_TOLERANCE &&
 
            // Comparaison DC
-           a.dcConfig.enabled == b.dcConfig.enabled && std::abs(a.dcConfig.threshold - b.dcConfig.threshold) < 1e-9 &&
-           std::abs(a.dcConfig.smoothingFactor - b.dcConfig.smoothingFactor) < 1e-6 &&
+           a.dcConfig.enabled == b.dcConfig.enabled && std::abs(a.dcConfig.threshold - b.dcConfig.threshold) < THRESHOLD_COMPARISON_TOLERANCE &&
+           std::abs(a.dcConfig.smoothingFactor - b.dcConfig.smoothingFactor) < CONFIG_COMPARISON_TOLERANCE &&
 
            // Comparaison limiter
            a.limiterConfig.enabled == b.limiterConfig.enabled &&
-           std::abs(a.limiterConfig.thresholdDb - b.limiterConfig.thresholdDb) < 1e-6 &&
+           std::abs(a.limiterConfig.thresholdDb - b.limiterConfig.thresholdDb) < CONFIG_COMPARISON_TOLERANCE &&
            a.limiterConfig.softKnee == b.limiterConfig.softKnee &&
-           std::abs(a.limiterConfig.kneeWidthDb - b.limiterConfig.kneeWidthDb) < 1e-6 &&
-           std::abs(a.limiterConfig.attackTimeMs - b.limiterConfig.attackTimeMs) < 1e-6 &&
-           std::abs(a.limiterConfig.releaseTimeMs - b.limiterConfig.releaseTimeMs) < 1e-6 &&
-           std::abs(a.limiterConfig.makeupGainDb - b.limiterConfig.makeupGainDb) < 1e-6 &&
+           std::abs(a.limiterConfig.kneeWidthDb - b.limiterConfig.kneeWidthDb) < CONFIG_COMPARISON_TOLERANCE &&
+           std::abs(a.limiterConfig.attackTimeMs - b.limiterConfig.attackTimeMs) < CONFIG_COMPARISON_TOLERANCE &&
+           std::abs(a.limiterConfig.releaseTimeMs - b.limiterConfig.releaseTimeMs) < CONFIG_COMPARISON_TOLERANCE &&
+           std::abs(a.limiterConfig.makeupGainDb - b.limiterConfig.makeupGainDb) < CONFIG_COMPARISON_TOLERANCE &&
 
            // Comparaison feedback
            a.feedbackConfig.enabled == b.feedbackConfig.enabled &&
-           std::abs(a.feedbackConfig.threshold - b.feedbackConfig.threshold) < 1e-6 &&
-           std::abs(a.feedbackConfig.sensitivity - b.feedbackConfig.sensitivity) < 1e-6 &&
+           std::abs(a.feedbackConfig.threshold - b.feedbackConfig.threshold) < CONFIG_COMPARISON_TOLERANCE &&
+           std::abs(a.feedbackConfig.sensitivity - b.feedbackConfig.sensitivity) < CONFIG_COMPARISON_TOLERANCE &&
            a.feedbackConfig.analysisWindowMs == b.feedbackConfig.analysisWindowMs &&
            a.feedbackConfig.minFrequencyHz == b.feedbackConfig.minFrequencyHz &&
            a.feedbackConfig.maxFrequencyHz == b.feedbackConfig.maxFrequencyHz &&
@@ -199,12 +199,12 @@ bool configsEqual(const SafetyConfig& a, const SafetyConfig& b) {
 // === Fonctions de diagnostic ===
 
 std::string getConfigInfo(const SafetyConfig& config) {
-    char buffer[1024];
+    char buffer[CONFIG_INFO_BUFFER_SIZE];
     std::snprintf(buffer, sizeof(buffer),
                   "SafetyConfig{sampleRate=%u, channels=%d, enabled=%s, "
-                  "dc={enabled=%s, threshold=%.6f}, "
-                  "limiter={enabled=%s, threshold=%.1f dB, softKnee=%s}, "
-                  "feedback={enabled=%s, threshold=%.3f}, "
+                  "dc={enabled=%s, threshold=" FORMAT_DC_THRESHOLD "}, "
+                  "limiter={enabled=%s, threshold=" FORMAT_LIMITER_THRESHOLD " dB, softKnee=%s}, "
+                  "feedback={enabled=%s, threshold=" FORMAT_FEEDBACK_THRESHOLD "}, "
                   "optimization={useOptimized=%s, memoryPool=%zu}}",
                   config.sampleRate, config.channels, config.enabled ? "true" : "false",
                   config.dcConfig.enabled ? "true" : "false", config.dcConfig.threshold,
@@ -216,10 +216,10 @@ std::string getConfigInfo(const SafetyConfig& config) {
 }
 
 std::string getReportInfo(const SafetyReport& report) {
-    char buffer[512];
+    char buffer[REPORT_INFO_BUFFER_SIZE];
     std::snprintf(buffer, sizeof(buffer),
-                  "SafetyReport{peak=%.1f dB, rms=%.1f dB, dc=%.6f, clipped=%u, "
-                  "overload=%s, feedback=%.3f, hasNaN=%s, time=%.2f ms}",
+                  "SafetyReport{peak=" FORMAT_LIMITER_THRESHOLD " dB, rms=" FORMAT_LIMITER_THRESHOLD " dB, dc=" FORMAT_DC_THRESHOLD ", clipped=%u, "
+                  "overload=%s, feedback=" FORMAT_FEEDBACK_THRESHOLD ", hasNaN=%s, time=" FORMAT_PROCESSING_TIME " ms}",
                   report.peakLevel, report.rmsLevel, report.dcOffset, report.clippedSamples,
                   report.overloadActive ? "true" : "false", report.feedbackScore, report.hasNaN ? "true" : "false",
                   report.processingTimeMs);

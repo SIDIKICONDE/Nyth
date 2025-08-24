@@ -1,6 +1,9 @@
 #pragma once
 
-// Includes conditionnels pour la compatibilité
+// Forward declarations pour éviter les includes inutiles
+// Les includes nécessaires seront faits dans le fichier .cpp
+
+// React Native includes conditionnels pour la compatibilité
 #if defined(__has_include)
 #if __has_include(<NythJSI.h>)
 #include <NythJSI.h>
@@ -11,6 +14,17 @@
 #if defined(__has_include) && __has_include(<ReactCommon/TurboModule.h>) && \
     __has_include(<ReactCommon/TurboModuleUtils.h>)
 #define NYTH_AUDIO_EFFECTS_ENABLED 1
+
+// Includes C++ nécessaires pour TurboModule
+#include <ReactCommon/TurboModule.h>
+#include <ReactCommon/TurboModuleUtils.h>
+#include <jsi/jsi.h>
+
+#include "config/EffectsConfig.h"
+#include "../../common/jsi/JSICallbackManager.h"
+#include "effects/jsi/EffectsJSIConverter.h"
+#include "effects/managers/EffectManager.h"
+
 #else
 #define NYTH_AUDIO_EFFECTS_ENABLED 0
 #endif
@@ -18,52 +32,130 @@
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_EFFECTS_ENABLED && defined(__cplusplus)
 
-// Includes C++ nécessaires pour TurboModule
-#include <algorithm>
-#include <atomic>
-#include <chrono>
-#include <functional>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <unordered_map>
-#include <vector>
+// Forward declarations pour les dépendances externes
+namespace JSICallbackManager {
+    class JSICallbackManager;
+}
 
-#include <ReactCommon/TurboModule.h>
-#include <ReactCommon/TurboModuleUtils.h>
-#include <jsi/jsi.h>
+namespace EffectManager {
+    class EffectManager;
+    struct ProcessingMetrics;
+}
 
-#include "../capture/jsi/JSICallbackManager.h"
-#include "effects/config/EffectsConfig.h"
-#include "effects/jsi/EffectsJSIConverter.h"
-#include "effects/managers/EffectManager.h"
+namespace Nyth {
+namespace Audio {
+    class EffectsConfig;
+    namespace Effects {
+        enum class EffectType;
+    }
+}
+}
 
 namespace facebook {
 namespace react {
 
-// === Module principal refactorisé ===
+/**
+ * @brief Module principal pour les effets audio dans React Native
+ *
+ * Cette classe fournit une interface JSI pour la gestion des effets audio
+ * en temps réel. Elle hérite de TurboModule pour une intégration optimale
+ * avec React Native.
+ */
 class JSI_EXPORT NativeAudioEffectsModule : public TurboModule {
 public:
+    /**
+     * @brief Constructeur du module
+     * @param jsInvoker Invoker pour les appels JavaScript
+     */
     explicit NativeAudioEffectsModule(std::shared_ptr<CallInvoker> jsInvoker);
+
+    /**
+     * @brief Destructeur virtuel
+     */
     ~NativeAudioEffectsModule() override;
 
     // === Méthodes TurboModule ===
     static constexpr auto kModuleName = "NativeAudioEffectsModule";
 
     // === Cycle de vie ===
+
+    /**
+     * @brief Initialise le module et ses composants internes
+     * @param rt Runtime JSI
+     * @return true si l'initialisation réussit, false sinon
+     */
     jsi::Value initialize(jsi::Runtime& rt);
+
+    /**
+     * @brief Vérifie si le module est initialisé
+     * @param rt Runtime JSI
+     * @return true si le module est initialisé, false sinon
+     */
     jsi::Value isInitialized(jsi::Runtime& rt);
+
+    /**
+     * @brief Libère les ressources et nettoie le module
+     * @param rt Runtime JSI
+     * @return true si la libération réussit, false sinon
+     */
     jsi::Value dispose(jsi::Runtime& rt);
 
     // === État et informations ===
+
+    /**
+     * @brief Récupère l'état actuel du module
+     * @param rt Runtime JSI
+     * @return Chaîne représentant l'état (uninitialized, initialized, processing, error)
+     */
     jsi::Value getState(jsi::Runtime& rt);
+
+    /**
+     * @brief Récupère les statistiques de traitement
+     * @param rt Runtime JSI
+     * @return Objet contenant les métriques de traitement ou null
+     */
     jsi::Value getStatistics(jsi::Runtime& rt);
+
+    /**
+     * @brief Réinitialise les statistiques de traitement
+     * @param rt Runtime JSI
+     * @return true
+     */
     jsi::Value resetStatistics(jsi::Runtime& rt);
 
     // === Gestion des effets ===
+
+    /**
+     * @brief Crée un nouvel effet audio
+     * @param rt Runtime JSI
+     * @param config Configuration de l'effet (type, paramètres)
+     * @return ID de l'effet créé ou -1 en cas d'erreur
+     */
     jsi::Value createEffect(jsi::Runtime& rt, const jsi::Object& config);
+
+    /**
+     * @brief Détruit un effet audio
+     * @param rt Runtime JSI
+     * @param effectId ID de l'effet à détruire
+     * @return true si la destruction réussit, false sinon
+     */
     jsi::Value destroyEffect(jsi::Runtime& rt, int effectId);
+
+    /**
+     * @brief Met à jour la configuration d'un effet
+     * @param rt Runtime JSI
+     * @param effectId ID de l'effet à modifier
+     * @param config Nouvelle configuration
+     * @return true si la mise à jour réussit, false sinon
+     */
     jsi::Value updateEffect(jsi::Runtime& rt, int effectId, const jsi::Object& config);
+
+    /**
+     * @brief Récupère la configuration actuelle d'un effet
+     * @param rt Runtime JSI
+     * @param effectId ID de l'effet
+     * @return Objet configuration ou null si l'effet n'existe pas
+     */
     jsi::Value getEffectConfig(jsi::Runtime& rt, int effectId);
 
     // === Contrôle des effets ===
@@ -79,13 +171,44 @@ public:
     jsi::Value getMasterLevels(jsi::Runtime& rt);
 
     // === Traitement audio ===
+
+    /**
+     * @brief Traite un buffer audio avec les effets actifs
+     * @param rt Runtime JSI
+     * @param input Buffer audio d'entrée (entrelacé)
+     * @param channels Nombre de canaux (1 = mono, 2 = stéréo)
+     * @return Buffer audio traité ou buffer d'entrée en cas d'erreur
+     */
     jsi::Value processAudio(jsi::Runtime& rt, const jsi::Array& input, int channels);
+
+    /**
+     * @brief Traite un buffer audio stéréo séparé avec les effets actifs
+     * @param rt Runtime JSI
+     * @param inputL Buffer audio gauche
+     * @param inputR Buffer audio droite
+     * @return Objet avec les buffers gauche et droite traités
+     */
     jsi::Value processAudioStereo(jsi::Runtime& rt, const jsi::Array& inputL, const jsi::Array& inputR);
 
     // === Analyse audio ===
     jsi::Value getInputLevel(jsi::Runtime& rt);
     jsi::Value getOutputLevel(jsi::Runtime& rt);
     jsi::Value getProcessingMetrics(jsi::Runtime& rt);
+
+    // === Métriques spécifiques par effet ===
+    jsi::Value getCompressorMetrics(jsi::Runtime& rt, int effectId);
+    jsi::Value getDelayMetrics(jsi::Runtime& rt, int effectId);
+    jsi::Value getReverbMetrics(jsi::Runtime& rt, int effectId);
+
+    // === Configuration spécifique par effet ===
+    jsi::Value getCompressorConfig(jsi::Runtime& rt, int effectId);
+    jsi::Value getDelayConfig(jsi::Runtime& rt, int effectId);
+    jsi::Value getReverbConfig(jsi::Runtime& rt, int effectId);
+
+    // === Informations détaillées par effet ===
+    jsi::Value getEffectType(jsi::Runtime& rt, int effectId);
+    jsi::Value getEffectState(jsi::Runtime& rt, int effectId);
+    jsi::Value getEffectLatency(jsi::Runtime& rt, int effectId);
 
     // === Callbacks JavaScript ===
     jsi::Value setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback);
@@ -106,7 +229,14 @@ private:
 
     // === État interne ===
     std::atomic<bool> isInitialized_{false};
-    int currentState_ = 0; // 0 = UNINITIALIZED, 1 = INITIALIZED, 2 = PROCESSING, 3 = ERROR
+
+    // États du module
+    static constexpr int STATE_UNINITIALIZED = 0;
+    static constexpr int STATE_INITIALIZED = 1;
+    static constexpr int STATE_PROCESSING = 2;
+    static constexpr int STATE_ERROR = 3;
+
+    int currentState_ = STATE_UNINITIALIZED;
 
     // === Gestion du runtime ===
     jsi::Runtime* runtime_ = nullptr;

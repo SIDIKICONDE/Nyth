@@ -7,7 +7,7 @@
 #include <memory>
 
 
-#include "../../jsi/JSICallbackManager.h"
+#include "../../common/jsi/JSICallbackManager.h"
 #include "config/SafetyConfig.h"
 #include "jsi/SafetyJSIConverter.h"
 #include "managers/SafetyManager.h"
@@ -133,4 +133,3 @@ private:
 
 } // namespace react
 } // namespace facebook
-

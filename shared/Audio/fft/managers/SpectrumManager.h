@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "../components/FFTEngine.hpp"
+#include "../../common/dsp/FFTEngine.hpp"
 #include "../config/SpectrumConfig.h"
 
 namespace Nyth {
@@ -12,7 +12,50 @@ namespace Audio {
 
 // === Interface du gestionnaire d'analyse spectrale ===
 
-class SpectrumManager {
+class ISpectrumManager {
+public:
+    virtual ~ISpectrumManager() = default;
+
+    // === Cycle de vie ===
+    virtual bool initialize(const SpectrumConfig& config) = 0;
+    virtual void release() = 0;
+    virtual bool isInitialized() const = 0;
+
+    // === Configuration ===
+    virtual bool setConfig(const SpectrumConfig& config) = 0;
+    virtual const SpectrumConfig& getConfig() const = 0;
+
+    // === Contrôle de l'analyse ===
+    virtual bool start() = 0;
+    virtual bool stop() = 0;
+    virtual bool isAnalyzing() const = 0;
+
+    // === Traitement audio ===
+    virtual bool processAudioBuffer(const float* audioBuffer, size_t numSamples) = 0;
+    virtual bool processAudioBufferStereo(const float* audioBufferL, const float* audioBufferR, size_t numSamples) = 0;
+
+    // === Récupération des données ===
+    virtual const SpectrumData& getLastSpectrumData() const = 0;
+    virtual const SpectrumStatistics& getStatistics() const = 0;
+    virtual void resetStatistics() = 0;
+
+    // === Callbacks ===
+    using SpectrumDataCallback = std::function<void(const SpectrumData& data)>;
+    using SpectrumErrorCallback = std::function<void(SpectrumError error, const std::string& message)>;
+    using SpectrumStateCallback = std::function<void(SpectrumState oldState, SpectrumState newState)>;
+
+    virtual void setDataCallback(SpectrumDataCallback callback) = 0;
+    virtual void setErrorCallback(SpectrumErrorCallback callback) = 0;
+    virtual void setStateCallback(SpectrumStateCallback callback) = 0;
+
+    // === État ===
+    virtual SpectrumState getState() const = 0;
+    virtual std::string getLastError() const = 0;
+};
+
+// === Implémentation du gestionnaire d'analyse spectrale ===
+
+class SpectrumManager : public ISpectrumManager {
 public:
     SpectrumManager();
     ~SpectrumManager();
@@ -85,6 +128,7 @@ private:
 
     // Initialisation
     bool initializeFFT();
+    bool isValidFFTSize() const;
     void calculateFrequencyBands();
     void createHannWindow();
 

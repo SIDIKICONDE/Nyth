@@ -1,5 +1,7 @@
 #pragma once
 
+#include "AudioCapture.hpp"
+#include "../../common/config/Constant.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
@@ -8,7 +10,6 @@
 #include <mutex>
 #include <string>
 #include <thread>
-#include "AudioCapture.hpp"
 
 #ifdef __ANDROID__
 #include <SLES/OpenSLES.h>
@@ -25,8 +26,8 @@
 #endif
 #endif
 
+namespace Nyth {
 namespace Audio {
-namespace capture {
 
 // === Implémentation Android ===
 #ifdef __ANDROID__
@@ -41,8 +42,8 @@ private:
         SLRecordItf recorderRecord = nullptr;
         SLAndroidSimpleBufferQueueItf recorderBufferQueue = nullptr;
 
-        std::vector<int16_t> buffers[3]; // Triple buffering
-        int currentBuffer = 0;
+        std::vector<int16_t> buffers[Constants::TRIPLE_BUFFER_COUNT]; // Triple buffering
+        int currentBuffer = Constants::INITIAL_BUFFER_INDEX;
     } opensl_;
 
     // Option 2: AAudio (Android 8.0+, meilleure latence)
@@ -107,6 +108,7 @@ class AudioCaptureIOS : public AudioCaptureBase {
 public:
     AudioCaptureIOS();
     virtual ~AudioCaptureIOS() override;
+
 private:
     // Audio Unit pour la capture
     AudioComponentInstance audioUnit_ = nullptr;
@@ -118,9 +120,9 @@ private:
     // Buffer circulaire pour les données
     struct CircularBuffer {
         std::vector<float> buffer;
-        size_t writePos = 0;
-        size_t readPos = 0;
-        size_t size = 0;
+        size_t writePos = Constants::INITIAL_POSITION;
+        size_t readPos = Constants::INITIAL_POSITION;
+        size_t size = Constants::INITIAL_SIZE;
         mutable std::mutex mutex;
 
         void write(const float* data, size_t frames);
@@ -186,8 +188,8 @@ protected:
 public:
     void resetStatistics() override {
         statistics_ = CaptureStatistics();
-        currentLevel_ = 0.0f;
-        peakLevel_ = 0.0f;
+        currentLevel_ = Constants::DEFAULT_LEVEL_VALUE;
+        peakLevel_ = Constants::DEFAULT_LEVEL_VALUE;
     }
 };
 
@@ -211,7 +213,7 @@ inline void AudioCaptureBase::reportError(const std::string& error) {
 }
 
 inline void AudioCaptureBase::processAudioData(const float* data, size_t frameCount) {
-    if (!data || frameCount == 0)
+    if (!data || frameCount == Constants::NULL_DATA_CHECK)
         return;
 
     // Mise à jour des niveaux
@@ -228,7 +230,7 @@ inline void AudioCaptureBase::processAudioData(const float* data, size_t frameCo
 }
 
 inline void AudioCaptureBase::processAudioDataInt16(const int16_t* data, size_t frameCount) {
-    if (!data || frameCount == 0)
+    if (!data || frameCount == Constants::NULL_DATA_CHECK)
         return;
 
     // Mise à jour des niveaux
@@ -245,11 +247,11 @@ inline void AudioCaptureBase::processAudioDataInt16(const int16_t* data, size_t 
 }
 
 inline void AudioCaptureBase::updateLevels(const float* data, size_t sampleCount) {
-    if (!data || sampleCount == 0)
+    if (!data || sampleCount == Constants::NULL_DATA_CHECK)
         return;
 
-    float sum = 0.0f;
-    float maxVal = 0.0f;
+    float sum = Constants::SUM_INITIAL_VALUE;
+    float maxVal = Constants::MAX_INITIAL_VALUE;
 
     for (size_t i = 0; i < sampleCount; ++i) {
         float absVal = std::abs(data[i]);
@@ -270,12 +272,12 @@ inline void AudioCaptureBase::updateLevels(const float* data, size_t sampleCount
 }
 
 inline void AudioCaptureBase::updateLevelsInt16(const int16_t* data, size_t sampleCount) {
-    if (!data || sampleCount == 0)
+    if (!data || sampleCount == Constants::NULL_DATA_CHECK)
         return;
 
-    float sum = 0.0f;
-    float maxVal = 0.0f;
-    const float scale = 1.0f / 32768.0f;
+    float sum = Constants::SUM_INITIAL_VALUE;
+    float maxVal = Constants::MAX_INITIAL_VALUE;
+    const float scale = Constants::INT16_TO_FLOAT_SCALE;
 
     for (size_t i = 0; i < sampleCount; ++i) {
         float normalized = std::abs(data[i]) * scale;
@@ -295,5 +297,5 @@ inline void AudioCaptureBase::updateLevelsInt16(const int16_t* data, size_t samp
     statistics_.peakLevel = maxVal;
 }
 
-} // namespace capture
 } // namespace Audio
+} // namespace Nyth

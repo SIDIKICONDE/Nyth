@@ -21,6 +21,20 @@ constexpr float DEFAULT_LEVEL = 1.0f;
 // === Constantes des effets ===
 namespace Effects {
 
+// === Constantes globales des effets ===
+static constexpr float DEFAULT_THRESHOLD_DB = -24.0f;
+static constexpr float DEFAULT_RATIO = 4.0f;
+static constexpr float DEFAULT_ATTACK_MS = 10.0f;
+static constexpr float DEFAULT_RELEASE_MS = 100.0f;
+static constexpr float DEFAULT_MAKEUP_DB = 0.0f;
+static constexpr float DEFAULT_DELAY_MS = 250.0f;
+static constexpr float DEFAULT_FEEDBACK = 0.3f;
+static constexpr float DEFAULT_MIX = 0.2f;
+static constexpr float DEFAULT_ROOM_SIZE = 0.5f;
+static constexpr float DEFAULT_DAMPING = 0.5f;
+static constexpr float DEFAULT_WET_LEVEL = 0.3f;
+static constexpr float DEFAULT_DRY_LEVEL = 0.7f;
+
 // === Compresseur ===
 namespace Compressor {
 constexpr float MIN_THRESHOLD_DB = -60.0f;

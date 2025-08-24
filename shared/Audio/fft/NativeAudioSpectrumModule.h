@@ -7,10 +7,17 @@
 #include <memory>
 #include <mutex>
 
-#include "../../jsi/JSICallbackManager.h"
+#include "../../common/jsi/JSICallbackManager.h"
 #include "config/SpectrumConfig.h"
 #include "jsi/SpectrumJSIConverter.h"
 #include "managers/SpectrumManager.h"
+
+// Forward declarations pour les interfaces
+namespace Nyth {
+namespace Audio {
+class ISpectrumManager;
+}
+} // namespace Nyth
 
 namespace facebook {
 namespace react {
@@ -68,8 +75,8 @@ public:
 
 private:
     // === Composants refactorisés ===
-    std::unique_ptr<Nyth::Audio::SpectrumManager> spectrumManager_;
-    std::shared_ptr<JSICallbackManager> callbackManager_;
+    std::unique_ptr<Nyth::Audio::ISpectrumManager> spectrumManager_;
+    std::shared_ptr<IJSICallbackManager> callbackManager_;
 
     // === Configuration ===
     Nyth::Audio::SpectrumConfig config_;

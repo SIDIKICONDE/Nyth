@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../config/AudioLimits.h"
+#include "../../common/config/AudioLimits.h"
 #include <jsi/jsi.h>
 #include <string>
 #include <vector>
@@ -120,8 +120,9 @@ public:
     static std::string validateRecordingFormat(jsi::Runtime& rt, const jsi::Value& val) {
         validateString(rt, val, "format");
         std::string format = val.asString(rt).utf8(rt);
-        if (format != "WAV" && format != "RAW_PCM") {
-            throw jsi::JSError(rt, "Recording format must be 'WAV' or 'RAW_PCM'");
+        if (format != "AAC" && format != "M4A" && format != "FLAC" &&
+            format != "WAV" && format != "RAW_PCM") {
+            throw jsi::JSError(rt, "Recording format must be 'AAC', 'M4A', 'FLAC', 'WAV', or 'RAW_PCM'");
         }
         return format;
     }

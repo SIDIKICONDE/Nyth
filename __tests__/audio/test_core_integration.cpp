@@ -21,11 +21,11 @@ bool testCoreFiles() {
 
     // Vérifier les fichiers principaux du module core
     std::vector<std::string> coreFiles = {
-        "../../shared/Audio/core/AudioEqualizer.hpp",
-        "../../shared/Audio/core/AudioEqualizer.cpp", 
-        "../../shared/Audio/core/BiquadFilter.hpp",
-        "../../shared/Audio/core/BiquadFilter.cpp",
-        "../../shared/Audio/core/CoreConstants.hpp"
+        "../../shared/Audio/core/components/AudioEqualizer/AudioEqualizer.hpp",
+        "../../shared/Audio/core/components/AudioEqualizer/AudioEqualizer.cpp",
+        "../../shared/Audio/core/components/BiquadFilter/BiquadFilter.hpp",
+        "../../shared/Audio/core/components/BiquadFilter/BiquadFilter.cpp",
+        "../../shared/Audio/core/components/constant/CoreConstants.hpp"
     };
 
     int foundFiles = 0;
@@ -84,21 +84,21 @@ bool testAudioEqualizer() {
 
     // Simuler le traitement par l'égaliseur
     std::vector<float> outputSignal(bufferSize);
-    
+
     // Appliquer les gains de chaque bande (simulation simplifiée)
     for (int i = 0; i < bufferSize; ++i) {
         double t = static_cast<double>(i) / sampleRate;
         outputSignal[i] = inputSignal[i];
-        
+
         // Appliquer les gains de chaque bande
         for (int band = 0; band < numBands; ++band) {
             double freq = bandFrequencies[band];
             double gain = bandGains[band];
-            
+
             // Simulation simple d'un filtre peaking
             double omega = 2.0 * M_PI * freq * t;
             double filterResponse = 1.0 + gain * std::exp(-std::pow(omega - 2.0 * M_PI * freq, 2) / (2.0 * std::pow(freq * 0.1, 2)));
-            
+
             outputSignal[i] *= static_cast<float>(filterResponse);
         }
     }
@@ -119,7 +119,7 @@ bool testAudioEqualizer() {
     std::cout << "   - Gain total: " << (outputRMS / inputRMS) << "\n";
 
     // Validation: le signal doit être modifié par l'égaliseur
-    bool isValid = (std::abs(outputRMS - inputRMS) > 0.01f && 
+    bool isValid = (std::abs(outputRMS - inputRMS) > 0.01f &&
                    outputRMS > 0.0f && inputRMS > 0.0f);
 
     if (isValid) {
@@ -152,11 +152,11 @@ bool testBiquadFilter() {
 
     // Simuler un filtre passe-bas biquad
     std::vector<float> outputSignal(bufferSize);
-    
+
     // Coefficients d'un filtre passe-bas Butterworth à 1kHz
     double omega = 2.0 * M_PI * cutoffFreq / sampleRate;
     double alpha = std::sin(omega) / (2.0 * 0.707); // Q = 0.707 (Butterworth)
-    
+
     double b0 = 1.0 + alpha;
     double b1 = -2.0 * std::cos(omega);
     double b2 = 1.0 - alpha;
@@ -337,7 +337,7 @@ bool testCorePerformance() {
     // Préparer les données de test
     std::vector<float> inputBuffer(bufferSize);
     std::vector<float> outputBuffer(bufferSize);
-    
+
     for (int i = 0; i < bufferSize; ++i) {
         double t = static_cast<double>(i) / 48000.0;
         inputBuffer[i] = static_cast<float>(std::sin(2.0 * M_PI * 440.0 * t));
@@ -353,7 +353,7 @@ bool testCorePerformance() {
         // Simuler le traitement par 10 bandes
         for (int band = 0; band < numBands; ++band) {
             double gain = 1.0 + 0.1 * std::sin(2.0 * M_PI * band / numBands);
-            
+
             // Appliquer le gain de la bande
             for (int i = 0; i < bufferSize; ++i) {
                 outputBuffer[i] *= static_cast<float>(gain);

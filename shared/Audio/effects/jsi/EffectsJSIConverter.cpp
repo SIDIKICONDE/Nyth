@@ -19,12 +19,12 @@ Nyth::Audio::EffectsConfig EffectsJSIConverter::effectsConfigFromJS(jsi::Runtime
 
     if (hasProperty(rt, jsConfig, "inputLevel")) {
         config.inputLevel =
-            static_cast<float>(getNumberProperty(rt, jsConfig, "inputLevel", Nyth::Audio::DEFAULT_LEVEL));
+            static_cast<float>(getNumberProperty(rt, jsConfig, "inputLevel", Nyth::Audio::DEFAULT_INPUT_LEVEL));
     }
 
     if (hasProperty(rt, jsConfig, "outputLevel")) {
         config.outputLevel =
-            static_cast<float>(getNumberProperty(rt, jsConfig, "outputLevel", Nyth::Audio::DEFAULT_LEVEL));
+            static_cast<float>(getNumberProperty(rt, jsConfig, "outputLevel", Nyth::Audio::DEFAULT_OUTPUT_LEVEL));
     }
 
     if (hasProperty(rt, jsConfig, "bypassAll")) {
@@ -52,27 +52,27 @@ Nyth::Audio::CompressorConfig EffectsJSIConverter::compressorConfigFromJS(jsi::R
 
     if (hasProperty(rt, jsConfig, "thresholdDb")) {
         config.thresholdDb = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "thresholdDb", Nyth::Audio::Effects::Compressor::DEFAULT_THRESHOLD_DB));
+            getNumberProperty(rt, jsConfig, "thresholdDb", Nyth::Audio::DEFAULT_THRESHOLD_DB));
     }
 
     if (hasProperty(rt, jsConfig, "ratio")) {
         config.ratio = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "ratio", Nyth::Audio::Effects::Compressor::DEFAULT_RATIO));
+            getNumberProperty(rt, jsConfig, "ratio", Nyth::Audio::DEFAULT_RATIO));
     }
 
     if (hasProperty(rt, jsConfig, "attackMs")) {
         config.attackMs = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "attackMs", Nyth::Audio::Effects::Compressor::DEFAULT_ATTACK_MS));
+            getNumberProperty(rt, jsConfig, "attackMs", Nyth::Audio::DEFAULT_ATTACK_MS));
     }
 
     if (hasProperty(rt, jsConfig, "releaseMs")) {
         config.releaseMs = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "releaseMs", Nyth::Audio::Effects::Compressor::DEFAULT_RELEASE_MS));
+            getNumberProperty(rt, jsConfig, "releaseMs", Nyth::Audio::DEFAULT_RELEASE_MS));
     }
 
     if (hasProperty(rt, jsConfig, "makeupDb")) {
         config.makeupDb = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "makeupDb", Nyth::Audio::Effects::Compressor::DEFAULT_MAKEUP_DB));
+            getNumberProperty(rt, jsConfig, "makeupDb", Nyth::Audio::DEFAULT_MAKEUP_DB));
     }
 
     if (hasProperty(rt, jsConfig, "enabled")) {
@@ -100,17 +100,17 @@ Nyth::Audio::DelayConfig EffectsJSIConverter::delayConfigFromJS(jsi::Runtime& rt
 
     if (hasProperty(rt, jsConfig, "delayMs")) {
         config.delayMs = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "delayMs", Nyth::Audio::Effects::Delay::DEFAULT_DELAY_MS));
+            getNumberProperty(rt, jsConfig, "delayMs", Nyth::Audio::DEFAULT_DELAY_MS));
     }
 
     if (hasProperty(rt, jsConfig, "feedback")) {
         config.feedback = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "feedback", Nyth::Audio::Effects::Delay::DEFAULT_FEEDBACK));
+            getNumberProperty(rt, jsConfig, "feedback", Nyth::Audio::DEFAULT_FEEDBACK));
     }
 
     if (hasProperty(rt, jsConfig, "mix")) {
         config.mix =
-            static_cast<float>(getNumberProperty(rt, jsConfig, "mix", Nyth::Audio::Effects::Delay::DEFAULT_MIX));
+            static_cast<float>(getNumberProperty(rt, jsConfig, "mix", Nyth::Audio::DEFAULT_MIX));
     }
 
     if (hasProperty(rt, jsConfig, "enabled")) {
@@ -136,22 +136,22 @@ Nyth::Audio::ReverbConfig EffectsJSIConverter::reverbConfigFromJS(jsi::Runtime& 
 
     if (hasProperty(rt, jsConfig, "roomSize")) {
         config.roomSize = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "roomSize", Nyth::Audio::Effects::Reverb::DEFAULT_ROOM_SIZE));
+            getNumberProperty(rt, jsConfig, "roomSize", Nyth::Audio::DEFAULT_ROOM_SIZE));
     }
 
     if (hasProperty(rt, jsConfig, "damping")) {
         config.damping = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "damping", Nyth::Audio::Effects::Reverb::DEFAULT_DAMPING));
+            getNumberProperty(rt, jsConfig, "damping", Nyth::Audio::DEFAULT_DAMPING));
     }
 
     if (hasProperty(rt, jsConfig, "wetLevel")) {
         config.wetLevel = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "wetLevel", Nyth::Audio::Effects::Reverb::DEFAULT_WET_LEVEL));
+            getNumberProperty(rt, jsConfig, "wetLevel", Nyth::Audio::DEFAULT_WET_LEVEL));
     }
 
     if (hasProperty(rt, jsConfig, "dryLevel")) {
         config.dryLevel = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "dryLevel", Nyth::Audio::Effects::Reverb::DEFAULT_DRY_LEVEL));
+            getNumberProperty(rt, jsConfig, "dryLevel", Nyth::Audio::DEFAULT_DRY_LEVEL));
     }
 
     if (hasProperty(rt, jsConfig, "enabled")) {
@@ -190,7 +190,7 @@ jsi::Object EffectsJSIConverter::processingMetricsToJS(jsi::Runtime& rt,
 }
 
 jsi::Object EffectsJSIConverter::compressorMetricsToJS(jsi::Runtime& rt,
-                                                       const CompressorManager::CompressorMetrics& metrics) {
+                                                       const AudioFX::CompressorEffect::CompressorMetrics& metrics) {
     jsi::Object jsMetrics(rt);
 
     jsMetrics.setProperty(rt, "inputLevel", jsi::Value(metrics.inputLevel));
@@ -202,7 +202,7 @@ jsi::Object EffectsJSIConverter::compressorMetricsToJS(jsi::Runtime& rt,
     return jsMetrics;
 }
 
-jsi::Object EffectsJSIConverter::delayMetricsToJS(jsi::Runtime& rt, const DelayManager::DelayMetrics& metrics) {
+jsi::Object EffectsJSIConverter::delayMetricsToJS(jsi::Runtime& rt, const AudioFX::DelayEffect::DelayMetrics& metrics) {
     jsi::Object jsMetrics(rt);
 
     jsMetrics.setProperty(rt, "inputLevel", jsi::Value(metrics.inputLevel));
@@ -229,68 +229,68 @@ jsi::Object EffectsJSIConverter::statisticsToJS(jsi::Runtime& rt, const Nyth::Au
 
 // === Utilitaires de conversion ===
 
-Nyth::Audio::Effects::EffectType EffectsJSIConverter::stringToEffectType(const std::string& typeStr) {
+EffectType EffectsJSIConverter::stringToEffectType(const std::string& typeStr) {
     if (typeStr == "compressor") {
-        return Nyth::Audio::Effects::EffectType::COMPRESSOR;
+        return EffectType::COMPRESSOR;
     } else if (typeStr == "delay") {
-        return Nyth::Audio::Effects::EffectType::DELAY;
+        return EffectType::DELAY;
     } else if (typeStr == "reverb") {
-        return Nyth::Audio::Effects::EffectType::REVERB;
+        return EffectType::REVERB;
     } else if (typeStr == "equalizer") {
-        return Nyth::Audio::Effects::EffectType::EQUALIZER;
+        return EffectType::EQUALIZER;
     } else if (typeStr == "filter") {
-        return Nyth::Audio::Effects::EffectType::FILTER;
+        return EffectType::FILTER;
     } else if (typeStr == "limiter") {
-        return Nyth::Audio::Effects::EffectType::LIMITER;
+        return EffectType::LIMITER;
     }
-    return Nyth::Audio::Effects::EffectType::UNKNOWN;
+    return EffectType::UNKNOWN;
 }
 
-std::string EffectsJSIConverter::effectTypeToString(Nyth::Audio::Effects::EffectType type) {
+std::string EffectsJSIConverter::effectTypeToString(EffectType type) {
     switch (type) {
-        case Nyth::Audio::Effects::EffectType::COMPRESSOR:
+        case EffectType::COMPRESSOR:
             return "compressor";
-        case Nyth::Audio::Effects::EffectType::DELAY:
+        case EffectType::DELAY:
             return "delay";
-        case Nyth::Audio::Effects::EffectType::REVERB:
+        case EffectType::REVERB:
             return "reverb";
-        case Nyth::Audio::Effects::EffectType::EQUALIZER:
+        case EffectType::EQUALIZER:
             return "equalizer";
-        case Nyth::Audio::Effects::EffectType::FILTER:
+        case EffectType::FILTER:
             return "filter";
-        case Nyth::Audio::Effects::EffectType::LIMITER:
+        case EffectType::LIMITER:
             return "limiter";
         default:
             return "unknown";
     }
 }
 
-Nyth::Audio::Effects::EffectState EffectsJSIConverter::stringToEffectState(const std::string& stateStr) {
+EffectState EffectsJSIConverter::stringToEffectState(const std::string& stateStr) {
     if (stateStr == "uninitialized") {
-        return Nyth::Audio::Effects::EffectState::UNINITIALIZED;
+        return EffectState::UNINITIALIZED;
     } else if (stateStr == "initialized") {
-        return Nyth::Audio::Effects::EffectState::INITIALIZED;
+        return EffectState::INITIALIZED;
     } else if (stateStr == "processing") {
-        return Nyth::Audio::Effects::EffectState::PROCESSING;
+        return EffectState::PROCESSING;
     } else if (stateStr == "bypassed") {
-        return Nyth::Audio::Effects::EffectState::BYPASSED;
+        return EffectState::BYPASSED;
     } else if (stateStr == "error") {
-        return Nyth::Audio::Effects::EffectState::ERROR;
+        return EffectState::ERROR;
     }
-    return Nyth::Audio::Effects::EffectState::UNINITIALIZED;
+    return EffectState::UNINITIALIZED;
 }
 
-std::string EffectsJSIConverter::effectStateToString(Nyth::Audio::Effects::EffectState state) {
+std::string EffectsJSIConverter::effectStateToString(EffectState state) {
     switch (state) {
-        case Nyth::Audio::Effects::EffectState::UNINITIALIZED:
+        case EffectState::UNINITIALIZED:
             return "uninitialized";
-        case Nyth::Audio::Effects::EffectState::INITIALIZED:
+        case EffectState::INITIALIZED:
             return "initialized";
-        case Nyth::Audio::Effects::EffectState::PROCESSING:
+        case EffectState::PROCESSING:
             return "processing";
-        case Nyth::Audio::Effects::EffectState::BYPASSED:
+        case EffectState::BYPASSED:
             return "bypassed";
-        case Nyth::Audio::Effects::EffectState::ERROR:
+        case EffectState::ERROR:
             return "error";
         default:
             return "unknown";

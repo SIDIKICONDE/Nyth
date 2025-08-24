@@ -1,14 +1,13 @@
 #pragma once
 
 #ifdef __cplusplus
+#include "../../../common/dsp/FFTEngine.hpp"
 #include "../Imcra/Imcra.hpp"
 #include "../Wiener/WienerFilter.hpp"
 #include "MultibandProcessor.hpp"
-#include "../../../fft/components/FFTEngine.hpp"
 #include <memory>
 #include <string>
 #include <vector>
-
 
 namespace AudioNR {
 
@@ -29,9 +28,9 @@ public:
      */
     struct Config {
         // Core parameters
-        uint32_t sampleRate = 48000;
-        size_t fftSize = 2048; ///< Larger FFT for better resolution
-        size_t hopSize = 512;  ///< 75% overlap
+        uint32_t sampleRate = AdvancedSpectralNRConstants::DEFAULT_SAMPLE_RATE;
+        size_t fftSize = AdvancedSpectralNRConstants::DEFAULT_FFT_SIZE; ///< Larger FFT for better resolution
+        size_t hopSize = AdvancedSpectralNRConstants::DEFAULT_HOP_SIZE; ///< 75% overlap
 
         // Algorithm selection
         enum Algorithm {
@@ -50,34 +49,36 @@ public:
         } noiseMethod = IMCRA;
 
         // Processing options
-        bool enableMultiband = true;    ///< Enable multi-band processing
-        bool preserveTransients = true; ///< Preserve transient sounds
-        bool reduceMusicalNoise = true; ///< Apply musical noise reduction
+        bool enableMultiband = AdvancedSpectralNRConstants::DEFAULT_ENABLE_MULTIBAND; ///< Enable multi-band processing
+        bool preserveTransients =
+            AdvancedSpectralNRConstants::DEFAULT_PRESERVE_TRANSIENTS; ///< Preserve transient sounds
+        bool reduceMusicalNoise =
+            AdvancedSpectralNRConstants::DEFAULT_REDUCE_MUSICAL_NOISE; ///< Apply musical noise reduction
 
         // Aggressiveness control (0-1)
-        float aggressiveness = 0.7f;
+        float aggressiveness = AdvancedSpectralNRConstants::DEFAULT_AGGRESSIVENESS;
 
         // Advanced parameters
         struct Advanced {
             // IMCRA parameters
-            float speechThreshold = 4.6f;
-            float noiseUpdateRate = 0.95f;
+            float speechThreshold = AdvancedSpectralNRConstants::DEFAULT_SPEECH_THRESHOLD;
+            float noiseUpdateRate = AdvancedSpectralNRConstants::DEFAULT_NOISE_UPDATE_RATE;
 
             // Wiener parameters
-            float wienerAlpha = 0.98f;
-            float minGain = 0.1f;
-            float maxGain = 1.0f;
+            float wienerAlpha = AdvancedSpectralNRConstants::DEFAULT_WIENER_ALPHA;
+            float minGain = AdvancedSpectralNRConstants::DEFAULT_MIN_GAIN;
+            float maxGain = AdvancedSpectralNRConstants::DEFAULT_MAX_GAIN;
 
             // Multi-band parameters
             MultibandProcessor::Config::BandMode bandMode = MultibandProcessor::Config::BARK_SCALE;
 
             // Musical noise reduction
-            float temporalSmoothing = 0.7f;
-            float spectralSmoothing = 0.3f;
+            float temporalSmoothing = AdvancedSpectralNRConstants::DEFAULT_TEMPORAL_SMOOTHING;
+            float spectralSmoothing = AdvancedSpectralNRConstants::DEFAULT_SPECTRAL_SMOOTHING;
 
             // Transient preservation
-            float transientThreshold = 6.0f;
-            float transientProtection = 0.8f;
+            float transientThreshold = AdvancedSpectralNRConstants::DEFAULT_TRANSIENT_THRESHOLD;
+            float transientProtection = AdvancedSpectralNRConstants::DEFAULT_TRANSIENT_PROTECTION;
         } advanced;
     };
 
@@ -210,27 +211,30 @@ private:
 class HybridNoiseReducer {
 public:
     struct Config {
-        uint32_t sampleRate = 48000;
-        size_t blockSize = 512;
+        uint32_t sampleRate = AdvancedSpectralNRConstants::DEFAULT_SAMPLE_RATE;
+        size_t blockSize = AdvancedSpectralNRConstants::DEFAULT_BLOCK_SIZE;
 
         // Decision thresholds
-        float speechThreshold = 0.7f;    ///< Threshold for speech detection
-        float musicThreshold = 0.5f;     ///< Threshold for music detection
-        float transientThreshold = 6.0f; ///< Threshold for transient detection
+        float speechThreshold =
+            AdvancedSpectralNRConstants::SPEECH_DETECTION_THRESHOLD; ///< Threshold for speech detection
+        float musicThreshold =
+            AdvancedSpectralNRConstants::MUSIC_DETECTION_THRESHOLD; ///< Threshold for music detection
+        float transientThreshold =
+            AdvancedSpectralNRConstants::TRANSIENT_DETECTION_THRESHOLD; ///< Threshold for transient detection
 
         // Algorithm weights for different content types
         struct Weights {
             // Speech weights
-            float speechWiener = 0.8f;
-            float speechSpectral = 0.2f;
+            float speechWiener = AdvancedSpectralNRConstants::AlgorithmWeights::SPEECH_WIENER;
+            float speechSpectral = AdvancedSpectralNRConstants::AlgorithmWeights::SPEECH_SPECTRAL;
 
             // Music weights
-            float musicWiener = 0.5f;
-            float musicMultiband = 0.5f;
+            float musicWiener = AdvancedSpectralNRConstants::AlgorithmWeights::MUSIC_WIENER;
+            float musicMultiband = AdvancedSpectralNRConstants::AlgorithmWeights::MUSIC_MULTIBAND;
 
             // Noise weights
-            float noiseSpectral = 0.6f;
-            float noiseWiener = 0.4f;
+            float noiseSpectral = AdvancedSpectralNRConstants::AlgorithmWeights::NOISE_SPECTRAL;
+            float noiseWiener = AdvancedSpectralNRConstants::AlgorithmWeights::NOISE_WIENER;
         } weights;
     };
 

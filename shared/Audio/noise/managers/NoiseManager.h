@@ -7,16 +7,26 @@
 #include <string>
 #include <vector>
 
-
-#include "../../jsi/JSICallbackManager.h"
+#include "../../common/jsi/JSICallbackManager.h"
 #include "../components/Noise/NoiseReducer.hpp"
 #include "../components/Spectral/AdvancedSpectralNR.hpp"
+#include "../components/Spectral/SpectralNR.hpp"
 #include "../config/NoiseConfig.h"
-
 
 namespace facebook {
 namespace react {
 
+/**
+ * @brief Gestionnaire principal pour la réduction de bruit audio
+ *
+ * Ce manager coordonne tous les composants de réduction de bruit :
+ * - AdvancedSpectralNR : Algorithme hybride complet (IMCRA + Wiener + Multiband)
+ * - SpectralNR : Réduction spectrale classique
+ * - NoiseReducer : Gate/expander simple
+ *
+ * Supporte 6 algorithmes : ADVANCED_SPECTRAL, WIENER_FILTER, MULTIBAND,
+ * TWO_STEP, HYBRID, SPECTRAL_SUBTRACTION
+ */
 class NoiseManager {
 public:
     explicit NoiseManager(std::shared_ptr<JSICallbackManager> callbackManager);
@@ -63,8 +73,9 @@ public:
     void setProcessingCallback(ProcessingCallback callback);
 
 private:
-    // === Composants AudioNR ===
+    // === Composants AudioNR connectés ===
     std::unique_ptr<AudioNR::AdvancedSpectralNR> advancedSpectralNR_;
+    std::unique_ptr<AudioNR::SpectralNR> spectralNR_;
     std::unique_ptr<AudioNR::NoiseReducer> noiseReducer_;
 
     // === Gestionnaire de callbacks ===
@@ -77,13 +88,15 @@ private:
     std::atomic<Nyth::Audio::NoiseState> currentState_{Nyth::Audio::NoiseState::UNINITIALIZED};
     std::atomic<bool> isInitialized_{false};
 
-    // === Statistiques ===
-    mutable std::mutex statsMutex_;
+    // === Synchronisation ===
+    mutable std::mutex mutex_;      // Mutex principal pour la synchronisation
+    mutable std::mutex statsMutex_; // Mutex pour les statistiques
     Nyth::Audio::NoiseStatistics currentStats_;
 
     // === Buffers de travail ===
     std::vector<float> workBufferL_;
     std::vector<float> workBufferR_;
+    std::vector<float> intermediateBuffer_;
 
     // === Callbacks ===
     StatisticsCallback statisticsCallback_;
@@ -91,16 +104,18 @@ private:
 
     // === Méthodes privées ===
     void initializeNoiseComponents();
-    bool processAudioWithAlgorithm(const float* input, float* output, size_t frameCount, int channels);
+    void connectComponents();
     void updateStatistics(const float* input, const float* output, size_t frameCount, int channels);
     void notifyStatisticsCallback();
-    void notifyProcessingCallback(const float* input, const float* output, size_t frameCount);
     bool validateConfig(const Nyth::Audio::NoiseConfig& config) const;
 
     // === Helpers ===
     float calculateRMS(const float* data, size_t size) const;
-    void resetStatsInternal();
     void handleError(const std::string& error);
+
+    // === Pipeline de traitement ===
+    bool processWithPipeline(const float* input, float* output, size_t frameCount, int channels);
+    void setupProcessingPipeline();
 };
 
 } // namespace react

@@ -2,9 +2,63 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace facebook {
 namespace react {
+
+// === Constantes pour les validations ===
+
+namespace {
+constexpr double MIN_FREQUENCY = 1.0;
+constexpr double MAX_FREQUENCY = 96000.0; // Fréquence de Nyquist maximale
+constexpr size_t MIN_BANDS = 1;
+constexpr size_t MAX_BANDS = 1024;
+constexpr double MIN_OVERLAP = 0.0;
+constexpr double MAX_OVERLAP = 0.99; // < 1.0 pour éviter les divisions par zéro
+constexpr size_t MIN_FFT_SIZE = 64;
+constexpr size_t MAX_FFT_SIZE = 8192;
+
+// Validation d'une fréquence
+bool isValidFrequency(double freq) {
+    return std::isfinite(freq) && freq >= MIN_FREQUENCY && freq <= MAX_FREQUENCY;
+}
+
+// Validation du nombre de bandes
+bool isValidBandCount(size_t bands) {
+    return bands >= MIN_BANDS && bands <= MAX_BANDS;
+}
+
+// Validation du chevauchement
+bool isValidOverlap(double overlap) {
+    return std::isfinite(overlap) && overlap >= MIN_OVERLAP && overlap < MAX_OVERLAP;
+}
+
+// Validation de la taille FFT (doit être puissance de 2)
+bool isValidFFTSize(size_t fftSize) {
+    if (fftSize < MIN_FFT_SIZE || fftSize > MAX_FFT_SIZE)
+        return false;
+    if (fftSize == 0)
+        return false;
+    return (fftSize & (fftSize - 1)) == 0; // Test de puissance de 2
+}
+
+// Validation du sample rate
+bool isValidSampleRate(uint32_t sampleRate) {
+    return sampleRate >= 8000 && sampleRate <= 192000; // Plage raisonnable
+}
+
+// Validation de la plage de fréquences
+bool isValidFrequencyRange(double minFreq, double maxFreq, uint32_t sampleRate) {
+    if (!isValidFrequency(minFreq) || !isValidFrequency(maxFreq))
+        return false;
+    if (minFreq >= maxFreq)
+        return false;
+    if (maxFreq > sampleRate / 2.0)
+        return false; // Ne pas dépasser la fréquence de Nyquist
+    return true;
+}
+} // namespace
 
 // === Implémentation des conversions JSI vers native ===
 
@@ -12,26 +66,59 @@ namespace react {
 Nyth::Audio::SpectrumConfig SpectrumJSIConverter::jsiToSpectrumConfig(jsi::Runtime& rt, const jsi::Object& jsConfig) {
     Nyth::Audio::SpectrumConfig config = Nyth::Audio::SpectrumConfig::getDefault();
 
-    // Paramètres FFT
+    // Validation initiale
+    if (!jsConfig.isObject(rt)) {
+        throw std::invalid_argument("Configuration must be an object");
+    }
+
+    // Paramètres FFT avec validation
     if (hasProperty(rt, jsConfig, PROP_FFT_SIZE)) {
-        config.fftSize = static_cast<size_t>(getJSISize(rt, jsConfig, PROP_FFT_SIZE, config.fftSize));
+        size_t fftSize = static_cast<size_t>(getJSISize(rt, jsConfig, PROP_FFT_SIZE, config.fftSize));
+        if (!isValidFFTSize(fftSize)) {
+            throw std::invalid_argument("Invalid FFT size: " + std::to_string(fftSize) +
+                                        " (must be power of 2 between " + std::to_string(MIN_FFT_SIZE) + " and " +
+                                        std::to_string(MAX_FFT_SIZE) + ")");
+        }
+        config.fftSize = fftSize;
     }
 
     if (hasProperty(rt, jsConfig, PROP_SAMPLE_RATE)) {
-        config.sampleRate = getJSIUint32(rt, jsConfig, PROP_SAMPLE_RATE, config.sampleRate);
+        uint32_t sampleRate = getJSIUint32(rt, jsConfig, PROP_SAMPLE_RATE, config.sampleRate);
+        if (!isValidSampleRate(sampleRate)) {
+            throw std::invalid_argument("Invalid sample rate: " + std::to_string(sampleRate) +
+                                        " (must be between 8000 and 192000 Hz)");
+        }
+        config.sampleRate = sampleRate;
     }
 
-    // Plage de fréquences
+    // Plage de fréquences avec validation croisée
+    double minFreq = config.minFreq;
+    double maxFreq = config.maxFreq;
+
     if (hasProperty(rt, jsConfig, PROP_MIN_FREQ)) {
-        config.minFreq = getJSIDouble(rt, jsConfig, PROP_MIN_FREQ, config.minFreq);
+        minFreq = getJSIDouble(rt, jsConfig, PROP_MIN_FREQ, config.minFreq);
     }
 
     if (hasProperty(rt, jsConfig, PROP_MAX_FREQ)) {
-        config.maxFreq = getJSIDouble(rt, jsConfig, PROP_MAX_FREQ, config.maxFreq);
+        maxFreq = getJSIDouble(rt, jsConfig, PROP_MAX_FREQ, config.maxFreq);
     }
 
+    if (!isValidFrequencyRange(minFreq, maxFreq, config.sampleRate)) {
+        throw std::invalid_argument("Invalid frequency range: min=" + std::to_string(minFreq) + " Hz, max=" +
+                                    std::to_string(maxFreq) + " Hz (must be between " + std::to_string(MIN_FREQUENCY) +
+                                    " and " + std::to_string(config.sampleRate / 2.0) + " Hz)");
+    }
+
+    config.minFreq = minFreq;
+    config.maxFreq = maxFreq;
+
     if (hasProperty(rt, jsConfig, PROP_NUM_BANDS)) {
-        config.numBands = static_cast<size_t>(getJSISize(rt, jsConfig, PROP_NUM_BANDS, config.numBands));
+        size_t numBands = static_cast<size_t>(getJSISize(rt, jsConfig, PROP_NUM_BANDS, config.numBands));
+        if (!isValidBandCount(numBands)) {
+            throw std::invalid_argument("Invalid band count: " + std::to_string(numBands) + " (must be between " +
+                                        std::to_string(MIN_BANDS) + " and " + std::to_string(MAX_BANDS) + ")");
+        }
+        config.numBands = numBands;
     }
 
     // Paramètres de traitement
@@ -44,7 +131,12 @@ Nyth::Audio::SpectrumConfig SpectrumJSIConverter::jsiToSpectrumConfig(jsi::Runti
     }
 
     if (hasProperty(rt, jsConfig, PROP_OVERLAP)) {
-        config.overlap = getJSIDouble(rt, jsConfig, PROP_OVERLAP, config.overlap);
+        double overlap = getJSIDouble(rt, jsConfig, PROP_OVERLAP, config.overlap);
+        if (!isValidOverlap(overlap)) {
+            throw std::invalid_argument("Invalid overlap: " + std::to_string(overlap) +
+                                        " (must be between 0.0 and 0.99)");
+        }
+        config.overlap = overlap;
     }
 
     // Optimisations
@@ -55,6 +147,14 @@ Nyth::Audio::SpectrumConfig SpectrumJSIConverter::jsiToSpectrumConfig(jsi::Runti
     if (hasProperty(rt, jsConfig, PROP_MEMORY_POOL_SIZE)) {
         config.memoryPoolSize =
             static_cast<size_t>(getJSISize(rt, jsConfig, PROP_MEMORY_POOL_SIZE, config.memoryPoolSize));
+        if (config.memoryPoolSize == 0) {
+            throw std::invalid_argument("Memory pool size must be greater than 0");
+        }
+    }
+
+    // Validation finale de la configuration
+    if (!config.isValid()) {
+        throw std::invalid_argument("Generated configuration is invalid");
     }
 
     return config;

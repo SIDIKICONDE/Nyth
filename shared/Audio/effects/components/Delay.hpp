@@ -11,7 +11,7 @@
 
 
 #include "EffectBase.hpp"
-#include "constant/EffectConstants.hpp"
+#include "../../common/config/EffectConstants.hpp"
 
 namespace AudioFX {
 
@@ -19,6 +19,28 @@ class DelayEffect final : public IAudioEffect {
 public:
     using IAudioEffect::processMono;   // évite le masquage des surcharges (templates span)
     using IAudioEffect::processStereo; // idem
+
+    // === Structure des métriques ===
+    struct DelayMetrics {
+        float inputLevel = 0.0f;      // Niveau d'entrée en dB
+        float outputLevel = 0.0f;     // Niveau de sortie en dB
+        float feedbackLevel = 0.0f;   // Niveau du feedback en dB
+        float wetLevel = 0.0f;        // Niveau du signal traité
+        bool isActive = false;        // Si le delay est actif
+
+        DelayMetrics() = default;
+    };
+
+    // === Accès aux métriques ===
+    DelayMetrics getMetrics() const {
+        return DelayMetrics{
+            .inputLevel = 20.0f * std::log10(std::max(0.1f, 1.0f)), // Estimation
+            .outputLevel = 20.0f * std::log10(std::max(0.1f, 1.0f)), // Estimation
+            .feedbackLevel = 20.0f * std::log10(std::max(static_cast<double>(AudioFX::EPSILON_DB), static_cast<double>(feedback_))),
+            .wetLevel = static_cast<float>(mix_),
+            .isActive = isEnabled() && (mix_ > AudioFX::MIX_THRESHOLD)
+        };
+    }
     void setParameters(double delayMs, double feedback, double mix) noexcept {
         delayMs_ = (delayMs > AudioFX::MIN_DELAY_VALUE) ? delayMs : AudioFX::MIN_DELAY_VALUE;
         feedback_ = (feedback < AudioFX::MIN_FEEDBACK)   ? AudioFX::MIN_FEEDBACK

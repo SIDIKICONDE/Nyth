@@ -34,11 +34,11 @@
 #include <jsi/jsi.h>
 
 // Includes des composants refactorisés
-#include "config/AudioConfig.h"
-#include "core_managers/AudioAnalysisManager.h"
-#include "core_managers/EqualizerManager.h"
-#include "core_managers/FilterManager.h"
-#include "jsi/JSICallbackManager.h"
+#include "../common/config/AudioConfig.h"
+#include "managers/AudioAnalysisManager.h"
+#include "managers/EqualizerManager.h"
+#include "managers/FilterManager.h"
+#include "../common/jsi/JSICallbackManager.h"
 #include "jsi/JSIConverter.h"
 
 namespace facebook {

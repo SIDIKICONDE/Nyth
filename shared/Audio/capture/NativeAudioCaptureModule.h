@@ -35,8 +35,8 @@
 
 // Includes des composants refactorisés
 #include "config/AudioConfig.h"
-#include "config/AudioLimits.h"
-#include "jsi/JSICallbackManager.h"
+#include "../../common/config/AudioLimits.h"
+#include "../../common/jsi/JSICallbackManager.h"
 #include "jsi/JSIConverter.h"
 #include "managers/AudioCaptureManager.h"
 

@@ -14,12 +14,12 @@ namespace Audio {
 struct DCConfig {
     bool enabled = true;
     double threshold = SafetyLimits::DEFAULT_DC_THRESHOLD; // Linéaire
-    double smoothingFactor = 0.95;                         // Facteur de lissage
+    double smoothingFactor = DEFAULT_DC_SMOOTHING;         // Facteur de lissage
 
     // Validation
     bool isValid() const {
-        return SafetyParameterValidator::isValidDCThreshold(threshold) && smoothingFactor >= 0.0 &&
-               smoothingFactor <= 1.0;
+        return SafetyParameterValidator::isValidDCThreshold(threshold) && smoothingFactor >= MIN_SMOOTHING_FACTOR &&
+               smoothingFactor <= MAX_SMOOTHING_FACTOR;
     }
 };
 
@@ -29,16 +29,16 @@ struct LimiterConfig {
     double thresholdDb = SafetyLimits::DEFAULT_LIMITER_THRESHOLD_DB; // dBFS
     bool softKnee = true;
     double kneeWidthDb = SafetyLimits::DEFAULT_KNEE_WIDTH_DB; // dB
-    double attackTimeMs = 10.0;                               // ms
-    double releaseTimeMs = 100.0;                             // ms
-    double makeupGainDb = 0.0;                                // dB
+    double attackTimeMs = DEFAULT_ATTACK_TIME_MS;             // ms
+    double releaseTimeMs = DEFAULT_RELEASE_TIME_MS;           // ms
+    double makeupGainDb = DEFAULT_LIMITER_MAKEUP;             // dB
 
     // Validation
     bool isValid() const {
         return SafetyParameterValidator::isValidLimiterThreshold(thresholdDb) &&
-               SafetyParameterValidator::isValidKneeWidth(kneeWidthDb) && attackTimeMs > 0.0 &&
-               attackTimeMs <= 1000.0 && releaseTimeMs > 0.0 && releaseTimeMs <= 10000.0 && makeupGainDb >= -20.0 &&
-               makeupGainDb <= 20.0;
+               SafetyParameterValidator::isValidKneeWidth(kneeWidthDb) && attackTimeMs > MIN_ATTACK_TIME &&
+               attackTimeMs <= MAX_ATTACK_TIME && releaseTimeMs > MIN_RELEASE_TIME && releaseTimeMs <= MAX_RELEASE_TIME &&
+               makeupGainDb >= MIN_MAKEUP_GAIN && makeupGainDb <= MAX_MAKEUP_GAIN;
     }
 };
 
@@ -46,16 +46,17 @@ struct LimiterConfig {
 struct FeedbackConfig {
     bool enabled = true;
     double threshold = SafetyLimits::DEFAULT_FEEDBACK_THRESHOLD; // Corrélation normalisée
-    double sensitivity = 0.8;                                    // Sensibilité (0-1)
-    uint32_t analysisWindowMs = 100;                             // Fenêtre d'analyse en ms
-    uint32_t minFrequencyHz = 20;                                // Fréquence minimale
-    uint32_t maxFrequencyHz = 20000;                             // Fréquence maximale
+    double sensitivity = DEFAULT_FEEDBACK_SENSITIVITY;           // Sensibilité (0-1)
+    uint32_t analysisWindowMs = DEFAULT_FEEDBACK_WINDOW;         // Fenêtre d'analyse en ms
+    uint32_t minFrequencyHz = DEFAULT_MIN_FREQ;                  // Fréquence minimale
+    uint32_t maxFrequencyHz = DEFAULT_MAX_FREQ;                  // Fréquence maximale
 
     // Validation
     bool isValid() const {
-        return SafetyParameterValidator::isValidFeedbackThreshold(threshold) && sensitivity >= 0.0 &&
-               sensitivity <= 1.0 && analysisWindowMs >= 10 && analysisWindowMs <= 1000 && minFrequencyHz >= 20 &&
-               minFrequencyHz < maxFrequencyHz && maxFrequencyHz <= 50000;
+        return SafetyParameterValidator::isValidFeedbackThreshold(threshold) && sensitivity >= MIN_SENSITIVITY &&
+               sensitivity <= MAX_SENSITIVITY && analysisWindowMs >= MIN_ANALYSIS_WINDOW &&
+               analysisWindowMs <= MAX_ANALYSIS_WINDOW && minFrequencyHz >= DEFAULT_MIN_FREQ &&
+               minFrequencyHz < maxFrequencyHz && maxFrequencyHz <= MAX_FEEDBACK_FREQ;
     }
 };
 
@@ -89,14 +90,14 @@ struct SafetyConfig {
     // Contrôles globaux
     bool enabled = true;
     bool autoGainControl = false;
-    double maxProcessingTimeMs = 10.0; // Timeout de traitement
+    double maxProcessingTimeMs = DEFAULT_MAX_PROCESSING_TIME_MS; // Timeout de traitement
 
     // Validation complète
     bool isValid() const {
         return SafetyParameterValidator::isValidSampleRate(sampleRate) &&
                SafetyParameterValidator::isValidChannels(channels) && dcConfig.isValid() && limiterConfig.isValid() &&
-               feedbackConfig.isValid() && optimizationConfig.isValid() && maxProcessingTimeMs > 0.0 &&
-               maxProcessingTimeMs <= 1000.0;
+               feedbackConfig.isValid() && optimizationConfig.isValid() && maxProcessingTimeMs > ZERO_VALUE &&
+               maxProcessingTimeMs <= MAX_PROCESSING_TIME_MS;
     }
 
     // Méthode pour obtenir une configuration par défaut
@@ -109,21 +110,21 @@ struct SafetyConfig {
 
 // Rapport de sécurité pour une frame audio
 struct SafetyReport {
-    double peakLevel = 0.0;        // Niveau de crête en dBFS
-    double rmsLevel = 0.0;         // Niveau RMS en dBFS
-    double dcOffset = 0.0;         // Offset DC (linéaire)
-    uint32_t clippedSamples = 0;   // Nombre d'échantillons clipés
-    bool overloadActive = false;   // Surcharge active
-    double feedbackScore = 0.0;    // Score de feedback (0-1)
-    bool hasNaN = false;           // Présence de NaN
-    bool feedbackLikely = false;   // Feedback probable
-    double processingTimeMs = 0.0; // Temps de traitement en ms
+    double peakLevel = INITIAL_LEVEL_DB;        // Niveau de crête en dBFS
+    double rmsLevel = INITIAL_LEVEL_DB;         // Niveau RMS en dBFS
+    double dcOffset = INITIAL_DC_OFFSET;        // Offset DC (linéaire)
+    uint32_t clippedSamples = INITIAL_CLIPPED_SAMPLES;   // Nombre d'échantillons clipés
+    bool overloadActive = INITIAL_OVERLOAD;     // Surcharge active
+    double feedbackScore = INITIAL_FEEDBACK_SCORE;       // Score de feedback (0-1)
+    bool hasNaN = INITIAL_HAS_NAN;              // Présence de NaN
+    bool feedbackLikely = INITIAL_FEEDBACK_LIKELY;      // Feedback probable
+    double processingTimeMs = INITIAL_PROCESSING_TIME;   // Temps de traitement en ms
 
     // Validation du rapport
     bool isValid() const {
         return SafetyParameterValidator::isValidLevelDb(peakLevel) &&
-               SafetyParameterValidator::isValidLevelDb(rmsLevel) && std::isfinite(dcOffset) && feedbackScore >= 0.0 &&
-               feedbackScore <= 1.0 && processingTimeMs >= 0.0;
+               SafetyParameterValidator::isValidLevelDb(rmsLevel) && std::isfinite(dcOffset) &&
+               feedbackScore >= ZERO_VALUE && feedbackScore <= UNITY_VALUE && processingTimeMs >= ZERO_VALUE;
     }
 };
 
@@ -134,13 +135,13 @@ struct SafetyStatistics {
     SafetyReport avgReport;
     SafetyReport lastReport;
 
-    uint64_t totalFrames = 0;
-    uint64_t totalClippedSamples = 0;
-    uint64_t totalOverloadFrames = 0;
-    uint64_t totalFeedbackFrames = 0;
+    uint64_t totalFrames = INITIAL_TOTAL_FRAMES;
+    uint64_t totalClippedSamples = INITIAL_TOTAL_CLIPPED_SAMPLES;
+    uint64_t totalOverloadFrames = INITIAL_TOTAL_OVERLOAD_FRAMES;
+    uint64_t totalFeedbackFrames = INITIAL_TOTAL_FEEDBACK_FRAMES;
 
-    double averageProcessingTimeMs = 0.0;
-    double maxProcessingTimeMs = 0.0;
+    double averageProcessingTimeMs = INITIAL_PROCESSING_TIME;
+    double maxProcessingTimeMs = INITIAL_PROCESSING_TIME;
 
     // Méthode pour réinitialiser
     void reset() {
@@ -151,77 +152,83 @@ struct SafetyStatistics {
 // === Types d'erreurs ===
 
 enum class SafetyError {
-    OK = 0,
-    NULL_BUFFER = -1,
-    INVALID_SAMPLE_RATE = -2,
-    INVALID_CHANNELS = -3,
-    INVALID_THRESHOLD_DB = -4,
-    INVALID_KNEE_WIDTH = -5,
-    INVALID_DC_THRESHOLD = -6,
-    INVALID_FEEDBACK_THRESHOLD = -7,
-    PROCESSING_FAILED = -8,
-    TIMEOUT = -9,
-    MEMORY_ERROR = -10,
-    INVALID_CONFIG = -11,
-    ENGINE_NOT_INITIALIZED = -12,
-    OPTIMIZATION_NOT_SUPPORTED = -13
+    OK = ERROR_CONFIG_CODE_OK,
+    NULL_BUFFER = ERROR_CONFIG_CODE_NULL_BUFFER,
+    INVALID_SAMPLE_RATE = ERROR_CONFIG_CODE_INVALID_SAMPLE_RATE,
+    INVALID_CHANNELS = ERROR_CONFIG_CODE_INVALID_CHANNELS,
+    INVALID_THRESHOLD_DB = ERROR_CONFIG_CODE_INVALID_THRESHOLD_DB,
+    INVALID_KNEE_WIDTH = ERROR_CONFIG_CODE_INVALID_KNEE_WIDTH,
+    INVALID_DC_THRESHOLD = ERROR_CONFIG_CODE_INVALID_DC_THRESHOLD,
+    INVALID_FEEDBACK_THRESHOLD = ERROR_CONFIG_CODE_INVALID_FEEDBACK_THRESHOLD,
+    PROCESSING_FAILED = ERROR_CONFIG_CODE_PROCESSING_FAILED,
+    TIMEOUT = ERROR_CONFIG_CODE_TIMEOUT,
+    MEMORY_ERROR = ERROR_CONFIG_CODE_MEMORY_ERROR,
+    INVALID_CONFIG = ERROR_CONFIG_CODE_INVALID_CONFIG,
+    ENGINE_NOT_INITIALIZED = ERROR_CONFIG_CODE_ENGINE_NOT_INITIALIZED,
+    OPTIMIZATION_NOT_SUPPORTED = ERROR_CONFIG_CODE_OPTIMIZATION_NOT_SUPPORTED
 };
 
 // Conversion d'erreur vers string
 inline std::string errorToString(SafetyError error) {
     switch (error) {
         case SafetyError::OK:
-            return "OK";
+            return ERROR_CONFIG_OK;
         case SafetyError::NULL_BUFFER:
-            return "Null buffer provided";
+            return ERROR_CONFIG_NULL_BUFFER;
         case SafetyError::INVALID_SAMPLE_RATE:
-            return "Invalid sample rate";
+            return ERROR_CONFIG_INVALID_SAMPLE_RATE;
         case SafetyError::INVALID_CHANNELS:
-            return "Invalid number of channels";
+            return ERROR_CONFIG_INVALID_CHANNELS;
         case SafetyError::INVALID_THRESHOLD_DB:
-            return "Invalid threshold in dB";
+            return ERROR_CONFIG_INVALID_THRESHOLD_DB;
         case SafetyError::INVALID_KNEE_WIDTH:
-            return "Invalid knee width";
+            return ERROR_CONFIG_INVALID_KNEE_WIDTH;
         case SafetyError::INVALID_DC_THRESHOLD:
-            return "Invalid DC threshold";
+            return ERROR_CONFIG_INVALID_DC_THRESHOLD;
         case SafetyError::INVALID_FEEDBACK_THRESHOLD:
-            return "Invalid feedback threshold";
+            return ERROR_CONFIG_INVALID_FEEDBACK_THRESHOLD;
         case SafetyError::PROCESSING_FAILED:
-            return "Audio processing failed";
+            return ERROR_CONFIG_PROCESSING_FAILED;
         case SafetyError::TIMEOUT:
-            return "Processing timeout";
+            return ERROR_CONFIG_TIMEOUT;
         case SafetyError::MEMORY_ERROR:
-            return "Memory allocation error";
+            return ERROR_CONFIG_MEMORY_ERROR;
         case SafetyError::INVALID_CONFIG:
-            return "Invalid configuration";
+            return ERROR_CONFIG_INVALID_CONFIG;
         case SafetyError::ENGINE_NOT_INITIALIZED:
-            return "Engine not initialized";
+            return ERROR_CONFIG_ENGINE_NOT_INITIALIZED;
         case SafetyError::OPTIMIZATION_NOT_SUPPORTED:
-            return "Optimization not supported";
+            return ERROR_CONFIG_OPTIMIZATION_NOT_SUPPORTED;
         default:
-            return "Unknown error";
+            return ERROR_CONFIG_UNKNOWN;
     }
 }
 
 // === États du module ===
 
-enum class SafetyState { UNINITIALIZED = 0, INITIALIZED = 1, PROCESSING = 2, ERROR = 3, SHUTDOWN = 4 };
+enum class SafetyState {
+    UNINITIALIZED = STATE_CONFIG_CODE_UNINITIALIZED,
+    INITIALIZED = STATE_CONFIG_CODE_INITIALIZED,
+    PROCESSING = STATE_CONFIG_CODE_PROCESSING,
+    ERROR = STATE_CONFIG_CODE_ERROR,
+    SHUTDOWN = STATE_CONFIG_CODE_SHUTDOWN
+};
 
 // Conversion d'état vers string
 inline std::string stateToString(SafetyState state) {
     switch (state) {
         case SafetyState::UNINITIALIZED:
-            return "uninitialized";
+            return STATE_UNINITIALIZED;
         case SafetyState::INITIALIZED:
-            return "initialized";
+            return STATE_INITIALIZED;
         case SafetyState::PROCESSING:
-            return "processing";
+            return STATE_PROCESSING;
         case SafetyState::ERROR:
-            return "error";
+            return STATE_ERROR;
         case SafetyState::SHUTDOWN:
-            return "shutdown";
+            return STATE_SHUTDOWN;
         default:
-            return "unknown";
+            return STATE_UNKNOWN;
     }
 }
 
@@ -234,4 +241,3 @@ using SafetyReportCallback = std::function<void(const SafetyReport& report)>;
 
 } // namespace Audio
 } // namespace Nyth
-

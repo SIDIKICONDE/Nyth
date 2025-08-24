@@ -5,7 +5,7 @@
 #include <cmath>
 #include <algorithm>
 #include <limits>
-#include "../../shared/Audio/core/CoreConstants.hpp"
+#include "../../shared/Audio/core/components/constant/CoreConstants.hpp"
 
 using namespace AudioFX;
 

@@ -4,7 +4,8 @@
 #include <cmath>
 #include <cstdint>
 #include <vector>
-
+#include "../../common/utils/MathUtils.hpp"
+#include "../../common/config/NoiseContants.hpp"
 
 namespace AudioNR {
 
@@ -126,25 +127,7 @@ private:
     void computeGainFunction();
     float computeSpeechProbability(float gammak, float xik);
 
-    // Mathematical utilities
-    inline float expint(float x) {
-        // Exponential integral approximation E1(x)
-        if (x < 1.0f) {
-            return -std::log(x) - 0.57721566f + x - x * x / 4.0f + x * x * x / 18.0f;
-        } else {
-            // Continued fraction approximation for large x
-            float sum = 0.0f;
-            float term = 1.0f;
-            for (int n = 1; n <= 20; ++n) {
-                term *= -n / x;
-                sum += term;
-                if (std::abs(term) < 1e-10f)
-                    break;
-            }
-            return std::exp(-x) / x * (1.0f + sum);
-        }
-    }
-
+    // Mathematical utilities are now in MathUtils.hpp
     inline float max(float a, float b) {
         return (a > b) ? a : b;
     }

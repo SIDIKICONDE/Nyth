@@ -21,6 +21,7 @@ FetchContent_MakeAvailable(googletest)
 # Sources des tests
 set(TEST_SOURCES
     AudioTestSuite.cpp
+    SIMDTest.cpp
 )
 
 # Sources de l'application audio (à adapter selon votre structure)
@@ -35,6 +36,10 @@ set(AUDIO_SOURCES
     ${CMAKE_SOURCE_DIR}/shared/Audio/noise/SpectralNR.cpp
     ${CMAKE_SOURCE_DIR}/shared/Audio/noise/RNNoiseSuppressor.cpp
     ${CMAKE_SOURCE_DIR}/shared/Audio/safety/AudioSafety.cpp
+    # Sources SIMD
+    ${CMAKE_SOURCE_DIR}/shared/Audio/common/SIMD/SIMDCore.cpp
+    ${CMAKE_SOURCE_DIR}/shared/Audio/common/SIMD/SIMDMathFunctions.cpp
+    ${CMAKE_SOURCE_DIR}/shared/Audio/common/SIMD/SIMDIntegration.cpp
 )
 
 # Headers
@@ -50,6 +55,11 @@ set(AUDIO_HEADERS
     ${CMAKE_SOURCE_DIR}/shared/Audio/noise/SpectralNR.hpp
     ${CMAKE_SOURCE_DIR}/shared/Audio/noise/RNNoiseSuppressor.hpp
     ${CMAKE_SOURCE_DIR}/shared/Audio/safety/AudioSafety.hpp
+    # Headers SIMD
+    ${CMAKE_SOURCE_DIR}/shared/Audio/common/SIMD/SIMDCore.hpp
+    ${CMAKE_SOURCE_DIR}/shared/Audio/common/SIMD/SIMDMathFunctions.hpp
+    ${CMAKE_SOURCE_DIR}/shared/Audio/common/SIMD/SIMDIntegration.hpp
+    ${CMAKE_SOURCE_DIR}/shared/Audio/common/SIMD/SIMDConfig.hpp
 )
 
 # Créer l'exécutable de test

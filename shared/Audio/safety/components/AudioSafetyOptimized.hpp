@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../core/BranchFreeAlgorithms.hpp"
-#include "../core/MemoryPool.hpp"
 #include "AudioSafety.hpp"
+#include "../../common/dsp/BranchFreeAlgorithms.hpp"
+#include "../../common/utils/MemoryPool.hpp"
 #include <cstring>
 #include <cmath>
 
@@ -76,7 +76,7 @@ inline AudioSafetyEngineOptimized::AudioSafetyEngineOptimized(uint32_t sampleRat
 inline AudioSafetyEngineOptimized::~AudioSafetyEngineOptimized() = default;
 
 // Initialize static memory pool
-inline AudioFX::ObjectPool<SafetyReport> AudioSafetyEngineOptimized::reportPool_(32);
+inline AudioFX::ObjectPool<SafetyReport> AudioSafetyEngineOptimized::reportPool_(DEFAULT_MEMORY_POOL_SIZE_OPTIMIZED);
 
 inline void AudioSafetyEngineOptimized::dcRemoveSIMD(float* x, size_t n, float mean) noexcept {
 #ifdef SAFETY_AVX2
@@ -94,8 +94,8 @@ inline void AudioSafetyEngineOptimized::dcRemoveAVX2(float* x, size_t n, float m
     const __m256 mean_vec = _mm256_set1_ps(mean);
     size_t i = 0;
 
-    // Process 8 samples at a time
-    for (; i + 7 < n; i += 8) {
+    // Process AVX2_VECTOR_SIZE samples at a time
+    for (; i + AVX2_REMAINDER_THRESHOLD < n; i += AVX2_VECTOR_SIZE) {
         __m256 samples = _mm256_loadu_ps(&x[i]);
         samples = _mm256_sub_ps(samples, mean_vec);
         _mm256_storeu_ps(&x[i], samples);
@@ -112,8 +112,8 @@ inline void AudioSafetyEngineOptimized::limitBufferAVX2(float* x, size_t n, floa
     const __m256 neg_thresh = _mm256_set1_ps(-threshold);
     size_t i = 0;
 
-    // Process 8 samples at a time
-    for (; i + 7 < n; i += 8) {
+    // Process AVX2_VECTOR_SIZE samples at a time
+    for (; i + AVX2_REMAINDER_THRESHOLD < n; i += AVX2_VECTOR_SIZE) {
         __m256 samples = _mm256_loadu_ps(&x[i]);
 
         // Branch-free clamping using min/max
@@ -142,8 +142,8 @@ inline SafetyReport AudioSafetyEngineOptimized::analyzeAVX2(const float* x, size
     const __m256 clip_high = _mm256_set1_ps(CLIP_THRESHOLD_HIGH);
     const __m256 clip_low = _mm256_set1_ps(CLIP_THRESHOLD_LOW);
 
-    // Process 8 samples at a time
-    for (; i + 7 < n; i += 8) {
+    // Process AVX2_VECTOR_SIZE samples at a time
+    for (; i + AVX2_REMAINDER_THRESHOLD < n; i += AVX2_VECTOR_SIZE) {
         __m256 samples = _mm256_loadu_ps(&x[i]);
 
         // Accumulate sum and sum of squares
@@ -152,7 +152,7 @@ inline SafetyReport AudioSafetyEngineOptimized::analyzeAVX2(const float* x, size
         sum2_vec = _mm256_add_ps(sum2_vec, squares);
 
         // Update peak (absolute value)
-        __m256 abs_samples = _mm256_andnot_ps(_mm256_set1_ps(-0.0f), samples);
+        __m256 abs_samples = _mm256_andnot_ps(_mm256_set1_ps(SIMD_ABS_MASK), samples);
         peak_vec = _mm256_max_ps(peak_vec, abs_samples);
 
         // Count clipped samples
@@ -166,13 +166,13 @@ inline SafetyReport AudioSafetyEngineOptimized::analyzeAVX2(const float* x, size
     }
 
     // Horizontal sum for accumulated values
-    float sum_arr[8], sum2_arr[8], peak_arr[8];
+    float sum_arr[ARRAY_SIZE_AVX2], sum2_arr[ARRAY_SIZE_AVX2], peak_arr[ARRAY_SIZE_AVX2];
     _mm256_storeu_ps(sum_arr, sum_vec);
     _mm256_storeu_ps(sum2_arr, sum2_vec);
     _mm256_storeu_ps(peak_arr, peak_vec);
 
     double sum = 0, sum2 = 0, peak = 0;
-    for (int j = 0; j < 8; ++j) {
+    for (int j = 0; j < SIMD_LOOP_BOUNDARY_AVX2; ++j) {
         sum += sum_arr[j];
         sum2 += sum2_arr[j];
         peak = std::max(peak, static_cast<double>(peak_arr[j]));
@@ -203,8 +203,8 @@ inline void AudioSafetyEngineOptimized::dcRemoveNEON(float* x, size_t n, float m
     const float32x4_t mean_vec = vdupq_n_f32(mean);
     size_t i = 0;
 
-    // Process 4 samples at a time
-    for (; i + 3 < n; i += 4) {
+    // Process NEON_VECTOR_SIZE samples at a time
+    for (; i + NEON_REMAINDER_THRESHOLD < n; i += NEON_VECTOR_SIZE) {
         float32x4_t samples = vld1q_f32(&x[i]);
         samples = vsubq_f32(samples, mean_vec);
         vst1q_f32(&x[i], samples);
@@ -221,8 +221,8 @@ inline void AudioSafetyEngineOptimized::limitBufferNEON(float* x, size_t n, floa
     const float32x4_t neg_thresh = vdupq_n_f32(-threshold);
     size_t i = 0;
 
-    // Process 4 samples at a time
-    for (; i + 3 < n; i += 4) {
+    // Process NEON_VECTOR_SIZE samples at a time
+    for (; i + NEON_REMAINDER_THRESHOLD < n; i += NEON_VECTOR_SIZE) {
         float32x4_t samples = vld1q_f32(&x[i]);
 
         // Branch-free clamping
@@ -242,47 +242,47 @@ inline SafetyReport AudioSafetyEngineOptimized::analyzeNEON(const float* x, size
     SafetyReport report{};
     if (n == 0) return report;
 
-    float32x4_t sum_vec = vdupq_n_f32(0.0f);
-    float32x4_t sum2_vec = vdupq_n_f32(0.0f);
-    float32x4_t peak_vec = vdupq_n_f32(0.0f);
+    float32x4_t sum_vec = vdupq_n_f32(SIMD_ZERO_FLOAT);
+    float32x4_t sum2_vec = vdupq_n_f32(SIMD_ZERO_FLOAT);
+    float32x4_t peak_vec = vdupq_n_f32(SIMD_ZERO_FLOAT);
     uint32_t clipped = 0;
-    
+
     const float32x4_t clip_high = vdupq_n_f32(CLIP_THRESHOLD_HIGH);
     const float32x4_t clip_low = vdupq_n_f32(CLIP_THRESHOLD_LOW);
 
     size_t i = 0;
-    for (; i + 3 < n; i += 4) {
+    for (; i + NEON_REMAINDER_THRESHOLD < n; i += NEON_VECTOR_SIZE) {
         float32x4_t samples = vld1q_f32(&x[i]);
 
         sum_vec = vaddq_f32(sum_vec, samples);
         sum2_vec = vmlaq_f32(sum2_vec, samples, samples); // sum2 += samples * samples
-        
+
         float32x4_t abs_samples = vabsq_f32(samples);
         peak_vec = vmaxq_f32(peak_vec, abs_samples);
-        
+
         uint32x4_t high_mask = vcgtq_f32(samples, clip_high);
         uint32x4_t low_mask = vcltq_f32(samples, clip_low);
         uint32x4_t clip_mask = vorrq_u32(high_mask, low_mask);
-        
-        uint32_t mask_res[4];
+
+        uint32_t mask_res[NEON_VECTOR_SIZE];
         vst1q_u32(mask_res, clip_mask);
-        if (mask_res[0]) clipped++;
-        if (mask_res[1]) clipped++;
-        if (mask_res[2]) clipped++;
-        if (mask_res[3]) clipped++;
+        if (mask_res[SIMD_MASK_BASE_INDEX]) clipped++;
+        if (mask_res[SIMD_MASK_INDEX_1]) clipped++;
+        if (mask_res[SIMD_MASK_INDEX_2]) clipped++;
+        if (mask_res[SIMD_MASK_INDEX_3]) clipped++;
     }
 
-    float sum_arr[4], sum2_arr[4], peak_arr[4];
+    float sum_arr[ARRAY_SIZE_NEON], sum2_arr[ARRAY_SIZE_NEON], peak_arr[ARRAY_SIZE_NEON];
     vst1q_f32(sum_arr, sum_vec);
     vst1q_f32(sum2_arr, sum2_vec);
     vst1q_f32(peak_arr, peak_vec);
 
-    double sum = static_cast<double>(sum_arr[0]) + sum_arr[1] + sum_arr[2] + sum_arr[3];
-    double sum2 = static_cast<double>(sum2_arr[0]) + sum2_arr[1] + sum2_arr[2] + sum2_arr[3];
-    double peak = static_cast<double>(peak_arr[0]);
-    peak = std::max(peak, static_cast<double>(peak_arr[1]));
-    peak = std::max(peak, static_cast<double>(peak_arr[2]));
-    peak = std::max(peak, static_cast<double>(peak_arr[3]));
+    double sum = static_cast<double>(sum_arr[SIMD_MASK_BASE_INDEX]) + sum_arr[SIMD_MASK_INDEX_1] + sum_arr[SIMD_MASK_INDEX_2] + sum_arr[SIMD_MASK_INDEX_3];
+    double sum2 = static_cast<double>(sum2_arr[SIMD_MASK_BASE_INDEX]) + sum2_arr[SIMD_MASK_INDEX_1] + sum2_arr[SIMD_MASK_INDEX_2] + sum2_arr[SIMD_MASK_INDEX_3];
+    double peak = static_cast<double>(peak_arr[SIMD_MASK_BASE_INDEX]);
+    peak = std::max(peak, static_cast<double>(peak_arr[SIMD_MASK_INDEX_1]));
+    peak = std::max(peak, static_cast<double>(peak_arr[SIMD_MASK_INDEX_2]));
+    peak = std::max(peak, static_cast<double>(peak_arr[SIMD_MASK_INDEX_3]));
 
     for (; i < n; ++i) {
         float v = x[i];
@@ -333,7 +333,7 @@ inline SafetyReport AudioSafetyEngineOptimized::analyzeAndCleanOptimized(float* 
     // DC removal with SIMD if needed
     if (config_.dcRemovalEnabled && std::abs(report.dcOffset) > config_.dcThreshold) {
         dcRemoveSIMD(x, n, static_cast<float>(report.dcOffset));
-        report.dcOffset = 0.0;
+        report.dcOffset = ZERO_DC_OFFSET;
     }
 
     // Branch-free limiting if needed
@@ -377,8 +377,8 @@ inline SafetyError AudioSafetyEngineOptimized::processStereo(float* left, float*
 
     // Aggregate reports
     report_.peak = std::max(rl.peak, rr.peak);
-    report_.rms = std::sqrt((rl.rms * rl.rms + rr.rms * rr.rms) / 2.0);
-    report_.dcOffset = (rl.dcOffset + rr.dcOffset) / 2.0;
+    report_.rms = std::sqrt((rl.rms * rl.rms + rr.rms * rr.rms) / STEREO_CHANNEL_DIVISOR);
+    report_.dcOffset = (rl.dcOffset + rr.dcOffset) / STEREO_CHANNEL_DIVISOR;
     report_.clippedSamples = rl.clippedSamples + rr.clippedSamples;
     report_.overloadActive = rl.overloadActive || rr.overloadActive;
     report_.feedbackScore = std::max(rl.feedbackScore, rr.feedbackScore);

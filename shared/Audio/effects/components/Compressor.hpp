@@ -2,7 +2,7 @@
 
 // C++17 standard headers
 #include "EffectBase.hpp"
-#include "constant/EffectConstants.hpp"
+#include "../../common/config/EffectConstants.hpp"
 #include <algorithm>
 #include <cmath>
 #include <string>
@@ -31,6 +31,28 @@ class CompressorEffect final : public IAudioEffect {
 public:
     using IAudioEffect::processMono;   // évite le masquage des surcharges (templates span)
     using IAudioEffect::processStereo; // idem
+
+    // === Structure des métriques ===
+    struct CompressorMetrics {
+        float inputLevel = 0.0f;      // Niveau d'entrée en dB
+        float outputLevel = 0.0f;     // Niveau de sortie en dB
+        float gainReduction = 0.0f;   // Réduction de gain en dB
+        float compressionRatio = 0.0f; // Ratio de compression actuel
+        bool isActive = false;        // Si le compresseur est actif
+
+        CompressorMetrics() = default;
+    };
+
+    // === Accès aux métriques ===
+    CompressorMetrics getMetrics() const {
+        return CompressorMetrics{
+            .inputLevel = 20.0f * std::log10(std::max(envL_, AudioFX::EPSILON_DB)),
+            .outputLevel = 20.0f * std::log10(std::max(envL_ * gainL_, AudioFX::EPSILON_DB)),
+            .gainReduction = 20.0f * std::log10(std::max(gainL_, AudioFX::EPSILON_DB)),
+            .compressionRatio = ratio_,
+            .isActive = isEnabled() && (envL_ > thresholdDb_)
+        };
+    }
     void setParameters(double thresholdDb, double ratio, double attackMs, double releaseMs, double makeupDb) noexcept {
         thresholdDb_ = thresholdDb;
         ratio_ = std::max(AudioFX::MIN_RATIO, ratio);

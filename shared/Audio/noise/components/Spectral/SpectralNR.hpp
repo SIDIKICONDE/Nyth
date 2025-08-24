@@ -1,11 +1,12 @@
 #pragma once
 
 #ifdef __cplusplus
+#include "../../../common/dsp/FFTEngine.hpp"
+#include "../../common/config/NoiseContants.hpp"
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include "NoiseContants.hpp"
-#include "../fft/FFTEngine.hpp"
+
 
 namespace AudioNR {
 
@@ -19,13 +20,17 @@ using namespace SpectralNRConstants;
  * spectral subtraction with noise estimation.
  */
 struct SpectralNRConfig {
-    uint32_t sampleRate = 48000;  ///< Sample rate in Hz (default 48kHz)
-    size_t fftSize = DEFAULT_FFT_SIZE;        ///< FFT size (must be power of 2). Larger = better frequency resolution
-    size_t hopSize = DEFAULT_HOP_SIZE;         ///< Hop size for overlap-add (typically fftSize/4 for 75% overlap)
-    double beta = DEFAULT_BETA;            ///< Over-subtraction factor (1.0-3.0). Higher = more aggressive
-    double floorGain = DEFAULT_FLOOR_GAIN;      ///< Spectral floor to prevent over-suppression (0.01-0.1 typical)
-    double noiseUpdate = DEFAULT_NOISE_UPDATE;    ///< Noise estimation smoothing (0.9-0.99). Higher = slower adaptation
-    bool enabled = false;         ///< Enable/disable spectral NR
+    uint32_t sampleRate = SpectralNRConstants::DEFAULT_SAMPLE_RATE; ///< Sample rate in Hz (default 48kHz)
+    size_t fftSize =
+        SpectralNRConstants::DEFAULT_FFT_SIZE; ///< FFT size (must be power of 2). Larger = better frequency resolution
+    size_t hopSize =
+        SpectralNRConstants::DEFAULT_HOP_SIZE;       ///< Hop size for overlap-add (typically fftSize/4 for 75% overlap)
+    double beta = SpectralNRConstants::DEFAULT_BETA; ///< Over-subtraction factor (1.0-3.0). Higher = more aggressive
+    double floorGain =
+        SpectralNRConstants::DEFAULT_FLOOR_GAIN; ///< Spectral floor to prevent over-suppression (0.01-0.1 typical)
+    double noiseUpdate = SpectralNRConstants::DEFAULT_NOISE_UPDATE; ///< Noise estimation smoothing (0.9-0.99). Higher =
+                                                                    ///< slower adaptation
+    bool enabled = SpectralNRConstants::DEFAULT_ENABLED;            ///< Enable/disable spectral NR
 };
 
 /**
@@ -62,7 +67,9 @@ public:
      * @brief Get current configuration
      * @return Current config
      */
-    const SpectralNRConfig& getConfig() const { return cfg_; }
+    const SpectralNRConfig& getConfig() const {
+        return cfg_;
+    }
 
     /**
      * @brief Process audio samples
@@ -98,7 +105,9 @@ private:
     void ifft(const std::vector<float>& re, const std::vector<float>& im, std::vector<float>& out);
 
     // Helper
-    bool isPowerOfTwo(size_t n) const { return n && !(n & (n - 1)); }
+    bool isPowerOfTwo(size_t n) const {
+        return n && !(n & (n - 1));
+    }
 };
 
 } // namespace AudioNR

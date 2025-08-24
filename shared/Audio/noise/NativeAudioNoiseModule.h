@@ -32,7 +32,7 @@
 #include <ReactCommon/TurboModuleUtils.h>
 #include <jsi/jsi.h>
 
-#include "../../jsi/JSICallbackManager.h"
+#include "../../common/jsi/JSICallbackManager.h"
 #include "config/NoiseConfig.h"
 #include "jsi/NoiseJSIConverter.h"
 #include "managers/NoiseManager.h"

@@ -270,13 +270,27 @@ jsi::Value NativeAudioCaptureModule::requestPermission(jsi::Runtime& rt) {
                             auto resolve = std::make_shared<jsi::Function>(args[0].asObject(rt).asFunction(rt));
                             auto reject = std::make_shared<jsi::Function>(args[1].asObject(rt).asFunction(rt));
 
-                            captureManager_->requestPermission([resolve, reject](bool granted) {
+                            captureManager_->requestPermission([this, resolve, reject, rt](bool granted) {
                                 // Cette callback sera appelée depuis un thread natif
                                 // Le callbackManager gère l'invocation sur le thread JS
-                                if (granted) {
-                                    // TODO: Invoker resolve sur le thread JS
+                                if (runtimeValid_.load() && jsInvoker_) {
+                                    jsInvoker_->invokeAsync([resolve, reject, granted, rt]() {
+                                        if (granted) {
+                                            resolve->call(jsi::Value(true));
+                                        } else {
+                                            auto error =
+                                                jsi::JSError(jsi::String::createFromUtf8(rt, "Permission denied"));
+                                            reject->call(error.value());
+                                        }
+                                    });
                                 } else {
-                                    // TODO: Invoker reject sur le thread JS
+                                    // Fallback si runtime non disponible
+                                    if (granted) {
+                                        resolve->call(jsi::Value(true));
+                                    } else {
+                                        auto error = jsi::JSError(jsi::String::createFromUtf8(rt, "Permission denied"));
+                                        reject->call(error.value());
+                                    }
                                 }
                             });
 

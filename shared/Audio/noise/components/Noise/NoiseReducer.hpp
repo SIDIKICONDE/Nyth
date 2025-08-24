@@ -4,8 +4,8 @@
 #include <cmath>
 #include <memory>
 #include <vector>
-#include "../../../core/components/BiquadFilter/BiquadFilter.hpp"
-#include "NoiseContants.hpp"
+#include "../../common/dsp/BiquadFilter.hpp"
+#include "../../common/config/NoiseContants.hpp"
 
 namespace AudioNR {
 
@@ -14,7 +14,7 @@ using namespace NoiseReducerConstants;
 
 /**
  * @brief Configuration for the NoiseReducer downward expander/gate
- * 
+ *
  * This configuration controls how the noise reducer behaves. It implements
  * a downward expander that reduces the volume of signals below a threshold,
  * effectively reducing background noise while preserving louder signals.
@@ -37,13 +37,13 @@ struct NoiseReducerConfig {
 
 /**
  * @brief Real-time noise reducer using downward expansion
- * 
+ *
  * This class implements a noise gate/downward expander for real-time audio
  * noise reduction. It works by:
  * 1. Tracking the signal envelope
  * 2. Applying gain reduction when signal falls below threshold
  * 3. Optional high-pass filtering to remove low-frequency rumble
- * 
+ *
  * @note Thread-safe for processing, but configuration changes should be
  *       done from a single thread or protected by external synchronization.
  */
@@ -62,7 +62,7 @@ public:
      * @param cfg New configuration to apply
      */
     void setConfig(const NoiseReducerConfig& cfg);
-    
+
     /**
      * @brief Get the current configuration
      * @return Current configuration
@@ -75,7 +75,7 @@ public:
      * @note This will reset internal filters
      */
     void setSampleRate(uint32_t sampleRate);
-    
+
     /**
      * @brief Get current sample rate
      * @return Sample rate in Hz
@@ -89,7 +89,7 @@ public:
      * @param numSamples Number of samples to process
      */
     void processMono(const float* input, float* output, size_t numSamples);
-    
+
     /**
      * @brief Process stereo audio
      * @param inL Left channel input

@@ -699,6 +699,10 @@ void NativeAudioCoreModule::initializeManagers() {
     if (!filterManager_) {
         filterManager_ = std::make_unique<FilterManager>(callbackManager_);
     }
+
+    if (!analysisManager_) {
+        analysisManager_ = std::make_unique<AudioAnalysisManager>(callbackManager_);
+    }
 }
 
 void NativeAudioCoreModule::cleanupManagers() {
@@ -708,6 +712,10 @@ void NativeAudioCoreModule::cleanupManagers() {
 
     if (filterManager_) {
         // Le destructeur de FilterManager gère le nettoyage
+    }
+
+    if (analysisManager_) {
+        analysisManager_->release();
     }
 
     isInitialized_.store(false);
@@ -810,6 +818,144 @@ std::string NativeAudioCoreModule::filterTypeToString(int type) const {
             return "allpass";
         default:
             return "peak";
+    }
+}
+
+// === Analyse audio ===
+jsi::Value NativeAudioCoreModule::startAnalysis(jsi::Runtime& rt) {
+    if (!isInitialized_.load()) {
+        handleError(1, "Audio core not initialized");
+        return jsi::Value(false);
+    }
+
+    try {
+        if (analysisManager_ && analysisManager_->initialize(config_)) {
+            if (analysisManager_->startAnalysis()) {
+                currentState_ = 2; // PROCESSING
+                return jsi::Value(true);
+            }
+        }
+        return jsi::Value(false);
+    } catch (const std::exception& e) {
+        handleError(2, std::string("Failed to start analysis: ") + e.what());
+        return jsi::Value(false);
+    }
+}
+
+jsi::Value NativeAudioCoreModule::stopAnalysis(jsi::Runtime& rt) {
+    if (!isInitialized_.load()) {
+        return jsi::Value(true);
+    }
+
+    try {
+        if (analysisManager_) {
+            analysisManager_->stopAnalysis();
+        }
+        currentState_ = 1; // INITIALIZED
+        return jsi::Value(true);
+    } catch (const std::exception& e) {
+        handleError(2, std::string("Failed to stop analysis: ") + e.what());
+        return jsi::Value(false);
+    }
+}
+
+jsi::Value NativeAudioCoreModule::isAnalyzing(jsi::Runtime& rt) {
+    return jsi::Value(analysisManager_ && analysisManager_->isAnalyzing());
+}
+
+jsi::Value NativeAudioCoreModule::getAnalysisMetrics(jsi::Runtime& rt) {
+    if (!analysisManager_ || !analysisManager_->isInitialized()) {
+        return jsi::Value::null();
+    }
+
+    try {
+        auto metrics = analysisManager_->getCurrentMetrics();
+        auto result = jsi::Object(rt);
+
+        result.setProperty(rt, "rmsLevel", jsi::Value(metrics.rmsLevel));
+        result.setProperty(rt, "peakLevel", jsi::Value(metrics.peakLevel));
+        result.setProperty(rt, "averageLevel", jsi::Value(metrics.averageLevel));
+        result.setProperty(rt, "hasClipping", jsi::Value(metrics.hasClipping));
+        result.setProperty(rt, "isSilent", jsi::Value(metrics.isSilent));
+        result.setProperty(rt, "silenceDuration", jsi::Value(metrics.silenceDuration));
+        result.setProperty(rt, "clippingDuration", jsi::Value(metrics.clippingDuration));
+
+        return result;
+    } catch (const std::exception& e) {
+        handleError(2, std::string("Failed to get analysis metrics: ") + e.what());
+        return jsi::Value::null();
+    }
+}
+
+jsi::Value NativeAudioCoreModule::getFrequencyAnalysis(jsi::Runtime& rt) {
+    if (!analysisManager_ || !analysisManager_->isInitialized()) {
+        return jsi::Value::null();
+    }
+
+    try {
+        auto analysis = analysisManager_->getFrequencyAnalysis();
+        auto result = jsi::Object(rt);
+
+        // Convertir les magnitudes en Array JavaScript
+        auto magnitudesArray = jsi::Array(rt, analysis.magnitudes.size());
+        for (size_t i = 0; i < analysis.magnitudes.size(); ++i) {
+            magnitudesArray.setValueAtIndex(rt, i, jsi::Value(analysis.magnitudes[i]));
+        }
+
+        // Convertir les fréquences en Array JavaScript
+        auto frequenciesArray = jsi::Array(rt, analysis.frequencies.size());
+        for (size_t i = 0; i < analysis.frequencies.size(); ++i) {
+            frequenciesArray.setValueAtIndex(rt, i, jsi::Value(analysis.frequencies[i]));
+        }
+
+        result.setProperty(rt, "magnitudes", magnitudesArray);
+        result.setProperty(rt, "frequencies", frequenciesArray);
+        result.setProperty(rt, "spectralCentroid", jsi::Value(analysis.spectralCentroid));
+        result.setProperty(rt, "spectralRolloff", jsi::Value(analysis.spectralRolloff));
+        result.setProperty(rt, "spectralFlux", jsi::Value(analysis.spectralFlux));
+
+        return result;
+    } catch (const std::exception& e) {
+        handleError(2, std::string("Failed to get frequency analysis: ") + e.what());
+        return jsi::Value::null();
+    }
+}
+
+jsi::Value NativeAudioCoreModule::setAnalysisConfig(jsi::Runtime& rt, const jsi::Object& config) {
+    if (!isInitialized_.load()) {
+        handleError(1, "Audio core not initialized");
+        return jsi::Value(false);
+    }
+
+    try {
+        // Parser la configuration depuis JavaScript
+        int analysisIntervalMs = 100;
+        double silenceThreshold = -60.0;
+        double clippingThreshold = -1.0;
+        bool enableFrequencyAnalysis = true;
+
+        if (config.hasProperty(rt, "analysisIntervalMs")) {
+            analysisIntervalMs = static_cast<int>(config.getProperty(rt, "analysisIntervalMs").asNumber());
+        }
+        if (config.hasProperty(rt, "silenceThreshold")) {
+            silenceThreshold = config.getProperty(rt, "silenceThreshold").asNumber();
+        }
+        if (config.hasProperty(rt, "clippingThreshold")) {
+            clippingThreshold = config.getProperty(rt, "clippingThreshold").asNumber();
+        }
+        if (config.hasProperty(rt, "enableFrequencyAnalysis")) {
+            enableFrequencyAnalysis = config.getProperty(rt, "enableFrequencyAnalysis").asBool();
+        }
+
+        if (analysisManager_ && analysisManager_->setAnalysisConfig(analysisIntervalMs, silenceThreshold,
+                                                                    clippingThreshold, enableFrequencyAnalysis)) {
+            return jsi::Value(true);
+        }
+
+        return jsi::Value(false);
+    } catch (const std::exception& e) {
+        handleError(2, std::string("Failed to set analysis config: ") + e.what());
+        return jsi::Value(false);
     }
 }
 

@@ -1,21 +1,20 @@
 #include "WienerFilter.hpp"
 #include <algorithm>
 
-
 namespace AudioNR {
 
 WienerFilter::WienerFilter(const Config& cfg) : cfg_(cfg) {
     numBins_ = cfg_.fftSize / 2 + 1;
 
     // Initialize state vectors
-    xi_.resize(numBins_, 1.0f);
-    gamma_.resize(numBins_, 1.0f);
-    G_.resize(numBins_, 1.0f);
-    Gprev_.resize(numBins_, 1.0f);
-    lambda_n_.resize(numBins_, 0.0f);
-    S_prev_.resize(numBins_, 0.0f);
-    v_.resize(numBins_, 1.0f);
-    GH1_.resize(numBins_, 1.0f);
+    xi_.resize(numBins_, WienerFilterConstants::INITIAL_SNR_VALUE);
+    gamma_.resize(numBins_, WienerFilterConstants::INITIAL_SNR_VALUE);
+    G_.resize(numBins_, WienerFilterConstants::INITIAL_GAIN_VALUE);
+    Gprev_.resize(numBins_, WienerFilterConstants::INITIAL_GAIN_VALUE);
+    lambda_n_.resize(numBins_, WienerFilterConstants::INITIAL_NOISE_VALUE);
+    S_prev_.resize(numBins_, WienerFilterConstants::INITIAL_SPEECH_VALUE);
+    v_.resize(numBins_, WienerFilterConstants::INITIAL_GAIN_VALUE);
+    GH1_.resize(numBins_, WienerFilterConstants::INITIAL_GAIN_VALUE);
 
     // Initialize perceptual weights
     initializePerceptualWeights();
@@ -32,14 +31,14 @@ WienerFilter::WienerFilter(const Config& cfg) : cfg_(cfg) {
 WienerFilter::~WienerFilter() = default;
 
 void WienerFilter::reset() {
-    std::fill(xi_.begin(), xi_.end(), 1.0f);
-    std::fill(gamma_.begin(), gamma_.end(), 1.0f);
-    std::fill(G_.begin(), G_.end(), 1.0f);
-    std::fill(Gprev_.begin(), Gprev_.end(), 1.0f);
-    std::fill(lambda_n_.begin(), lambda_n_.end(), 0.0f);
-    std::fill(S_prev_.begin(), S_prev_.end(), 0.0f);
-    std::fill(v_.begin(), v_.end(), 1.0f);
-    std::fill(GH1_.begin(), GH1_.end(), 1.0f);
+    std::fill(xi_.begin(), xi_.end(), WienerFilterConstants::INITIAL_SNR_VALUE);
+    std::fill(gamma_.begin(), gamma_.end(), WienerFilterConstants::INITIAL_SNR_VALUE);
+    std::fill(G_.begin(), G_.end(), WienerFilterConstants::INITIAL_GAIN_VALUE);
+    std::fill(Gprev_.begin(), Gprev_.end(), WienerFilterConstants::INITIAL_GAIN_VALUE);
+    std::fill(lambda_n_.begin(), lambda_n_.end(), WienerFilterConstants::INITIAL_NOISE_VALUE);
+    std::fill(S_prev_.begin(), S_prev_.end(), WienerFilterConstants::INITIAL_SPEECH_VALUE);
+    std::fill(v_.begin(), v_.end(), WienerFilterConstants::INITIAL_GAIN_VALUE);
+    std::fill(GH1_.begin(), GH1_.end(), WienerFilterConstants::INITIAL_GAIN_VALUE);
 
     if (imcra_) {
         imcra_->reset();
@@ -72,7 +71,7 @@ void WienerFilter::processSpectrum(const std::vector<float>& realIn, const std::
 
     // Apply gains to complex spectrum
     for (size_t k = 0; k < numBins_; ++k) {
-        float gain = outputMagnitude[k] / max(magnitude[k], 1e-10f);
+        float gain = outputMagnitude[k] / max(magnitude[k], WienerFilterConstants::EPSILON_PROTECTION);
         realOut[k] = realIn[k] * gain;
         imagOut[k] = imagIn[k] * gain;
     }
@@ -129,7 +128,8 @@ void WienerFilter::initializePerceptualWeights() {
 
         // Normalize and apply perceptual factor
         perceptualWeight_[k] = 1.0f + cfg_.perceptualFactor * (aWeight - 1.0f);
-        perceptualWeight_[k] = clamp(perceptualWeight_[k], 0.5f, 2.0f);
+        perceptualWeight_[k] = clamp(perceptualWeight_[k], WienerFilterConstants::PERCEPTUAL_WEIGHT_MIN,
+                                     WienerFilterConstants::PERCEPTUAL_WEIGHT_MAX);
     }
 }
 
@@ -147,12 +147,12 @@ void WienerFilter::updateNoiseEstimate(const std::vector<float>& magnitude) {
         }
     } else {
         // Simple recursive averaging
-        float alpha = 0.98f;
+        float alpha = WienerFilterConstants::NOISE_UPDATE_ALPHA;
         for (size_t k = 0; k < numBins_; ++k) {
             float Y2 = magnitude[k] * magnitude[k];
 
             // Simple VAD based on energy threshold
-            float threshold = 3.0f * lambda_n_[k];
+            float threshold = WienerFilterConstants::VAD_THRESHOLD_FACTOR * lambda_n_[k];
             if (Y2 < threshold || lambda_n_[k] == 0.0f) {
                 // Update noise estimate
                 lambda_n_[k] = alpha * lambda_n_[k] + (1.0f - alpha) * Y2;
@@ -166,7 +166,7 @@ void WienerFilter::computeAPrioriSNR(const std::vector<float>& magnitude) {
         float Y2 = magnitude[k] * magnitude[k];
 
         // A posteriori SNR
-        gamma_[k] = Y2 / max(lambda_n_[k], 1e-10f);
+        gamma_[k] = Y2 / max(lambda_n_[k], WienerFilterConstants::EPSILON_PROTECTION);
 
         // Decision-directed a priori SNR estimation
         // ξ[k,n] = α * G²[k,n-1] * γ[k,n-1] + (1-α) * max(γ[k,n] - 1, 0)
@@ -207,11 +207,11 @@ void WienerFilter::computeMMSE_LSA_Gain() {
         // G_LSA = ξ/(1+ξ) * exp(0.5 * E1(v))
         // where E1 is the exponential integral
 
-        float expint_v = expint(v_[k]);
+        float expint_v = MathUtils::expint(v_[k]);
         GH1_[k] = xi_[k] / (1.0f + xi_[k]) * std::exp(0.5f * expint_v);
 
         // Alternative formulation for numerical stability
-        if (v_[k] < 0.001f) {
+        if (v_[k] < WienerFilterConstants::EXPINT_SMALL_THRESHOLD) {
             // Small v approximation
             GH1_[k] = v_[k] / (1.0f + v_[k]);
         }
@@ -235,7 +235,8 @@ void WienerFilter::applyGainSmoothing() {
 
         for (size_t k = 1; k < numBins_ - 1; ++k) {
             // Simple 3-point weighted average
-            smoothedGains[k] = cfg_.frequencySmoothing * 0.25f * (G_[k - 1] + 2 * G_[k] + G_[k + 1]) +
+            smoothedGains[k] = cfg_.frequencySmoothing * WienerFilterConstants::FREQUENCY_SMOOTHING_WEIGHT *
+                                   (G_[k - 1] + 2 * G_[k] + G_[k + 1]) +
                                (1.0f - cfg_.frequencySmoothing) * G_[k];
         }
 
@@ -248,42 +249,6 @@ void WienerFilter::applyGainSmoothing() {
 
     // Store for next iteration
     Gprev_ = G_;
-}
-
-float WienerFilter::expint(float x) {
-    // Exponential integral E1(x) approximation
-    if (x < 1.0f) {
-        // Series expansion for small x
-        float sum = -0.57721566f - std::log(max(x, 1e-10f));
-        float term = x;
-        for (int n = 1; n <= 20; ++n) {
-            sum += term / n;
-            term *= -x / (n + 1);
-            if (std::abs(term) < 1e-10f)
-                break;
-        }
-        return sum;
-    } else {
-        // Continued fraction for large x
-        float a = 1.0f;
-        float b = x;
-        float c = 1e30f;
-        float d = 1.0f / b;
-        float h = d;
-
-        for (int i = 1; i <= 100; ++i) {
-            a = -i * i;
-            b += 2.0f;
-            d = 1.0f / (a * d + b);
-            c = b + a / c;
-            float del = c * d;
-            h *= del;
-            if (std::abs(del - 1.0f) < 1e-10f)
-                break;
-        }
-
-        return h * std::exp(-x) / x;
-    }
 }
 
 // Two-Step Noise Reduction Implementation
