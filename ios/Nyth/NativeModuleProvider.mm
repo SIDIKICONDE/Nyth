@@ -4,8 +4,8 @@
 
 // C++ includes for audio modules
 #ifdef __cplusplus
-#include "../../shared/Audio/NativeAudioCaptureModule.h"
-#include "../../shared/Audio/NativeAudioCoreModule.h"
+#include "../../shared/Audio/capture/NativeAudioCaptureModule.h"
+#include "../../shared/Audio/core/NativeAudioCoreModule.h"
 #include "../../shared/NativeAudioEffectsModule.h"
 #include "../../shared/NativeAudioNoiseModule.h"
 #include "../../shared/NativeAudioPipelineModule.h"

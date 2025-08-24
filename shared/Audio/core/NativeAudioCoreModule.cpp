@@ -622,13 +622,13 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
 
     auto object = jsi::Object(rt);
 
-// Macro pour enregistrer une méthode
+// Macro legacy conservée (peut être remplacée par des lambdas explicites comme dans Capture)
 #define REGISTER_METHOD(name, paramCount)                                                                  \
     object.setProperty(rt, name,                                                                           \
                        jsi::Function::createFromHostFunction(                                              \
                            rt, jsi::PropNameID::forAscii(rt, name), static_cast<unsigned int>(paramCount), \
                            [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args,           \
-                                    size_t count) -> jsi::Value { return module->name(rt, ##__VA_ARGS__); }))
+                                    size_t count) -> jsi::Value { return module->name(rt); }))
 
     // Enregistrer les méthodes
     REGISTER_METHOD(initialize, 0);

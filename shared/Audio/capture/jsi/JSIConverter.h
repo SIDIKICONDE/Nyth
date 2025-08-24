@@ -41,6 +41,7 @@ private:
     // === Méthodes helpers ===
     static jsi::Object createEmptyObject(jsi::Runtime& rt);
     static jsi::Array createEmptyArray(jsi::Runtime& rt);
+    static jsi::Array createEmptyArray(jsi::Runtime& rt, size_t size);
     static jsi::Array convertSampleRatesToJS(jsi::Runtime& rt, const std::vector<int>& sampleRates);
 };
 
