@@ -36,6 +36,7 @@ public:
     bool destroyEffect(int effectId);
     bool hasEffect(int effectId) const;
     std::vector<int> getActiveEffects() const;
+    size_t getEffectCount() const;
 
     // === Configuration des effets ===
     bool setEffectConfig(jsi::Runtime& rt, int effectId, const jsi::Object& config);
@@ -102,6 +103,7 @@ private:
     // === Gestion des IDs ===
     std::atomic<int> nextEffectId_{1};
     std::map<int, std::unique_ptr<AudioFX::IAudioEffect>> activeEffects_;
+    std::map<int, AudioFX::IAudioEffect*> idToChainEffect_;
 
     // === Niveaux maître ===
     std::atomic<float> masterInputLevel_{1.0f};

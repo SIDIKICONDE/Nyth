@@ -6,6 +6,7 @@
 
 #include "../config/EffectsConfig.h"
 #include "../config/EffectsLimits.h"
+#include "../managers/EffectManager.h"
 #include "../components/Compressor.hpp"
 #include "../components/Delay.hpp"
 
