@@ -11,6 +11,8 @@
 
 #include "../../jsi/JSICallbackManager.h"
 #include "../config/SafetyConfig.h"
+#include "../components/AudioSafety.hpp"
+#include "../components/AudioSafetyOptimized.hpp"
 
 namespace facebook {
 namespace react {
@@ -139,6 +141,10 @@ private:
     bool checkTimeout(std::chrono::steady_clock::time_point start, double maxTimeMs) const;
     void resetStatsInternal();
     std::string formatProcessingInfo() const;
+    
+    // Conversion helpers
+    AudioSafety::SafetyConfig convertConfig(const Nyth::Audio::SafetyConfig& src) const;
+    Nyth::Audio::SafetyError convertError(AudioSafety::SafetyError error) const;
 };
 
 } // namespace react

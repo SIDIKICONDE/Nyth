@@ -17,7 +17,7 @@ Nyth::Audio::SafetyConfig SafetyJSIConverter::jsiToSafetyConfig(jsi::Runtime& rt
 
     // Paramètres de base
     if (hasProperty(rt, jsConfig, PROP_SAMPLE_RATE)) {
-        config.sampleRate = static_cast<uint32_t>(getJSIUint32(rt, jsConfig, PROP_SAMPLE_RATE, config.sampleRate));
+        config.sampleRate = getJSIUint32(rt, jsConfig, PROP_SAMPLE_RATE, config.sampleRate);
     }
 
     if (hasProperty(rt, jsConfig, PROP_CHANNELS)) {
@@ -36,20 +36,20 @@ Nyth::Audio::SafetyConfig SafetyJSIConverter::jsiToSafetyConfig(jsi::Runtime& rt
 
     // Configuration limiter
     if (hasProperty(rt, jsConfig, PROP_LIMITER_CONFIG) && isPropertyObject(rt, jsConfig, PROP_LIMITER_CONFIG)) {
-        auto limiterObj = jsConfig.getProperty(rt, jsConfig, PROP_LIMITER_CONFIG).asObject(rt);
+        auto limiterObj = jsConfig.getProperty(rt, PROP_LIMITER_CONFIG).asObject(rt);
         config.limiterConfig = jsiToLimiterConfig(rt, limiterObj);
     }
 
     // Configuration feedback
     if (hasProperty(rt, jsConfig, PROP_FEEDBACK_CONFIG) && isPropertyObject(rt, jsConfig, PROP_FEEDBACK_CONFIG)) {
-        auto feedbackObj = jsConfig.getProperty(rt, jsConfig, PROP_FEEDBACK_CONFIG).asObject(rt);
+        auto feedbackObj = jsConfig.getProperty(rt, PROP_FEEDBACK_CONFIG).asObject(rt);
         config.feedbackConfig = jsiToFeedbackConfig(rt, feedbackObj);
     }
 
     // Configuration optimisation
     if (hasProperty(rt, jsConfig, PROP_OPTIMIZATION_CONFIG) &&
         isPropertyObject(rt, jsConfig, PROP_OPTIMIZATION_CONFIG)) {
-        auto optObj = jsConfig.getProperty(rt, jsConfig, PROP_OPTIMIZATION_CONFIG).asObject(rt);
+        auto optObj = jsConfig.getProperty(rt, PROP_OPTIMIZATION_CONFIG).asObject(rt);
         config.optimizationConfig = jsiToOptimizationConfig(rt, optObj);
     }
 

@@ -75,12 +75,12 @@ SafetyError AudioSafetyEngine::setConfig(const SafetyConfig& cfg) noexcept {
 // Optimized dB conversion using LUT
 double AudioSafetyEngine::dbToLin(double dB) const noexcept {
     // Use the optimized lookup table
-    return AudioFX::DbLookupTable::getInstance().dbToLinear(static_cast<float>(dB));
+    return static_cast<double>(AudioFX::DbLookupTable::getInstance().dbToLinear(static_cast<float>(dB)));
 }
 
 double AudioSafetyEngine::linToDb(double linear) const noexcept {
     // Use the optimized lookup table
-    return AudioFX::DbLookupTable::getInstance().linearToDb(static_cast<float>(linear));
+    return static_cast<double>(AudioFX::DbLookupTable::getInstance().linearToDb(static_cast<float>(linear)));
 }
 
 SafetyError AudioSafetyEngine::processMono(float* buffer, std::size_t numSamples) noexcept {

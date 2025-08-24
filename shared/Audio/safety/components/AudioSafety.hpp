@@ -18,7 +18,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #endif
-#include "SafetyContants.hpp"
+#include "constant/SafetyConstants.hpp"
 
 namespace AudioSafety {
 
