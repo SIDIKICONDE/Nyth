@@ -1,7 +1,11 @@
-// Note: Using simplified interface for C API compatibility
-// TODO: Update when TurboModule implementation is available
+/**
+ * @fileoverview Interface de liaison entre JavaScript et le module natif d'analyse spectrale
+ * @module NativeAudioSpectrumModule
+ */
 
-export interface Spec {
+import { TurboModule, TurboModuleRegistry } from 'react-native';
+
+export interface Spec extends TurboModule {
   // === Gestion du cycle de vie ===
   initialize(config: SpectrumConfig): boolean;
   isInitialized(): boolean;
@@ -92,121 +96,142 @@ export const DEFAULT_SPECTRUM_CONFIG: SpectrumConfig = {
   useSIMD: true,
 };
 
-// Temporary implementation using direct C API calls
-// TODO: Replace with proper TurboModule when available
+/**
+ * Enregistrement du module natif via TurboModuleRegistry
+ * Le module sera automatiquement lié lors de la compilation
+ */
+const NativeModule = TurboModuleRegistry.getEnforcing<Spec>('NativeAudioSpectrumModule');
 
-class NativeAudioSpectrumModuleImpl implements Spec {
+/**
+ * Classe wrapper pour ajouter des validations et conversions côté JavaScript
+ */
+class NativeAudioSpectrumModuleWrapper implements Spec {
+  /**
+   * Initialise le module avec validation de la configuration
+   */
   initialize(config: SpectrumConfig): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.initialize not yet implemented');
-    return false;
+    if (!this.validateConfig(config)) {
+      console.error('Invalid spectrum configuration provided');
+      return false;
+    }
+    return NativeModule.initialize(config);
   }
 
   isInitialized(): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.isInitialized not yet implemented');
-    return false;
+    return NativeModule.isInitialized();
   }
 
+  /**
+   * Libère les ressources et nettoie les callbacks
+   */
   dispose(): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.dispose not yet implemented');
-    return false;
+    // Nettoyer les callbacks locaux si nécessaire
+    this._dataCallback = null;
+    this._errorCallback = null;
+    this._stateCallback = null;
+    return NativeModule.dispose();
   }
 
   getState(): number {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.getState not yet implemented');
-    return 0;
+    return NativeModule.getState();
   }
 
   getErrorString(errorCode: number): string {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.getErrorString not yet implemented');
-    return 'Unknown error';
+    return NativeModule.getErrorString(errorCode);
   }
 
   setConfig(config: SpectrumConfig): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.setConfig not yet implemented');
-    return false;
+    if (!this.validateConfig(config)) {
+      console.error('Invalid spectrum configuration provided');
+      return false;
+    }
+    return NativeModule.setConfig(config);
   }
 
   getConfig(): SpectrumConfig {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.getConfig not yet implemented');
-    return DEFAULT_SPECTRUM_CONFIG;
+    return NativeModule.getConfig();
   }
 
   startAnalysis(): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.startAnalysis not yet implemented');
-    return false;
+    return NativeModule.startAnalysis();
   }
 
   stopAnalysis(): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.stopAnalysis not yet implemented');
-    return false;
+    return NativeModule.stopAnalysis();
   }
 
   isAnalyzing(): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.isAnalyzing not yet implemented');
-    return false;
+    return NativeModule.isAnalyzing();
   }
 
+  /**
+   * Traite un buffer audio avec validation de taille
+   */
   processAudioBuffer(audioBuffer: number[]): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.processAudioBuffer not yet implemented');
-    return false;
+    if (!audioBuffer || audioBuffer.length === 0) {
+      console.error('Invalid audio buffer provided');
+      return false;
+    }
+    return NativeModule.processAudioBuffer(audioBuffer);
   }
 
+  /**
+   * Traite des buffers stéréo avec validation
+   */
   processAudioBufferStereo(audioBufferL: number[], audioBufferR: number[]): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.processAudioBufferStereo not yet implemented');
-    return false;
+    if (!audioBufferL || !audioBufferR || 
+        audioBufferL.length === 0 || audioBufferR.length === 0 ||
+        audioBufferL.length !== audioBufferR.length) {
+      console.error('Invalid stereo audio buffers provided');
+      return false;
+    }
+    return NativeModule.processAudioBufferStereo(audioBufferL, audioBufferR);
   }
 
+  /**
+   * Récupère les données spectrales avec validation
+   */
   getSpectrumData(): SpectrumData | null {
-    // TODO: Implement C API call - This is the main function needed for useSpectrumData
-    console.warn('NativeAudioSpectrumModule.getSpectrumData not yet implemented');
-    return {
-      magnitudes: new Array(32).fill(0),
-      frequencies: new Array(32).fill(0),
-      timestamp: Date.now()
-    };
+    const data = NativeModule.getSpectrumData();
+    if (data && data.magnitudes && data.frequencies) {
+      return data;
+    }
+    return null;
   }
 
   calculateFFTSize(desiredSize: number): number {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.calculateFFTSize not yet implemented');
-    return 1024;
+    // Valider que c'est une puissance de 2
+    const size = NativeModule.calculateFFTSize(desiredSize);
+    return (size & (size - 1)) === 0 ? size : 1024;
   }
 
   validateConfig(config: SpectrumConfig): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.validateConfig not yet implemented');
+    if (!config || typeof config !== 'object') return false;
+    if (!config.sampleRate || config.sampleRate < 8000 || config.sampleRate > 192000) return false;
+    if (config.fftSize && ((config.fftSize & (config.fftSize - 1)) !== 0)) return false;
+    if (config.minFreq && config.maxFreq && config.minFreq >= config.maxFreq) return false;
     return true;
   }
 
+  // Stockage local des callbacks pour le nettoyage
+  private _dataCallback: ((data: SpectrumData) => void) | null = null;
+  private _errorCallback: ((error: number, message: string) => void) | null = null;
+  private _stateCallback: ((oldState: number, newState: number) => void) | null = null;
+
   setDataCallback(callback: (data: SpectrumData) => void): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.setDataCallback not yet implemented');
-    return false;
+    this._dataCallback = callback;
+    return NativeModule.setDataCallback(callback);
   }
 
   setErrorCallback(callback: (error: number, message: string) => void): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.setErrorCallback not yet implemented');
-    return false;
+    this._errorCallback = callback;
+    return NativeModule.setErrorCallback(callback);
   }
 
   setStateCallback(callback: (oldState: number, newState: number) => void): boolean {
-    // TODO: Implement C API call
-    console.warn('NativeAudioSpectrumModule.setStateCallback not yet implemented');
-    return false;
+    this._stateCallback = callback;
+    return NativeModule.setStateCallback(callback);
   }
 }
 
-export default new NativeAudioSpectrumModuleImpl();
+export default new NativeAudioSpectrumModuleWrapper();
