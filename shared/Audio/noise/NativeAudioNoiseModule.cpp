@@ -3,11 +3,13 @@
 #if NYTH_AUDIO_NOISE_ENABLED
 
 #include <algorithm>
+#include <utility>
 
 namespace facebook {
 namespace react {
 
-NativeAudioNoiseModule::NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsInvoker) : TurboModule() {
+NativeAudioNoiseModule::NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsInvoker)
+    : TurboModule("NativeAudioNoiseModule", jsInvoker), jsInvoker_(std::move(jsInvoker)) {
     // Initialisation des composants
     initializeManagers();
 
@@ -85,7 +87,7 @@ jsi::Value NativeAudioNoiseModule::dispose(jsi::Runtime& rt) {
         cleanupManagers();
         isInitialized_.store(false);
         currentState_ = 0; // UNINITIALIZED
-        return jsi::Value(true);
+        return jsi::Value::undefined();
     } catch (const std::exception& e) {
         handleError(3, std::string("Dispose failed: ") + e.what());
         return jsi::Value(false);
@@ -95,14 +97,7 @@ jsi::Value NativeAudioNoiseModule::dispose(jsi::Runtime& rt) {
 // === État et informations ===
 jsi::Value NativeAudioNoiseModule::getState(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(mutex_);
-
-    auto stateObj = jsi::Object(rt);
-    stateObj.setProperty(rt, "state", jsi::Value(currentState_));
-    stateObj.setProperty(rt, "stateString", jsi::String::createFromUtf8(rt, stateToString(currentState_)));
-    stateObj.setProperty(rt, "isInitialized", jsi::Value(isInitialized_.load()));
-    stateObj.setProperty(rt, "isProcessing", jsi::Value(noiseManager_ ? noiseManager_->isProcessing() : false));
-
-    return stateObj;
+    return jsi::String::createFromUtf8(rt, stateToString(currentState_));
 }
 
 jsi::Value NativeAudioNoiseModule::getStatistics(jsi::Runtime& rt) {
@@ -114,7 +109,7 @@ jsi::Value NativeAudioNoiseModule::getStatistics(jsi::Runtime& rt) {
 
     try {
         auto stats = noiseManager_->getStatistics();
-        return NoiseJSIConverter::noiseStatisticsToJSI(rt, stats);
+        return NoiseJSIConverter::statisticsToJS(rt, stats);
     } catch (const std::exception& e) {
         handleError(3, std::string("Get statistics failed: ") + e.what());
         return jsi::Value(nullptr);
@@ -130,7 +125,7 @@ jsi::Value NativeAudioNoiseModule::resetStatistics(jsi::Runtime& rt) {
 
     try {
         noiseManager_->resetStatistics();
-        return jsi::Value(true);
+        return jsi::Value::undefined();
     } catch (const std::exception& e) {
         handleError(3, std::string("Reset statistics failed: ") + e.what());
         return jsi::Value(false);
@@ -140,7 +135,7 @@ jsi::Value NativeAudioNoiseModule::resetStatistics(jsi::Runtime& rt) {
 // === Configuration ===
 jsi::Value NativeAudioNoiseModule::getConfig(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(mutex_);
-    return NoiseJSIConverter::noiseConfigToJSI(rt, config_);
+    return NoiseJSIConverter::noiseConfigToJS(rt, config_);
 }
 
 jsi::Value NativeAudioNoiseModule::updateConfig(jsi::Runtime& rt, const jsi::Object& config) {
@@ -170,18 +165,7 @@ jsi::Value NativeAudioNoiseModule::setAlgorithm(jsi::Runtime& rt, const jsi::Str
 
     try {
         auto algoStr = algorithm.utf8(rt);
-        Nyth::Audio::NoiseAlgorithm algo = Nyth::Audio::NoiseAlgorithm::SPECTRAL_SUBTRACTION;
-
-        if (algoStr == "spectral_subtraction") {
-            algo = Nyth::Audio::NoiseAlgorithm::SPECTRAL_SUBTRACTION;
-        } else if (algoStr == "wiener") {
-            algo = Nyth::Audio::NoiseAlgorithm::WIENER;
-        } else if (algoStr == "mmse_lsa") {
-            algo = Nyth::Audio::NoiseAlgorithm::MMSE_LSA;
-        } else if (algoStr == "multiband") {
-            algo = Nyth::Audio::NoiseAlgorithm::MULTIBAND;
-        }
-
+        auto algo = NoiseJSIConverter::stringToAlgorithm(algoStr);
         return jsi::Value(noiseManager_->setAlgorithm(algo));
     } catch (const std::exception& e) {
         handleError(3, std::string("Set algorithm failed: ") + e.what());
@@ -214,7 +198,7 @@ jsi::Value NativeAudioNoiseModule::processAudio(jsi::Runtime& rt, const jsi::Arr
 
     try {
         // Conversion des données d'entrée
-        auto inputData = NoiseJSIConverter::jsiArrayToFloatVector(rt, input);
+        auto inputData = NoiseJSIConverter::arrayToVector(rt, input);
         std::vector<float> outputData(inputData.size());
 
         // Traitement
@@ -226,7 +210,7 @@ jsi::Value NativeAudioNoiseModule::processAudio(jsi::Runtime& rt, const jsi::Arr
         }
 
         // Conversion vers JSI
-        return NoiseJSIConverter::floatVectorToJSIArray(rt, outputData);
+        return NoiseJSIConverter::vectorToArray(rt, outputData);
     } catch (const std::exception& e) {
         handleError(3, std::string("Process audio failed: ") + e.what());
         return jsi::Value(nullptr);
@@ -243,8 +227,8 @@ jsi::Value NativeAudioNoiseModule::processAudioStereo(jsi::Runtime& rt, const js
 
     try {
         // Conversion des données d'entrée
-        auto inputLData = NoiseJSIConverter::jsiArrayToFloatVector(rt, inputL);
-        auto inputRData = NoiseJSIConverter::jsiArrayToFloatVector(rt, inputR);
+        auto inputLData = NoiseJSIConverter::arrayToVector(rt, inputL);
+        auto inputRData = NoiseJSIConverter::arrayToVector(rt, inputR);
 
         std::vector<float> outputLData(inputLData.size());
         std::vector<float> outputRData(inputRData.size());
@@ -255,8 +239,8 @@ jsi::Value NativeAudioNoiseModule::processAudioStereo(jsi::Runtime& rt, const js
 
         // Créer l'objet de retour avec les deux canaux
         auto result = jsi::Object(rt);
-        result.setProperty(rt, "left", NoiseJSIConverter::floatVectorToJSIArray(rt, outputLData));
-        result.setProperty(rt, "right", NoiseJSIConverter::floatVectorToJSIArray(rt, outputRData));
+        result.setProperty(rt, "left", NoiseJSIConverter::vectorToArray(rt, outputLData));
+        result.setProperty(rt, "right", NoiseJSIConverter::vectorToArray(rt, outputRData));
 
         return result;
     } catch (const std::exception& e) {
@@ -410,27 +394,27 @@ jsi::Value NativeAudioNoiseModule::setAudioDataCallback(jsi::Runtime& rt, const 
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("audioData", rt, callback);
+        callbackManager_->setAudioDataCallback(callback);
     }
-    return jsi::Value(true);
+    return jsi::Value::undefined();
 }
 
 jsi::Value NativeAudioNoiseModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("error", rt, callback);
+        callbackManager_->setErrorCallback(callback);
     }
-    return jsi::Value(true);
+    return jsi::Value::undefined();
 }
 
 jsi::Value NativeAudioNoiseModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("stateChange", rt, callback);
+        callbackManager_->setStateChangeCallback(callback);
     }
-    return jsi::Value(true);
+    return jsi::Value::undefined();
 }
 
 // === Installation du module ===
@@ -737,7 +721,7 @@ jsi::Value NativeAudioNoiseModule::install(jsi::Runtime& rt, std::shared_ptr<Cal
 // === Méthodes privées ===
 void NativeAudioNoiseModule::initializeManagers() {
     // Créer le callback manager
-    callbackManager_ = std::make_shared<JSICallbackManager>();
+    callbackManager_ = std::make_shared<JSICallbackManager>(jsInvoker_);
 
     // Créer le noise manager avec le callback manager
     noiseManager_ = std::make_unique<NoiseManager>(callbackManager_);
@@ -795,15 +779,15 @@ void NativeAudioNoiseModule::handleError(int error, const std::string& message) 
 std::string NativeAudioNoiseModule::stateToString(int state) const {
     switch (state) {
         case 0:
-            return "UNINITIALIZED";
+            return "uninitialized";
         case 1:
-            return "INITIALIZED";
+            return "initialized";
         case 2:
-            return "PROCESSING";
+            return "processing";
         case 3:
-            return "ERROR";
+            return "error";
         default:
-            return "UNKNOWN";
+            return "uninitialized";
     }
 }
 
@@ -826,7 +810,7 @@ void NativeAudioNoiseModule::onStatisticsUpdate(const Nyth::Audio::NoiseStatisti
     if (callbackManager_ && runtimeValid_.load()) {
         try {
             callbackManager_->invokeCallback("statistics", [this, stats](jsi::Runtime& rt) {
-                auto statsObj = NoiseJSIConverter::noiseStatisticsToJSI(rt, stats);
+                auto statsObj = NoiseJSIConverter::statisticsToJS(rt, stats);
                 return std::vector<jsi::Value>{statsObj};
             });
         } catch (const std::exception& e) {
@@ -838,22 +822,8 @@ void NativeAudioNoiseModule::onStatisticsUpdate(const Nyth::Audio::NoiseStatisti
 void NativeAudioNoiseModule::onProcessingComplete(const float* input, const float* output, size_t frameCount) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
-            callbackManager_->invokeCallback("audioData", [input, output, frameCount](jsi::Runtime& rt) {
-                auto inputArray = jsi::Array(rt, frameCount);
-                auto outputArray = jsi::Array(rt, frameCount);
-
-                for (size_t i = 0; i < frameCount; ++i) {
-                    inputArray.setValueAtIndex(rt, i, jsi::Value(input[i]));
-                    outputArray.setValueAtIndex(rt, i, jsi::Value(output[i]));
-                }
-
-                auto result = jsi::Object(rt);
-                result.setProperty(rt, "input", inputArray);
-                result.setProperty(rt, "output", outputArray);
-                result.setProperty(rt, "frameCount", jsi::Value(static_cast<double>(frameCount)));
-
-                return std::vector<jsi::Value>{result};
-            });
+            // Transmet les buffers d'entrée et de sortie via Float32Array
+            callbackManager_->invokeAudioIOCallback(input, output, frameCount, 1);
         } catch (const std::exception& e) {
             // Silencer les erreurs de callback
         }
@@ -863,12 +833,7 @@ void NativeAudioNoiseModule::onProcessingComplete(const float* input, const floa
 void NativeAudioNoiseModule::onError(const std::string& error) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
-            callbackManager_->invokeCallback("error", [error](jsi::Runtime& rt) {
-                auto errorObj = jsi::Object(rt);
-                errorObj.setProperty(rt, "message", jsi::String::createFromUtf8(rt, error));
-                errorObj.setProperty(rt, "timestamp", jsi::Value(static_cast<double>(std::time(nullptr))));
-                return std::vector<jsi::Value>{errorObj};
-            });
+            callbackManager_->invokeErrorCallback(error);
         } catch (const std::exception& e) {
             // Silencer les erreurs de callback
         }
@@ -878,12 +843,9 @@ void NativeAudioNoiseModule::onError(const std::string& error) {
 void NativeAudioNoiseModule::onStateChange(Nyth::Audio::NoiseState oldState, Nyth::Audio::NoiseState newState) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
-            callbackManager_->invokeCallback("stateChange", [oldState, newState](jsi::Runtime& rt) {
-                auto stateObj = jsi::Object(rt);
-                stateObj.setProperty(rt, "oldState", jsi::Value(static_cast<int>(oldState)));
-                stateObj.setProperty(rt, "newState", jsi::Value(static_cast<int>(newState)));
-                return std::vector<jsi::Value>{stateObj};
-            });
+            auto oldStr = NoiseJSIConverter::noiseStateToString(oldState);
+            auto newStr = NoiseJSIConverter::noiseStateToString(newState);
+            callbackManager_->invokeStateChangeCallback(oldStr, newStr);
         } catch (const std::exception& e) {
             // Silencer les erreurs de callback
         }

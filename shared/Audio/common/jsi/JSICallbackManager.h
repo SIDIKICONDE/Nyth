@@ -34,6 +34,7 @@ public:
 
     // === Invocation des callbacks ===
     virtual void invokeAudioDataCallback(const float* data, size_t frameCount, int channels) = 0;
+    virtual void invokeAudioIOCallback(const float* input, const float* output, size_t frameCount, int channels) = 0;
     virtual void invokeErrorCallback(const std::string& error) = 0;
     virtual void invokeStateChangeCallback(const std::string& oldState, const std::string& newState) = 0;
     virtual void invokeAnalysisCallback(const jsi::Object& analysisData) = 0;
@@ -69,6 +70,7 @@ public:
 
     // === Invocation des callbacks ===
     void invokeAudioDataCallback(const float* data, size_t frameCount, int channels);
+    void invokeAudioIOCallback(const float* input, const float* output, size_t frameCount, int channels);
     void invokeErrorCallback(const std::string& error);
     void invokeStateChangeCallback(const std::string& oldState, const std::string& newState);
     void invokeAnalysisCallback(const jsi::Object& analysisData);
