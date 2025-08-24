@@ -1,13 +1,18 @@
 #pragma once
 
 #include <atomic>
+#include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
-#include <mutex>
 
-#include "../config/NoiseConfig.h"
+
 #include "../../jsi/JSICallbackManager.h"
+#include "../components/Noise/NoiseReducer.hpp"
+#include "../components/Spectral/AdvancedSpectralNR.hpp"
+#include "../config/NoiseConfig.h"
+
 
 namespace facebook {
 namespace react {
@@ -35,8 +40,8 @@ public:
 
     // === Traitement audio ===
     bool processAudio(const float* input, float* output, size_t frameCount, int channels);
-    bool processAudioStereo(const float* inputL, const float* inputR,
-                            float* outputL, float* outputR, size_t frameCount);
+    bool processAudioStereo(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                            size_t frameCount);
 
     // === Statistiques et métriques ===
     Nyth::Audio::NoiseStatistics getStatistics() const;
@@ -85,7 +90,8 @@ private:
     ProcessingCallback processingCallback_;
 
     // === Méthodes privées ===
-    void initializeNoiseSystem();
+    void initializeNoiseComponents();
+    bool processAudioWithAlgorithm(const float* input, float* output, size_t frameCount, int channels);
     void updateStatistics(const float* input, const float* output, size_t frameCount, int channels);
     void notifyStatisticsCallback();
     void notifyProcessingCallback(const float* input, const float* output, size_t frameCount);
@@ -94,6 +100,7 @@ private:
     // === Helpers ===
     float calculateRMS(const float* data, size_t size) const;
     void resetStatsInternal();
+    void handleError(const std::string& error);
 };
 
 } // namespace react

@@ -15,20 +15,20 @@ namespace AudioFX {
 
 // C++17 constexpr constants for FFT
 namespace FFTConstants {
-    constexpr size_t MIN_FFT_SIZE = 64;
-    constexpr size_t MAX_FFT_SIZE = 8192;
-    constexpr size_t DEFAULT_FFT_SIZE = 1024;
-    constexpr double PI = 3.14159265358979323846;
-    constexpr double TWO_PI = 2.0 * PI;
-}
+constexpr size_t MIN_FFT_SIZE = 64;
+constexpr size_t MAX_FFT_SIZE = 8192;
+constexpr size_t DEFAULT_FFT_SIZE = 1024;
+constexpr double PI = 3.14159265358979323846;
+constexpr double TWO_PI = 2.0 * PI;
+} // namespace FFTConstants
 
 // C++17 type traits for validation
-template<typename T>
+template <typename T>
 struct is_fft_float_type {
     static constexpr bool value = std::is_same<T, float>::value || std::is_same<T, double>::value;
 };
 
-template<typename T>
+template <typename T>
 constexpr bool is_fft_float_type_v = is_fft_float_type<T>::value;
 
 /**
@@ -89,7 +89,9 @@ public:
         }
     }
 
-    size_t getSize() const override { return size_; }
+    size_t getSize() const override {
+        return size_;
+    }
 
 private:
     size_t size_;
@@ -126,15 +128,15 @@ private:
                     size_t idx2 = idx1 + halfStage;
                     size_t twiddleIdx = j * twiddleStep;
 
-                    float tReal = inverse ? -twiddleImag_[twiddleIdx] : twiddleImag_[twiddleIdx];
-                    (void)twiddleReal_[twiddleIdx]; // Variable non utilisée, supprimée pour éviter le warning
+                    float tReal = twiddleReal_[twiddleIdx];
+                    float tImag = twiddleImag_[twiddleIdx];
 
                     if (inverse) {
-                        tReal = -tReal;
+                        tImag = -tImag;
                     }
 
-                    float tempReal = real[idx2] * twiddleReal_[twiddleIdx] - imag[idx2] * tReal;
-                    float tempImag = real[idx2] * tReal + imag[idx2] * twiddleReal_[twiddleIdx];
+                    float tempReal = real[idx2] * tReal - imag[idx2] * tImag;
+                    float tempImag = real[idx2] * tImag + imag[idx2] * tReal;
 
                     real[idx2] = real[idx1] - tempReal;
                     imag[idx2] = imag[idx1] - tempImag;

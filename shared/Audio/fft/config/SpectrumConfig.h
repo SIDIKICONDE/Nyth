@@ -64,9 +64,16 @@ struct SpectrumData {
     const float* frequencies = nullptr; // Fréquences en Hz
 
     // Validation
-    bool isValid() const {
+    bool isValid() const noexcept {
         return numBands > 0 && magnitudes != nullptr && frequencies != nullptr && timestamp >= 0.0;
     }
+
+    // Constructeur par défaut explicite
+    SpectrumData() = default;
+
+    // Constructeur avec paramètres
+    SpectrumData(size_t bands, double ts, const float* mags, const float* freqs)
+        : numBands(bands), timestamp(ts), magnitudes(mags), frequencies(freqs) {}
 };
 
 // Statistiques spectrales
@@ -83,7 +90,7 @@ struct SpectrumStatistics {
     double maxProcessingTimeMs = 0.0;
 
     // Méthode pour réinitialiser
-    void reset() {
+    void reset() noexcept {
         *this = SpectrumStatistics();
     }
 };

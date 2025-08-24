@@ -4,9 +4,7 @@
 namespace facebook {
 namespace react {
 
-NoiseManager::NoiseManager(std::shared_ptr<JSICallbackManager> callbackManager)
-    : callbackManager_(callbackManager) {
-}
+NoiseManager::NoiseManager(std::shared_ptr<JSICallbackManager> callbackManager) : callbackManager_(callbackManager) {}
 
 NoiseManager::~NoiseManager() {
     release();
@@ -171,8 +169,8 @@ bool NoiseManager::processAudio(const float* input, float* output, size_t frameC
     }
 }
 
-bool NoiseManager::processAudioStereo(const float* inputL, const float* inputR,
-                                      float* outputL, float* outputR, size_t frameCount) {
+bool NoiseManager::processAudioStereo(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                      size_t frameCount) {
     if (!isInitialized_.load() || currentState_ != Nyth::Audio::NoiseState::PROCESSING) {
         // Passthrough si non initialisé ou non en cours de traitement
         if (inputL != outputL) {
@@ -305,16 +303,16 @@ void NoiseManager::initializeNoiseComponents() {
             // Mapping des algorithmes
             switch (config_.algorithm) {
                 case Nyth::Audio::NoiseAlgorithm::ADVANCED_SPECTRAL:
-                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::MMSE_LSA;
+                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::MMSE_LSA;
                     break;
                 case Nyth::Audio::NoiseAlgorithm::WIENER_FILTER:
-                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::WIENER_FILTER;
+                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::WIENER_FILTER;
                     break;
                 case Nyth::Audio::NoiseAlgorithm::MULTIBAND:
-                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::MULTIBAND;
+                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::MULTIBAND;
                     break;
                 default:
-                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::SPECTRAL_SUBTRACTION;
+                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::SPECTRAL_SUBTRACTION;
                     break;
             }
 
@@ -374,8 +372,8 @@ bool NoiseManager::processAudioWithAlgorithm(const float* input, float* output, 
             }
 
             // Traitement stéréo
-            bool success = noiseReducer_->processStereo(leftInput.data(), rightInput.data(),
-                                                       leftOutput.data(), rightOutput.data(), frameCount);
+            bool success = noiseReducer_->processStereo(leftInput.data(), rightInput.data(), leftOutput.data(),
+                                                        rightOutput.data(), frameCount);
 
             // Réeentrelacement
             for (size_t i = 0; i < frameCount; ++i) {
@@ -458,7 +456,8 @@ void NoiseManager::handleError(const std::string& error) {
 }
 
 float NoiseManager::calculateRMS(const float* data, size_t size) const {
-    if (size == 0) return 0.0f;
+    if (size == 0)
+        return 0.0f;
 
     float sum = 0.0f;
     for (size_t i = 0; i < size; ++i) {
@@ -470,5 +469,3 @@ float NoiseManager::calculateRMS(const float* data, size_t size) const {
 
 } // namespace react
 } // namespace facebook
-
-

@@ -1,0 +1,688 @@
+[1mdiff --git a/shared/Videos/FilterManager.cpp b/shared/Videos/Components/FilterManager.cpp[m
+[1msimilarity index 100%[m
+[1mrename from shared/Videos/FilterManager.cpp[m
+[1mrename to shared/Videos/Components/FilterManager.cpp[m
+[1mdiff --git a/shared/Videos/FilterManager.hpp b/shared/Videos/Components/FilterManager.hpp[m
+[1msimilarity index 100%[m
+[1mrename from shared/Videos/FilterManager.hpp[m
+[1mrename to shared/Videos/Components/FilterManager.hpp[m
+[1mdiff --git a/shared/Videos/Core/FFmpegFilterBuilder.cpp b/shared/Videos/Core/FFmpegFilterBuilder.cpp[m
+[1mnew file mode 100644[m
+[1mindex 0000000..b4ed269[m
+[1m--- /dev/null[m
+[1m+++ b/shared/Videos/Core/FFmpegFilterBuilder.cpp[m
+[36m@@ -0,0 +1,141 @@[m
+[32m+[m[32m#include "FFmpegFilterBuilder.hpp"[m
+[32m+[m[32m#include <algorithm>[m
+[32m+[m[32m#include <cmath>[m
+[32m+[m[32m#include <iostream>[m
+[32m+[m
+[32m+[m[32mnamespace Camera {[m
+[32m+[m
+[32m+[m[32mstd::string FFmpegFilterBuilder::buildFilterString(const FilterState& filter) const {[m
+[32m+[m[32m    std::vector<std::string> parts;[m
+[32m+[m
+[32m+[m[32m    // 1) Ajustements globaux à partir de FilterParams[m
+[32m+[m[32m    auto adjustments = buildColorAdjustments(filter.params);[m
+[32m+[m[32m    parts.insert(parts.end(), adjustments.begin(), adjustments.end());[m
+[32m+[m
+[32m+[m[32m    // 2) Effet principal selon le type[m
+[32m+[m[32m    std::string mainEffect = buildMainEffect(filter.type, filter.params);[m
+[32m+[m[32m    if (!mainEffect.empty()) {[m
+[32m+[m[32m        parts.push_back(mainEffect);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    if (parts.empty()) {[m
+[32m+[m[32m        return "";[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // Joindre par virgule[m
+[32m+[m[32m    std::string combined = parts[0];[m
+[32m+[m[32m    for (size_t i = 1; i < parts.size(); ++i) {[m
+[32m+[m[32m        combined += "," + parts[i];[m
+[32m+[m[32m    }[m
+[32m+[m[32m    return combined;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mbool FFmpegFilterBuilder::isFilterTypeSupported(FilterType type) {[m
+[32m+[m[32m    return type != FilterType::NONE;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mstd::string FFmpegFilterBuilder::escapeForFFmpeg(const std::string& path) {[m
+[32m+[m[32m    std::string escaped;[m
+[32m+[m[32m    escaped.reserve(path.size() + 8);[m
+[32m+[m[32m    for (char c : path) {[m
+[32m+[m[32m        if (c == '\'' || c == ':') {[m
+[32m+[m[32m            escaped.push_back('\\');[m
+[32m+[m[32m        }[m
+[32m+[m[32m        escaped.push_back(c);[m
+[32m+[m[32m    }[m
+[32m+[m[32m    return escaped;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mstd::vector<std::string> FFmpegFilterBuilder::buildColorAdjustments(const FilterParams& params) const {[m
+[32m+[m[32m    std::vector<std::string> parts;[m
+[32m+[m
+[32m+[m[32m    // Vérifier si des ajustements sont nécessaires[m
+[32m+[m[32m    const bool needsEq = (std::abs(params.brightness) > EPSILON) || (std::abs(params.contrast - 1.0) > EPSILON) ||[m
+[32m+[m[32m                         (std::abs(params.saturation - 1.0) > EPSILON) || (std::abs(params.gamma - 1.0) > EPSILON);[m
+[32m+[m
+[32m+[m[32m    if (needsEq) {[m
+[32m+[m[32m        std::string eq = "eq=brightness=" + std::to_string(params.brightness) +[m
+[32m+[m[32m                         ":contrast=" + std::to_string(params.contrast) +[m
+[32m+[m[32m                         ":saturation=" + std::to_string(params.saturation);[m
+[32m+[m[32m        if (std::abs(params.gamma - 1.0) > EPSILON) {[m
+[32m+[m[32m            eq += ":gamma=" + std::to_string(params.gamma);[m
+[32m+[m[32m        }[m
+[32m+[m[32m        parts.push_back(eq);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    if (std::abs(params.hue) > EPSILON) {[m
+[32m+[m[32m        // Convertir degrés -> radians pour FFmpeg hue=h[m
+[32m+[m[32m        const double radians = params.hue * PI / 180.0;[m
+[32m+[m[32m        parts.push_back("hue=h=" + std::to_string(radians));[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    return parts;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mstd::string FFmpegFilterBuilder::buildMainEffect(FilterType type, const FilterParams& params) const {[m
+[32m+[m[32m    switch (type) {[m
+[32m+[m[32m        case FilterType::SEPIA: {[m
+[32m+[m[32m            return "colorbalance=rs=" + std::to_string(params.intensity * 0.3) +[m
+[32m+[m[32m                   ":gs=" + std::to_string(params.intensity * 0.1) + ":bs=" + std::to_string(-params.intensity * 0.4);[m
+[32m+[m[32m        }[m
+[32m+[m[32m        case FilterType::NOIR: {[m
+[32m+[m[32m            return "hue=s=0";[m
+[32m+[m[32m        }[m
+[32m+[m[32m        case FilterType::MONOCHROME: {[m
+[32m+[m[32m            return "hue=s=0.5";[m
+[32m+[m[32m        }[m
+[32m+[m[32m        case FilterType::COLOR_CONTROLS: {[m
+[32m+[m[32m            // Rien d'autre: déjà couvert par eq/hue/gamma ci-dessus[m
+[32m+[m[32m            return "";[m
+[32m+[m[32m        }[m
+[32m+[m[32m        case FilterType::VINTAGE: {[m
+[32m+[m[32m            return "colorbalance=rs=0.2:gs=0.1:bs=-0.3,hue=s=0.8";[m
+[32m+[m[32m        }[m
+[32m+[m[32m        case FilterType::COOL: {[m
+[32m+[m[32m            return "colorbalance=rs=-0.2:gs=0.1:bs=0.3";[m
+[32m+[m[32m        }[m
+[32m+[m[32m        case FilterType::WARM: {[m
+[32m+[m[32m            return "colorbalance=rs=0.3:gs=0.1:bs=-0.2";[m
+[32m+[m[32m        }[m
+[32m+[m[32m        case FilterType::CUSTOM: {[m
+[32m+[m[32m            const std::string& name = params.customFilterName;[m
+[32m+[m[32m            const std::string lutPrefix = "lut3d:";[m
+[32m+[m[32m            if (name.rfind(lutPrefix, 0) == 0 && name.size() > lutPrefix.size()) {[m
+[32m+[m[32m                std::string rest = name.substr(lutPrefix.size());[m
+[32m+[m[32m                std::string path = rest;[m
+[32m+[m[32m                std::string interp = "tetrahedral";[m
+[32m+[m[32m                auto qpos = rest.find('?');[m
+[32m+[m[32m                if (qpos != std::string::npos) {[m
+[32m+[m[32m                    path = rest.substr(0, qpos);[m
+[32m+[m[32m                    std::string query = rest.substr(qpos + 1);[m
+[32m+[m[32m                    size_t start = 0;[m
+[32m+[m[32m                    while (start < query.size()) {[m
+[32m+[m[32m                        size_t amp = query.find('&', start);[m
+[32m+[m[32m                        std::string pair =[m
+[32m+[m[32m                            amp == std::string::npos ? query.substr(start) : query.substr(start, amp - start);[m
+[32m+[m[32m                        size_t eq = pair.find('=');[m
+[32m+[m[32m                        if (eq != std::string::npos) {[m
+[32m+[m[32m                            std::string key = pair.substr(0, eq);[m
+[32m+[m[32m                            std::string value = pair.substr(eq + 1);[m
+[32m+[m[32m                            if (key == "interp") {[m
+[32m+[m[32m                                if (value == "nearest" || value == "trilinear" || value == "tetrahedral") {[m
+[32m+[m[32m                                    interp = value;[m
+[32m+[m[32m                                }[m
+[32m+[m[32m                            }[m
+[32m+[m[32m                        }[m
+[32m+[m[32m                        if (amp == std::string::npos)[m
+[32m+[m[32m                            break;[m
+[32m+[m[32m                        start = amp + 1;[m
+[32m+[m[32m                    }[m
+[32m+[m[32m                }[m
+[32m+[m[32m                std::string escapedPath = escapeForFFmpeg(path);[m
+[32m+[m[32m                return "lut3d=file='" + escapedPath + "':interp=" + interp;[m
+[32m+[m[32m            }[m
+[32m+[m[32m            return "";[m
+[32m+[m[32m        }[m
+[32m+[m[32m        default:[m
+[32m+[m[32m            return "";[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m} // namespace Camera[m
+[1mdiff --git a/shared/Videos/Core/FFmpegFilterBuilder.hpp b/shared/Videos/Core/FFmpegFilterBuilder.hpp[m
+[1mnew file mode 100644[m
+[1mindex 0000000..8e6cb8a[m
+[1m--- /dev/null[m
+[1m+++ b/shared/Videos/Core/FFmpegFilterBuilder.hpp[m
+[36m@@ -0,0 +1,60 @@[m
+[32m+[m[32m#pragma once[m
+[32m+[m
+[32m+[m[32m#include "../common/FilterTypes.hpp"[m
+[32m+[m[32m#include <string>[m
+[32m+[m[32m#include <vector>[m
+[32m+[m
+[32m+[m[32mnamespace Camera {[m
+[32m+[m
+[32m+[m[32m/**[m
+[32m+[m[32m * Constructeur de filtres FFmpeg[m
+[32m+[m[32m * Responsable de la génération des chaînes de filtres FFmpeg[m
+[32m+[m[32m */[m
+[32m+[m[32mclass FFmpegFilterBuilder {[m
+[32m+[m[32mpublic:[m
+[32m+[m[32m    FFmpegFilterBuilder() = default;[m
+[32m+[m[32m    ~FFmpegFilterBuilder() = default;[m
+[32m+[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Construit la chaîne de filtres FFmpeg pour un état de filtre donné[m
+[32m+[m[32m     * @param filter État du filtre[m
+[32m+[m[32m     * @return Chaîne de filtres FFmpeg ou chaîne vide si erreur[m
+[32m+[m[32m     */[m
+[32m+[m[32m    std::string buildFilterString(const FilterState& filter) const;[m
+[32m+[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Vérifie si un type de filtre est supporté[m
+[32m+[m[32m     * @param type Type de filtre à vérifier[m
+[32m+[m[32m     * @return true si supporté, false sinon[m
+[32m+[m[32m     */[m
+[32m+[m[32m    static bool isFilterTypeSupported(FilterType type);[m
+[32m+[m
+[32m+[m[32mprivate:[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Échappe une chaîne pour FFmpeg[m
+[32m+[m[32m     * @param path Chemin à échapper[m
+[32m+[m[32m     * @return Chaîne échappée[m
+[32m+[m[32m     */[m
+[32m+[m[32m    static std::string escapeForFFmpeg(const std::string& path);[m
+[32m+[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Construit les ajustements de couleur (eq, hue, gamma)[m
+[32m+[m[32m     * @param params Paramètres du filtre[m
+[32m+[m[32m     * @return Vecteur de parties de filtre[m
+[32m+[m[32m     */[m
+[32m+[m[32m    std::vector<std::string> buildColorAdjustments(const FilterParams& params) const;[m
+[32m+[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Construit l'effet principal selon le type[m
+[32m+[m[32m     * @param type Type de filtre[m
+[32m+[m[32m     * @param params Paramètres du filtre[m
+[32m+[m[32m     * @return Partie de filtre pour l'effet principal[m
+[32m+[m[32m     */[m
+[32m+[m[32m    std::string buildMainEffect(FilterType type, const FilterParams& params) const;[m
+[32m+[m
+[32m+[m[32m    // Constantes pour les tolérances[m
+[32m+[m[32m    static constexpr double EPSILON = 1e-6;[m
+[32m+[m[32m    static constexpr double PI = 3.14159265358979323846;[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32m} // namespace Camera[m
+[1mdiff --git a/shared/Videos/Core/FFmpegFilterProcessor.cpp b/shared/Videos/Core/FFmpegFilterProcessor.cpp[m
+[1mindex d1e8b92..1577734 100644[m
+[1m--- a/shared/Videos/Core/FFmpegFilterProcessor.cpp[m
+[1m+++ b/shared/Videos/Core/FFmpegFilterProcessor.cpp[m
+[36m@@ -1,33 +1,12 @@[m
+ #include "FFmpegFilterProcessor.hpp"[m
+[31m-#include <algorithm>[m
+[31m-#include <array>[m
+[31m-#include <cmath>[m
+[31m-#include <cstdio>[m
+[31m-#include <cstring>[m
+[31m-[m
+[31m-#ifdef __AVX2__[m
+[31m-#include <immintrin.h>[m
+[31m-#endif[m
+[31m-[m
+[31m-#ifndef M_PI[m
+[31m-#define M_PI 3.14159265358979323846[m
+[31m-#endif[m
+[31m-[m
+[31m-// Includes FFmpeg obligatoires[m
+[31m-extern "C" {[m
+[31m-#include <libavcodec/avcodec.h>[m
+[31m-#include <libavfilter/avfilter.h>[m
+[31m-#include <libavfilter/buffersink.h>[m
+[31m-#include <libavfilter/buffersrc.h>[m
+[31m-#include <libavutil/frame.h>[m
+[31m-#include <libavutil/imgutils.h>[m
+[31m-#include <libavutil/pixfmt.h>[m
+[31m-[m
+[31m-} // <= assurez-vous que cette accolade existe[m
+[32m+[m[32m#include "../common/FilterTypes.hpp"[m
+[32m+[m[32m#include <iostream>[m
+[32m+[m[32m#include <memory>[m
+ [m
+ namespace Camera {[m
+ [m
+[31m-FFmpegFilterProcessor::FFmpegFilterProcessor() {[m
+[32m+[m[32mFFmpegFilterProcessor::FFmpegFilterProcessor()[m
+[32m+[m[32m    : graphManager_(std::make_unique<FFmpegGraphManager>()), frameProcessor_(std::make_unique<FFmpegFrameProcessor>()) {[m
+     std::cout << "[FFmpegFilterProcessor] Construction" << std::endl;[m
+ }[m
+ [m
+[36m@@ -43,9 +22,14 @@[m [mbool FFmpegFilterProcessor::initialize() {[m
+ [m
+     std::cout << "[FFmpegFilterProcessor] Initialisation..." << std::endl;[m
+ [m
+[31m-    // Initialisation FFmpeg obligatoire[m
+[32m+[m[32m    // Initialiser les gestionnaires[m
+[32m+[m[32m    if (!graphManager_->initialize()) {[m
+[32m+[m[32m        setLastError("Échec d'initialisation du gestionnaire de graphe");[m
+[32m+[m[32m        return false;[m
+[32m+[m[32m    }[m
+[32m+[m
+     initialized_ = true;[m
+[31m-    std::cout << "[FFmpegFilterProcessor] Initialisation FFmpeg (sans register_all)" << std::endl;[m
+[32m+[m[32m    std::cout << "[FFmpegFilterProcessor] Initialisation terminée" << std::endl;[m
+ [m
+     return true;[m
+ }[m
+[36m@@ -57,7 +41,7 @@[m [mvoid FFmpegFilterProcessor::shutdown() {[m
+ [m
+     std::cout << "[FFmpegFilterProcessor] Arrêt..." << std::endl;[m
+ [m
+[31m-    destroyFilterGraph();[m
+[32m+[m[32m    graphManager_->shutdown();[m
+ [m
+     initialized_ = false;[m
+     std::cout << "[FFmpegFilterProcessor] Arrêt terminé" << std::endl;[m
+[36m@@ -70,71 +54,33 @@[m [mbool FFmpegFilterProcessor::applyFilter(const FilterState& filter, const void* i[m
+         return false;[m
+     }[m
+ [m
+[31m-    // Implémentation FFmpeg obligatoire[m
+[32m+[m[32m    // Vérifier les paramètres[m
+     if (width_ <= 0 || height_ <= 0) {[m
+         setLastError("Format vidéo non défini");[m
+         return false;[m
+     }[m
+[31m-    const char* fmt = pixelFormat_.empty() ? "yuv420p" : pixelFormat_.c_str();[m
+[31m-    int stride = 0;[m
+[31m-    // Estimer stride packé minimal[m
+[31m-    if (std::strcmp(fmt, "bgra") == 0 || std::strcmp(fmt, "rgba") == 0 || std::strcmp(fmt, "rgb0") == 0) {[m
+[31m-        stride = width_ * 4;[m
+[31m-    } else if (std::strcmp(fmt, "rgb24") == 0 || std::strcmp(fmt, "bgr24") == 0) {[m
+[31m-        stride = width_ * 3;[m
+[31m-    }[m
+[31m-    if (stride == 0) {[m
+[31m-        stride = width_ * 4;[m
+[31m-    }[m
+[31m-    return applyFilterWithStride(filter, reinterpret_cast<const uint8_t*>(inputData), stride, width_, height_, fmt,[m
+[31m-                                 reinterpret_cast<uint8_t*>(outputData), stride);[m
+[32m+[m
+[32m+[m[32m    const std::string fmt = pixelFormat_.empty() ? "yuv420p" : pixelFormat_;[m
+[32m+[m[32m    const int stride = FFmpegUtils::calculateStride(fmt, width_);[m
+[32m+[m
+[32m+[m[32m    return applyFilterWithStride(filter, reinterpret_cast<const uint8_t*>(inputData), stride, width_, height_,[m
+[32m+[m[32m                                 fmt.c_str(), reinterpret_cast<uint8_t*>(outputData), stride);[m
+ }[m
+ [m
+ bool FFmpegFilterProcessor::supportsFormat(const std::string& format) const {[m
+[31m-    // Formats supportés par FFmpeg[m
+[31m-    static const std::vector<std::string> supportedFormats = {"yuv420p", "yuv422p", "yuv444p", "rgb24",[m
+[31m-                                                              "bgr24",   "rgba",    "bgra"};[m
+[31m-[m
+[31m-    return std::find(supportedFormats.begin(), supportedFormats.end(), format) != supportedFormats.end();[m
+[32m+[m[32m    return FFmpegUtils::isPixelFormatSupported(format);[m
+ }[m
+ [m
+ bool FFmpegFilterProcessor::supportsFilter(FilterType type) const {[m
+[31m-    // Tous les filtres supportés avec FFmpeg[m
+[31m-    return type != FilterType::NONE;[m
+[32m+[m[32m    return FFmpegFilterBuilder::isFilterTypeSupported(type);[m
+ }[m
+ [m
+ std::string FFmpegFilterProcessor::getName() const {[m
+[31m-    return std::string("FFmpegFilterProcessor");[m
+[32m+[m[32m    return "FFmpegFilterProcessor";[m
+ }[m
+ [m
+ std::vector<FilterInfo> FFmpegFilterProcessor::getSupportedFilters() const {[m
+[31m-    std::vector<FilterInfo> filters;[m
+[31m-[m
+[31m-    // Filtres FFmpeg complets[m
+[31m-    filters.push_back({"sepia", "Sépia", FilterType::SEPIA, "Effet sépia vintage", false, {"yuv420p", "rgb24"}});[m
+[31m-    filters.push_back([m
+[31m-        {"noir", "Noir & Blanc", FilterType::NOIR, "Conversion noir et blanc", false, {"yuv420p", "rgb24"}});[m
+[31m-    filters.push_back([m
+[31m-        {"monochrome", "Monochrome", FilterType::MONOCHROME, "Monochrome avec teinte", false, {"yuv420p", "rgb24"}});[m
+[31m-    filters.push_back({"color_controls",[m
+[31m-                       "Contrôles Couleur",[m
+[31m-                       FilterType::COLOR_CONTROLS,[m
+[31m-                       "Luminosité, contraste, saturation",[m
+[31m-                       false,[m
+[31m-                       {"yuv420p", "rgb24"}});[m
+[31m-    filters.push_back([m
+[31m-        {"vintage", "Vintage", FilterType::VINTAGE, "Effet vintage années 70", false, {"yuv420p", "rgb24"}});[m
+[31m-    filters.push_back({"cool", "Cool", FilterType::COOL, "Effet froid bleuté", false, {"yuv420p", "rgb24"}});[m
+[31m-    filters.push_back({"warm", "Warm", FilterType::WARM, "Effet chaud orangé", false, {"yuv420p", "rgb24"}});[m
+[31m-    // Filtre personnalisé LUT 3D (.cube). Usage: setFilter('lut3d:/abs/path.cube', intensity)[m
+[31m-    filters.push_back({"lut3d",[m
+[31m-                       "LUT 3D (.cube)",[m
+[31m-                       FilterType::CUSTOM,[m
+[31m-                       "Applique une LUT 3D au format .cube (DaVinci, etc.)",[m
+[31m-                       true,[m
+[31m-                       {"yuv420p", "rgb24"}});[m
+[31m-[m
+[31m-    return filters;[m
+[32m+[m[32m    return FFmpegUtils::getSupportedFilters();[m
+ }[m
+ [m
+ bool FFmpegFilterProcessor::setVideoFormat(int width, int height, const std::string& pixelFormat) {[m
+[36m@@ -142,6 +88,9 @@[m [mbool FFmpegFilterProcessor::setVideoFormat(int width, int height, const std::str[m
+     height_ = height;[m
+     pixelFormat_ = pixelFormat;[m
+ [m
+[32m+[m[32m    // Configurer le gestionnaire de graphe[m
+[32m+[m[32m    graphManager_->setVideoFormat(width, height, pixelFormat, frameRate_);[m
+[32m+[m
+     std::cout << "[FFmpegFilterProcessor] Format vidéo: " << width << "x" << height << " (" << pixelFormat << ")"[m
+               << std::endl;[m
+     return true;[m
+[36m@@ -149,65 +98,19 @@[m [mbool FFmpegFilterProcessor::setVideoFormat(int width, int height, const std::str[m
+ [m
+ bool FFmpegFilterProcessor::setFrameRate(int fps) {[m
+     frameRate_ = fps;[m
+[32m+[m
+[32m+[m[32m    // Mettre à jour la configuration si déjà configurée[m
+[32m+[m[32m    if (width_ > 0 && height_ > 0) {[m
+[32m+[m[32m        graphManager_->setVideoFormat(width_, height_, pixelFormat_, frameRate_);[m
+[32m+[m[32m    }[m
+[32m+[m
+     std::cout << "[FFmpegFilterProcessor] Frame rate: " << fps << " fps" << std::endl;[m
+     return true;[m
+ }[m
+ [m
+ // Méthodes privées[m
+ bool FFmpegFilterProcessor::ensureGraph(const FilterState& filter) {[m
+[31m-    // Optimisation: cache le graphe et évite la reconstruction inutile[m
+[31m-    std::string filterString = getFFmpegFilterString(filter);[m
+[31m-    if (filterString.empty()) {[m
+[31m-        setLastError("Filtre FFmpeg non supporté");[m
+[31m-        return false;[m
+[31m-    }[m
+[31m-[m
+[31m-    bool formatChanged = (lastWidth_ != width_) || (lastHeight_ != height_) || (lastPixelFormat_ != pixelFormat_) ||[m
+[31m-                         (lastFrameRate_ != frameRate_);[m
+[31m-    bool filterChanged = (lastFilterDesc_ != filterString);[m
+[31m-[m
+[31m-    // Optimisation: ne reconstruire que si vraiment nécessaire[m
+[31m-    if (filterGraph_ && !formatChanged && !filterChanged) {[m
+[31m-        return true;[m
+[31m-    }[m
+[31m-[m
+[31m-    // Utiliser un pool de frames pour éviter les allocations répétées[m
+[31m-    static thread_local AVFrame* framePool[4] = {nullptr, nullptr, nullptr, nullptr};[m
+[31m-[m
+[31m-    // (Re)créer graphe si nécessaire[m
+[31m-    if (formatChanged || !filterGraph_) {[m
+[31m-        destroyFilterGraph();[m
+[31m-        if (!createFilterGraph())[m
+[31m-            return false;[m
+[31m-        if (!addFilterToGraph(filter))[m
+[31m-            return false;[m
+[31m-    }[m
+[31m-[m
+[31m-    // Réutiliser les frames du pool[m
+[31m-    if (!inputFrame_) {[m
+[31m-        if (framePool[0] == nullptr) {[m
+[31m-            framePool[0] = av_frame_alloc();[m
+[31m-        }[m
+[31m-        inputFrame_ = framePool[0];[m
+[31m-    }[m
+[31m-    if (!outputFrame_) {[m
+[31m-        if (framePool[1] == nullptr) {[m
+[31m-            framePool[1] = av_frame_alloc();[m
+[31m-        }[m
+[31m-        outputFrame_ = framePool[1];[m
+[31m-    }[m
+[31m-[m
+[31m-    if (!inputFrame_ || !outputFrame_) {[m
+[31m-        setLastError("Impossible d'allouer les frames FFmpeg");[m
+[31m-        return false;[m
+[31m-    }[m
+[31m-[m
+[31m-    lastWidth_ = width_;[m
+[31m-    lastHeight_ = height_;[m
+[31m-    lastPixelFormat_ = pixelFormat_;[m
+[31m-    lastFrameRate_ = frameRate_;[m
+[31m-    lastFilterDesc_ = filterString;[m
+[31m-    return true;[m
+[32m+[m[32m    return graphManager_->ensureGraph(filter);[m
+ }[m
+ [m
+ bool FFmpegFilterProcessor::applyFilterWithStride(const FilterState& filter, const uint8_t* inputData, int inputStride,[m
+[36m@@ -360,268 +263,50 @@[m [mbool FFmpegFilterProcessor::applyFilterWithStride(const FilterState& filter, con[m
+         }[m
+     }[m
+ [m
+[31m-    // Ne pas faire av_frame_unref sur les frames du pool, juste réinitialiser les pointeurs[m
+[31m-    outputFrame_->data[0] = nullptr;[m
+[31m-    return true;[m
+[31m-}[m
+[31m-bool FFmpegFilterProcessor::createFilterGraph() {[m
+[31m-    if (filterGraph_) {[m
+[31m-        destroyFilterGraph();[m
+[31m-    }[m
+[31m-[m
+[31m-    filterGraph_ = avfilter_graph_alloc();[m
+[31m-    if (!filterGraph_) {[m
+[31m-        setLastError("Impossible de créer le graphe de filtres FFmpeg");[m
+[31m-        return false;[m
+[31m-    }[m
+[31m-[m
+[31m-    return true;[m
+[31m-}[m
+[31m-[m
+[31m-void FFmpegFilterProcessor::destroyFilterGraph() {[m
+[31m-    if (filterGraph_) {[m
+[31m-        avfilter_graph_free(&filterGraph_);[m
+[31m-        filterGraph_ = nullptr;[m
+[31m-    }[m
+[32m+[m[32m    // Allouer des frames temporaires pour le traitement[m
+[32m+[m[32m    AVFrame* inputFrame = av_frame_alloc();[m
+[32m+[m[32m    AVFrame* outputFrame = av_frame_alloc();[m
+ [m
+[31m-    if (inputFrame_) {[m
+[31m-        av_frame_free(&inputFrame_);[m
+[31m-        inputFrame_ = nullptr;[m
+[31m-    }[m
+[31m-[m
+[31m-    if (outputFrame_) {[m
+[31m-        av_frame_free(&outputFrame_);[m
+[31m-        outputFrame_ = nullptr;[m
+[31m-    }[m
+[31m-[m
+[31m-    sourceContext_ = nullptr;[m
+[31m-    sinkContext_ = nullptr;[m
+[31m-}[m
+[31m-[m
+[31m-bool FFmpegFilterProcessor::addFilterToGraph(const FilterState& filter) {[m
+[31m-    if (!filterGraph_) {[m
+[31m-        return false;[m
+[31m-    }[m
+[31m-[m
+[31m-    std::string filterString = getFFmpegFilterString(filter);[m
+[31m-    if (filterString.empty()) {[m
+[31m-        setLastError("Filtre FFmpeg non supporté");[m
+[31m-        return false;[m
+[31m-    }[m
+[31m-[m
+[31m-    // Créer buffersrc/buffersink[m
+[31m-    const AVFilter* buffersrc = avfilter_get_by_name("buffer");[m
+[31m-    const AVFilter* buffersink = avfilter_get_by_name("buffersink");[m
+[31m-    if (!buffersrc || !buffersink) {[m
+[31m-        setLastError("Impossible d'obtenir buffer/buffersink");[m
+[31m-        return false;[m
+[31m-    }[m
+[31m-[m
+[31m-    char args[256];[m
+[31m-    AVPixelFormat pix = av_get_pix_fmt(pixelFormat_.empty() ? "yuv420p" : pixelFormat_.c_str());[m
+[31m-    if (pix == AV_PIX_FMT_NONE)[m
+[31m-        pix = AV_PIX_FMT_YUV420P;[m
+[31m-    snprintf(args, sizeof(args), "video_size=%dx%d:pix_fmt=%d:time_base=1/%d:frame_rate=%d/1:pixel_aspect=1/1", width_,[m
+[31m-             height_, pix, frameRate_, frameRate_);[m
+[31m-[m
+[31m-    int ret = avfilter_graph_create_filter(&sourceContext_, buffersrc, "in", args, NULL, filterGraph_);[m
+[31m-    if (ret < 0) {[m
+[31m-        setLastError("create_filter buffer a échoué");[m
+[31m-        return false;[m
+[31m-    }[m
+[31m-[m
+[31m-    ret = avfilter_graph_create_filter(&sinkContext_, buffersink, "out", NULL, NULL, filterGraph_);[m
+[31m-    if (ret < 0) {[m
+[31m-        setLastError("create_filter buffersink a échoué");[m
+[31m-        return false;[m
+[31m-    }[m
+[31m-[m
+[31m-    // Verrouiller le format de sortie pour éviter conversions implicites[m
+[31m-    static const AVPixelFormat pix_fmts[] = {pix, AV_PIX_FMT_NONE};[m
+[31m-    ret = av_opt_set_int_list(sinkContext_, "pix_fmts", pix_fmts, AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN);[m
+[31m-    if (ret < 0) {[m
+[31m-        setLastError("Impossible de fixer pix_fmts sur buffersink");[m
+[31m-        return false;[m
+[31m-    }[m
+[31m-[m
+[31m-    // Construire la description: [in]filterString[out][m
+[31m-    std::string desc = "[in]" + filterString + "[out]";[m
+[31m-[m
+[31m-    AVFilterInOut* outputs = avfilter_inout_alloc();[m
+[31m-    AVFilterInOut* inputs = avfilter_inout_alloc();[m
+[31m-    if (!outputs || !inputs) {[m
+[31m-        if (outputs)[m
+[31m-            avfilter_inout_free(&outputs);[m
+[31m-        if (inputs)[m
+[31m-            avfilter_inout_free(&inputs);[m
+[31m-        setLastError("Allocation AVFilterInOut a échoué");[m
+[31m-        return false;[m
+[31m-    }[m
+[31m-    outputs->name = av_strdup("in");[m
+[31m-    outputs->filter_ctx = sourceContext_;[m
+[31m-    outputs->pad_idx = 0;[m
+[31m-    outputs->next = nullptr;[m
+[31m-[m
+[31m-    inputs->name = av_strdup("out");[m
+[31m-    inputs->filter_ctx = sinkContext_;[m
+[31m-    inputs->pad_idx = 0;[m
+[31m-    inputs->next = nullptr;[m
+[31m-[m
+[31m-    ret = avfilter_graph_parse_ptr(filterGraph_, desc.c_str(), &inputs, &outputs, NULL);[m
+[31m-    if (ret < 0) {[m
+[31m-        avfilter_inout_free(&outputs);[m
+[31m-        avfilter_inout_free(&inputs);[m
+[31m-        setLastError("avfilter_graph_parse_ptr a échoué");[m
+[31m-        return false;[m
+[31m-    }[m
+[31m-    // Libérer les in/out maintenant que le graphe est parsé[m
+[31m-    avfilter_inout_free(&outputs);[m
+[31m-    avfilter_inout_free(&inputs);[m
+[31m-    ret = avfilter_graph_config(filterGraph_, NULL);[m
+[31m-    if (ret < 0) {[m
+[31m-        setLastError("avfilter_graph_config a échoué");[m
+[32m+[m[32m    if (!inputFrame || !outputFrame) {[m
+[32m+[m[32m        if (inputFrame)[m
+[32m+[m[32m            av_frame_free(&inputFrame);[m
+[32m+[m[32m        if (outputFrame)[m
+[32m+[m[32m            av_frame_free(&outputFrame);[m
+[32m+[m[32m        setLastError("Impossible d'allouer les frames FFmpeg");[m
+         return false;[m
+     }[m
+ [m
+[31m-    std::cout << "[FFmpegFilterProcessor] Graphe FFmpeg configuré: " << filterString << std::endl;[m
+[31m-    return true;[m
+[31m-}[m
+[31m-[m
+[31m-bool FFmpegFilterProcessor::configureFilter(const FilterState& filter, AVFilterContext* filterCtx) {[m
+[31m-    // Configuration des paramètres du filtre FFmpeg[m
+[31m-    // Note: Implémentation simplifiée[m
+[31m-    return true;[m
+[31m-}[m
+[31m-[m
+[31m-std::string FFmpegFilterProcessor::getFFmpegFilterString(const FilterState& filter) const {[m
+[31m-    auto escapeForFFmpeg = [](const std::string& path) -> std::string {[m
+[31m-        std::string escaped;[m
+[31m-        escaped.reserve(path.size() + 8);[m
+[31m-        for (char c : path) {[m
+[31m-            if (c == '\'' || c == ':') {[m
+[31m-                escaped.push_back('\\');[m
+[31m-            }[m
+[31m-            escaped.push_back(c);[m
+[31m-        }[m
+[31m-        return escaped;[m
+[31m-    };[m
+[31m-[m
+[31m-    // Construire une chaîne combinée: ajustements (eq/gamma/hue) + effet principal (sepia/noir/... ou lut3d)[m
+[31m-    std::vector<std::string> parts;[m
+[31m-[m
+[31m-    // 1) Ajustements globaux à partir de FilterParams[m
+[31m-    const bool needsEq =[m
+[31m-        (std::abs(filter.params.brightness) > 1e-6) || (std::abs(filter.params.contrast - 1.0) > 1e-6) ||[m
+[31m-        (std::abs(filter.params.saturation - 1.0) > 1e-6) || (std::abs(filter.params.gamma - 1.0) > 1e-6);[m
+[31m-    if (needsEq) {[m
+[31m-        std::string eq = "eq=brightness=" + std::to_string(filter.params.brightness) +[m
+[31m-                         ":contrast=" + std::to_string(filter.params.contrast) +[m
+[31m-                         ":saturation=" + std::to_string(filter.params.saturation);[m
+[31m-        if (std::abs(filter.params.gamma - 1.0) > 1e-6) {[m
+[31m-            eq += ":gamma=" + std::to_string(filter.params.gamma);[m
+[31m-        }[m
+[31m-        parts.push_back(eq);[m
+[31m-    }[m
+[31m-    if (std::abs(filter.params.hue) > 1e-6) {[m
+[31m-        // Convertir degrés -> radians pour FFmpeg hue=h[m
+[31m-        const double radians = filter.params.hue * M_PI / 180.0;[m
+[31m-        parts.push_back("hue=h=" + std::to_string(radians));[m
+[31m-    }[m
+[32m+[m[32m    bool success = frameProcessor_->processFrame(inputData, inputStride, width, height, pixFormat, outputData,[m
+[32m+[m[32m                                                 outputStride, graphManager_->getSourceContext(),[m
+[32m+[m[32m                                                 graphManager_->getSinkContext(), inputFrame, outputFrame);[m
+ [m
+[31m-    // 2) Effet principal selon le type[m
+[31m-    switch (filter.type) {[m
+[31m-        case FilterType::SEPIA: {[m
+[31m-            parts.push_back("colorbalance=rs=" + std::to_string(filter.params.intensity * 0.3) +[m
+[31m-                            ":gs=" + std::to_string(filter.params.intensity * 0.1) +[m
+[31m-                            ":bs=" + std::to_string(-filter.params.intensity * 0.4));[m
+[31m-            break;[m
+[31m-        }[m
+[31m-        case FilterType::NOIR: {[m
+[31m-            parts.push_back("hue=s=0");[m
+[31m-            break;[m
+[31m-        }[m
+[31m-        case FilterType::MONOCHROME: {[m
+[31m-            parts.push_back("hue=s=0.5");[m
+[31m-            break;[m
+[31m-        }[m
+[31m-        case FilterType::COLOR_CONTROLS: {[m
+[31m-            // Rien d'autre: déjà couvert par eq/hue/gamma ci-dessus[m
+[31m-            break;[m
+[31m-        }[m
+[31m-        case FilterType::VINTAGE: {[m
+[31m-            parts.push_back("colorbalance=rs=0.2:gs=0.1:bs=-0.3,hue=s=0.8");[m
+[31m-            break;[m
+[31m-        }[m
+[31m-        case FilterType::COOL: {[m
+[31m-            parts.push_back("colorbalance=rs=-0.2:gs=0.1:bs=0.3");[m
+[31m-            break;[m
+[31m-        }[m
+[31m-        case FilterType::WARM: {[m
+[31m-            parts.push_back("colorbalance=rs=0.3:gs=0.1:bs=-0.2");[m
+[31m-            break;[m
+[31m-        }[m
+[31m-        case FilterType::CUSTOM: {[m
+[31m-            const std::string& name = filter.params.customFilterName;[m
+[31m-            const std::string lutPrefix = "lut3d:";[m
+[31m-            if (name.rfind(lutPrefix, 0) == 0 && name.size() > lutPrefix.size()) {[m
+[31m-                std::string rest = name.substr(lutPrefix.size());[m
+[31m-                std::string path = rest;[m
+[31m-                std::string interp = "tetrahedral";[m
+[31m-                auto qpos = rest.find('?');[m
+[31m-                if (qpos != std::string::npos) {[m
+[31m-                    path = rest.substr(0, qpos);[m
+[31m-                    std::string query = rest.substr(qpos + 1);[m
+[31m-                    size_t start = 0;[m
+[31m-                    while (start < query.size()) {[m
+[31m-                        size_t amp = query.find('&', start);[m
+[31m-                        std::string pair =[m
+[31m-                            amp == std::string::npos

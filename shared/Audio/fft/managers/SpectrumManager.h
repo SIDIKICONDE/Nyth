@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "../../fft/FFTEngine.hpp"
+#include "../components/FFTEngine.hpp"
 #include "../config/SpectrumConfig.h"
 
 namespace Nyth {
@@ -102,6 +102,30 @@ private:
     void handleError(SpectrumError error, const std::string& message);
     void notifyDataCallback();
     void resetBuffers();
+
+    // === Classes internes pour RAII ===
+    class StateGuard {
+    public:
+        StateGuard(std::atomic<SpectrumState>& state, SpectrumState newState, SpectrumState restoreState)
+            : state_(state), restoreState_(restoreState) {
+            state_.store(newState);
+        }
+
+        ~StateGuard() {
+            if (!committed_) {
+                state_.store(restoreState_);
+            }
+        }
+
+        void commit() {
+            committed_ = true;
+        }
+
+    private:
+        std::atomic<SpectrumState>& state_;
+        SpectrumState restoreState_;
+        bool committed_ = false;
+    };
 };
 
 } // namespace Audio
