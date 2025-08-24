@@ -22,8 +22,8 @@
 
 #include "config/EffectsConfig.h"
 #include "../../common/jsi/JSICallbackManager.h"
-#include "effects/jsi/EffectsJSIConverter.h"
-#include "effects/managers/EffectManager.h"
+#include "jsi/EffectsJSIConverter.h"
+#include "managers/EffectManager.h"
 
 #else
 #define NYTH_AUDIO_EFFECTS_ENABLED 0
@@ -32,15 +32,7 @@
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_EFFECTS_ENABLED && defined(__cplusplus)
 
-// Forward declarations pour les dépendances externes
-namespace JSICallbackManager {
-    class JSICallbackManager;
-}
-
-namespace EffectManager {
-    class EffectManager;
-    struct ProcessingMetrics;
-}
+// Forward declarations (C++ only)
 
 namespace Nyth {
 namespace Audio {
@@ -85,6 +77,8 @@ public:
      * @return true si l'initialisation réussit, false sinon
      */
     jsi::Value initialize(jsi::Runtime& rt);
+    jsi::Value start(jsi::Runtime& rt);
+    jsi::Value stop(jsi::Runtime& rt);
 
     /**
      * @brief Vérifie si le module est initialisé
@@ -215,6 +209,13 @@ public:
     jsi::Value setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback);
     jsi::Value setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback);
     jsi::Value setProcessingCallback(jsi::Runtime& rt, const jsi::Function& callback);
+
+    // === Configuration dédiée par effet (API alignée TS) ===
+    jsi::Value setCompressorParameters(jsi::Runtime& rt, int effectId, float thresholdDb, float ratio,
+                                       float attackMs, float releaseMs, float makeupDb);
+    jsi::Value getCompressorParameters(jsi::Runtime& rt, int effectId);
+    jsi::Value setDelayParameters(jsi::Runtime& rt, int effectId, float delayMs, float feedback, float mix);
+    jsi::Value getDelayParameters(jsi::Runtime& rt, int effectId);
 
     // === Installation du module ===
     static jsi::Value install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker);

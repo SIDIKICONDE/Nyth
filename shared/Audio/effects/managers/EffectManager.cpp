@@ -25,6 +25,8 @@ bool EffectManager::initialize(const Nyth::Audio::EffectsConfig& config) {
         // Initialiser la chaîne d'effets
         effectChain_.setSampleRate(config.sampleRate, config.channels);
         effectChain_.setEnabled(true);
+        workBufferL_.clear();
+        workBufferR_.clear();
 
         isInitialized_.store(true);
         return true;
@@ -67,8 +69,35 @@ int EffectManager::createEffect(EffectType type) {
             return -1;
         }
 
+        // Associer l'effet à la chaîne pour qu'il soit réellement utilisé
+        AudioFX::IAudioEffect* rawPtr = nullptr;
+        switch (type) {
+            case EffectType::COMPRESSOR: {
+                rawPtr = effectChain_.emplaceEffect<AudioFX::CompressorEffect>();
+                break;
+            }
+            case EffectType::DELAY: {
+                rawPtr = effectChain_.emplaceEffect<AudioFX::DelayEffect>();
+                break;
+            }
+            default: {
+                // Types non gérés pour l'instant
+                break;
+            }
+        }
+
         int effectId = nextEffectId_.fetch_add(1);
+        // Conserver l'instance principale dans activeEffects_
         activeEffects_[effectId] = std::move(effect);
+        if (rawPtr) {
+            idToChainEffect_[effectId] = rawPtr;
+        }
+
+        // S'assurer que l'effet dans la chaîne a le même SR/channels et enabled
+        if (rawPtr) {
+            rawPtr->setSampleRate(config_.sampleRate, config_.channels);
+            rawPtr->setEnabled(true);
+        }
 
         return effectId;
 
@@ -82,6 +111,12 @@ bool EffectManager::destroyEffect(int effectId) {
 
     auto it = activeEffects_.find(effectId);
     if (it != activeEffects_.end()) {
+        auto jt = idToChainEffect_.find(effectId);
+        if (jt != idToChainEffect_.end() && jt->second) {
+            // Désactiver l'effet dans la chaîne pour ne plus l'appliquer
+            jt->second->setEnabled(false);
+            idToChainEffect_.erase(jt);
+        }
         activeEffects_.erase(it);
         return true;
     }
@@ -107,19 +142,105 @@ std::vector<int> EffectManager::getActiveEffects() const {
     return effectIds;
 }
 
+size_t EffectManager::getEffectCount() const {
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+    return activeEffects_.size();
+}
+
 // === Configuration des effets ===
 bool EffectManager::setEffectConfig(jsi::Runtime& rt, int effectId, const jsi::Object& config) {
-    // Cette méthode nécessiterait une implémentation plus complexe
-    // pour parser la configuration JSI et l'appliquer à l'effet spécifique
-    // Pour l'instant, on retourne false pour indiquer non implémenté
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+    auto it = activeEffects_.find(effectId);
+    if (it == activeEffects_.end()) {
+        return false;
+    }
+    auto* effect = it->second.get();
+
+    // Déterminer le type et appliquer les paramètres spécifiques
+    if (auto* compressor = dynamic_cast<AudioFX::CompressorEffect*>(effect)) {
+        float thresholdDb = -24.0f;
+        float ratio = 4.0f;
+        float attackMs = 10.0f;
+        float releaseMs = 100.0f;
+        float makeupDb = 0.0f;
+        if (config.hasProperty(rt, "compressor")) {
+            auto compObj = config.getProperty(rt, "compressor").asObject(rt);
+            if (compObj.hasProperty(rt, "thresholdDb")) thresholdDb = compObj.getProperty(rt, "thresholdDb").asNumber();
+            if (compObj.hasProperty(rt, "ratio")) ratio = compObj.getProperty(rt, "ratio").asNumber();
+            if (compObj.hasProperty(rt, "attackMs")) attackMs = compObj.getProperty(rt, "attackMs").asNumber();
+            if (compObj.hasProperty(rt, "releaseMs")) releaseMs = compObj.getProperty(rt, "releaseMs").asNumber();
+            if (compObj.hasProperty(rt, "makeupDb")) makeupDb = compObj.getProperty(rt, "makeupDb").asNumber();
+        }
+        compressor->setParameters(thresholdDb, ratio, attackMs, releaseMs, makeupDb);
+        if (config.hasProperty(rt, "enabled")) {
+            bool enabled = config.getProperty(rt, "enabled").asBool();
+            compressor->setEnabled(enabled);
+        }
+        // Mettre aussi à jour l'effet de la chaîne
+        auto cit = idToChainEffect_.find(effectId);
+        if (cit != idToChainEffect_.end()) {
+            if (auto* c2 = dynamic_cast<AudioFX::CompressorEffect*>(cit->second)) {
+                c2->setParameters(thresholdDb, ratio, attackMs, releaseMs, makeupDb);
+                if (config.hasProperty(rt, "enabled")) {
+                    bool enabled = config.getProperty(rt, "enabled").asBool();
+                    c2->setEnabled(enabled);
+                }
+            }
+        }
+        return true;
+    }
+
+    if (auto* delay = dynamic_cast<AudioFX::DelayEffect*>(effect)) {
+        float delayMs = 250.0f;
+        float feedback = 0.3f;
+        float mix = 0.2f;
+        if (config.hasProperty(rt, "delay")) {
+            auto delObj = config.getProperty(rt, "delay").asObject(rt);
+            if (delObj.hasProperty(rt, "delayMs")) delayMs = delObj.getProperty(rt, "delayMs").asNumber();
+            if (delObj.hasProperty(rt, "feedback")) feedback = delObj.getProperty(rt, "feedback").asNumber();
+            if (delObj.hasProperty(rt, "mix")) mix = delObj.getProperty(rt, "mix").asNumber();
+        }
+        delay->setParameters(delayMs, feedback, mix);
+        if (config.hasProperty(rt, "enabled")) {
+            bool enabled = config.getProperty(rt, "enabled").asBool();
+            delay->setEnabled(enabled);
+        }
+        auto dit = idToChainEffect_.find(effectId);
+        if (dit != idToChainEffect_.end()) {
+            if (auto* d2 = dynamic_cast<AudioFX::DelayEffect*>(dit->second)) {
+                d2->setParameters(delayMs, feedback, mix);
+                if (config.hasProperty(rt, "enabled")) {
+                    bool enabled = config.getProperty(rt, "enabled").asBool();
+                    d2->setEnabled(enabled);
+                }
+            }
+        }
+        return true;
+    }
     return false;
 }
 
 jsi::Object EffectManager::getEffectConfig(jsi::Runtime& rt, int effectId) const {
-    // Cette méthode nécessiterait une implémentation pour récupérer
-    // la configuration de l'effet spécifique et la convertir en JSI
-    // Pour l'instant, on retourne un objet vide
-    return jsi::Object(rt);
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+    auto it = activeEffects_.find(effectId);
+    if (it == activeEffects_.end()) {
+        return jsi::Object(rt);
+    }
+    auto* effect = it->second.get();
+
+    jsi::Object result(rt);
+    result.setProperty(rt, "enabled", jsi::Value(effect->isEnabled()));
+    result.setProperty(rt, "sampleRate", jsi::Value(static_cast<int>(effect->getSampleRate())));
+    result.setProperty(rt, "channels", jsi::Value(effect->getChannels()));
+
+    if (dynamic_cast<AudioFX::CompressorEffect*>(effect)) {
+        result.setProperty(rt, "type", jsi::String::createFromUtf8(rt, "compressor"));
+    } else if (dynamic_cast<AudioFX::DelayEffect*>(effect)) {
+        result.setProperty(rt, "type", jsi::String::createFromUtf8(rt, "delay"));
+    } else {
+        result.setProperty(rt, "type", jsi::String::createFromUtf8(rt, "unknown"));
+    }
+    return result;
 }
 
 bool EffectManager::enableEffect(int effectId, bool enabled) {
@@ -127,8 +248,14 @@ bool EffectManager::enableEffect(int effectId, bool enabled) {
 
     auto it = activeEffects_.find(effectId);
     if (it != activeEffects_.end()) {
-        // TODO: Implémenter la méthode enable/disable sur l'effet
-        return true;
+        if (it->second) {
+            it->second->setEnabled(enabled);
+            auto jt = idToChainEffect_.find(effectId);
+            if (jt != idToChainEffect_.end() && jt->second) {
+                jt->second->setEnabled(enabled);
+            }
+            return true;
+        }
     }
 
     return false;
@@ -139,8 +266,9 @@ bool EffectManager::isEffectEnabled(int effectId) const {
 
     auto it = activeEffects_.find(effectId);
     if (it != activeEffects_.end()) {
-        // TODO: Implémenter la méthode isEnabled sur l'effet
-        return true;
+        if (it->second) {
+            return it->second->isEnabled();
+        }
     }
 
     return false;
@@ -178,7 +306,7 @@ bool EffectManager::processAudio(const float* input, float* output, size_t frame
 
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
-    if (activeEffects_.empty()) {
+    if (activeEffects_.empty() || idToChainEffect_.empty()) {
         if (input != output) {
             std::copy(input, input + frameCount * channels, output);
         }
@@ -204,17 +332,23 @@ bool EffectManager::processAudio(const float* input, float* output, size_t frame
                 std::copy(outputVec.begin(), outputVec.end(), output);
             }
         } else if (channels == 2) {
-            // Stereo - utiliser les méthodes stéréo
-            std::vector<float> inputVecL(input, input + frameCount);
-            std::vector<float> inputVecR(input + frameCount, input + 2 * frameCount);
+            // Stereo interleaved input -> deinterleave for chain API
+            std::vector<float> inputVecL(frameCount);
+            std::vector<float> inputVecR(frameCount);
+            for (size_t i = 0; i < frameCount; ++i) {
+                inputVecL[i] = input[i * 2];
+                inputVecR[i] = input[i * 2 + 1];
+            }
             std::vector<float> outputVecL(frameCount);
             std::vector<float> outputVecR(frameCount);
 
             effectChain_.processStereo(inputVecL, inputVecR, outputVecL, outputVecR);
 
             if (output) {
-                std::copy(outputVecL.begin(), outputVecL.end(), output);
-                std::copy(outputVecR.begin(), outputVecR.end(), output + frameCount);
+                for (size_t i = 0; i < frameCount; ++i) {
+                    output[i * 2] = outputVecL[i];
+                    output[i * 2 + 1] = outputVecR[i];
+                }
             }
         }
 

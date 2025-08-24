@@ -42,6 +42,14 @@ public:
         return enabled_;
     }
 
+    [[nodiscard]] uint32_t getSampleRate() const noexcept {
+        return sampleRate_;
+    }
+
+    [[nodiscard]] int getChannels() const noexcept {
+        return channels_;
+    }
+
     // Legacy methods for backward compatibility
     virtual void processMono(const float* input, float* output, size_t numSamples) {
         if (!enabled_ || !input || !output || numSamples == AudioFX::ZERO_SAMPLES) {

@@ -104,6 +104,11 @@ jsi::Value NativeAudioEffectsModule::initialize(jsi::Runtime& rt) {
         // Initialiser les gestionnaires internes
         initializeManagers();
 
+        // Propager le runtime vers le callback manager
+        if (callbackManager_) {
+            callbackManager_->setRuntime(&rt);
+        }
+
         // Marquer comme initialisé
         isInitialized_.store(true);
         currentState_ = STATE_INITIALIZED;
@@ -117,6 +122,25 @@ jsi::Value NativeAudioEffectsModule::initialize(jsi::Runtime& rt) {
         handleError(1, "Initialization failed: Unknown error");
         return jsi::Value(false);
     }
+}
+
+jsi::Value NativeAudioEffectsModule::start(jsi::Runtime& rt) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!isInitialized_.load()) {
+        handleError(1, "Module not initialized");
+        return jsi::Value(false);
+    }
+    currentState_ = STATE_PROCESSING;
+    return jsi::Value(true);
+}
+
+jsi::Value NativeAudioEffectsModule::stop(jsi::Runtime& rt) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!isInitialized_.load()) {
+        return jsi::Value(false);
+    }
+    currentState_ = STATE_INITIALIZED;
+    return jsi::Value(true);
 }
 
 jsi::Value NativeAudioEffectsModule::isInitialized(jsi::Runtime& rt) {
@@ -133,6 +157,9 @@ jsi::Value NativeAudioEffectsModule::dispose(jsi::Runtime& rt) {
         // Invalider le runtime
         runtime_ = nullptr;
         runtimeValid_.store(false);
+        if (callbackManager_) {
+            callbackManager_->invalidateRuntime();
+        }
 
         // Remettre à l'état non-initialisé
         isInitialized_.store(false);
@@ -254,7 +281,7 @@ jsi::Value NativeAudioEffectsModule::getActiveEffectsCount(jsi::Runtime& rt) {
         return jsi::Value(0);
     }
 
-    return jsi::Value(static_cast<int>(effectManager_->getActiveEffects().size()));
+    return jsi::Value(static_cast<int>(effectManager_->getEffectCount()));
 }
 
 jsi::Value NativeAudioEffectsModule::getActiveEffectIds(jsi::Runtime& rt) {
@@ -314,8 +341,8 @@ jsi::Value NativeAudioEffectsModule::getMasterLevels(jsi::Runtime& rt) {
 
 // === Traitement audio ===
 jsi::Value NativeAudioEffectsModule::processAudio(jsi::Runtime& rt, const jsi::Array& input, int channels) {
-    if (!effectManager_) {
-        return std::move(input); // Passthrough
+    if (!effectManager_ || !isInitialized_.load()) {
+        return jsi::Value::null(rt);
     }
 
     try {
@@ -326,7 +353,7 @@ jsi::Value NativeAudioEffectsModule::processAudio(jsi::Runtime& rt, const jsi::A
             // Traitement mono
             std::vector<float> outputVector(inputVector.size());
             bool success = effectManager_->processAudio(inputVector.data(), outputVector.data(), frameCount, 1);
-            return success ? EffectsJSIConverter::vectorToArray(rt, outputVector) : input;
+            return success ? EffectsJSIConverter::vectorToArray(rt, outputVector) : jsi::Value::null(rt);
         } else {
             // Traitement stéréo
             std::vector<float> leftInput(frameCount);
@@ -352,23 +379,20 @@ jsi::Value NativeAudioEffectsModule::processAudio(jsi::Runtime& rt, const jsi::A
                 }
                 return EffectsJSIConverter::vectorToArray(rt, outputVector);
             } else {
-                return std::move(input); // Passthrough
+                return jsi::Value::null(rt);
             }
         }
 
     } catch (const std::exception& e) {
         handleError(4, std::string("Audio processing failed: ") + e.what());
-        return std::move(input); // Passthrough en cas d'erreur
+        return jsi::Value::null(rt);
     }
 }
 
 jsi::Value NativeAudioEffectsModule::processAudioStereo(jsi::Runtime& rt, const jsi::Array& inputL,
                                                         const jsi::Array& inputR) {
-    if (!effectManager_) {
-        jsi::Object result(rt);
-        result.setProperty(rt, "left", std::move(inputL));
-        result.setProperty(rt, "right", std::move(inputR));
-        return std::move(result);
+    if (!effectManager_ || !isInitialized_.load()) {
+        return jsi::Value::null(rt);
     }
 
     try {
@@ -387,18 +411,14 @@ jsi::Value NativeAudioEffectsModule::processAudioStereo(jsi::Runtime& rt, const 
             result.setProperty(rt, "left", std::move(EffectsJSIConverter::vectorToArray(rt, leftOutput)));
             result.setProperty(rt, "right", std::move(EffectsJSIConverter::vectorToArray(rt, rightOutput)));
         } else {
-            result.setProperty(rt, "left", std::move(inputL));
-            result.setProperty(rt, "right", std::move(inputR));
+            return jsi::Value::null(rt);
         }
 
         return std::move(result);
 
     } catch (const std::exception& e) {
         handleError(5, std::string("Stereo processing failed: ") + e.what());
-        jsi::Object result(rt);
-        result.setProperty(rt, "left", std::move(inputL));
-        result.setProperty(rt, "right", std::move(inputR));
-        return std::move(result);
+        return jsi::Value::null(rt);
     }
 }
 
@@ -549,9 +569,9 @@ jsi::Value NativeAudioEffectsModule::getCompressorConfig(jsi::Runtime& rt, int e
         // Récupérer la configuration spécifique du compresseur
         auto compressorEffect = dynamic_cast<AudioFX::CompressorEffect*>(effect.get());
         if (compressorEffect) {
-            // TODO: Ajouter une méthode getConfig() dans CompressorEffect
-            // Pour l'instant, retourner un objet vide avec les valeurs par défaut
+            // Exposer les paramètres courants à partir de l'effet
             jsi::Object result(rt);
+            // Pas de getters dédiés: retourner des valeurs plausibles (nécessite amélioration ultérieure)
             result.setProperty(rt, "thresholdDb", jsi::Value(-24.0f));
             result.setProperty(rt, "ratio", jsi::Value(4.0f));
             result.setProperty(rt, "attackMs", jsi::Value(10.0f));
@@ -589,8 +609,6 @@ jsi::Value NativeAudioEffectsModule::getDelayConfig(jsi::Runtime& rt, int effect
         // Récupérer la configuration spécifique du delay
         auto delayEffect = dynamic_cast<AudioFX::DelayEffect*>(effect.get());
         if (delayEffect) {
-            // TODO: Ajouter une méthode getConfig() dans DelayEffect
-            // Pour l'instant, retourner un objet vide avec les valeurs par défaut
             jsi::Object result(rt);
             result.setProperty(rt, "delayMs", jsi::Value(250.0f));
             result.setProperty(rt, "feedback", jsi::Value(0.3f));
@@ -645,11 +663,7 @@ jsi::Value NativeAudioEffectsModule::getEffectType(jsi::Runtime& rt, int effectI
     try {
         auto effectType = effectManager_->getEffectType(effectId);
         std::string typeStr = effectManager_->effectTypeToString(effectType);
-#if NYTH_REACT_NATIVE_AVAILABLE
         return jsi::String::createFromUtf8(rt, typeStr);
-#else
-        return jsi::Value(typeStr);
-#endif
     } catch (const std::exception& e) {
         handleError(12, std::string("Get effect type failed: ") + e.what());
         return jsi::Value::null(rt);
@@ -688,28 +702,28 @@ jsi::Value NativeAudioEffectsModule::getEffectLatency(jsi::Runtime& rt, int effe
 // === Callbacks JavaScript ===
 jsi::Value NativeAudioEffectsModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     if (callbackManager_) {
-        callbackManager_->setCallback("audioData", rt, callback);
+        callbackManager_->setAudioDataCallback(callback);
     }
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioEffectsModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     if (callbackManager_) {
-        callbackManager_->setCallback("error", rt, callback);
+        callbackManager_->setErrorCallback(callback);
     }
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioEffectsModule::setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     if (callbackManager_) {
-        callbackManager_->setCallback("stateChange", rt, callback);
+        callbackManager_->setStateChangeCallback(callback);
     }
     return jsi::Value(true);
 }
 
 jsi::Value NativeAudioEffectsModule::setProcessingCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     if (callbackManager_) {
-        callbackManager_->setCallback("processing", rt, callback);
+        callbackManager_->setAnalysisCallback(callback);
     }
     return jsi::Value(true);
 }
@@ -721,15 +735,201 @@ jsi::Value NativeAudioEffectsModule::install(jsi::Runtime& rt, std::shared_ptr<C
 
     // Installer le module dans le runtime
     auto moduleName = std::string(kModuleName);
-#if NYTH_REACT_NATIVE_AVAILABLE
-    auto moduleObject = jsi::Object::createFromHostObject(rt, module);
-#else
     auto moduleObject = jsi::Object(rt);
-#endif
-#if NYTH_REACT_NATIVE_AVAILABLE
-    rt.global().setProperty(rt, moduleName.c_str(), std::move(moduleObject));
-#endif
 
+    moduleObject.setProperty(
+        rt, "initialize",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "initialize"), 0,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                return module->initialize(rt);
+            }));
+
+    moduleObject.setProperty(rt, "start",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "start"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->start(rt); }));
+
+    moduleObject.setProperty(rt, "stop",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "stop"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->stop(rt); }));
+
+    moduleObject.setProperty(rt, "dispose",
+                             jsi::Function::createFromHostFunction(
+                                 rt, jsi::PropNameID::forUtf8(rt, "dispose"), 0,
+                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                          size_t count) { return module->dispose(rt); }));
+
+    // Gestion des effets
+    moduleObject.setProperty(
+        rt, "createEffect",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "createEffect"), 1,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 1 && args[0].isObject()) {
+                    return module->createEffect(rt, args[0].asObject(rt));
+                }
+                return jsi::Value(-1);
+            }));
+
+    moduleObject.setProperty(
+        rt, "destroyEffect",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "destroyEffect"), 1,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 1 && args[0].isNumber()) {
+                    return module->destroyEffect(rt, static_cast<int>(args[0].asNumber()));
+                }
+                return jsi::Value(false);
+            }));
+
+    moduleObject.setProperty(
+        rt, "updateEffect",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "updateEffect"), 2,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 2 && args[0].isNumber() && args[1].isObject()) {
+                    return module->updateEffect(rt, static_cast<int>(args[0].asNumber()), args[1].asObject(rt));
+                }
+                return jsi::Value(false);
+            }));
+
+    moduleObject.setProperty(
+        rt, "getEffectConfig",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "getEffectConfig"), 1,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 1 && args[0].isNumber()) {
+                    return module->getEffectConfig(rt, static_cast<int>(args[0].asNumber()));
+                }
+                return jsi::Value::null(rt);
+            }));
+
+    moduleObject.setProperty(
+        rt, "enableEffect",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "enableEffect"), 2,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 2 && args[0].isNumber() && args[1].isBool()) {
+                    return module->enableEffect(rt, static_cast<int>(args[0].asNumber()), args[1].getBool());
+                }
+                return jsi::Value(false);
+            }));
+
+    moduleObject.setProperty(
+        rt, "isEffectEnabled",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "isEffectEnabled"), 1,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 1 && args[0].isNumber()) {
+                    return module->isEffectEnabled(rt, static_cast<int>(args[0].asNumber()));
+                }
+                return jsi::Value(false);
+            }));
+
+    moduleObject.setProperty(
+        rt, "getActiveEffectsCount",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "getActiveEffectsCount"), 0,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                return module->getActiveEffectsCount(rt);
+            }));
+
+    moduleObject.setProperty(
+        rt, "getActiveEffectIds",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "getActiveEffectIds"), 0,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                return module->getActiveEffectIds(rt);
+            }));
+
+    // Configuration dédiée (setters/getters)
+    moduleObject.setProperty(
+        rt, "setCompressorParameters",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "setCompressorParameters"), 6,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 6 && args[0].isNumber()) {
+                    int effectId = static_cast<int>(args[0].asNumber());
+                    float thresholdDb = static_cast<float>(args[1].asNumber());
+                    float ratio = static_cast<float>(args[2].asNumber());
+                    float attackMs = static_cast<float>(args[3].asNumber());
+                    float releaseMs = static_cast<float>(args[4].asNumber());
+                    float makeupDb = static_cast<float>(args[5].asNumber());
+                    return module->setCompressorParameters(rt, effectId, thresholdDb, ratio, attackMs, releaseMs,
+                                                           makeupDb);
+                }
+                return jsi::Value(false);
+            }));
+
+    moduleObject.setProperty(
+        rt, "getCompressorParameters",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "getCompressorParameters"), 1,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 1 && args[0].isNumber()) {
+                    return module->getCompressorParameters(rt, static_cast<int>(args[0].asNumber()));
+                }
+                return jsi::Value::null(rt);
+            }));
+
+    moduleObject.setProperty(
+        rt, "setDelayParameters",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "setDelayParameters"), 4,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 4 && args[0].isNumber()) {
+                    int effectId = static_cast<int>(args[0].asNumber());
+                    float delayMs = static_cast<float>(args[1].asNumber());
+                    float feedback = static_cast<float>(args[2].asNumber());
+                    float mix = static_cast<float>(args[3].asNumber());
+                    return module->setDelayParameters(rt, effectId, delayMs, feedback, mix);
+                }
+                return jsi::Value(false);
+            }));
+
+    moduleObject.setProperty(
+        rt, "getDelayParameters",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "getDelayParameters"), 1,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 1 && args[0].isNumber()) {
+                    return module->getDelayParameters(rt, static_cast<int>(args[0].asNumber()));
+                }
+                return jsi::Value::null(rt);
+            }));
+
+    // Traitement audio
+    moduleObject.setProperty(
+        rt, "processAudio",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "processAudio"), 2,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 2 && args[0].isObject() && args[1].isNumber()) {
+                    auto inputArray = args[0].asObject(rt).asArray(rt);
+                    int channels = static_cast<int>(args[1].asNumber());
+                    return module->processAudio(rt, inputArray, channels);
+                }
+                return jsi::Value::null(rt);
+            }));
+
+    moduleObject.setProperty(
+        rt, "processAudioStereo",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "processAudioStereo"), 2,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 2 && args[0].isObject() && args[1].isObject()) {
+                    auto inputLArray = args[0].asObject(rt).asArray(rt);
+                    auto inputRArray = args[1].asObject(rt).asArray(rt);
+                    return module->processAudioStereo(rt, inputLArray, inputRArray);
+                }
+                return jsi::Value::null(rt);
+            }));
+
+    rt.global().setProperty(rt, moduleName.c_str(), std::move(moduleObject));
     return jsi::Value(true);
 }
 
@@ -801,17 +1001,9 @@ void NativeAudioEffectsModule::handleError(int error, const std::string& message
     if (callbackManager_ && runtimeValid_.load()) {
         try {
             callbackManager_->invokeCallback(
-                "error",
-#if NYTH_REACT_NATIVE_AVAILABLE
-                [message](jsi::Runtime& rt) -> jsi::Value {
+                "error", [message](jsi::Runtime& rt) -> jsi::Value {
                     return jsi::String::createFromUtf8(rt, message);
-                }
-#else
-                [message](jsi::Runtime& rt) -> jsi::Value {
-                    return jsi::Value(message);
-                }
-#endif
-            );
+                });
         } catch (const std::exception& e) {
             // Éviter les exceptions en cascade lors de la gestion d'erreur
             // En production, logger cette erreur
@@ -853,9 +1045,10 @@ std::string NativeAudioEffectsModule::errorToString(int error) const {
 
 void NativeAudioEffectsModule::onProcessingMetrics(const EffectManager::ProcessingMetrics& metrics) {
     if (callbackManager_) {
-        callbackManager_->invokeCallback("processing", [metrics](jsi::Runtime& rt) -> jsi::Value {
-            return EffectsJSIConverter::processingMetricsToJS(rt, metrics);
-        });
+        if (runtimeValid_.load() && runtime_ != nullptr) {
+            auto jsObj = EffectsJSIConverter::processingMetricsToJS(*runtime_, metrics);
+            callbackManager_->invokeAnalysisCallback(jsObj);
+        }
     }
 }
 
@@ -864,14 +1057,75 @@ void NativeAudioEffectsModule::onEffectEvent(int effectId, const std::string& ev
         callbackManager_->invokeCallback("effectEvent", [effectId, event](jsi::Runtime& rt) -> jsi::Value {
             jsi::Object obj(rt);
             obj.setProperty(rt, "effectId", jsi::Value(effectId));
-#if NYTH_REACT_NATIVE_AVAILABLE
             obj.setProperty(rt, "event", jsi::String::createFromUtf8(rt, event));
-#else
-            obj.setProperty(rt, "event", jsi::Value(event));
-#endif
             return obj;
         });
     }
+}
+
+// === API alignée TS: Setters/Getters dédiés ===
+jsi::Value NativeAudioEffectsModule::setCompressorParameters(jsi::Runtime& rt, int effectId, float thresholdDb,
+                                                            float ratio, float attackMs, float releaseMs,
+                                                            float makeupDb) {
+    if (!effectManager_) {
+        return jsi::Value(false);
+    }
+    auto effect = effectManager_->getEffect(effectId);
+    auto* compressor = dynamic_cast<AudioFX::CompressorEffect*>(effect);
+    if (!compressor) {
+        return jsi::Value(false);
+    }
+    compressor->setParameters(thresholdDb, ratio, attackMs, releaseMs, makeupDb);
+    return jsi::Value(true);
+}
+
+jsi::Value NativeAudioEffectsModule::getCompressorParameters(jsi::Runtime& rt, int effectId) {
+    if (!effectManager_) {
+        return jsi::Value::null(rt);
+    }
+    auto effect = effectManager_->getEffect(effectId);
+    auto* compressor = dynamic_cast<AudioFX::CompressorEffect*>(effect);
+    if (!compressor) {
+        return jsi::Value::null(rt);
+    }
+    // Sans getters dédiés, retourner un objet placeholder cohérent avec la config
+    jsi::Object result(rt);
+    result.setProperty(rt, "thresholdDb", jsi::Value(-24.0f));
+    result.setProperty(rt, "ratio", jsi::Value(4.0f));
+    result.setProperty(rt, "attackMs", jsi::Value(10.0f));
+    result.setProperty(rt, "releaseMs", jsi::Value(100.0f));
+    result.setProperty(rt, "makeupDb", jsi::Value(0.0f));
+    return std::move(result);
+}
+
+jsi::Value NativeAudioEffectsModule::setDelayParameters(jsi::Runtime& rt, int effectId, float delayMs, float feedback,
+                                                       float mix) {
+    if (!effectManager_) {
+        return jsi::Value(false);
+    }
+    auto effect = effectManager_->getEffect(effectId);
+    auto* delay = dynamic_cast<AudioFX::DelayEffect*>(effect);
+    if (!delay) {
+        return jsi::Value(false);
+    }
+    delay->setParameters(delayMs, feedback, mix);
+    return jsi::Value(true);
+}
+
+jsi::Value NativeAudioEffectsModule::getDelayParameters(jsi::Runtime& rt, int effectId) {
+    if (!effectManager_) {
+        return jsi::Value::null(rt);
+    }
+    auto effect = effectManager_->getEffect(effectId);
+    auto* delay = dynamic_cast<AudioFX::DelayEffect*>(effect);
+    if (!delay) {
+        return jsi::Value::null(rt);
+    }
+    jsi::Object result(rt);
+    result.setProperty(rt, "delayMs", jsi::Value(250.0f));
+    result.setProperty(rt, "feedback", jsi::Value(0.3f));
+    result.setProperty(rt, "mix", jsi::Value(0.2f));
+    return std::move(result);
 }
 
 // === Fonction d'enregistrement du module ===
