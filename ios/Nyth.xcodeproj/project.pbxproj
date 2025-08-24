@@ -14,28 +14,6 @@
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		EAD25BD3403910B8C726EA19 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		FF2000012F5A6B8C0099AABB /* BuildFile in Frameworks */ = {isa = PBXBuildFile; };
-		SA2000012F5A6B8C0099AABB /* AudioEqualizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000012F5A6B8C0099AABB /* AudioEqualizer.cpp */; };
-		SA2000022F5A6B8C0099AABB /* BiquadFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000032F5A6B8C0099AABB /* BiquadFilter.cpp */; };
-		SA2000032F5A6B8C0099AABB /* NoiseReducer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000092F5A6B8C0099AABB /* NoiseReducer.cpp */; };
-		SA2000042F5A6B8C0099AABB /* RNNoiseSuppressor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000112F5A6B8C0099AABB /* RNNoiseSuppressor.cpp */; };
-		SA2000052F5A6B8C0099AABB /* SpectralNR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000132F5A6B8C0099AABB /* SpectralNR.cpp */; };
-		SA2000062F5A6B8C0099AABB /* AudioSafety.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000152F5A6B8C0099AABB /* AudioSafety.cpp */; };
-		SA2000072F5A6B8C0099AABB /* AudioBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000172F5A6B8C0099AABB /* AudioBuffer.cpp */; };
-		SA2000082F5A6B8C0099AABB /* NativeAudioCoreModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000202F5A6B8C0099AABB /* NativeAudioCoreModule.cpp */; };
-		SA2000092F5A6B8C0099AABB /* EQPresetFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000072F5A6B8C0099AABB /* EQPresetFactory.cpp */; };
-		SA2000102F5A6B8C0099AABB /* AudioFileWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000192F5A6B8C0099AABB /* AudioFileWriter.cpp */; };
-		SA2000104F5A6B8C0099AABB /* AudioCaptureUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000203F5A6B8C0099AABB /* AudioCaptureUtils.cpp */; };
-		SA2000105F5A6B8C0099AABB /* AudioCaptureMetrics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000204F5A6B8C0099AABB /* AudioCaptureMetrics.cpp */; };
-		SA2000106F5A6B8C0099AABB /* AudioCaptureSIMD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000205F5A6B8C0099AABB /* AudioCaptureSIMD.cpp */; };
-		SA2000107F5A6B8C0099AABB /* AudioCaptureImpl.mm in Sources */ = {isa = PBXBuildFile; fileRef = SA1000206F5A6B8C0099AABB /* AudioCaptureImpl.mm */; };
-		SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */; };
-		SS2000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SS1000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp */; };
-
-		/* Audio Safety Build Files */
-		FF1EA35D8080E9B115904402 /* AudioSafety.cpp in Sources */ = {isa = PBXBuildFile; fileRef = SA1000152F5A6B8C0099AABB /* AudioSafety.cpp */; };
-
-		/* Audio Utils Build Files */
-		FF1EA35K8080E9B115904401 /* AudioBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FF1EA35H8080E9B115904401 /* AudioBuffer.cpp */; };
 
 /* End PBXBuildFile section */
 
@@ -53,31 +31,7 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Nyth/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Nyth/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		SA1000012F5A6B8C0099AABB /* AudioEqualizer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioEqualizer.cpp; path = ../shared/Audio/core/AudioEqualizer.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000032F5A6B8C0099AABB /* BiquadFilter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = BiquadFilter.cpp; path = ../shared/Audio/core/BiquadFilter.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000072F5A6B8C0099AABB /* EQPresetFactory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EQPresetFactory.cpp; path = ../shared/Audio/core/EQPresetFactory.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000092F5A6B8C0099AABB /* NoiseReducer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NoiseReducer.cpp; path = ../shared/Audio/noise/NoiseReducer.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000112F5A6B8C0099AABB /* RNNoiseSuppressor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = RNNoiseSuppressor.cpp; path = ../shared/Audio/noise/RNNoiseSuppressor.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000132F5A6B8C0099AABB /* SpectralNR.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SpectralNR.cpp; path = ../shared/Audio/noise/SpectralNR.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000152F5A6B8C0099AABB /* AudioSafety.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioSafety.cpp; path = ../shared/Audio/safety/AudioSafety.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000172F5A6B8C0099AABB /* AudioBuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioBuffer.cpp; path = ../shared/Audio/utils/AudioBuffer.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000192F5A6B8C0099AABB /* AudioFileWriter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioFileWriter.cpp; path = ../shared/Audio/capture/AudioFileWriter.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000202F5A6B8C0099AABB /* NativeAudioCoreModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeAudioCoreModule.cpp; path = ../shared/NativeAudioCoreModule.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000203F5A6B8C0099AABB /* AudioCaptureUtils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCaptureUtils.cpp; path = ../shared/Audio/capture/AudioCaptureUtils.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000204F5A6B8C0099AABB /* AudioCaptureMetrics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCaptureMetrics.cpp; path = ../shared/Audio/capture/AudioCaptureMetrics.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000205F5A6B8C0099AABB /* AudioCaptureSIMD.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioCaptureSIMD.cpp; path = ../shared/Audio/capture/AudioCaptureSIMD.cpp; sourceTree = SOURCE_ROOT; };
-		SA1000206F5A6B8C0099AABB /* AudioCaptureImpl.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = AudioCaptureImpl.mm; path = ../shared/Audio/capture/AudioCaptureImpl.mm; sourceTree = SOURCE_ROOT; };
-		SP1000022F5A6B8C0099AABB /* AudioPipeline.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioPipeline.cpp; path = ../shared/Audio/AudioPipeline.cpp; sourceTree = SOURCE_ROOT; };
-		SS1000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NativeAudioSpectrumModule.cpp; path = ../shared/NativeAudioSpectrumModule.cpp; sourceTree = SOURCE_ROOT; };
 
-		/* Audio Safety Files */
-		FF1EA35B8080E9B115904401 /* AudioSafety.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioSafety.hpp; path = ../shared/Audio/safety/AudioSafety.hpp; sourceTree = SOURCE_ROOT; };
-		FF1EA35C8080E9B115904401 /* SafetyContants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = SafetyContants.hpp; path = ../shared/Audio/safety/SafetyContants.hpp; sourceTree = SOURCE_ROOT; };
-
-		/* Audio Utils Files */
-		FF1EA35H8080E9B115904401 /* AudioBuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioBuffer.cpp; path = ../shared/Audio/utils/AudioBuffer.cpp; sourceTree = SOURCE_ROOT; };
-		FF1EA35I8080E9B115904401 /* AudioBuffer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AudioBuffer.hpp; path = ../shared/Audio/utils/AudioBuffer.hpp; sourceTree = SOURCE_ROOT; };
-		FF1EA35J8080E9B115904401 /* utilsConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = utilsConstants.hpp; path = ../shared/Audio/utils/utilsConstants.hpp; sourceTree = SOURCE_ROOT; };
 
 /* End PBXFileReference section */
 
@@ -130,7 +84,6 @@
 				6F14BDF22E53346F00771E9B /* GoogleService-Info.plist */,
 				13B07FAE1A68108700A75B9A /* Nyth */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
-				FF1EA3178080E9B115904401 /* Audio */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
@@ -157,35 +110,7 @@
 			path = Pods;
 			sourceTree = "<group>";
 		};
-		FF1EA35A8080E9B115904401 /* Safety */ = {
-			isa = PBXGroup;
-			children = (
-				FF1EA35B8080E9B115904401 /* AudioSafety.hpp */,
-				FF1EA35C8080E9B115904401 /* SafetyContants.hpp */,
-				FF1EA35D8080E9B115904401 /* AudioSafety.cpp */,
-			);
-			name = Safety;
-			sourceTree = "<group>";
-		};
-		FF1EA3178080E9B115904401 /* Audio */ = {
-			isa = PBXGroup;
-			children = (
-				FF1EA35A8080E9B115904401 /* Safety */,
-				FF1EA35G8080E9B115904401 /* Utils */,
-			);
-			name = Audio;
-			sourceTree = "<group>";
-		};
-		FF1EA35G8080E9B115904401 /* Utils */ = {
-			isa = PBXGroup;
-			children = (
-				FF1EA35H8080E9B115904401 /* AudioBuffer.cpp */,
-				FF1EA35I8080E9B115904401 /* AudioBuffer.hpp */,
-				FF1EA35J8080E9B115904401 /* utilsConstants.hpp */,
-			);
-			name = Utils;
-			sourceTree = "<group>";
-		};
+
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -350,23 +275,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
-				SA2000012F5A6B8C0099AABB /* AudioEqualizer.cpp in Sources */,
-				SA2000022F5A6B8C0099AABB /* BiquadFilter.cpp in Sources */,
-				SA2000092F5A6B8C0099AABB /* EQPresetFactory.cpp in Sources */,
-				SA2000032F5A6B8C0099AABB /* NoiseReducer.cpp in Sources */,
-				SA2000042F5A6B8C0099AABB /* RNNoiseSuppressor.cpp in Sources */,
-				SA2000052F5A6B8C0099AABB /* SpectralNR.cpp in Sources */,
-				SA2000062F5A6B8C0099AABB /* AudioSafety.cpp in Sources */,
-				SA2000072F5A6B8C0099AABB /* AudioBuffer.cpp in Sources */,
-				SA2000082F5A6B8C0099AABB /* NativeAudioCoreModule.cpp in Sources */,
-				SP2000012F5A6B8C0099AABB /* AudioPipeline.cpp in Sources */,
-				SA2000102F5A6B8C0099AABB /* AudioFileWriter.cpp in Sources */,
-				SA2000104F5A6B8C0099AABB /* AudioCaptureUtils.cpp in Sources */,
-				SA2000107F5A6B8C0099AABB /* AudioCaptureImpl.mm in Sources */,
-				SA2000105F5A6B8C0099AABB /* AudioCaptureMetrics.cpp in Sources */,
-				SA2000106F5A6B8C0099AABB /* AudioCaptureSIMD.cpp in Sources */,
-				SS2000012F5A6B8C0099AABB /* NativeAudioSpectrumModule.cpp in Sources */,
-				FF1EA35K8080E9B115904401 /* AudioBuffer.cpp in Sources */,
+
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -505,22 +414,7 @@
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers",
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios",
 					"\"$(SRCROOT)/../shared\"",
-					"\"$(SRCROOT)/../shared/Audio/**\"",
-					"\"$(SRCROOT)/../shared/Audio/capture\"",
-					"\"$(SRCROOT)/../shared/Audio/core\"",
-					"\"$(SRCROOT)/../shared/Audio/effects\"",
-					"\"$(SRCROOT)/../shared/Audio/fft\"",
-					"\"$(SRCROOT)/../shared/Audio/noise\"",
-					"\"$(SRCROOT)/../shared/Audio/safety\"",
-					"\"$(SRCROOT)/../shared/Audio/utils\"",
-					"\"$(SRCROOT)/../shared/Audio/capture/**\"",
-					"\"$(SRCROOT)/../shared/Audio/capture\"",
-					"\"$(SRCROOT)/../shared/Audio/core/**\"",
-					"\"$(SRCROOT)/../shared/Audio/effects/**\"",
-					"\"$(SRCROOT)/../shared/Audio/fft/**\"",
-					"\"$(SRCROOT)/../shared/Audio/noise/**\"",
-					"\"$(SRCROOT)/../shared/Audio/safety/**\"",
-					"\"$(SRCROOT)/../shared/Audio/utils/**\"",
+
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -612,22 +506,7 @@
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers",
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios",
 					"\"$(SRCROOT)/../shared\"",
-					"\"$(SRCROOT)/../shared/Audio/**\"",
-					"\"$(SRCROOT)/../shared/Audio/capture\"",
-					"\"$(SRCROOT)/../shared/Audio/core\"",
-					"\"$(SRCROOT)/../shared/Audio/effects\"",
-					"\"$(SRCROOT)/../shared/Audio/fft\"",
-					"\"$(SRCROOT)/../shared/Audio/noise\"",
-					"\"$(SRCROOT)/../shared/Audio/safety\"",
-					"\"$(SRCROOT)/../shared/Audio/utils\"",
-					"\"$(SRCROOT)/../shared/Audio/capture/**\"",
-					"\"$(SRCROOT)/../shared/Audio/capture\"",
-					"\"$(SRCROOT)/../shared/Audio/core/**\"",
-					"\"$(SRCROOT)/../shared/Audio/effects/**\"",
-					"\"$(SRCROOT)/../shared/Audio/fft/**\"",
-					"\"$(SRCROOT)/../shared/Audio/noise/**\"",
-					"\"$(SRCROOT)/../shared/Audio/safety/**\"",
-					"\"$(SRCROOT)/../shared/Audio/utils/**\"",
+
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (

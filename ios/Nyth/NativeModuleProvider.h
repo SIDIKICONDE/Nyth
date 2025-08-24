@@ -3,37 +3,52 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface NativeAudioEffectsModuleProvider : NSObject <RCTModuleProvider>
+@interface NativeAudioEffectsModuleProvider : NSObject <RCTTurboModule>
+
+- (id<RCTTurboModule>)getTurboModule:(const RCTTurboModuleInitParams &)params;
 
 @end
 
-@interface NativeAudioNoiseModuleProvider : NSObject <RCTModuleProvider>
+@interface NativeAudioNoiseModuleProvider : NSObject <RCTTurboModule>
+
+- (id<RCTTurboModule>)getTurboModule:(const RCTTurboModuleInitParams &)params;
 
 @end
 
-@interface NativeAudioSafetyModuleProvider : NSObject <RCTModuleProvider>
+@interface NativeAudioSafetyModuleProvider : NSObject <RCTTurboModule>
+
+- (id<RCTTurboModule>)getTurboModule:(const RCTTurboModuleInitParams &)params;
 
 @end
 
-@interface NativeAudioCoreModuleProvider : NSObject <RCTModuleProvider>
+@interface NativeAudioCoreModuleProvider : NSObject <RCTTurboModule>
+
+- (id<RCTTurboModule>)getTurboModule:(const RCTTurboModuleInitParams &)params;
 
 @end
 
-@interface NativeAudioUtilsModuleProvider : NSObject <RCTModuleProvider>
+@interface NativeAudioUtilsModuleProvider : NSObject <RCTTurboModule>
+
+- (id<RCTTurboModule>)getTurboModule:(const RCTTurboModuleInitParams &)params;
 
 @end
 
-@interface NativeAudioPipelineModuleProvider : NSObject <RCTModuleProvider>
+@interface NativeAudioPipelineModuleProvider : NSObject <RCTTurboModule>
+
+- (id<RCTTurboModule>)getTurboModule:(const RCTTurboModuleInitParams &)params;
 
 @end
 
-@interface NativeAudioCaptureModuleProvider : NSObject <RCTModuleProvider>
+@interface NativeAudioCaptureModuleProvider : NSObject <RCTTurboModule>
+
+- (id<RCTTurboModule>)getTurboModule:(const RCTTurboModuleInitParams &)params;
 
 @end
 
-@interface NativeAudioSpectrumModuleProvider : NSObject <RCTModuleProvider>
+@interface NativeAudioSpectrumModuleProvider : NSObject <RCTTurboModule>
+
+- (id<RCTTurboModule>)getTurboModule:(const RCTTurboModuleInitParams &)params;
 
 @end
-
 
 NS_ASSUME_NONNULL_END

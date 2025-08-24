@@ -244,9 +244,9 @@ endif()
 #Audio System C++ 20 Sources
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/NativeAudioEqualizerModule.cpp
-    ../../../../../shared/NativeAudioCaptureModule.cpp
+    ../../../../../shared/Audio/NativeAudioCaptureModule.cpp
     ../../../../../shared/NativeAudioSpectrumModule.cpp
-    ../../../../../shared/NativeAudioCoreModule.cpp
+    ../../../../../shared/Audio/NativeAudioCoreModule.cpp
     ../../../../../shared/Audio/fft/FFTEngine.hpp
     ../../../../../shared/Audio/core/AudioEqualizer.cpp
     ../../../../../shared/Audio/core/AudioEqualizerTemplates.hpp
@@ -277,7 +277,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 #Audio Pipeline Integration System
     ../../../../../shared/Audio/AudioPipeline.hpp
     ../../../../../shared/Audio/AudioPipeline.cpp
-    
+
 #New Enhanced Features:
 #- AudioCaptureException.hpp : Structured error handling with typed exceptions
 #- AudioCaptureMetrics.hpp : Real - time performance monitoring and profiling
