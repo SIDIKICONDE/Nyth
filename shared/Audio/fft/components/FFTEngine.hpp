@@ -126,15 +126,15 @@ private:
                     size_t idx2 = idx1 + halfStage;
                     size_t twiddleIdx = j * twiddleStep;
 
-                    float tReal = inverse ? -twiddleImag_[twiddleIdx] : twiddleImag_[twiddleIdx];
-                    (void)twiddleReal_[twiddleIdx]; // Variable non utilisée, supprimée pour éviter le warning
+                    float tReal = twiddleReal_[twiddleIdx];
+                    float tImag = twiddleImag_[twiddleIdx];
 
                     if (inverse) {
-                        tReal = -tReal;
+                        tImag = -tImag;
                     }
 
-                    float tempReal = real[idx2] * twiddleReal_[twiddleIdx] - imag[idx2] * tReal;
-                    float tempImag = real[idx2] * tReal + imag[idx2] * twiddleReal_[twiddleIdx];
+                    float tempReal = real[idx2] * tReal - imag[idx2] * tImag;
+                    float tempImag = real[idx2] * tImag + imag[idx2] * tReal;
 
                     real[idx2] = real[idx1] - tempReal;
                     imag[idx2] = imag[idx1] - tempImag;

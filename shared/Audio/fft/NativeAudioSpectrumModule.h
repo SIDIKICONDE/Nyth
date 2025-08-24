@@ -8,9 +8,9 @@
 #include <mutex>
 
 #include "../../jsi/JSICallbackManager.h"
-#include "Audio/spectrum/config/SpectrumConfig.h"
-#include "Audio/spectrum/jsi/SpectrumJSIConverter.h"
-#include "Audio/spectrum/managers/SpectrumManager.h"
+#include "config/SpectrumConfig.h"
+#include "jsi/SpectrumJSIConverter.h"
+#include "managers/SpectrumManager.h"
 
 namespace facebook {
 namespace react {
