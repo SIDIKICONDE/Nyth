@@ -138,6 +138,13 @@ private:
     // Conversion de configuration
     Nyth::Audio::AudioCaptureConfig toCaptureConfig(const Nyth::Audio::AudioConfig& config) const;
     Nyth::Audio::AudioConfig toAudioConfig(const Nyth::Audio::AudioCaptureConfig& config) const;
+
+    // Analyse périodique
+    std::thread analysisThread_;
+    std::atomic<bool> analysisRunning_{false};
+    std::atomic<int> analysisIntervalMs_{100};
+    void startAnalysisLoop();
+    void stopAnalysisLoop();
 };
 
 // === Fonction d'enregistrement du module ===

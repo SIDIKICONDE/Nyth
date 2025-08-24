@@ -306,33 +306,82 @@ jsi::Value NativeAudioCaptureModule::requestPermission(jsi::Runtime& rt) {
 // === Enregistrement ===
 jsi::Value NativeAudioCaptureModule::startRecording(jsi::Runtime& rt, const jsi::String& filePath,
                                                     const jsi::Object& options) {
-    // TODO: Implémenter avec AudioRecorderManager
-    return jsi::Value(false);
+    if (!isInitialized_.load() || !captureManager_) {
+        return jsi::Value(false);
+    }
+
+    Nyth::Audio::AudioFileWriterConfig writerCfg;
+    writerCfg.filePath = filePath.utf8(rt);
+    writerCfg.sampleRate = config_.sampleRate;
+    writerCfg.channelCount = config_.channelCount;
+    writerCfg.bitsPerSample = config_.bitsPerSample;
+
+    // Options: format, maxDuration, maxFileSize
+    if (options.hasProperty(rt, "format")) {
+        auto fmtStr = options.getProperty(rt, "format").asString(rt).utf8(rt);
+        if (fmtStr == "wav" || fmtStr == "WAV") {
+            writerCfg.format = Nyth::Audio::AudioFileFormat::WAV;
+        } else if (fmtStr == "raw" || fmtStr == "RAW" || fmtStr == "raw_pcm") {
+            writerCfg.format = Nyth::Audio::AudioFileFormat::RAW_PCM;
+        }
+    }
+
+    float maxDurationSeconds = 0.0f;
+    size_t maxFileSizeBytes = 0;
+    if (options.hasProperty(rt, "maxDuration")) {
+        maxDurationSeconds = static_cast<float>(options.getProperty(rt, "maxDuration").asNumber());
+    }
+    if (options.hasProperty(rt, "maxFileSize")) {
+        maxFileSizeBytes = static_cast<size_t>(options.getProperty(rt, "maxFileSize").asNumber());
+    }
+
+    bool ok = captureManager_->startRecording(writerCfg.filePath, writerCfg, maxDurationSeconds, maxFileSizeBytes);
+    return jsi::Value(ok);
 }
 
 jsi::Value NativeAudioCaptureModule::stopRecording(jsi::Runtime& rt) {
-    // TODO: Implémenter avec AudioRecorderManager
+    if (captureManager_) {
+        captureManager_->stopRecording();
+        return jsi::Value(true);
+    }
     return jsi::Value(false);
 }
 
 jsi::Value NativeAudioCaptureModule::pauseRecording(jsi::Runtime& rt) {
-    // TODO: Implémenter avec AudioRecorderManager
+    if (captureManager_) {
+        captureManager_->pauseRecording();
+        return jsi::Value(true);
+    }
     return jsi::Value(false);
 }
 
 jsi::Value NativeAudioCaptureModule::resumeRecording(jsi::Runtime& rt) {
-    // TODO: Implémenter avec AudioRecorderManager
+    if (captureManager_) {
+        captureManager_->resumeRecording();
+        return jsi::Value(true);
+    }
     return jsi::Value(false);
 }
 
 jsi::Value NativeAudioCaptureModule::isRecording(jsi::Runtime& rt) {
-    // TODO: Implémenter avec AudioRecorderManager
+    if (captureManager_) {
+        return jsi::Value(captureManager_->isRecording());
+    }
     return jsi::Value(false);
 }
 
 jsi::Value NativeAudioCaptureModule::getRecordingInfo(jsi::Runtime& rt) {
-    // TODO: Implémenter avec AudioRecorderManager
-    return jsi::Value::null();
+    if (!captureManager_) {
+        return jsi::Value::null();
+    }
+    auto info = captureManager_->getRecordingInfo();
+    auto obj = jsi::Object(rt);
+    obj.setProperty(rt, "duration", jsi::Value(info.durationSeconds));
+    obj.setProperty(rt, "frames", jsi::Value(static_cast<double>(info.frames)));
+    obj.setProperty(rt, "path", jsi::String::createFromUtf8(rt, info.path));
+    obj.setProperty(rt, "isRecording", jsi::Value(info.recording));
+    obj.setProperty(rt, "isPaused", jsi::Value(info.paused));
+    return obj;
 }
 
 // === Callbacks JavaScript ===
@@ -362,6 +411,9 @@ jsi::Value NativeAudioCaptureModule::setAnalysisCallback(jsi::Runtime& rt, const
     if (callbackManager_) {
         callbackManager_->setAnalysisCallback(callback);
     }
+    // Démarrer/mettre à jour la boucle d'analyse
+    analysisIntervalMs_.store(static_cast<int>(intervalMs));
+    startAnalysisLoop();
     return jsi::Value::undefined();
 }
 
@@ -555,6 +607,41 @@ void NativeAudioCaptureModule::invalidateRuntime() {
 void NativeAudioCaptureModule::handleError(const std::string& error) {
     if (callbackManager_) {
         callbackManager_->invokeErrorCallback(error);
+    }
+}
+
+void NativeAudioCaptureModule::startAnalysisLoop() {
+    stopAnalysisLoop();
+    analysisRunning_.store(true);
+    analysisThread_ = std::thread([this]() {
+        while (analysisRunning_.load()) {
+            int sleepMs = std::max(10, analysisIntervalMs_.load());
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
+            if (!analysisRunning_.load()) break;
+            if (!runtimeValid_.load() || !callbackManager_ || !captureManager_) continue;
+
+            // Collecte des métriques simples
+            float current = static_cast<float>(captureManager_->getCurrentLevel());
+            float peak = static_cast<float>(captureManager_->getPeakLevel());
+            float avg = static_cast<float>(captureManager_->getRMS());
+            auto stats = captureManager_->getStatistics();
+
+            try {
+                if (runtime_ && callbackManager_) {
+                    auto analysisObj = JSIConverter::createAnalysisData(*runtime_, current, peak, avg, stats.framesProcessed);
+                    callbackManager_->invokeAnalysisCallback(analysisObj);
+                }
+            } catch (...) {
+                // Éviter de tuer le thread en cas d'exception
+            }
+        }
+    });
+}
+
+void NativeAudioCaptureModule::stopAnalysisLoop() {
+    analysisRunning_.store(false);
+    if (analysisThread_.joinable()) {
+        analysisThread_.join();
     }
 }
 
