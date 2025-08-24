@@ -11,6 +11,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <vector>
 
 namespace facebook {
 namespace react {
@@ -40,11 +41,17 @@ public:
 
     // === Callback générique pour les effets ===
     virtual void invokeCallback(const std::string& callbackName, std::function<jsi::Value(jsi::Runtime&)> callback) = 0;
+    virtual void invokeCallback(const std::string& callbackName,
+                                std::function<std::vector<jsi::Value>(jsi::Runtime&)> callback) = 0;
 
     // === Gestion de la file d'attente ===
     virtual void setMaxQueueSize(size_t maxSize) = 0;
     virtual size_t getQueueSize() const = 0;
     virtual bool isQueueFull() const = 0;
+
+    // === API générique de gestion des callbacks ===
+    virtual void registerCallback(const std::string& name, jsi::Runtime& rt, const jsi::Function& callback) = 0;
+    virtual void setCallback(const std::string& name, jsi::Runtime& rt, const jsi::Function& callback) = 0;
 };
 
 // === Implémentation du gestionnaire de callbacks JSI ===
@@ -77,6 +84,14 @@ public:
     void setMaxQueueSize(size_t maxSize);
     size_t getQueueSize() const;
     bool isQueueFull() const;
+
+    // === API générique de gestion des callbacks ===
+    void registerCallback(const std::string& name, jsi::Runtime& rt, const jsi::Function& callback);
+    void setCallback(const std::string& name, jsi::Runtime& rt, const jsi::Function& callback);
+
+    // === Callback générique pour les effets ===
+    void invokeCallback(const std::string& callbackName,
+                        std::function<std::vector<jsi::Value>(jsi::Runtime&)> callback);
 
 private:
     // === Structure pour les callbacks ===

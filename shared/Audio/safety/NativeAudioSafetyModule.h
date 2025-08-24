@@ -84,6 +84,9 @@ private:
     std::unique_ptr<SafetyManager> safetyManager_;
     std::shared_ptr<JSICallbackManager> callbackManager_;
 
+    // === JS Invoker ===
+    std::shared_ptr<CallInvoker> jsInvoker_;
+
     // === Configuration ===
     Nyth::Audio::SafetyConfig config_;
 

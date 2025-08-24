@@ -78,6 +78,9 @@ private:
     std::unique_ptr<Nyth::Audio::ISpectrumManager> spectrumManager_;
     std::shared_ptr<IJSICallbackManager> callbackManager_;
 
+    // === JS Invoker ===
+    std::shared_ptr<CallInvoker> jsInvoker_;
+
     // === Configuration ===
     Nyth::Audio::SpectrumConfig config_;
 

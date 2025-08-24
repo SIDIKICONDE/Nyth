@@ -8,6 +8,7 @@ namespace react {
 
 NativeAudioSafetyModule::NativeAudioSafetyModule(std::shared_ptr<CallInvoker> jsInvoker)
     : TurboModule("NativeAudioSafetyModule", jsInvoker) {
+    jsInvoker_ = jsInvoker;
     // Initialisation des composants
     initializeManagers();
 
@@ -95,13 +96,8 @@ jsi::Value NativeAudioSafetyModule::dispose(jsi::Runtime& rt) {
 jsi::Value NativeAudioSafetyModule::getState(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    auto stateObj = jsi::Object(rt);
-    stateObj.setProperty(rt, "state", jsi::Value(static_cast<int32_t>(currentState_.load())));
-    stateObj.setProperty(rt, "stateString", jsi::String::createFromUtf8(rt, stateToString(currentState_.load())));
-    stateObj.setProperty(rt, "isInitialized", jsi::Value(isInitialized_.load()));
-    stateObj.setProperty(rt, "isProcessing", jsi::Value(isProcessing_.load()));
-
-    return stateObj;
+    // Retourner une string pour compat TS (SafetyState)
+    return jsi::String::createFromUtf8(rt, stateToString(currentState_.load()));
 }
 
 jsi::Value NativeAudioSafetyModule::getErrorString(jsi::Runtime& rt, int errorCode) {
@@ -140,10 +136,13 @@ jsi::Value NativeAudioSafetyModule::setConfig(jsi::Runtime& rt, const jsi::Objec
 
         // Application de la configuration
         if (safetyManager_ && safetyManager_->setConfig(newConfig)) {
+            // Sauvegarder l'ancienne configuration pour détecter les changements de taille
+            auto prevSampleRate = config_.sampleRate;
+            auto prevChannels = config_.channels;
             config_ = newConfig;
 
             // Reallocation des buffers si nécessaire
-            if (newConfig.sampleRate != config_.sampleRate || newConfig.channels != config_.channels) {
+            if (newConfig.sampleRate != prevSampleRate || newConfig.channels != prevChannels) {
                 resetBuffers();
             }
 
@@ -476,7 +475,7 @@ jsi::Value NativeAudioSafetyModule::setAudioDataCallback(jsi::Runtime& rt, const
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("audioData", rt, callback);
+        callbackManager_->setAudioDataCallback(callback);
     }
 
     if (safetyManager_) {
@@ -492,7 +491,7 @@ jsi::Value NativeAudioSafetyModule::setErrorCallback(jsi::Runtime& rt, const jsi
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("error", rt, callback);
+        callbackManager_->setErrorCallback(callback);
     }
 
     return jsi::Value(true);
@@ -502,7 +501,7 @@ jsi::Value NativeAudioSafetyModule::setStateChangeCallback(jsi::Runtime& rt, con
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("stateChange", rt, callback);
+        callbackManager_->setStateChangeCallback(callback);
     }
 
     return jsi::Value(true);
@@ -512,7 +511,7 @@ jsi::Value NativeAudioSafetyModule::setReportCallback(jsi::Runtime& rt, const js
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("report", rt, callback);
+        callbackManager_->setAnalysisCallback(callback);
     }
 
     if (safetyManager_) {
@@ -686,12 +685,68 @@ jsi::Value NativeAudioSafetyModule::install(jsi::Runtime& rt, std::shared_ptr<Ca
                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
                                          size_t count) { return module->getLastReport(rt); }));
 
+    // Alias getReport
+    turboModule.setProperty(rt, "getReport",
+                            jsi::Function::createFromHostFunction(
+                                rt, jsi::PropNameID::forUtf8(rt, "getReport"), 0,
+                                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                         size_t count) { return module->getLastReport(rt); }));
+
     // Fonction getStatistics
     turboModule.setProperty(rt, "getStatistics",
                             jsi::Function::createFromHostFunction(
                                 rt, jsi::PropNameID::forUtf8(rt, "getStatistics"), 0,
                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
                                          size_t count) { return module->getStatistics(rt); }));
+
+    // Alias getMetrics -> getStatisticsSimple
+    turboModule.setProperty(rt, "getMetrics",
+                            jsi::Function::createFromHostFunction(
+                                rt, jsi::PropNameID::forUtf8(rt, "getMetrics"), 0,
+                                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                         size_t count) {
+                                    // Reuse simple mapping
+                                    auto statsVal = module->getStatistics(rt);
+                                    if (!statsVal.isObject()) {
+                                        return jsi::Value::null(rt);
+                                    }
+                                    auto original = statsVal.asObject(rt);
+                                    jsi::Object result(rt);
+                                    if (original.hasProperty(rt, "minReport")) {
+                                        result.setProperty(rt, "min", original.getProperty(rt, "minReport"));
+                                    }
+                                    if (original.hasProperty(rt, "maxReport")) {
+                                        result.setProperty(rt, "max", original.getProperty(rt, "maxReport"));
+                                    }
+                                    if (original.hasProperty(rt, "avgReport")) {
+                                        result.setProperty(rt, "avg", original.getProperty(rt, "avgReport"));
+                                    }
+                                    return jsi::Value(result);
+                                }));
+
+    // Fonction getStatisticsSimple (min/max/avg)
+    turboModule.setProperty(
+        rt, "getStatisticsSimple",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "getStatisticsSimple"), 0,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                auto statsVal = module->getStatistics(rt);
+                if (!statsVal.isObject()) {
+                    return jsi::Value::null(rt);
+                }
+                auto original = statsVal.asObject(rt);
+                jsi::Object result(rt);
+                if (original.hasProperty(rt, "minReport")) {
+                    result.setProperty(rt, "min", original.getProperty(rt, "minReport"));
+                }
+                if (original.hasProperty(rt, "maxReport")) {
+                    result.setProperty(rt, "max", original.getProperty(rt, "maxReport"));
+                }
+                if (original.hasProperty(rt, "avgReport")) {
+                    result.setProperty(rt, "avg", original.getProperty(rt, "avgReport"));
+                }
+                return jsi::Value(result);
+            }));
 
     // Fonction resetStatistics
     turboModule.setProperty(rt, "resetStatistics",
@@ -735,6 +790,44 @@ jsi::Value NativeAudioSafetyModule::install(jsi::Runtime& rt, std::shared_ptr<Ca
                                                                       }
                                                                       return jsi::Value(0.0);
                                                                   }));
+
+    // Alias pour la compatibilité TS
+    turboModule.setProperty(
+        rt, "processMono",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "processMono"), 1,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 1 && args[0].isObject()) {
+                    auto inputArray = args[0].asObject(rt).asArray(rt);
+                    return module->processAudio(rt, inputArray, 1);
+                }
+                return jsi::Value(nullptr);
+            }));
+
+    turboModule.setProperty(
+        rt, "processStereo",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "processStereo"), 2,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 2 && args[0].isObject() && args[1].isObject()) {
+                    auto inputLArray = args[0].asObject(rt).asArray(rt);
+                    auto inputRArray = args[1].asObject(rt).asArray(rt);
+                    return module->processAudioStereo(rt, inputLArray, inputRArray);
+                }
+                return jsi::Value(nullptr);
+            }));
+
+    turboModule.setProperty(rt, "getCurrentPeak",
+                            jsi::Function::createFromHostFunction(
+                                rt, jsi::PropNameID::forUtf8(rt, "getCurrentPeak"), 0,
+                                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                         size_t count) { return module->getCurrentPeakLevel(rt); }));
+
+    turboModule.setProperty(rt, "getCurrentRMS",
+                            jsi::Function::createFromHostFunction(
+                                rt, jsi::PropNameID::forUtf8(rt, "getCurrentRMS"), 0,
+                                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                         size_t count) { return module->getCurrentRMSLevel(rt); }));
 
     // Callbacks
     turboModule.setProperty(
@@ -792,7 +885,7 @@ jsi::Value NativeAudioSafetyModule::install(jsi::Runtime& rt, std::shared_ptr<Ca
 
 void NativeAudioSafetyModule::initializeManagers() {
     // Créer le callback manager
-    callbackManager_ = std::make_shared<JSICallbackManager>();
+    callbackManager_ = std::make_shared<JSICallbackManager>(jsInvoker_);
 
     // Créer le safety manager
     safetyManager_ = std::make_unique<SafetyManager>(callbackManager_);

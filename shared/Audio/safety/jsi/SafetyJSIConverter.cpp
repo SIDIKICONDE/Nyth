@@ -28,6 +28,32 @@ Nyth::Audio::SafetyConfig SafetyJSIConverter::jsiToSafetyConfig(jsi::Runtime& rt
         config.enabled = getJSIBool(rt, jsConfig, PROP_ENABLED, config.enabled);
     }
 
+    // Configuration aplatie (compat TS)
+    if (hasProperty(rt, jsConfig, "dcRemovalEnabled")) {
+        config.dcConfig.enabled = getJSIBool(rt, jsConfig, "dcRemovalEnabled", config.dcConfig.enabled);
+    }
+    if (hasProperty(rt, jsConfig, "dcThreshold")) {
+        config.dcConfig.threshold = getJSIDouble(rt, jsConfig, "dcThreshold", config.dcConfig.threshold);
+    }
+    if (hasProperty(rt, jsConfig, "limiterEnabled")) {
+        config.limiterConfig.enabled = getJSIBool(rt, jsConfig, "limiterEnabled", config.limiterConfig.enabled);
+    }
+    if (hasProperty(rt, jsConfig, "limiterThresholdDb")) {
+        config.limiterConfig.thresholdDb = getJSIDouble(rt, jsConfig, "limiterThresholdDb", config.limiterConfig.thresholdDb);
+    }
+    if (hasProperty(rt, jsConfig, "softKneeLimiter")) {
+        config.limiterConfig.softKnee = getJSIBool(rt, jsConfig, "softKneeLimiter", config.limiterConfig.softKnee);
+    }
+    if (hasProperty(rt, jsConfig, "kneeWidthDb")) {
+        config.limiterConfig.kneeWidthDb = getJSIDouble(rt, jsConfig, "kneeWidthDb", config.limiterConfig.kneeWidthDb);
+    }
+    if (hasProperty(rt, jsConfig, "feedbackDetectEnabled")) {
+        config.feedbackConfig.enabled = getJSIBool(rt, jsConfig, "feedbackDetectEnabled", config.feedbackConfig.enabled);
+    }
+    if (hasProperty(rt, jsConfig, "feedbackCorrThreshold")) {
+        config.feedbackConfig.threshold = getJSIDouble(rt, jsConfig, "feedbackCorrThreshold", config.feedbackConfig.threshold);
+    }
+
     // Configuration DC
     if (hasProperty(rt, jsConfig, PROP_DC_CONFIG) && isPropertyObject(rt, jsConfig, PROP_DC_CONFIG)) {
         auto dcObj = jsConfig.getProperty(rt, PROP_DC_CONFIG).asObject(rt);
@@ -174,6 +200,11 @@ Nyth::Audio::OptimizationConfig SafetyJSIConverter::jsiToOptimizationConfig(jsi:
         config.memoryPoolSize = static_cast<size_t>(
             getJSIUint32(rt, jsConfig, PROP_OPT_POOL_SIZE, static_cast<uint32_t>(config.memoryPoolSize)));
     }
+    // Alias TS: poolSize
+    if (hasProperty(rt, jsConfig, "poolSize")) {
+        config.memoryPoolSize = static_cast<size_t>(
+            getJSIUint32(rt, jsConfig, "poolSize", static_cast<uint32_t>(config.memoryPoolSize)));
+    }
 
     if (hasProperty(rt, jsConfig, PROP_OPT_STATISTICS)) {
         config.enableStatistics = getJSIBool(rt, jsConfig, PROP_OPT_STATISTICS, config.enableStatistics);
@@ -305,6 +336,11 @@ jsi::Object SafetyJSIConverter::safetyStatisticsToJSI(jsi::Runtime& rt, const Ny
     setJSIProperty(rt, jsStats, PROP_MAX_REPORT, safetyReportToJSI(rt, stats.maxReport));
     setJSIProperty(rt, jsStats, PROP_AVG_REPORT, safetyReportToJSI(rt, stats.avgReport));
     setJSIProperty(rt, jsStats, PROP_LAST_REPORT, safetyReportToJSI(rt, stats.lastReport));
+
+    // Alias pour compat TS: exposer également min/max/avg
+    jsStats.setProperty(rt, "min", safetyReportToJSI(rt, stats.minReport));
+    jsStats.setProperty(rt, "max", safetyReportToJSI(rt, stats.maxReport));
+    jsStats.setProperty(rt, "avg", safetyReportToJSI(rt, stats.avgReport));
 
     setJSIProperty(rt, jsStats, PROP_TOTAL_FRAMES, static_cast<double>(stats.totalFrames));
     setJSIProperty(rt, jsStats, PROP_TOTAL_CLIPPED, static_cast<double>(stats.totalClippedSamples));

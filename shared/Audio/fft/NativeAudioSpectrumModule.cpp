@@ -8,6 +8,7 @@ namespace react {
 
 NativeAudioSpectrumModule::NativeAudioSpectrumModule(std::shared_ptr<CallInvoker> jsInvoker)
     : TurboModule("NativeAudioSpectrumModule", jsInvoker) {
+    jsInvoker_ = jsInvoker;
     // Initialisation des composants
     initializeManagers();
 
@@ -594,7 +595,7 @@ jsi::Value NativeAudioSpectrumModule::install(jsi::Runtime& rt, std::shared_ptr<
 
 void NativeAudioSpectrumModule::initializeManagers() {
     // Créer le callback manager
-    callbackManager_ = std::make_shared<JSICallbackManager>();
+    callbackManager_ = std::make_shared<JSICallbackManager>(jsInvoker_);
 
     // Créer le spectrum manager
     spectrumManager_ = std::make_unique<Nyth::Audio::SpectrumManager>();
