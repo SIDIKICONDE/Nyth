@@ -3,6 +3,7 @@
 #if NYTH_AUDIO_CORE_ENABLED
 
 #include <algorithm>
+#include "jsi/JSIConverter.h"
 
 namespace facebook {
 namespace react {
@@ -20,6 +21,16 @@ NativeAudioCoreModule::~NativeAudioCoreModule() {
 }
 
 // === Cycle de vie ===
+/**
+ * @brief Initialise le module audio core et tous ses composants
+ * 
+ * Cette méthode doit être appelée avant toute autre opération.
+ * Elle initialise les managers (equalizer, filter, analysis) et configure
+ * le runtime JSI pour les callbacks.
+ * 
+ * @param rt Runtime JSI pour l'exécution JavaScript
+ * @return jsi::Value(true) si l'initialisation réussit, jsi::Value(false) sinon
+ */
 jsi::Value NativeAudioCoreModule::initialize(jsi::Runtime& rt) {
     try {
         setRuntime(&rt);
@@ -64,6 +75,17 @@ jsi::Value NativeAudioCoreModule::getErrorString(jsi::Runtime& rt, int errorCode
 }
 
 // === Égaliseur ===
+/**
+ * @brief Initialise l'égaliseur audio avec une configuration personnalisée
+ * 
+ * @param rt Runtime JSI
+ * @param config Objet JavaScript contenant la configuration:
+ *   - sampleRate: Taux d'échantillonnage (ex: 44100, 48000)
+ *   - bufferSize: Taille du buffer audio
+ *   - channels: Nombre de canaux (1 pour mono, 2 pour stéréo)
+ *   - format: Format audio ("float32", "int16", etc.)
+ * @return jsi::Value(true) si succès, jsi::Value(false) sinon
+ */
 jsi::Value NativeAudioCoreModule::equalizerInitialize(jsi::Runtime& rt, const jsi::Object& config) {
     if (!isInitialized_.load()) {
         handleError(1, "Audio core not initialized");
@@ -246,6 +268,16 @@ jsi::Value NativeAudioCoreModule::equalizerGetNumBands(jsi::Runtime& rt) {
     return jsi::Value(static_cast<int>(equalizerManager_->getNumBands()));
 }
 
+/**
+ * @brief Traite un signal audio mono avec l'égaliseur
+ * 
+ * Cette méthode applique l'égalisation configurée à un signal mono.
+ * Supporte les TypedArray (Float32Array) pour de meilleures performances.
+ * 
+ * @param rt Runtime JSI
+ * @param input Array JavaScript contenant les échantillons audio (Float32Array recommandé)
+ * @return Array JavaScript contenant les échantillons traités, ou null en cas d'erreur
+ */
 jsi::Value NativeAudioCoreModule::equalizerProcessMono(jsi::Runtime& rt, const jsi::Array& input) {
     if (!equalizerManager_ || !equalizerManager_->isInitialized()) {
         handleError(1, "Equalizer not initialized");
@@ -253,22 +285,13 @@ jsi::Value NativeAudioCoreModule::equalizerProcessMono(jsi::Runtime& rt, const j
     }
 
     try {
-        // Convertir l'array JavaScript en vector C++
-        size_t length = input.length(rt);
-        std::vector<float> inputData(length);
-        std::vector<float> outputData(length);
+        // Utiliser le JSIConverter pour une conversion optimisée
+        auto inputData = JSIConverter::jsArrayToFloatVector(rt, input);
+        std::vector<float> outputData(inputData.size());
 
-        for (size_t i = 0; i < length; ++i) {
-            inputData[i] = static_cast<float>(input.getValueAtIndex(rt, i).asNumber());
-        }
-
-        if (equalizerManager_->processMono(inputData.data(), outputData.data(), length)) {
-            // Convertir le résultat en array JavaScript
-            jsi::Array result(rt, length);
-            for (size_t i = 0; i < length; ++i) {
-                result.setValueAtIndex(rt, i, jsi::Value(outputData[i]));
-            }
-            return result;
+        if (equalizerManager_->processMono(inputData.data(), outputData.data(), inputData.size())) {
+            // Convertir le résultat en array JavaScript (optimisé avec TypedArray si possible)
+            return JSIConverter::floatVectorToJSArray(rt, outputData);
         }
 
         return jsi::Value::null();
@@ -279,6 +302,18 @@ jsi::Value NativeAudioCoreModule::equalizerProcessMono(jsi::Runtime& rt, const j
     }
 }
 
+/**
+ * @brief Traite un signal audio stéréo avec l'égaliseur
+ * 
+ * Cette méthode applique l'égalisation configurée à un signal stéréo.
+ * Les canaux gauche et droit sont traités séparément mais avec les mêmes paramètres.
+ * Supporte les TypedArray (Float32Array) pour de meilleures performances.
+ * 
+ * @param rt Runtime JSI
+ * @param inputL Array JavaScript contenant les échantillons du canal gauche
+ * @param inputR Array JavaScript contenant les échantillons du canal droit
+ * @return Objet JavaScript avec propriétés 'left' et 'right' contenant les arrays traités
+ */
 jsi::Value NativeAudioCoreModule::equalizerProcessStereo(jsi::Runtime& rt, const jsi::Array& inputL,
                                                          const jsi::Array& inputR) {
     if (!equalizerManager_ || !equalizerManager_->isInitialized()) {
@@ -287,35 +322,24 @@ jsi::Value NativeAudioCoreModule::equalizerProcessStereo(jsi::Runtime& rt, const
     }
 
     try {
-        // Convertir les arrays JavaScript en vectors C++
-        size_t length = inputL.length(rt);
-        if (inputR.length(rt) != length) {
+        // Utiliser le JSIConverter pour une conversion optimisée
+        auto inputLData = JSIConverter::jsArrayToFloatVector(rt, inputL);
+        auto inputRData = JSIConverter::jsArrayToFloatVector(rt, inputR);
+        
+        if (inputLData.size() != inputRData.size()) {
             handleError(2, "Left and right channels must have same length");
             return jsi::Value::null();
         }
 
-        std::vector<float> inputLData(length), inputRData(length);
-        std::vector<float> outputLData(length), outputRData(length);
-
-        for (size_t i = 0; i < length; ++i) {
-            inputLData[i] = static_cast<float>(inputL.getValueAtIndex(rt, i).asNumber());
-            inputRData[i] = static_cast<float>(inputR.getValueAtIndex(rt, i).asNumber());
-        }
+        std::vector<float> outputLData(inputLData.size());
+        std::vector<float> outputRData(inputRData.size());
 
         if (equalizerManager_->processStereo(inputLData.data(), inputRData.data(), outputLData.data(),
-                                             outputRData.data(), length)) {
-            // Convertir le résultat en object JavaScript
+                                             outputRData.data(), inputLData.size())) {
+            // Convertir les résultats en objet JavaScript avec deux arrays optimisés
             jsi::Object result(rt);
-            jsi::Array leftResult(rt, length);
-            jsi::Array rightResult(rt, length);
-
-            for (size_t i = 0; i < length; ++i) {
-                leftResult.setValueAtIndex(rt, i, jsi::Value(outputLData[i]));
-                rightResult.setValueAtIndex(rt, i, jsi::Value(outputRData[i]));
-            }
-
-            result.setProperty(rt, "left", leftResult);
-            result.setProperty(rt, "right", rightResult);
+            result.setProperty(rt, "left", JSIConverter::floatVectorToJSArray(rt, outputLData));
+            result.setProperty(rt, "right", JSIConverter::floatVectorToJSArray(rt, outputRData));
             return result;
         }
 
@@ -617,6 +641,19 @@ jsi::Value NativeAudioCoreModule::validateGainDB(jsi::Runtime& rt, double gainDB
 }
 
 // === Installation du module ===
+/**
+ * @brief Installe le module NativeAudioCoreModule dans le runtime JavaScript
+ * 
+ * Cette méthode statique crée une instance du module et expose toutes ses méthodes
+ * au JavaScript. Elle utilise une macro optimisée pour enregistrer les méthodes
+ * avec support des TypedArray pour les conversions de données audio.
+ * 
+ * @param rt Runtime JSI où installer le module
+ * @param jsInvoker CallInvoker pour l'exécution asynchrone des callbacks
+ * @return Objet JavaScript contenant toutes les méthodes du module
+ * 
+ * @note Le module est accessible globalement via window.NativeAudioCoreModule
+ */
 jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker) {
     auto module = std::make_shared<NativeAudioCoreModule>(jsInvoker);
 
@@ -624,11 +661,26 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
 
 // Macro pour enregistrer une méthode
 #define REGISTER_METHOD(name, paramCount)                                                                  \
-    object.setProperty(rt, name,                                                                           \
+    object.setProperty(rt, #name,                                                                          \
                        jsi::Function::createFromHostFunction(                                              \
-                           rt, jsi::PropNameID::forAscii(rt, name), static_cast<unsigned int>(paramCount), \
-                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args,           \
-                                    size_t count) -> jsi::Value { return module->name(rt, ##__VA_ARGS__); }))
+                           rt, jsi::PropNameID::forAscii(rt, #name), static_cast<unsigned int>(paramCount), \
+                           [module](jsi::Runtime& runtime, const jsi::Value&, const jsi::Value* args,      \
+                                    size_t count) -> jsi::Value {                                          \
+                               if (paramCount == 0) {                                                      \
+                                   return module->name(runtime);                                           \
+                               } else if (paramCount == 1) {                                              \
+                                   return module->name(runtime, args[0]);                                  \
+                               } else if (paramCount == 2) {                                              \
+                                   return module->name(runtime, args[0], args[1]);                         \
+                               } else if (paramCount == 3) {                                              \
+                                   return module->name(runtime, args[0], args[1], args[2]);                \
+                               } else if (paramCount == 4) {                                              \
+                                   return module->name(runtime, args[0], args[1], args[2], args[3]);       \
+                               } else if (paramCount == 5) {                                              \
+                                   return module->name(runtime, args[0], args[1], args[2], args[3], args[4]); \
+                               }                                                                           \
+                               return jsi::Value::undefined();                                             \
+                           }))
 
     // Enregistrer les méthodes
     REGISTER_METHOD(initialize, 0);
