@@ -409,7 +409,13 @@ std::vector<float> NoiseJSIConverter::arrayToVector(jsi::Runtime& rt, const jsi:
     std::vector<float> vector(length);
 
     for (size_t i = 0; i < length; ++i) {
-        vector[i] = static_cast<float>(array.getValueAtIndex(rt, i).asNumber());
+        jsi::Value value = array.getValueAtIndex(rt, i);
+        if (value.isNumber()) {
+            vector[i] = static_cast<float>(value.asNumber());
+        } else {
+            // En cas de valeur non numérique, utiliser 0.0f
+            vector[i] = 0.0f;
+        }
     }
 
     return vector;

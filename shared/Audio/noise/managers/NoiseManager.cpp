@@ -305,16 +305,16 @@ void NoiseManager::initializeNoiseComponents() {
             // Mapping des algorithmes
             switch (config_.algorithm) {
                 case Nyth::Audio::NoiseAlgorithm::ADVANCED_SPECTRAL:
-                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::MMSE_LSA;
+                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::MMSE_LSA;
                     break;
                 case Nyth::Audio::NoiseAlgorithm::WIENER_FILTER:
-                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::WIENER_FILTER;
+                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::WIENER_FILTER;
                     break;
                 case Nyth::Audio::NoiseAlgorithm::MULTIBAND:
-                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::MULTIBAND;
+                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::MULTIBAND;
                     break;
                 default:
-                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::Algorithm::SPECTRAL_SUBTRACTION;
+                    advConfig.algorithm = AudioNR::AdvancedSpectralNR::Config::SPECTRAL_SUBTRACTION;
                     break;
             }
 

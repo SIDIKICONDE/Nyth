@@ -5,9 +5,12 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <functional>
 
 #include "../config/NoiseConfig.h"
 #include "../../jsi/JSICallbackManager.h"
+#include "../components/Spectral/AdvancedSpectralNR.hpp"
+#include "../components/Noise/NoiseReducer.hpp"
 
 namespace facebook {
 namespace react {
@@ -85,7 +88,8 @@ private:
     ProcessingCallback processingCallback_;
 
     // === Méthodes privées ===
-    void initializeNoiseSystem();
+    void initializeNoiseComponents();
+    bool processAudioWithAlgorithm(const float* input, float* output, size_t frameCount, int channels);
     void updateStatistics(const float* input, const float* output, size_t frameCount, int channels);
     void notifyStatisticsCallback();
     void notifyProcessingCallback(const float* input, const float* output, size_t frameCount);
@@ -94,6 +98,7 @@ private:
     // === Helpers ===
     float calculateRMS(const float* data, size_t size) const;
     void resetStatsInternal();
+    void handleError(const std::string& error);
 };
 
 } // namespace react

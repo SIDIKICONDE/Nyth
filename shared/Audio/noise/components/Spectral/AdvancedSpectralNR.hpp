@@ -1,10 +1,10 @@
 #pragma once
 
 #ifdef __cplusplus
-#include "IMCRA.hpp"
+#include "../Imcra/Imcra.hpp"
+#include "../Wiener/WienerFilter.hpp"
 #include "MultibandProcessor.hpp"
-#include "WienerFilter.hpp"
-#include "../fft/FFTEngine.hpp"
+#include "../../../fft/components/FFTEngine.hpp"
 #include <memory>
 #include <string>
 #include <vector>
