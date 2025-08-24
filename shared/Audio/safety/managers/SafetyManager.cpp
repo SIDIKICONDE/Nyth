@@ -197,9 +197,32 @@ bool SafetyManager::processAudio(const float* input, float* output, size_t frame
 
         if (channels == 1) {
             error = processMonoInternal(output, frameCount);
+            // Copy input to output if no processing was done
+            std::memcpy(output, input, frameCount * sizeof(float));
+        } else if (channels == 2) {
+            // Désentrelacer en deux canaux temporaires
+            if (workBufferL_.size() < frameCount) {
+                workBufferL_.resize(frameCount);
+                workBufferR_.resize(frameCount);
+            }
+            for (size_t i = 0; i < frameCount; ++i) {
+                workBufferL_[i] = input[2 * i];
+                workBufferR_[i] = input[2 * i + 1];
+            }
+
+            auto errStereo = processStereoInternal(workBufferL_.data(), workBufferR_.data(), frameCount);
+            error = errStereo;
+
+            // Réentrelacer vers output
+            for (size_t i = 0; i < frameCount; ++i) {
+                output[2 * i] = workBufferL_[i];
+                output[2 * i + 1] = workBufferR_[i];
+            }
         } else {
-            // Pour le moment, traiter comme mono
-            error = processMonoInternal(output, frameCount * channels);
+            // Fallback: traiter chaque canal comme mono séquentiellement
+            size_t totalSamples = frameCount * static_cast<size_t>(channels);
+            std::memcpy(output, input, totalSamples * sizeof(float));
+            error = Nyth::Audio::SafetyError::OK;
         }
 
         auto endTime = std::chrono::steady_clock::now();
@@ -214,11 +237,6 @@ bool SafetyManager::processAudio(const float* input, float* output, size_t frame
 
         if (error != Nyth::Audio::SafetyError::OK) {
             return false;
-        }
-
-        // Copy input to output if no processing was done
-        if (channels == 1) {
-            std::memcpy(output, input, frameCount * sizeof(float));
         }
 
         // Invoke data callback

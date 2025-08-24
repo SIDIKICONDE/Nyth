@@ -8,6 +8,7 @@ namespace facebook {
 namespace react {
 
 NativeAudioNoiseModule::NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsInvoker) : TurboModule() {
+    jsInvoker_ = jsInvoker;
     // Initialisation des composants
     initializeManagers();
 
@@ -410,7 +411,7 @@ jsi::Value NativeAudioNoiseModule::setAudioDataCallback(jsi::Runtime& rt, const 
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("audioData", rt, callback);
+        callbackManager_->setAudioDataCallback(callback);
     }
     return jsi::Value(true);
 }
@@ -419,7 +420,7 @@ jsi::Value NativeAudioNoiseModule::setErrorCallback(jsi::Runtime& rt, const jsi:
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("error", rt, callback);
+        callbackManager_->setErrorCallback(callback);
     }
     return jsi::Value(true);
 }
@@ -428,7 +429,7 @@ jsi::Value NativeAudioNoiseModule::setStateChangeCallback(jsi::Runtime& rt, cons
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("stateChange", rt, callback);
+        callbackManager_->setStateChangeCallback(callback);
     }
     return jsi::Value(true);
 }
@@ -737,7 +738,7 @@ jsi::Value NativeAudioNoiseModule::install(jsi::Runtime& rt, std::shared_ptr<Cal
 // === Méthodes privées ===
 void NativeAudioNoiseModule::initializeManagers() {
     // Créer le callback manager
-    callbackManager_ = std::make_shared<JSICallbackManager>();
+    callbackManager_ = std::make_shared<JSICallbackManager>(jsInvoker_);
 
     // Créer le noise manager avec le callback manager
     noiseManager_ = std::make_unique<NoiseManager>(callbackManager_);
