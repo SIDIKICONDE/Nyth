@@ -7,7 +7,7 @@
 #include <string>
 #include <type_traits>
 #include "EffectBase.hpp"
-#include "EffectConstants.hpp"
+#include "constant/EffectConstants.hpp"
 
 // Compatibilité macOS/Clang
 #ifdef __has_builtin

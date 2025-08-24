@@ -13,7 +13,7 @@
 #include <utility>
 
 #include "EffectBase.hpp"
-#include "EffectConstants.hpp"
+#include "constant/EffectConstants.hpp"
 
 namespace AudioFX {
 

@@ -2,10 +2,12 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
-#include "../../../jsi/JSICallbackManager.h"
+#include "../../capture/jsi/JSICallbackManager.h"
+#include "../components/Compressor.hpp"
 #include "../config/EffectsConfig.h"
 
 namespace facebook {
