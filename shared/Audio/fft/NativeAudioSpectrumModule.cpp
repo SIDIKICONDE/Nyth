@@ -343,36 +343,68 @@ jsi::Value NativeAudioSpectrumModule::validateConfig(jsi::Runtime& rt, const jsi
 jsi::Value NativeAudioSpectrumModule::setDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    if (callbackManager_) {
+    try {
+        // Validation du callback manager
+        if (!callbackManager_) {
+            handleError(Nyth::Audio::SpectrumError::NOT_INITIALIZED, "Callback manager not initialized");
+            return jsi::Value(false);
+        }
+        
+        // Enregistrer le callback avec validation
         callbackManager_->registerCallback("spectrumData", rt, callback);
+        
+        // Configurer le callback sur le spectrum manager si disponible
+        if (spectrumManager_) {
+            spectrumManager_->setDataCallback(
+                [this](const Nyth::Audio::SpectrumData& data) { 
+                    if (data.isValid()) {
+                        this->onSpectrumData(data); 
+                    }
+                });
+        }
+        
+        return jsi::Value(true);
+    } catch (const std::exception& e) {
+        handleError(Nyth::Audio::SpectrumError::INVALID_CONFIG, 
+                   std::string("Failed to set data callback: ") + e.what());
+        return jsi::Value(false);
     }
-
-    if (spectrumManager_) {
-        spectrumManager_->setDataCallback(
-            [this](const Nyth::Audio::SpectrumData& data) { this->onSpectrumData(data); });
-    }
-
-    return jsi::Value(true);
 }
 
 jsi::Value NativeAudioSpectrumModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    if (callbackManager_) {
+    try {
+        if (!callbackManager_) {
+            handleError(Nyth::Audio::SpectrumError::NOT_INITIALIZED, "Callback manager not initialized");
+            return jsi::Value(false);
+        }
+        
         callbackManager_->registerCallback("error", rt, callback);
+        return jsi::Value(true);
+    } catch (const std::exception& e) {
+        handleError(Nyth::Audio::SpectrumError::INVALID_CONFIG, 
+                   std::string("Failed to set error callback: ") + e.what());
+        return jsi::Value(false);
     }
-
-    return jsi::Value(true);
 }
 
 jsi::Value NativeAudioSpectrumModule::setStateCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    if (callbackManager_) {
+    try {
+        if (!callbackManager_) {
+            handleError(Nyth::Audio::SpectrumError::NOT_INITIALIZED, "Callback manager not initialized");
+            return jsi::Value(false);
+        }
+        
         callbackManager_->registerCallback("stateChange", rt, callback);
+        return jsi::Value(true);
+    } catch (const std::exception& e) {
+        handleError(Nyth::Audio::SpectrumError::INVALID_CONFIG, 
+                   std::string("Failed to set state callback: ") + e.what());
+        return jsi::Value(false);
     }
-
-    return jsi::Value(true);
 }
 
 // === Installation du module ===

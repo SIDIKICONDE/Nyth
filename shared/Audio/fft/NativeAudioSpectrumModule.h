@@ -33,13 +33,39 @@ public:
     static constexpr auto kModuleName = "NativeAudioSpectrumModule";
 
     // === Cycle de vie ===
+    
+    /// @brief Initialise le module d'analyse spectrale avec la configuration fournie
+    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @param config Objet de configuration contenant les paramètres FFT
+    /// @return jsi::Value(true) si l'initialisation réussit, jsi::Value(false) sinon
     jsi::Value initialize(jsi::Runtime& rt, const jsi::Object& config);
+    
+    /// @brief Vérifie si le module est correctement initialisé
+    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @return jsi::Value(true) si le module est initialisé
     jsi::Value isInitialized(jsi::Runtime& rt);
+    
+    /// @brief Libère toutes les ressources du module et arrête l'analyse
+    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @return jsi::Value(true) si la libération réussit
     jsi::Value release(jsi::Runtime& rt);
 
     // === État et informations ===
+    
+    /// @brief Récupère l'état actuel du module
+    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @return Objet contenant l'état, isInitialized, isAnalyzing
     jsi::Value getState(jsi::Runtime& rt);
+    
+    /// @brief Convertit un code d'erreur en message descriptif
+    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @param errorCode Code d'erreur SpectrumError
+    /// @return Chaîne décrivant l'erreur
     jsi::Value getErrorString(jsi::Runtime& rt, int errorCode);
+    
+    /// @brief Récupère les informations détaillées du module
+    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @return Objet contenant version, capacités et configuration
     jsi::Value getInfo(jsi::Runtime& rt);
 
     // === Configuration ===
@@ -47,7 +73,18 @@ public:
     jsi::Value getConfig(jsi::Runtime& rt);
 
     // === Traitement audio ===
+    
+    /// @brief Traite un buffer audio mono pour l'analyse spectrale
+    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @param audioBuffer Tableau de samples audio (float32)
+    /// @return jsi::Value(true) si le traitement réussit
     jsi::Value processAudioBuffer(jsi::Runtime& rt, const jsi::Array& audioBuffer);
+    
+    /// @brief Traite des buffers audio stéréo pour l'analyse spectrale
+    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @param audioBufferL Tableau de samples du canal gauche
+    /// @param audioBufferR Tableau de samples du canal droit
+    /// @return jsi::Value(true) si le traitement réussit
     jsi::Value processAudioBufferStereo(jsi::Runtime& rt, const jsi::Array& audioBufferL,
                                         const jsi::Array& audioBufferR);
 
@@ -66,8 +103,23 @@ public:
     jsi::Value validateConfig(jsi::Runtime& rt, const jsi::Object& config);
 
     // === Callbacks JavaScript ===
+    
+    /// @brief Définit le callback pour recevoir les données spectrales
+    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @param callback Fonction appelée avec les données spectrales
+    /// @return jsi::Value(true) si l'enregistrement réussit
     jsi::Value setDataCallback(jsi::Runtime& rt, const jsi::Function& callback);
+    
+    /// @brief Définit le callback pour les erreurs
+    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @param callback Fonction appelée lors d'erreurs (code, message)
+    /// @return jsi::Value(true) si l'enregistrement réussit
     jsi::Value setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback);
+    
+    /// @brief Définit le callback pour les changements d'état
+    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @param callback Fonction appelée lors des transitions d'état
+    /// @return jsi::Value(true) si l'enregistrement réussit
     jsi::Value setStateCallback(jsi::Runtime& rt, const jsi::Function& callback);
 
     // === Installation du module ===
@@ -92,6 +144,23 @@ private:
 
     // === Mutex pour thread safety ===
     mutable std::mutex mutex_;
+    
+    /// @brief Helper RAII pour gérer l'état avec thread safety
+    template<typename T>
+    class AtomicStateGuard {
+    public:
+        AtomicStateGuard(std::atomic<T>& state, T newState) 
+            : state_(state), oldState_(state.load()) {
+            state_.store(newState);
+        }
+        ~AtomicStateGuard() {
+            // Restaurer uniquement si nécessaire
+        }
+        T getOldState() const { return oldState_; }
+    private:
+        std::atomic<T>& state_;
+        T oldState_;
+    };
 
     // === Méthodes privées ===
     void initializeManagers();

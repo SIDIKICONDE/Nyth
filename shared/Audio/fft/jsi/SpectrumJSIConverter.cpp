@@ -160,17 +160,40 @@ Nyth::Audio::SpectrumConfig SpectrumJSIConverter::jsiToSpectrumConfig(jsi::Runti
     return config;
 }
 
-// Données audio
+// Données audio avec validation améliorée
 std::vector<float> SpectrumJSIConverter::jsiArrayToFloatVector(jsi::Runtime& rt, const jsi::Array& jsArray) {
     size_t length = jsArray.length(rt);
-    std::vector<float> result(length);
+    
+    // Validation de la taille
+    if (length == 0) {
+        throw std::invalid_argument("Audio buffer cannot be empty");
+    }
+    
+    if (length > MAX_FFT_SIZE * 2) { // Limite raisonnable pour éviter les allocations excessives
+        throw std::invalid_argument("Audio buffer too large: " + std::to_string(length) + 
+                                   " samples (max: " + std::to_string(MAX_FFT_SIZE * 2) + ")");
+    }
+    
+    std::vector<float> result;
+    result.reserve(length);
 
     for (size_t i = 0; i < length; ++i) {
         jsi::Value element = jsArray.getValueAtIndex(rt, i);
         if (element.isNumber()) {
-            result[i] = static_cast<float>(element.asNumber());
+            float value = static_cast<float>(element.asNumber());
+            
+            // Validation de la plage audio [-1.0, 1.0] avec tolérance
+            if (!std::isfinite(value)) {
+                throw std::invalid_argument("Audio sample at index " + std::to_string(i) + 
+                                          " is not finite");
+            }
+            
+            // Clamp values to valid range
+            value = std::max(-1.0f, std::min(1.0f, value));
+            result.push_back(value);
         } else {
-            result[i] = 0.0f;
+            throw std::invalid_argument("Audio sample at index " + std::to_string(i) + 
+                                       " is not a number");
         }
     }
 
@@ -211,20 +234,20 @@ jsi::Object SpectrumJSIConverter::spectrumDataToJSI(jsi::Runtime& rt, const Nyth
     setJSIProperty(rt, jsData, PROP_NUM_BANDS_DATA, data.numBands);
     setJSIProperty(rt, jsData, PROP_TIMESTAMP, data.timestamp);
 
-    // Magnitudes
-    if (data.magnitudes && data.numBands > 0) {
+    // Magnitudes avec validation sécurisée
+    if (!data.magnitudes.empty() && data.numBands > 0) {
         jsi::Array magnitudes(rt, data.numBands);
-        for (size_t i = 0; i < data.numBands; ++i) {
-            magnitudes.setValueAtIndex(rt, i, jsi::Value(data.magnitudes[i]));
+        for (size_t i = 0; i < data.numBands && i < data.magnitudes.size; ++i) {
+            magnitudes.setValueAtIndex(rt, i, jsi::Value(data.magnitudes.data[i]));
         }
         setJSIProperty(rt, jsData, PROP_MAGNITUDES, magnitudes);
     }
 
-    // Fréquences
-    if (data.frequencies && data.numBands > 0) {
+    // Fréquences avec validation sécurisée
+    if (!data.frequencies.empty() && data.numBands > 0) {
         jsi::Array frequencies(rt, data.numBands);
-        for (size_t i = 0; i < data.numBands; ++i) {
-            frequencies.setValueAtIndex(rt, i, jsi::Value(data.frequencies[i]));
+        for (size_t i = 0; i < data.numBands && i < data.frequencies.size; ++i) {
+            frequencies.setValueAtIndex(rt, i, jsi::Value(data.frequencies.data[i]));
         }
         setJSIProperty(rt, jsData, PROP_FREQUENCIES, frequencies);
     }
