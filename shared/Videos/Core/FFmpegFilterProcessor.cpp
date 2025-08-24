@@ -1,10 +1,10 @@
 #include "FFmpegFilterProcessor.hpp"
-#include <cstdio>
-#include <cstring>
-#include <cmath>
 #include <algorithm>
 #include <array>
+#include <cmath>
+#include <cstdio>
 #include <cstring>
+
 #ifdef __AVX2__
 #include <immintrin.h>
 #endif
@@ -15,13 +15,14 @@
 
 // Includes FFmpeg obligatoires
 extern "C" {
-    #include <libavfilter/avfilter.h>
-    #include <libavfilter/buffersink.h>
-    #include <libavfilter/buffersrc.h>
-    #include <libavcodec/avcodec.h>
-    #include <libavutil/frame.h>
-    #include <libavutil/imgutils.h>
-    #include <libavutil/pixfmt.h>
+#include <libavcodec/avcodec.h>
+#include <libavfilter/avfilter.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
+#include <libavutil/frame.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/pixfmt.h>
+
 } // <= assurez-vous que cette accolade existe
 
 namespace Camera {
@@ -62,15 +63,18 @@ void FFmpegFilterProcessor::shutdown() {
     std::cout << "[FFmpegFilterProcessor] Arrêt terminé" << std::endl;
 }
 
-bool FFmpegFilterProcessor::applyFilter(const FilterState& filter, const void* inputData,
-                                      size_t inputSize, void* outputData, size_t outputSize) {
+bool FFmpegFilterProcessor::applyFilter(const FilterState& filter, const void* inputData, size_t inputSize,
+                                        void* outputData, size_t outputSize) {
     if (!initialized_) {
         setLastError("Processeur non initialisé");
         return false;
     }
 
     // Implémentation FFmpeg obligatoire
-    if (width_ <= 0 || height_ <= 0) { setLastError("Format vidéo non défini"); return false; }
+    if (width_ <= 0 || height_ <= 0) {
+        setLastError("Format vidéo non défini");
+        return false;
+    }
     const char* fmt = pixelFormat_.empty() ? "yuv420p" : pixelFormat_.c_str();
     int stride = 0;
     // Estimer stride packé minimal
@@ -82,19 +86,14 @@ bool FFmpegFilterProcessor::applyFilter(const FilterState& filter, const void* i
     if (stride == 0) {
         stride = width_ * 4;
     }
-    return applyFilterWithStride(filter,
-                                 reinterpret_cast<const uint8_t*>(inputData),
-                                 stride,
-                                 width_, height_, fmt,
-                                 reinterpret_cast<uint8_t*>(outputData),
-                                 stride);
+    return applyFilterWithStride(filter, reinterpret_cast<const uint8_t*>(inputData), stride, width_, height_, fmt,
+                                 reinterpret_cast<uint8_t*>(outputData), stride);
 }
 
 bool FFmpegFilterProcessor::supportsFormat(const std::string& format) const {
     // Formats supportés par FFmpeg
-    static const std::vector<std::string> supportedFormats = {
-        "yuv420p", "yuv422p", "yuv444p", "rgb24", "bgr24", "rgba", "bgra"
-    };
+    static const std::vector<std::string> supportedFormats = {"yuv420p", "yuv422p", "yuv444p", "rgb24",
+                                                              "bgr24",   "rgba",    "bgra"};
 
     return std::find(supportedFormats.begin(), supportedFormats.end(), format) != supportedFormats.end();
 }
@@ -113,14 +112,27 @@ std::vector<FilterInfo> FFmpegFilterProcessor::getSupportedFilters() const {
 
     // Filtres FFmpeg complets
     filters.push_back({"sepia", "Sépia", FilterType::SEPIA, "Effet sépia vintage", false, {"yuv420p", "rgb24"}});
-    filters.push_back({"noir", "Noir & Blanc", FilterType::NOIR, "Conversion noir et blanc", false, {"yuv420p", "rgb24"}});
-    filters.push_back({"monochrome", "Monochrome", FilterType::MONOCHROME, "Monochrome avec teinte", false, {"yuv420p", "rgb24"}});
-    filters.push_back({"color_controls", "Contrôles Couleur", FilterType::COLOR_CONTROLS, "Luminosité, contraste, saturation", false, {"yuv420p", "rgb24"}});
-    filters.push_back({"vintage", "Vintage", FilterType::VINTAGE, "Effet vintage années 70", false, {"yuv420p", "rgb24"}});
+    filters.push_back(
+        {"noir", "Noir & Blanc", FilterType::NOIR, "Conversion noir et blanc", false, {"yuv420p", "rgb24"}});
+    filters.push_back(
+        {"monochrome", "Monochrome", FilterType::MONOCHROME, "Monochrome avec teinte", false, {"yuv420p", "rgb24"}});
+    filters.push_back({"color_controls",
+                       "Contrôles Couleur",
+                       FilterType::COLOR_CONTROLS,
+                       "Luminosité, contraste, saturation",
+                       false,
+                       {"yuv420p", "rgb24"}});
+    filters.push_back(
+        {"vintage", "Vintage", FilterType::VINTAGE, "Effet vintage années 70", false, {"yuv420p", "rgb24"}});
     filters.push_back({"cool", "Cool", FilterType::COOL, "Effet froid bleuté", false, {"yuv420p", "rgb24"}});
     filters.push_back({"warm", "Warm", FilterType::WARM, "Effet chaud orangé", false, {"yuv420p", "rgb24"}});
     // Filtre personnalisé LUT 3D (.cube). Usage: setFilter('lut3d:/abs/path.cube', intensity)
-    filters.push_back({"lut3d", "LUT 3D (.cube)", FilterType::CUSTOM, "Applique une LUT 3D au format .cube (DaVinci, etc.)", true, {"yuv420p", "rgb24"}});
+    filters.push_back({"lut3d",
+                       "LUT 3D (.cube)",
+                       FilterType::CUSTOM,
+                       "Applique une LUT 3D au format .cube (DaVinci, etc.)",
+                       true,
+                       {"yuv420p", "rgb24"}});
 
     return filters;
 }
@@ -129,9 +141,9 @@ bool FFmpegFilterProcessor::setVideoFormat(int width, int height, const std::str
     width_ = width;
     height_ = height;
     pixelFormat_ = pixelFormat;
-    
-    std::cout << "[FFmpegFilterProcessor] Format vidéo: " << width << "x" << height 
-              << " (" << pixelFormat << ")" << std::endl;
+
+    std::cout << "[FFmpegFilterProcessor] Format vidéo: " << width << "x" << height << " (" << pixelFormat << ")"
+              << std::endl;
     return true;
 }
 
@@ -145,27 +157,32 @@ bool FFmpegFilterProcessor::setFrameRate(int fps) {
 bool FFmpegFilterProcessor::ensureGraph(const FilterState& filter) {
     // Optimisation: cache le graphe et évite la reconstruction inutile
     std::string filterString = getFFmpegFilterString(filter);
-    if (filterString.empty()) { setLastError("Filtre FFmpeg non supporté"); return false; }
-    
-    bool formatChanged = (lastWidth_ != width_) || (lastHeight_ != height_) || 
-                        (lastPixelFormat_ != pixelFormat_) || (lastFrameRate_ != frameRate_);
+    if (filterString.empty()) {
+        setLastError("Filtre FFmpeg non supporté");
+        return false;
+    }
+
+    bool formatChanged = (lastWidth_ != width_) || (lastHeight_ != height_) || (lastPixelFormat_ != pixelFormat_) ||
+                         (lastFrameRate_ != frameRate_);
     bool filterChanged = (lastFilterDesc_ != filterString);
-    
+
     // Optimisation: ne reconstruire que si vraiment nécessaire
     if (filterGraph_ && !formatChanged && !filterChanged) {
         return true;
     }
-    
+
     // Utiliser un pool de frames pour éviter les allocations répétées
     static thread_local AVFrame* framePool[4] = {nullptr, nullptr, nullptr, nullptr};
-    
+
     // (Re)créer graphe si nécessaire
     if (formatChanged || !filterGraph_) {
         destroyFilterGraph();
-        if (!createFilterGraph()) return false;
-        if (!addFilterToGraph(filter)) return false;
+        if (!createFilterGraph())
+            return false;
+        if (!addFilterToGraph(filter))
+            return false;
     }
-    
+
     // Réutiliser les frames du pool
     if (!inputFrame_) {
         if (framePool[0] == nullptr) {
@@ -179,12 +196,12 @@ bool FFmpegFilterProcessor::ensureGraph(const FilterState& filter) {
         }
         outputFrame_ = framePool[1];
     }
-    
-    if (!inputFrame_ || !outputFrame_) { 
-        setLastError("Impossible d'allouer les frames FFmpeg"); 
-        return false; 
+
+    if (!inputFrame_ || !outputFrame_) {
+        setLastError("Impossible d'allouer les frames FFmpeg");
+        return false;
     }
-    
+
     lastWidth_ = width_;
     lastHeight_ = height_;
     lastPixelFormat_ = pixelFormat_;
@@ -193,21 +210,22 @@ bool FFmpegFilterProcessor::ensureGraph(const FilterState& filter) {
     return true;
 }
 
-bool FFmpegFilterProcessor::applyFilterWithStride(const FilterState& filter,
-                               const uint8_t* inputData,
-                               int inputStride,
-                               int width,
-                               int height,
-                               const char* pixFormat,
-                               uint8_t* outputData,
-                               int outputStride) {
-    if (!initialized_) { setLastError("Processeur non initialisé"); return false; }
+bool FFmpegFilterProcessor::applyFilterWithStride(const FilterState& filter, const uint8_t* inputData, int inputStride,
+                                                  int width, int height, const char* pixFormat, uint8_t* outputData,
+                                                  int outputStride) {
+    if (!initialized_) {
+        setLastError("Processeur non initialisé");
+        return false;
+    }
     pixelFormat_ = pixFormat ? std::string(pixFormat) : std::string("bgra");
-    width_ = width; height_ = height;
-    if (!ensureGraph(filter)) return false;
+    width_ = width;
+    height_ = height;
+    if (!ensureGraph(filter))
+        return false;
 
     AVPixelFormat pix = av_get_pix_fmt(pixelFormat_.c_str());
-    if (pix == AV_PIX_FMT_NONE) pix = AV_PIX_FMT_BGRA;
+    if (pix == AV_PIX_FMT_NONE)
+        pix = AV_PIX_FMT_BGRA;
 
     // Optimisation: éviter av_frame_unref si possible
     // Préparer frame d'entrée en référençant directement les données + stride
@@ -216,7 +234,7 @@ bool FFmpegFilterProcessor::applyFilterWithStride(const FilterState& filter,
     inputFrame_->format = pix;
     inputFrame_->data[0] = const_cast<uint8_t*>(inputData);
     inputFrame_->linesize[0] = inputStride;
-    
+
     // Pour formats YUV, configurer les plans supplémentaires
     if (pix == AV_PIX_FMT_YUV420P || pix == AV_PIX_FMT_YUV422P || pix == AV_PIX_FMT_YUV444P) {
         int chromaHeight = (pix == AV_PIX_FMT_YUV420P) ? height_ / 2 : height_;
@@ -227,32 +245,40 @@ bool FFmpegFilterProcessor::applyFilterWithStride(const FilterState& filter,
     }
 
     // Pousser la frame avec flag optimisé
-    int ret = av_buffersrc_add_frame_flags(sourceContext_, inputFrame_, AV_BUFFERSRC_FLAG_KEEP_REF | AV_BUFFERSRC_FLAG_PUSH);
-    if (ret < 0) { setLastError("buffersrc_add_frame a échoué"); return false; }
+    int ret =
+        av_buffersrc_add_frame_flags(sourceContext_, inputFrame_, AV_BUFFERSRC_FLAG_KEEP_REF | AV_BUFFERSRC_FLAG_PUSH);
+    if (ret < 0) {
+        setLastError("buffersrc_add_frame a échoué");
+        return false;
+    }
 
     // Tirer la frame
     ret = av_buffersink_get_frame(sinkContext_, outputFrame_);
-    if (ret < 0) { setLastError("buffersink_get_frame a échoué"); return false; }
+    if (ret < 0) {
+        setLastError("buffersink_get_frame a échoué");
+        return false;
+    }
 
     // Optimisation: copie SIMD pour les formats supportés
     const int outLinesize = outputFrame_->linesize[0];
-    const int rowBytes = av_get_bits_per_pixel(av_pix_fmt_desc_get((AVPixelFormat)outputFrame_->format)) * outputFrame_->width / 8;
-    
+    const int rowBytes =
+        av_get_bits_per_pixel(av_pix_fmt_desc_get((AVPixelFormat)outputFrame_->format)) * outputFrame_->width / 8;
+
     if (outputStride < rowBytes) {
         av_frame_unref(outputFrame_);
         setLastError("outputStride insuffisant");
         return false;
     }
-    
-    // Utiliser copie SIMD optimisée si disponible
-    #ifdef __AVX2__
+
+// Utiliser copie SIMD optimisée si disponible
+#ifdef __AVX2__
     if (rowBytes >= 32) {
         // Traitement optimisé avec prefetching et alignement
         for (int y = 0; y < outputFrame_->height; ++y) {
             const uint8_t* srcRow = outputFrame_->data[0] + y * outLinesize;
             uint8_t* dstRow = outputData + y * outputStride;
 
-            size_t simdBytes = rowBytes & ~31;  // Aligner à 32 bytes (AVX2)
+            size_t simdBytes = rowBytes & ~31; // Aligner à 32 bytes (AVX2)
             size_t x = 0;
 
             // Boucle principale avec prefetching
@@ -285,14 +311,14 @@ bool FFmpegFilterProcessor::applyFilterWithStride(const FilterState& filter,
             }
         }
     } else
-    #elif defined(__SSE2__)
+#elif defined(__SSE2__)
     if (rowBytes >= 16) {
         // Optimisation SSE2 avec prefetching
         for (int y = 0; y < outputFrame_->height; ++y) {
             const uint8_t* srcRow = outputFrame_->data[0] + y * outLinesize;
             uint8_t* dstRow = outputData + y * outputStride;
 
-            size_t simdBytes = rowBytes & ~15;  // Aligner à 16 bytes (SSE2)
+            size_t simdBytes = rowBytes & ~15; // Aligner à 16 bytes (SSE2)
             size_t x = 0;
 
             // Boucle principale avec prefetching
@@ -324,7 +350,7 @@ bool FFmpegFilterProcessor::applyFilterWithStride(const FilterState& filter,
             }
         }
     } else
-    #endif
+#endif
     {
         // Fallback vers memcpy standard
         for (int y = 0; y < outputFrame_->height; ++y) {
@@ -333,7 +359,7 @@ bool FFmpegFilterProcessor::applyFilterWithStride(const FilterState& filter,
             std::memcpy(dstRow, srcRow, (size_t)rowBytes);
         }
     }
-    
+
     // Ne pas faire av_frame_unref sur les frames du pool, juste réinitialiser les pointeurs
     outputFrame_->data[0] = nullptr;
     return true;
@@ -342,13 +368,13 @@ bool FFmpegFilterProcessor::createFilterGraph() {
     if (filterGraph_) {
         destroyFilterGraph();
     }
-    
+
     filterGraph_ = avfilter_graph_alloc();
     if (!filterGraph_) {
         setLastError("Impossible de créer le graphe de filtres FFmpeg");
         return false;
     }
-    
+
     return true;
 }
 
@@ -357,17 +383,17 @@ void FFmpegFilterProcessor::destroyFilterGraph() {
         avfilter_graph_free(&filterGraph_);
         filterGraph_ = nullptr;
     }
-    
+
     if (inputFrame_) {
         av_frame_free(&inputFrame_);
         inputFrame_ = nullptr;
     }
-    
+
     if (outputFrame_) {
         av_frame_free(&outputFrame_);
         outputFrame_ = nullptr;
     }
-    
+
     sourceContext_ = nullptr;
     sinkContext_ = nullptr;
 }
@@ -376,7 +402,7 @@ bool FFmpegFilterProcessor::addFilterToGraph(const FilterState& filter) {
     if (!filterGraph_) {
         return false;
     }
-    
+
     std::string filterString = getFFmpegFilterString(filter);
     if (filterString.empty()) {
         setLastError("Filtre FFmpeg non supporté");
@@ -393,21 +419,30 @@ bool FFmpegFilterProcessor::addFilterToGraph(const FilterState& filter) {
 
     char args[256];
     AVPixelFormat pix = av_get_pix_fmt(pixelFormat_.empty() ? "yuv420p" : pixelFormat_.c_str());
-    if (pix == AV_PIX_FMT_NONE) pix = AV_PIX_FMT_YUV420P;
-    snprintf(args, sizeof(args),
-             "video_size=%dx%d:pix_fmt=%d:time_base=1/%d:frame_rate=%d/1:pixel_aspect=1/1",
-             width_, height_, pix, frameRate_, frameRate_);
+    if (pix == AV_PIX_FMT_NONE)
+        pix = AV_PIX_FMT_YUV420P;
+    snprintf(args, sizeof(args), "video_size=%dx%d:pix_fmt=%d:time_base=1/%d:frame_rate=%d/1:pixel_aspect=1/1", width_,
+             height_, pix, frameRate_, frameRate_);
 
     int ret = avfilter_graph_create_filter(&sourceContext_, buffersrc, "in", args, NULL, filterGraph_);
-    if (ret < 0) { setLastError("create_filter buffer a échoué"); return false; }
+    if (ret < 0) {
+        setLastError("create_filter buffer a échoué");
+        return false;
+    }
 
     ret = avfilter_graph_create_filter(&sinkContext_, buffersink, "out", NULL, NULL, filterGraph_);
-    if (ret < 0) { setLastError("create_filter buffersink a échoué"); return false; }
+    if (ret < 0) {
+        setLastError("create_filter buffersink a échoué");
+        return false;
+    }
 
     // Verrouiller le format de sortie pour éviter conversions implicites
-    static const AVPixelFormat pix_fmts[] = { pix, AV_PIX_FMT_NONE };
+    static const AVPixelFormat pix_fmts[] = {pix, AV_PIX_FMT_NONE};
     ret = av_opt_set_int_list(sinkContext_, "pix_fmts", pix_fmts, AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN);
-    if (ret < 0) { setLastError("Impossible de fixer pix_fmts sur buffersink"); return false; }
+    if (ret < 0) {
+        setLastError("Impossible de fixer pix_fmts sur buffersink");
+        return false;
+    }
 
     // Construire la description: [in]filterString[out]
     std::string desc = "[in]" + filterString + "[out]";
@@ -415,8 +450,10 @@ bool FFmpegFilterProcessor::addFilterToGraph(const FilterState& filter) {
     AVFilterInOut* outputs = avfilter_inout_alloc();
     AVFilterInOut* inputs = avfilter_inout_alloc();
     if (!outputs || !inputs) {
-        if (outputs) avfilter_inout_free(&outputs);
-        if (inputs) avfilter_inout_free(&inputs);
+        if (outputs)
+            avfilter_inout_free(&outputs);
+        if (inputs)
+            avfilter_inout_free(&inputs);
         setLastError("Allocation AVFilterInOut a échoué");
         return false;
     }
@@ -473,10 +510,9 @@ std::string FFmpegFilterProcessor::getFFmpegFilterString(const FilterState& filt
     std::vector<std::string> parts;
 
     // 1) Ajustements globaux à partir de FilterParams
-    const bool needsEq = (std::abs(filter.params.brightness) > 1e-6) ||
-                         (std::abs(filter.params.contrast - 1.0) > 1e-6) ||
-                         (std::abs(filter.params.saturation - 1.0) > 1e-6) ||
-                         (std::abs(filter.params.gamma - 1.0) > 1e-6);
+    const bool needsEq =
+        (std::abs(filter.params.brightness) > 1e-6) || (std::abs(filter.params.contrast - 1.0) > 1e-6) ||
+        (std::abs(filter.params.saturation - 1.0) > 1e-6) || (std::abs(filter.params.gamma - 1.0) > 1e-6);
     if (needsEq) {
         std::string eq = "eq=brightness=" + std::to_string(filter.params.brightness) +
                          ":contrast=" + std::to_string(filter.params.contrast) +
@@ -496,8 +532,8 @@ std::string FFmpegFilterProcessor::getFFmpegFilterString(const FilterState& filt
     switch (filter.type) {
         case FilterType::SEPIA: {
             parts.push_back("colorbalance=rs=" + std::to_string(filter.params.intensity * 0.3) +
-                           ":gs=" + std::to_string(filter.params.intensity * 0.1) +
-                           ":bs=" + std::to_string(-filter.params.intensity * 0.4));
+                            ":gs=" + std::to_string(filter.params.intensity * 0.1) +
+                            ":bs=" + std::to_string(-filter.params.intensity * 0.4));
             break;
         }
         case FilterType::NOIR: {
@@ -538,7 +574,8 @@ std::string FFmpegFilterProcessor::getFFmpegFilterString(const FilterState& filt
                     size_t start = 0;
                     while (start < query.size()) {
                         size_t amp = query.find('&', start);
-                        std::string pair = amp == std::string::npos ? query.substr(start) : query.substr(start, amp - start);
+                        std::string pair =
+                            amp == std::string::npos ? query.substr(start) : query.substr(start, amp - start);
                         size_t eq = pair.find('=');
                         if (eq != std::string::npos) {
                             std::string key = pair.substr(0, eq);
@@ -549,7 +586,8 @@ std::string FFmpegFilterProcessor::getFFmpegFilterString(const FilterState& filt
                                 }
                             }
                         }
-                        if (amp == std::string::npos) break;
+                        if (amp == std::string::npos)
+                            break;
                         start = amp + 1;
                     }
                 }
@@ -572,7 +610,6 @@ std::string FFmpegFilterProcessor::getFFmpegFilterString(const FilterState& filt
     }
     return combined;
 }
-
 
 void FFmpegFilterProcessor::setLastError(const std::string& error) {
     lastError_ = error;
