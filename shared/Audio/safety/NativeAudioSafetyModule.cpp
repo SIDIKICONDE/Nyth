@@ -96,7 +96,7 @@ jsi::Value NativeAudioSafetyModule::getState(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     auto stateObj = jsi::Object(rt);
-    stateObj.setProperty(rt, "state", jsi::Value(static_cast<int>(currentState_.load())));
+    stateObj.setProperty(rt, "state", jsi::Value(static_cast<int32_t>(currentState_.load())));
     stateObj.setProperty(rt, "stateString", jsi::String::createFromUtf8(rt, stateToString(currentState_.load())));
     stateObj.setProperty(rt, "isInitialized", jsi::Value(isInitialized_.load()));
     stateObj.setProperty(rt, "isProcessing", jsi::Value(isProcessing_.load()));
