@@ -25,7 +25,7 @@ jsi::Value NativeAudioNoiseModule::initialize(jsi::Runtime& rt, const jsi::Objec
 
     try {
         // Conversion de la configuration JSI vers native
-        config_ = NoiseJSIConverter::jsiToNoiseConfig(rt, config);
+        config_ = NoiseJSIConverter::noiseConfigFromJS(rt, config);
 
         // Initialisation du manager
         if (noiseManager_->initialize(config_)) {
@@ -147,7 +147,7 @@ jsi::Value NativeAudioNoiseModule::updateConfig(jsi::Runtime& rt, const jsi::Obj
     std::lock_guard<std::mutex> lock(mutex_);
 
     try {
-        auto newConfig = NoiseJSIConverter::jsiToNoiseConfig(rt, config);
+        auto newConfig = NoiseJSIConverter::noiseConfigFromJS(rt, config);
 
         if (noiseManager_ && noiseManager_->setConfig(newConfig)) {
             config_ = newConfig;
