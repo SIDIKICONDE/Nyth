@@ -145,6 +145,62 @@ void JSICallbackManager::invokeAudioDataCallback(const float* data, size_t frame
                       });
 }
 
+void JSICallbackManager::invokeAudioIOCallback(const float* input, const float* output, size_t frameCount,
+                                               int channels) {
+    if (!hasCallback("audioData") || !runtimeValid_.load()) {
+        return;
+    }
+
+    // Validate both buffers
+    validateAudioData(input, frameCount, channels);
+    validateAudioData(output, frameCount, channels);
+
+    size_t totalSamples = frameCount * channels;
+    std::vector<float> inputCopy(input, input + totalSamples);
+    std::vector<float> outputCopy(output, output + totalSamples);
+
+    enqueueInvocation("audioData", [this, inputCopy = std::move(inputCopy), outputCopy = std::move(outputCopy),
+                                     frameCount, channels](jsi::Runtime& rt) mutable {
+        auto callbackData = getCallback("audioData");
+        if (!callbackData.isValid.load() || !callbackData.function) {
+            return;
+        }
+
+        try {
+            if (!rt.global().hasProperty(rt, "Float32Array")) {
+                throw jsi::JSError(rt, "Float32Array not available in this environment");
+            }
+
+            size_t totalBytes = inputCopy.size() * sizeof(float);
+            if (totalBytes > Nyth::Audio::Limits::MAX_BUFFER_SIZE * sizeof(float)) {
+                throw jsi::JSError(rt, "Buffer size exceeds maximum allowed");
+            }
+
+            auto bufIn = std::make_shared<SimpleBuffer>(totalBytes);
+            std::memcpy(bufIn->data(), inputCopy.data(), totalBytes);
+            auto abIn = jsi::ArrayBuffer(rt, bufIn->data(), totalBytes);
+            auto f32Ctor = rt.global().getPropertyAsFunction(rt, "Float32Array");
+            auto f32In = f32Ctor.callAsConstructor(rt, abIn).asObject(rt);
+
+            auto bufOut = std::make_shared<SimpleBuffer>(totalBytes);
+            std::memcpy(bufOut->data(), outputCopy.data(), totalBytes);
+            auto abOut = jsi::ArrayBuffer(rt, bufOut->data(), totalBytes);
+            auto f32Out = f32Ctor.callAsConstructor(rt, abOut).asObject(rt);
+
+            callbackData.function->call(rt, f32In, f32Out, jsi::Value(static_cast<int>(frameCount)),
+                                        jsi::Value(channels));
+        } catch (const jsi::JSError& e) {
+            if (hasCallback("error")) {
+                invokeErrorCallback(std::string("JS audio IO callback error: ") + e.getMessage());
+            }
+        } catch (const std::exception& e) {
+            if (hasCallback("error")) {
+                invokeErrorCallback(std::string("Native audio IO callback error: ") + e.what());
+            }
+        }
+    });
+}
+
 void JSICallbackManager::invokeErrorCallback(const std::string& error) {
     if (!hasCallback("error") || !runtimeValid_.load()) {
         return;
