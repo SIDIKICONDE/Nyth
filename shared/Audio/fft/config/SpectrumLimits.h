@@ -52,48 +52,48 @@ struct SpectrumLimits {
 class SpectrumParameterValidator {
 public:
     // Validation de la taille FFT
-    static bool isValidFFTSize(size_t fftSize) {
+    static constexpr bool isValidFFTSize(size_t fftSize) noexcept {
         return fftSize >= SpectrumLimits::MIN_FFT_SIZE && fftSize <= SpectrumLimits::MAX_FFT_SIZE &&
                (fftSize & (fftSize - 1)) == 0; // Puissance de 2
     }
 
     // Validation des fréquences
-    static bool isValidFrequency(double frequency) {
+    static constexpr bool isValidFrequency(double frequency) noexcept {
         return frequency >= SpectrumLimits::MIN_FREQUENCY && frequency <= SpectrumLimits::MAX_FREQUENCY;
     }
 
-    static bool isValidFrequencyRange(double minFreq, double maxFreq) {
+    static constexpr bool isValidFrequencyRange(double minFreq, double maxFreq) noexcept {
         return minFreq < maxFreq && isValidFrequency(minFreq) && isValidFrequency(maxFreq);
     }
 
     // Validation du nombre de bandes
-    static bool isValidNumBands(size_t numBands, size_t fftSize) {
+    static constexpr bool isValidNumBands(size_t numBands, size_t fftSize) noexcept {
         return numBands >= SpectrumLimits::MIN_NUM_BANDS && numBands <= SpectrumLimits::MAX_NUM_BANDS &&
                numBands <= fftSize / 2;
     }
 
     // Validation du taux d'échantillonnage
-    static bool isValidSampleRate(uint32_t sampleRate) {
+    static constexpr bool isValidSampleRate(uint32_t sampleRate) noexcept {
         return sampleRate >= SpectrumLimits::MIN_SAMPLE_RATE && sampleRate <= SpectrumLimits::MAX_SAMPLE_RATE;
     }
 
     // Validation du chevauchement
-    static bool isValidOverlap(double overlap) {
+    static constexpr bool isValidOverlap(double overlap) noexcept {
         return overlap >= SpectrumLimits::MIN_OVERLAP && overlap <= SpectrumLimits::MAX_OVERLAP;
     }
 
     // Validation de la taille du pool mémoire
-    static bool isValidMemoryPoolSize(size_t size) {
+    static constexpr bool isValidMemoryPoolSize(size_t size) noexcept {
         return size >= SpectrumLimits::MIN_MEMORY_POOL_SIZE && size <= SpectrumLimits::MAX_MEMORY_POOL_SIZE;
     }
 
     // Validation des niveaux de magnitude
-    static bool isValidMagnitude(double magnitudeDb) {
+    static constexpr bool isValidMagnitude(double magnitudeDb) noexcept {
         return magnitudeDb >= SpectrumLimits::MIN_MAGNITUDE_DB && magnitudeDb <= SpectrumLimits::MAX_MAGNITUDE_DB;
     }
 
     // Validation du temps de traitement
-    static bool isValidProcessingTime(double timeMs) {
+    static constexpr bool isValidProcessingTime(double timeMs) noexcept {
         return timeMs >= 0.0 && timeMs <= SpectrumLimits::MAX_PROCESSING_TIME_MS;
     }
 };
