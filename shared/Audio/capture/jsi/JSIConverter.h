@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../config/AudioConfig.h"
+#include "../components/AudioCapture.hpp"
 #include "JSIValidator.h"
 #include <jsi/jsi.h>
 #include <string>

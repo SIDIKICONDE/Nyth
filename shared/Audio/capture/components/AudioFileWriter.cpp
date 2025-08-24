@@ -280,7 +280,7 @@ AudioRecorder::~AudioRecorder() {
     }
 }
 
-bool AudioRecorder::initialize(std::shared_ptr<::Audio::capture::AudioCapture> capture,
+bool AudioRecorder::initialize(std::shared_ptr<Audio::capture::AudioCapture> capture,
                                const AudioFileWriterConfig& writerConfig) {
     if (!capture) {
         std::cerr << "AudioRecorder: Null capture object" << std::endl;
@@ -324,7 +324,7 @@ bool AudioRecorder::startRecording() {
         });
     
     // Démarrer la capture si nécessaire
-    if (capture_->getState() != ::Audio::capture::CaptureState::Running) {
+    if (capture_->getState() != Audio::capture::CaptureState::Running) {
         if (!capture_->start()) {
             shouldStop_ = true;
             if (writerThread_.joinable()) {
@@ -364,7 +364,7 @@ void AudioRecorder::stopRecording() {
     writer_.close();
     
     // Arrêter la capture si nécessaire
-    if (capture_ && capture_->getState() == ::Audio::capture::CaptureState::Running) {
+    if (capture_ && capture_->getState() == Audio::capture::CaptureState::Running) {
         capture_->stop();
     }
     
@@ -497,7 +497,7 @@ MultiFileRecorder::~MultiFileRecorder() {
     }
 }
 
-bool MultiFileRecorder::initialize(std::shared_ptr<::Audio::capture::AudioCapture> capture,
+bool MultiFileRecorder::initialize(std::shared_ptr<Audio::capture::AudioCapture> capture,
                                    const SplitConfig& config,
                                    const AudioFileWriterConfig& writerConfig) {
     if (!capture) {

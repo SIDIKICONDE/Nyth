@@ -90,7 +90,7 @@ private:
     // === État interne ===
     std::atomic<bool> isInitialized_{false};
     std::atomic<bool> isProcessing_{false};
-    Nyth::Audio::SafetyState currentState_{Nyth::Audio::SafetyState::UNINITIALIZED};
+    std::atomic<Nyth::Audio::SafetyState> currentState_{Nyth::Audio::SafetyState::UNINITIALIZED};
 
     // === Gestion du runtime ===
     jsi::Runtime* runtime_ = nullptr;

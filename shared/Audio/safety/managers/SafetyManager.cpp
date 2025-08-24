@@ -10,8 +10,8 @@
 #include <string>
 #include <vector>
 
-#include "../../../Audio/safety/AudioSafety.hpp"
-#include "../../../Audio/safety/AudioSafetyOptimized.hpp"
+#include "../components/AudioSafety.hpp"
+#include "../components/AudioSafetyOptimized.hpp"
 
 namespace facebook {
 namespace react {

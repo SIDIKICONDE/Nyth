@@ -13,6 +13,7 @@ struct AudioConfig {
     int channelCount = Limits::DEFAULT_CHANNELS;
     int bitsPerSample = Limits::DEFAULT_BITS_PER_SAMPLE;
     int bufferSizeFrames = Limits::DEFAULT_BUFFER_SIZE_FRAMES;
+    int numBuffers = Limits::DEFAULT_NUM_BUFFERS;  // Nombre de buffers pour le double/triple buffering
 
     // === Options de traitement ===
     bool enableEchoCancellation = false;
@@ -53,6 +54,7 @@ struct AudioConfig {
     bool operator==(const AudioConfig& other) const {
         return sampleRate == other.sampleRate && channelCount == other.channelCount &&
                bitsPerSample == other.bitsPerSample && bufferSizeFrames == other.bufferSizeFrames &&
+               numBuffers == other.numBuffers &&
                enableEchoCancellation == other.enableEchoCancellation &&
                enableNoiseSuppression == other.enableNoiseSuppression &&
                enableAutoGainControl == other.enableAutoGainControl;
@@ -85,6 +87,12 @@ private:
         if (bufferSizeFrames < Limits::MIN_BUFFER_SIZE_FRAMES || bufferSizeFrames > Limits::MAX_BUFFER_SIZE_FRAMES) {
             return "Buffer size must be between " + std::to_string(Limits::MIN_BUFFER_SIZE_FRAMES) + " and " +
                    std::to_string(Limits::MAX_BUFFER_SIZE_FRAMES) + " frames";
+        }
+        
+        // Validation du nombre de buffers
+        if (numBuffers < Limits::MIN_NUM_BUFFERS || numBuffers > Limits::MAX_NUM_BUFFERS) {
+            return "Number of buffers must be between " + std::to_string(Limits::MIN_NUM_BUFFERS) + " and " +
+                   std::to_string(Limits::MAX_NUM_BUFFERS);
         }
 
         // Validation de la cohérence

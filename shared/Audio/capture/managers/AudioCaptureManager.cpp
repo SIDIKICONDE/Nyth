@@ -348,6 +348,7 @@ Audio::capture::AudioCaptureConfig AudioCaptureManager::convertToEngineConfig(
     engineConfig.channelCount = config.channelCount;
     engineConfig.bitsPerSample = config.bitsPerSample;
     engineConfig.bufferSizeFrames = config.bufferSizeFrames;
+    engineConfig.numBuffers = config.numBuffers;
 
     engineConfig.enableEchoCancellation = config.enableEchoCancellation;
     engineConfig.enableNoiseSuppression = config.enableNoiseSuppression;
@@ -366,6 +367,7 @@ Nyth::Audio::AudioConfig AudioCaptureManager::convertFromEngineConfig(
     config.channelCount = engineConfig.channelCount;
     config.bitsPerSample = engineConfig.bitsPerSample;
     config.bufferSizeFrames = engineConfig.bufferSizeFrames;
+    config.numBuffers = engineConfig.numBuffers;
 
     config.enableEchoCancellation = engineConfig.enableEchoCancellation;
     config.enableNoiseSuppression = engineConfig.enableNoiseSuppression;
