@@ -24,6 +24,7 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -35,7 +36,7 @@
 #include "effects/config/EffectsConfig.h"
 #include "effects/jsi/EffectsJSIConverter.h"
 #include "effects/managers/EffectManager.h"
-#include "jsi/JSICallbackManager.h"
+#include "../capture/jsi/JSICallbackManager.h"
 
 
 namespace facebook {
@@ -126,6 +127,12 @@ private:
     // === Callbacks ===
     void onProcessingMetrics(const EffectManager::ProcessingMetrics& metrics);
     void onEffectEvent(int effectId, const std::string& event);
+
+    // === JSI Invoker ===
+    std::shared_ptr<CallInvoker> jsInvoker_;
+
+    // === Synchronisation ===
+    mutable std::mutex mutex_;
 };
 
 } // namespace react

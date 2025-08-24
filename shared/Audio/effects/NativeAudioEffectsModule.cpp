@@ -376,8 +376,14 @@ jsi::Value NativeAudioEffectsModule::setProcessingCallback(jsi::Runtime& rt, con
 
 // === Installation du module ===
 jsi::Value NativeAudioEffectsModule::install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker) {
-    // Installation directe du module dans le runtime JSI
-    jsInvoker_ = jsInvoker;
+    // Créer une instance du module
+    auto module = std::make_shared<NativeAudioEffectsModule>(jsInvoker);
+    
+    // Installer le module dans le runtime
+    auto moduleName = std::string(kModuleName);
+    auto moduleObject = jsi::Object::createFromHostObject(rt, module);
+    rt.global().setProperty(rt, moduleName.c_str(), std::move(moduleObject));
+    
     return jsi::Value(true);
 }
 

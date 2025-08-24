@@ -7,7 +7,9 @@
 #include <string>
 #include <vector>
 
-#include "../../../jsi/JSICallbackManager.h"
+#include <jsi/jsi.h>
+#include "../../capture/jsi/JSICallbackManager.h"
+#include "../components/EffectBase.hpp"
 #include "../config/EffectsConfig.h"
 #include "../config/EffectsLimits.h"
 
@@ -31,8 +33,8 @@ public:
     std::vector<int> getActiveEffects() const;
 
     // === Configuration des effets ===
-    bool setEffectConfig(int effectId, const jsi::Object& config);
-    jsi::Object getEffectConfig(int effectId) const;
+    bool setEffectConfig(jsi::Runtime& rt, int effectId, const jsi::Object& config);
+    jsi::Object getEffectConfig(jsi::Runtime& rt, int effectId) const;
     bool enableEffect(int effectId, bool enabled);
     bool isEffectEnabled(int effectId) const;
 

@@ -10,8 +10,8 @@
 #include <sstream>
 #include <string>
 
-#include "EffectConstants.hpp"
-#include "../core/CoreConstants.hpp"
+#include "constant/EffectConstants.hpp"
+#include "../../core/components/constant/CoreConstants.hpp"
 
 namespace AudioFX {
 

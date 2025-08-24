@@ -3,7 +3,7 @@
 // C++17 standard headers
 #include <cstdint>
 #include <cstddef>
-#include "../core/CoreConstants.hpp"
+#include "../../../core/components/constant/CoreConstants.hpp"
 
 namespace AudioFX {
 
