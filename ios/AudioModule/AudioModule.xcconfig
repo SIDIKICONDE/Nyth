@@ -1,0 +1,57 @@
+// Configuration Xcode pour le module AudioModule
+// Ce fichier définit les paramètres de build pour le module
+
+// Nom du module
+PRODUCT_NAME = AudioModule
+MODULE_NAME = AudioModule
+
+// Version Swift
+SWIFT_VERSION = 5.0
+
+// Deployment Target
+IPHONEOS_DEPLOYMENT_TARGET = 13.0
+
+// Architectures
+ARCHS = $(ARCHS_STANDARD)
+VALID_ARCHS = arm64 armv7 armv7s
+
+// Optimisations
+SWIFT_OPTIMIZATION_LEVEL = -O
+GCC_OPTIMIZATION_LEVEL = s
+
+// Frameworks requis
+OTHER_LDFLAGS = -framework AVFoundation -framework Foundation
+
+// Module Swift
+DEFINES_MODULE = YES
+SWIFT_INSTALL_OBJC_HEADER = YES
+SWIFT_OBJC_BRIDGING_HEADER = AudioModule-Bridging-Header.h
+
+// Bitcode
+ENABLE_BITCODE = NO
+
+// Capabilities
+// Ajouter dans Info.plist :
+// NSMicrophoneUsageDescription = "Cette application a besoin d'accéder au microphone pour enregistrer de l'audio"
+
+// Paramètres de sécurité
+ENABLE_STRICT_OBJC_MSGSEND = YES
+ENABLE_TESTABILITY = YES
+
+// Warnings
+GCC_WARN_UNDECLARED_SELECTOR = YES
+GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE
+GCC_WARN_UNUSED_FUNCTION = YES
+GCC_WARN_UNUSED_VARIABLE = YES
+CLANG_WARN_DOCUMENTATION_COMMENTS = YES
+CLANG_WARN_EMPTY_BODY = YES
+CLANG_WARN_ENUM_CONVERSION = YES
+CLANG_WARN_INFINITE_RECURSION = YES
+CLANG_WARN_INT_CONVERSION = YES
+CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES
+CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES
+CLANG_WARN_OBJC_LITERAL_CONVERSION = YES
+CLANG_WARN_RANGE_LOOP_ANALYSIS = YES
+CLANG_WARN_STRICT_PROTOTYPES = YES
+CLANG_WARN_SUSPICIOUS_MOVE = YES
+CLANG_WARN_UNREACHABLE_CODE = YES
