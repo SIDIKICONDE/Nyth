@@ -7,6 +7,14 @@
 #include <sstream>
 #include <iomanip>
 
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#if TARGET_OS_IOS
+#include <AudioToolbox/AudioToolbox.h>
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+#endif
+
 namespace Nyth {
 namespace Audio {
 
@@ -52,7 +60,98 @@ bool AudioFileWriter::open(const AudioFileWriterConfig& config) {
 
     config_ = config;
 
-    // Ouvrir le fichier
+    // Réinitialiser compteurs et buffers
+    framesWritten_ = 0;
+    bufferPos_ = 0;
+    writeBuffer_.resize(config.bufferSize);
+
+    // iOS: formats spéciaux via ExtAudioFile
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+    if (config.format == AudioFileFormat::M4A_ALAC || config.format == AudioFileFormat::CAF) {
+        usingExtAudioFile_ = false;
+
+        // Chemin -> CFURL
+        CFStringRef pathStr = CFStringCreateWithCString(kCFAllocatorDefault, config.filePath.c_str(), kCFStringEncodingUTF8);
+        if (!pathStr) {
+            std::cerr << "AudioFileWriter: Failed to create CFString for path" << std::endl;
+            return false;
+        }
+        CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, pathStr, kCFURLPOSIXPathStyle, false);
+        CFRelease(pathStr);
+        if (!url) {
+            std::cerr << "AudioFileWriter: Failed to create CFURL for path" << std::endl;
+            return false;
+        }
+
+        // Définir format fichier (conteneur + format audio)
+        AudioFileTypeID fileType = (config.format == AudioFileFormat::M4A_ALAC) ? kAudioFileM4AType : kAudioFileCAFType;
+
+        AudioStreamBasicDescription dstFormat{};
+        if (config.format == AudioFileFormat::M4A_ALAC) {
+            dstFormat.mSampleRate = config.sampleRate;
+            dstFormat.mFormatID = kAudioFormatAppleLossless;
+            dstFormat.mChannelsPerFrame = config.channelCount;
+            UInt32 asbdSize = sizeof(dstFormat);
+            if (AudioFormatGetProperty(kAudioFormatProperty_FormatInfo, 0, nullptr, &asbdSize, &dstFormat) != noErr) {
+                CFRelease(url);
+                std::cerr << "AudioFileWriter: Failed to configure ALAC format" << std::endl;
+                return false;
+            }
+        } else {
+            dstFormat.mSampleRate = config.sampleRate;
+            dstFormat.mFormatID = kAudioFormatLinearPCM;
+            dstFormat.mFormatFlags = (config.bitsPerSample == Constants::BITS_PER_SAMPLE_32)
+                                         ? (kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked)
+                                         : (kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked);
+            dstFormat.mBytesPerPacket = (config.bitsPerSample / Constants::BITS_TO_BYTES_FACTOR) * config.channelCount;
+            dstFormat.mFramesPerPacket = 1;
+            dstFormat.mBytesPerFrame = dstFormat.mBytesPerPacket;
+            dstFormat.mChannelsPerFrame = config.channelCount;
+            dstFormat.mBitsPerChannel = config.bitsPerSample;
+        }
+
+        ExtAudioFileRef extFile = nullptr;
+        OSStatus status = ExtAudioFileCreateWithURL(url, fileType, &dstFormat, nullptr, kAudioFileFlags_EraseFile, &extFile);
+        CFRelease(url);
+        if (status != noErr || !extFile) {
+            std::cerr << "AudioFileWriter: ExtAudioFileCreateWithURL failed: " << status << std::endl;
+            return false;
+        }
+
+        // Client format: float 32 interleaved (correspond au pipeline de capture)
+        AudioStreamBasicDescription clientFormat{};
+        clientFormat.mSampleRate = config.sampleRate;
+        clientFormat.mFormatID = kAudioFormatLinearPCM;
+        clientFormat.mFormatFlags = kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked;
+        clientFormat.mFramesPerPacket = 1;
+        clientFormat.mChannelsPerFrame = config.channelCount;
+        clientFormat.mBitsPerChannel = 32;
+        clientFormat.mBytesPerPacket = clientFormat.mBytesPerFrame = clientFormat.mChannelsPerFrame * sizeof(float);
+
+        status = ExtAudioFileSetProperty(extFile, kExtAudioFileProperty_ClientDataFormat, sizeof(clientFormat), &clientFormat);
+        if (status != noErr) {
+            ExtAudioFileDispose(extFile);
+            std::cerr << "AudioFileWriter: Failed to set client format: " << status << std::endl;
+            return false;
+        }
+
+        // Allouer état iOS
+        struct IOSWriterState { ExtAudioFileRef file; AudioStreamBasicDescription clientFormat; };
+        IOSWriterState* state = new IOSWriterState{extFile, clientFormat};
+        iosWriterState_ = static_cast<void*>(state);
+        usingExtAudioFile_ = true;
+
+        isOpen_ = true;
+        return true;
+    }
+#endif
+#endif
+
+    // Ouverture classique fichier binaire (WAV / RAW). Si un format iOS est demandé hors iOS, fallback WAV.
+    if (config.format == AudioFileFormat::M4A_ALAC || config.format == AudioFileFormat::CAF) {
+        std::cerr << "AudioFileWriter: Requested iOS-specific format not available on this platform, falling back to WAV" << std::endl;
+    }
     std::ios::openmode mode = std::ios::binary;
     if (config.appendMode) {
         mode |= std::ios::app;
@@ -66,12 +165,6 @@ bool AudioFileWriter::open(const AudioFileWriterConfig& config) {
         return false;
     }
 
-    // Réinitialiser les compteurs
-    framesWritten_ = 0;
-    bufferPos_ = 0;
-    writeBuffer_.resize(config.bufferSize);
-
-    // Écrire l'en-tête si nécessaire
     if (config.format == AudioFileFormat::WAV && !config.appendMode) {
         if (!writeWAVHeader()) {
             file_.close();
@@ -88,15 +181,29 @@ void AudioFileWriter::close() {
         return;
     }
 
-    // Flush les données restantes
-    flush();
+    // iOS ExtAudioFile
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+    if (usingExtAudioFile_) {
+        struct IOSWriterState { ExtAudioFileRef file; AudioStreamBasicDescription clientFormat; };
+        IOSWriterState* state = static_cast<IOSWriterState*>(iosWriterState_);
+        if (state && state->file) {
+            ExtAudioFileDispose(state->file);
+        }
+        delete state;
+        iosWriterState_ = nullptr;
+        usingExtAudioFile_ = false;
+        isOpen_ = false;
+        return;
+    }
+#endif
+#endif
 
-    // Mettre à jour l'en-tête WAV si nécessaire
+    // Flush et close pour fichiers classiques
+    flush();
     if (config_.format == AudioFileFormat::WAV && !config_.appendMode) {
         updateWAVHeader();
     }
-
-    // Fermer le fichier
     file_.close();
     isOpen_ = false;
 }
@@ -105,6 +212,33 @@ bool AudioFileWriter::write(const float* data, size_t frameCount) {
     if (!isOpen() || !data || frameCount == 0) {
         return false;
     }
+
+    // iOS ExtAudioFile écriture directe
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+    if (usingExtAudioFile_) {
+        struct IOSWriterState { ExtAudioFileRef file; AudioStreamBasicDescription clientFormat; };
+        IOSWriterState* state = static_cast<IOSWriterState*>(iosWriterState_);
+        if (!state || !state->file) return false;
+
+        AudioBufferList abl;
+        abl.mNumberBuffers = 1;
+        abl.mBuffers[0].mNumberChannels = config_.channelCount;
+        abl.mBuffers[0].mDataByteSize = static_cast<UInt32>(frameCount * state->clientFormat.mBytesPerFrame);
+        abl.mBuffers[0].mData = const_cast<float*>(data);
+
+        UInt32 frames = static_cast<UInt32>(frameCount);
+        OSStatus status = ExtAudioFileWrite(state->file, frames, &abl);
+        if (status != noErr) {
+            std::cerr << "AudioFileWriter: ExtAudioFileWrite failed: " << status << std::endl;
+            return false;
+        }
+
+        framesWritten_ += frameCount;
+        return true;
+    }
+#endif
+#endif
 
     size_t sampleCount = frameCount * config_.channelCount;
 
@@ -149,6 +283,20 @@ bool AudioFileWriter::writeInt16(const int16_t* data, size_t frameCount) {
     if (!isOpen() || !data || frameCount == 0) {
         return false;
     }
+
+    // iOS ExtAudioFile: convertir vers float (client format float)
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+    if (usingExtAudioFile_) {
+        size_t sampleCount = frameCount * config_.channelCount;
+        std::vector<float> floatData(sampleCount);
+        for (size_t i = 0; i < sampleCount; ++i) {
+            floatData[i] = data[i] * Constants::INT16_TO_FLOAT_SCALE;
+        }
+        return write(floatData.data(), frameCount);
+    }
+#endif
+#endif
 
     size_t sampleCount = frameCount * config_.channelCount;
 
