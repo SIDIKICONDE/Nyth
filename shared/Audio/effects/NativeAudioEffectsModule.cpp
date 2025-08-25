@@ -75,8 +75,8 @@ namespace react {
 using Nyth::Audio::EffectsConfig;
 using Nyth::Audio::EffectsConfigValidator;
 using Nyth::Audio::Effects::EffectType;
-using CompressorEffect;
-using DelayEffect;
+using CompressorEffect = Nyth::Audio::FX::CompressorEffect;
+using DelayEffect = Nyth::Audio::FX::DelayEffect;
 
 // === Constructeurs et destructeurs ===
 
@@ -561,34 +561,8 @@ jsi::Value NativeAudioEffectsModule::getCompressorConfig(jsi::Runtime& rt, int e
     }
 
     try {
-        // Récupérer l'effet et vérifier qu'il s'agit d'un compresseur
-        auto effect = effectManager_->getEffect(effectId);
-        if (!effect) {
-            return jsi::Value::null(rt);
-        }
-
-        // Vérifier le type d'effet
-        auto effectType = effectManager_->getEffectType(effectId);
-        if (effectType != EffectType::COMPRESSOR) {
-            return jsi::Value::null(rt);
-        }
-
-        // Récupérer la configuration spécifique du compresseur
-        auto compressorEffect = dynamic_cast<CompressorEffect*>(effect.get());
-        if (compressorEffect) {
-            // Exposer les paramètres courants à partir de l'effet
-            jsi::Object result(rt);
-            // Pas de getters dédiés: retourner des valeurs plausibles (nécessite amélioration ultérieure)
-            result.setProperty(rt, "thresholdDb", jsi::Value(-24.0f));
-            result.setProperty(rt, "ratio", jsi::Value(4.0f));
-            result.setProperty(rt, "attackMs", jsi::Value(10.0f));
-            result.setProperty(rt, "releaseMs", jsi::Value(100.0f));
-            result.setProperty(rt, "makeupDb", jsi::Value(0.0f));
-            result.setProperty(rt, "enabled", jsi::Value(true));
-            return std::move(result);
-        }
-
-        return jsi::Value::null(rt);
+        // Utiliser l'API de l'EffectManager qui lit les paramètres réels
+        return effectManager_->getCompressorParameters(rt, effectId);
     } catch (const std::exception& e) {
         handleError(9, std::string("Get compressor config failed: ") + e.what());
         return jsi::Value::null(rt);
@@ -601,30 +575,8 @@ jsi::Value NativeAudioEffectsModule::getDelayConfig(jsi::Runtime& rt, int effect
     }
 
     try {
-        // Récupérer l'effet et vérifier qu'il s'agit d'un delay
-        auto effect = effectManager_->getEffect(effectId);
-        if (!effect) {
-            return jsi::Value::null(rt);
-        }
-
-        // Vérifier le type d'effet
-        auto effectType = effectManager_->getEffectType(effectId);
-        if (effectType != EffectType::DELAY) {
-            return jsi::Value::null(rt);
-        }
-
-        // Récupérer la configuration spécifique du delay
-        auto delayEffect = dynamic_cast<DelayEffect*>(effect.get());
-        if (delayEffect) {
-            jsi::Object result(rt);
-            result.setProperty(rt, "delayMs", jsi::Value(250.0f));
-            result.setProperty(rt, "feedback", jsi::Value(0.3f));
-            result.setProperty(rt, "mix", jsi::Value(0.2f));
-            result.setProperty(rt, "enabled", jsi::Value(true));
-            return std::move(result);
-        }
-
-        return jsi::Value::null(rt);
+        // Utiliser l'API de l'EffectManager qui lit les paramètres réels
+        return effectManager_->getDelayParameters(rt, effectId);
     } catch (const std::exception& e) {
         handleError(10, std::string("Get delay config failed: ") + e.what());
         return jsi::Value::null(rt);
