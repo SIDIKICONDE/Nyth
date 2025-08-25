@@ -5,10 +5,14 @@ Module natif iOS pour la capture audio, conçu pour être intégré dans un Turb
 ## 🎯 Fonctionnalités
 
 - ✅ Enregistrement audio haute qualité avec AVAudioEngine
+- ✅ Support de **14 formats audio iOS natifs** (AAC, MP3, ALAC, FLAC, PCM, etc.)
+- ✅ Presets prédéfinis pour différents usages (voix, musique, streaming)
+- ✅ Configuration flexible de la qualité audio
 - ✅ Gestion complète d'AVAudioSession
 - ✅ Support des permissions microphone
 - ✅ Pause/reprise de l'enregistrement
 - ✅ Monitoring du niveau audio en temps réel
+- ✅ Estimation de la taille des fichiers
 - ✅ Gestion des erreurs robuste
 - ✅ Architecture prête pour TurboModule
 - ✅ Support des callbacks via delegate pattern
@@ -41,6 +45,26 @@ public protocol AudioRecorderDelegate: AnyObject
 public enum AudioRecorderError: Int, LocalizedError
 ```
 
+## 🎨 Formats Audio Supportés
+
+### Formats compressés avec perte
+- **AAC** (.m4a) - Format recommandé, excellent compromis qualité/taille
+- **MP3** (.mp3) - Compatibilité universelle
+- **AMR/AMR-WB** (.amr) - Optimisé pour la voix
+- **iLBC** (.ilbc) - VoIP et communications
+- **Opus** (.opus) - Streaming haute qualité
+- **Speex** (.spx) - Compression vocale
+
+### Formats compressés sans perte
+- **ALAC** (.m4a) - Apple Lossless, qualité CD
+- **FLAC** (.flac) - Free Lossless, open source
+
+### Formats non compressés
+- **PCM 16-bit** (.wav) - Qualité standard
+- **PCM 32-bit** (.wav) - Haute précision
+- **PCM Float32** (.wav) - Production audio
+- **PCM Float64** (.wav) - Qualité maximale
+
 ## 🚀 Utilisation
 
 ### Initialisation
@@ -48,6 +72,24 @@ public enum AudioRecorderError: Int, LocalizedError
 ```swift
 let audioRecorder = AudioRecorder()
 audioRecorder.delegate = self
+```
+
+### Configuration du format audio
+
+```swift
+// Utiliser un preset prédéfini
+audioRecorder.usePreset(.voiceNote)
+
+// Ou configurer manuellement
+audioRecorder.setAudioFormat(.aac, quality: .high)
+
+// Configuration personnalisée complète
+audioRecorder.audioConfiguration = AudioConfiguration(
+    format: .opus,
+    quality: .high,
+    channels: 2,
+    sampleRate: 48000
+)
 ```
 
 ### Configuration de la session audio
@@ -133,10 +175,21 @@ audioRecorder.configureAudioOptions(options, resolver: resolve, rejecter: reject
 // Options de démarrage
 {
   fileName: "recording.m4a",     // Nom du fichier (optionnel)
+  format: "aac",                // Format audio (optionnel)
+  quality: "high",              // Qualité : "low", "medium", "high", "maximum" (optionnel)
+  preset: "voiceNote",          // Preset prédéfini (optionnel, prioritaire sur format/quality)
   sampleRate: 44100,            // Taux d'échantillonnage (optionnel)
-  channels: 1,                  // Nombre de canaux (optionnel)
-  quality: "high"               // Qualité (optionnel)
+  channels: 1                   // Nombre de canaux (optionnel)
 }
+
+// Presets disponibles
+- "voiceNote" : Notes vocales (AAC mono 44.1kHz)
+- "voiceCall" : Appels VoIP (Opus mono 16kHz)
+- "musicHigh" : Musique haute qualité (ALAC stéréo 48kHz)
+- "musicStandard" : Musique standard (AAC stéréo 44.1kHz)
+- "professional" : Enregistrement pro (PCM Float32 stéréo 96kHz)
+- "compact" : Fichiers compacts (AAC mono 22kHz)
+- "streaming" : Streaming (Opus stéréo 48kHz)
 
 // Options de configuration audio
 {

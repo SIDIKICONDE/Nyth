@@ -6,11 +6,25 @@
 import { NativeModules, NativeEventEmitter } from 'react-native';
 
 // Types
+export type AudioFormat = 
+  | 'aac' | 'mp3' | 'amr' | 'amrWB' | 'ilbc' 
+  | 'alac' | 'flac' 
+  | 'pcm16' | 'pcm32' | 'pcmFloat32' | 'pcmFloat64'
+  | 'opus' | 'speex';
+
+export type AudioQuality = 'low' | 'medium' | 'high' | 'maximum';
+
+export type AudioPreset = 
+  | 'voiceNote' | 'voiceCall' | 'musicHigh' | 'musicStandard' 
+  | 'professional' | 'compact' | 'streaming';
+
 export interface RecordingOptions {
   fileName?: string;
+  format?: AudioFormat;
+  quality?: AudioQuality;
+  preset?: AudioPreset;
   sampleRate?: number;
   channels?: number;
-  quality?: 'low' | 'medium' | 'high';
 }
 
 export interface AudioOptions {
@@ -24,6 +38,9 @@ export interface RecordingResult {
   status: 'started' | 'stopped';
   filePath: string;
   duration?: number;
+  format?: string;
+  quality?: number;
+  estimatedSizePerMinute?: number;
 }
 
 export interface RecordingStatus {
@@ -131,10 +148,17 @@ export default new AudioRecorder();
 /*
 import AudioRecorder from './AudioModule';
 
-// Démarrer l'enregistrement
+// Démarrer avec un preset
 const result = await AudioRecorder.startRecording({
-  fileName: 'my-recording.m4a',
-  quality: 'high'
+  preset: 'voiceNote'
+});
+
+// Ou avec format personnalisé
+const result = await AudioRecorder.startRecording({
+  fileName: 'my-recording.opus',
+  format: 'opus',
+  quality: 'high',
+  channels: 2
 });
 
 // Écouter les niveaux audio
@@ -143,6 +167,7 @@ AudioRecorder.addEventListener('audioLevel', ({ level }) => {
 });
 
 // Arrêter l'enregistrement
-const { filePath, duration } = await AudioRecorder.stopRecording();
-console.log(`Recording saved to ${filePath}, duration: ${duration}s`);
+const { filePath, duration, format } = await AudioRecorder.stopRecording();
+console.log(`Recording saved: ${filePath}`);
+console.log(`Duration: ${duration}s, Format: ${format}`);
 */

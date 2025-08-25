@@ -1,6 +1,18 @@
 import Foundation
 import AVFoundation
 
+/// Presets d'enregistrement audio prédéfinis
+@objc
+public enum AudioRecorderPreset: Int {
+    case voiceNote      // Notes vocales, mémos
+    case voiceCall      // Appels VoIP
+    case musicHigh      // Musique haute qualité
+    case musicStandard  // Musique qualité standard
+    case professional   // Enregistrement professionnel
+    case compact        // Fichiers compacts
+    case streaming      // Optimisé pour le streaming
+}
+
 /// AudioRecorder - Module natif iOS pour la capture audio
 /// Conçu pour être intégré dans un TurboModule React Native
 @objc(AudioRecorder)
@@ -37,11 +49,12 @@ public class AudioRecorder: NSObject {
     
     // MARK: - Configuration
     
-    /// Configuration audio par défaut
-    private struct AudioConfiguration {
-        static let sampleRate: Double = 44100.0
-        static let channels: AVAudioChannelCount = 1
-        static let bitDepth: Int = 16
+    /// Configuration audio actuelle
+    @objc public var audioConfiguration: AudioConfiguration = .voiceRecording {
+        didSet {
+            // Reconfigure le format d'enregistrement si nécessaire
+            setupRecordingFormat()
+        }
     }
     
     // MARK: - Initialization
@@ -65,12 +78,31 @@ public class AudioRecorder: NSObject {
         inputNode = audioEngine?.inputNode
         
         // Configure le format d'enregistrement
+        setupRecordingFormat()
+    }
+    
+    /// Configure le format d'enregistrement basé sur la configuration audio
+    private func setupRecordingFormat() {
         guard let inputNode = inputNode else {
             delegate?.audioRecorder(self, didFailWithError: AudioRecorderError.setupFailed)
             return
         }
         
-        recordingFormat = inputNode.outputFormat(forBus: 0)
+        // Obtient le format d'entrée natif
+        let inputFormat = inputNode.outputFormat(forBus: 0)
+        
+        // Crée le format d'enregistrement basé sur la configuration
+        recordingFormat = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: audioConfiguration.sampleRate,
+            channels: AVAudioChannelCount(audioConfiguration.channels),
+            interleaved: true
+        )
+        
+        // Si le format n'est pas supporté, utilise le format natif
+        if recordingFormat == nil {
+            recordingFormat = inputFormat
+        }
     }
     
     /// Configure la session audio AVAudioSession
@@ -115,6 +147,47 @@ public class AudioRecorder: NSObject {
         }
     }
     
+    // MARK: - Audio Format Configuration
+    
+    /// Configure le format audio pour l'enregistrement
+    @objc
+    public func setAudioFormat(_ format: AudioFormat, quality: AudioQuality = .high) {
+        audioConfiguration = AudioConfiguration(format: format, quality: quality, channels: audioConfiguration.channels)
+    }
+    
+    /// Configure avec un preset prédéfini
+    @objc
+    public func usePreset(_ preset: AudioRecorderPreset) {
+        switch preset {
+        case .voiceNote:
+            audioConfiguration = .voiceRecording
+        case .voiceCall:
+            audioConfiguration = .voipCall
+        case .musicHigh:
+            audioConfiguration = .musicHighQuality
+        case .musicStandard:
+            audioConfiguration = .musicStandard
+        case .professional:
+            audioConfiguration = .professionalRecording
+        case .compact:
+            audioConfiguration = .compact
+        case .streaming:
+            audioConfiguration = .streaming
+        }
+    }
+    
+    /// Obtient les formats supportés
+    @objc
+    public static func supportedFormats() -> [AudioFormat] {
+        return AudioFormat.allCases
+    }
+    
+    /// Obtient la taille estimée du fichier par minute
+    @objc
+    public func estimatedFileSizePerMinute() -> Double {
+        return audioConfiguration.estimatedFileSizePerMinute
+    }
+    
     // MARK: - Recording Control
     
     /// Démarre l'enregistrement audio
@@ -139,13 +212,13 @@ public class AudioRecorder: NSObject {
         let fileURL = url ?? generateDefaultFileURL()
         currentRecordingURL = fileURL
         
-        // Crée le fichier audio
-        guard let recordingFormat = recordingFormat else {
+        // Crée le fichier audio avec les paramètres de la configuration
+        guard recordingFormat != nil else {
             throw AudioRecorderError.invalidFormat
         }
         
         do {
-            audioFile = try AVAudioFile(forWriting: fileURL, settings: recordingFormat.settings)
+            audioFile = try AVAudioFile(forWriting: fileURL, settings: audioConfiguration.audioSettings)
         } catch {
             throw AudioRecorderError.fileCreationFailed(error)
         }
@@ -155,7 +228,10 @@ public class AudioRecorder: NSObject {
             throw AudioRecorderError.inputNodeUnavailable
         }
         
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, time in
+        // Utilise le format natif pour le tap et convertit si nécessaire
+        let tapFormat = inputNode.outputFormat(forBus: 0)
+        
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: tapFormat) { [weak self] buffer, time in
             guard let self = self, let audioFile = self.audioFile else { return }
             
             do {
@@ -268,7 +344,7 @@ public class AudioRecorder: NSObject {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd-HH-mm-ss"
-        let fileName = "audio-recording-\(dateFormatter.string(from: Date())).m4a"
+        let fileName = "audio-recording-\(dateFormatter.string(from: Date())).\(audioConfiguration.format.fileExtension)"
         return documentsPath.appendingPathComponent(fileName)
     }
 }

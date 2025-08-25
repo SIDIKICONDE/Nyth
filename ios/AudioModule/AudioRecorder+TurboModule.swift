@@ -16,9 +16,11 @@ extension AudioRecorder {
         
         // Parse les options
         let fileName = options["fileName"] as? String
-        let sampleRate = options["sampleRate"] as? Double ?? AudioConfiguration.sampleRate
-        let channels = options["channels"] as? Int ?? Int(AudioConfiguration.channels)
-        let quality = options["quality"] as? String ?? "high"
+        let sampleRate = options["sampleRate"] as? Double
+        let channels = options["channels"] as? Int ?? 1
+        let quality = parseAudioQuality(options["quality"] as? String ?? "high")
+        let formatString = options["format"] as? String ?? "aac"
+        let preset = options["preset"] as? String
         
         // Demande les permissions si nécessaire
         requestMicrophonePermission { [weak self] granted in
@@ -36,12 +38,35 @@ extension AudioRecorder {
                 fileURL = self?.generateDefaultFileURL() ?? URL(fileURLWithPath: "")
             }
             
+            // Configure le format audio si spécifié
+            if let preset = preset {
+                self?.configureWithPreset(preset)
+            } else {
+                // Configure le format personnalisé
+                if let format = self?.parseAudioFormat(formatString) {
+                    self?.setAudioFormat(format, quality: quality)
+                }
+                
+                // Configure les paramètres additionnels
+                if let sampleRate = sampleRate || channels != 1 {
+                    self?.audioConfiguration = AudioConfiguration(
+                        format: self?.audioConfiguration.format ?? .aac,
+                        quality: quality,
+                        channels: channels,
+                        sampleRate: sampleRate ?? self?.audioConfiguration.sampleRate ?? 44100
+                    )
+                }
+            }
+            
             // Démarre l'enregistrement
             do {
                 try self?.startRecording(toFileURL: fileURL)
                 resolver([
                     "status": "started",
-                    "filePath": fileURL.path
+                    "filePath": fileURL.path,
+                    "format": self?.audioConfiguration.format.displayName ?? "",
+                    "quality": self?.audioConfiguration.quality.rawValue ?? 0,
+                    "estimatedSizePerMinute": self?.audioConfiguration.estimatedFileSizePerMinute ?? 0
                 ])
             } catch {
                 rejecter("START_FAILED", error.localizedDescription, error)
@@ -188,6 +213,92 @@ extension AudioRecorder {
             return .measurement
         default:
             return .default
+        }
+    }
+    
+    /// Parse la qualité audio depuis une chaîne
+    private func parseAudioQuality(_ string: String) -> AudioQuality {
+        switch string.lowercased() {
+        case "low":
+            return .low
+        case "medium":
+            return .medium
+        case "high":
+            return .high
+        case "maximum", "max":
+            return .maximum
+        default:
+            return .high
+        }
+    }
+    
+    /// Parse le format audio depuis une chaîne
+    private func parseAudioFormat(_ string: String) -> AudioFormat? {
+        switch string.lowercased() {
+        case "aac", "m4a":
+            return .aac
+        case "mp3":
+            return .mp3
+        case "amr":
+            return .amr
+        case "amrwb", "amr-wb":
+            return .amrWB
+        case "ilbc":
+            return .ilbc
+        case "alac":
+            return .alac
+        case "flac":
+            return .flac
+        case "pcm16", "pcmint16":
+            return .pcmInt16
+        case "pcm32", "pcmint32":
+            return .pcmInt32
+        case "pcmfloat32", "float32":
+            return .pcmFloat32
+        case "pcmfloat64", "float64":
+            return .pcmFloat64
+        case "opus":
+            return .opus
+        case "speex":
+            return .speex
+        default:
+            return nil
+        }
+    }
+    
+    /// Configure avec un preset depuis une chaîne
+    private func configureWithPreset(_ presetString: String) {
+        switch presetString.lowercased() {
+        case "voicenote", "voice_note":
+            usePreset(.voiceNote)
+        case "voicecall", "voice_call", "voip":
+            usePreset(.voiceCall)
+        case "musichigh", "music_high":
+            usePreset(.musicHigh)
+        case "musicstandard", "music_standard", "music":
+            usePreset(.musicStandard)
+        case "professional", "pro":
+            usePreset(.professional)
+        case "compact", "small":
+            usePreset(.compact)
+        case "streaming", "stream":
+            usePreset(.streaming)
+        default:
+            break
+        }
+    }
+    
+    /// Obtient les informations sur tous les formats supportés
+    @objc
+    public func getSupportedFormatsInfo() -> [[String: Any]] {
+        return AudioFormat.allCases.map { format in
+            return [
+                "format": format.rawValue,
+                "name": format.displayName,
+                "extension": format.fileExtension,
+                "type": format.formatType.rawValue,
+                "usage": format.recommendedUsage.rawValue
+            ]
         }
     }
 }
