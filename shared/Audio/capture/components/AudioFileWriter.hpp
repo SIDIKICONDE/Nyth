@@ -24,6 +24,13 @@ namespace Audio {
 enum class AudioFileFormat {
     WAV,     // Format WAV standard
     RAW_PCM, // PCM brut sans en-tête
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+    ALAC,    // Apple Lossless Audio Codec (.m4a)
+    CAF,     // Core Audio Format (.caf)
+    AMR,     // Adaptive Multi-Rate (.amr) pour la voix
+#endif
+#endif
     // Futurs formats possibles : MP3, AAC, OGG, etc.
 };
 
