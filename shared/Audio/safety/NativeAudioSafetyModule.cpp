@@ -8,11 +8,11 @@ namespace react {
 
 // Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
 using Nyth::Audio::SafetyConfig;
-using SafetyError;
-using SafetyState;
-using SafetyReport;
-using SafetyStatistics;
-using SafetyLimits;
+using Nyth::Audio::SafetyError;
+using Nyth::Audio::SafetyState;
+using Nyth::Audio::SafetyReport;
+using Nyth::Audio::SafetyStatistics;
+using Nyth::Audio::SafetyLimits;
 using Nyth::Audio::SafetyParameterValidator;
 
 NativeAudioSafetyModule::NativeAudioSafetyModule(std::shared_ptr<CallInvoker> jsInvoker)
@@ -466,11 +466,11 @@ jsi::Value NativeAudioSafetyModule::isProcessing(jsi::Runtime& rt) {
 // === Utilitaires ===
 
 jsi::Value NativeAudioSafetyModule::dbToLinear(jsi::Runtime& rt, double db) {
-    return jsi::Value(dbToLinear(db));
+    return jsi::Value(Nyth::Audio::dbToLinear(db));
 }
 
 jsi::Value NativeAudioSafetyModule::linearToDb(jsi::Runtime& rt, double linear) {
-    return jsi::Value(linearToDb(linear));
+    return jsi::Value(Nyth::Audio::linearToDb(linear));
 }
 
 jsi::Value NativeAudioSafetyModule::validateConfig(jsi::Runtime& rt, const jsi::Object& config) {
@@ -489,7 +489,13 @@ jsi::Value NativeAudioSafetyModule::setAudioDataCallback(jsi::Runtime& rt, const
 
     if (safetyManager_) {
         safetyManager_->setDataCallback([this](const float* input, float* output, size_t frameCount, int channels) {
-            this->onProcessingComplete(input, output, frameCount);
+            if (this->callbackManager_ && this->runtimeValid_.load()) {
+                try {
+                    this->callbackManager_->invokeAudioIOCallback(input, output, frameCount, channels);
+                } catch (const std::exception&) {
+                    // Éviter les boucles d'erreur
+                }
+            }
         });
     }
 
@@ -520,7 +526,8 @@ jsi::Value NativeAudioSafetyModule::setReportCallback(jsi::Runtime& rt, const js
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->setAnalysisCallback(callback);
+        // Enregistrer explicitement sous la clé "report" pour cohérence avec les invocations
+        callbackManager_->registerCallback("report", rt, callback);
     }
 
     if (safetyManager_) {
@@ -940,16 +947,20 @@ void NativeAudioSafetyModule::handleError(SafetyError error, const std::string& 
 
     // Notifier via callback si disponible
     if (callbackManager_ && runtimeValid_.load()) {
-        onError(message);
+        try {
+            callbackManager_->invokeErrorCallback(message);
+        } catch (const std::exception&) {
+            // Silencieux pour éviter les boucles
+        }
     }
 }
 
 std::string NativeAudioSafetyModule::stateToString(SafetyState state) const {
-    return stateToString(state);
+    return Nyth::Audio::stateToString(state);
 }
 
 std::string NativeAudioSafetyModule::errorToString(SafetyError error) const {
-    return errorToString(error);
+    return Nyth::Audio::errorToString(error);
 }
 
 void NativeAudioSafetyModule::onStatisticsUpdate(const SafetyStatistics& stats) {
@@ -1008,14 +1019,9 @@ void NativeAudioSafetyModule::onError(const std::string& error) {
 void NativeAudioSafetyModule::onStateChange(SafetyState oldState, SafetyState newState) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
-            callbackManager_->invokeCallback("stateChange", [oldState, newState, this](jsi::Runtime& rt) {
-                auto stateObj = jsi::Object(rt);
-                stateObj.setProperty(rt, "oldState", jsi::Value(static_cast<int>(oldState)));
-                stateObj.setProperty(rt, "oldStateString", jsi::String::createFromUtf8(rt, stateToString(oldState)));
-                stateObj.setProperty(rt, "newState", jsi::Value(static_cast<int>(newState)));
-                stateObj.setProperty(rt, "newStateString", jsi::String::createFromUtf8(rt, stateToString(newState)));
-                return std::vector<jsi::Value>{stateObj};
-            });
+            // Appeler la variante dédiée avec deux chaînes, conforme au spec TS
+            callbackManager_->invokeStateChangeCallback(
+                Nyth::Audio::stateToString(oldState), Nyth::Audio::stateToString(newState));
         } catch (const std::exception& e) {
             // Silencer les erreurs de callback
         }
