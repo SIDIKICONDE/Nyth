@@ -1,4 +1,4 @@
-﻿#include "NativeAudioCaptureModule.h"
+#include "NativeAudioCaptureModule.h"
 
 #if NYTH_AUDIO_CAPTURE_ENABLED
 
@@ -327,6 +327,10 @@ jsi::Value NativeAudioCaptureModule::startRecording(jsi::Runtime& rt, const jsi:
             writerCfg.format = AudioFileFormat::WAV;
         } else if (fmtStr == "raw" || fmtStr == "RAW" || fmtStr == "raw_pcm") {
             writerCfg.format = AudioFileFormat::RAW_PCM;
+        } else if (fmtStr == "m4a" || fmtStr == "M4A" || fmtStr == "alac" || fmtStr == "ALAC") {
+            writerCfg.format = AudioFileFormat::M4A_ALAC;
+        } else if (fmtStr == "caf" || fmtStr == "CAF") {
+            writerCfg.format = AudioFileFormat::CAF;
         }
     }
 

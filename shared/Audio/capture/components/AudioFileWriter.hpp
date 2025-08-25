@@ -24,6 +24,9 @@ namespace Audio {
 enum class AudioFileFormat {
     WAV,     // Format WAV standard
     RAW_PCM, // PCM brut sans en-tête
+    // iOS spécifiques (via Core Audio)
+    M4A_ALAC, // Apple Lossless encapsulé en .m4a (iOS)
+    CAF       // Core Audio Format (.caf) PCM (iOS)
     // Futurs formats possibles : MP3, AAC, OGG, etc.
 };
 
@@ -84,6 +87,10 @@ private:
     std::atomic<size_t> framesWritten_{0};
     std::vector<uint8_t> writeBuffer_;
     size_t bufferPos_ = 0;
+
+    // Etat spécifique iOS pour l'écriture via ExtAudioFile (masqué pour éviter les includes dans le header)
+    void* iosWriterState_ = nullptr; // Alloué côté .cpp uniquement sur iOS
+    bool usingExtAudioFile_ = false; // Indique si l'écriture passe par ExtAudioFile (iOS)
 
     // En-tête WAV
     struct WAVHeader {
