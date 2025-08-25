@@ -1,6 +1,6 @@
 #include "SpectrumComponentFactory.h"
 
-#include "../../../common/dsp/FFTEngine.hpp"
+#include "../../common/dsp/FFTEngine.hpp"
 #include <tuple>
 
 

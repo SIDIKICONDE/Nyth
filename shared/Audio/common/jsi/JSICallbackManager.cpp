@@ -437,9 +437,13 @@ void JSICallbackManager::invokeCallback(const std::string& callbackName,
                 callbackData.function->call(rt);
             } else if (args.size() == 1) {
                 callbackData.function->call(rt, args[0]);
+            } else if (args.size() == 2) {
+                callbackData.function->call(rt, args[0], args[1]);
+            } else if (args.size() == 3) {
+                callbackData.function->call(rt, args[0], args[1], args[2]);
             } else {
-                // Fallback: pass the first argument
-                callbackData.function->call(rt, args[0]);
+                // Pass the first 4 args to avoid huge call frames
+                callbackData.function->call(rt, args[0], args[1], args[2], args[3]);
             }
         } catch (const jsi::JSError& e) {
             if (hasCallback("error")) {
