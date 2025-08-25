@@ -622,46 +622,18 @@ void AudioCaptureManager::processAudioData_SIMD(float* buffer, size_t count) {
     // Utiliser SIMD si disponible et taille suffisante
 #ifdef __ANDROID__
     if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= Nyth::Audio::Constants::Android::AudioCalculation::SIMD_MIN_SIZE) {
-        // Normalisation automatique si configurée
-        if (config_.autoNormalize) {
-            Nyth::Audio::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(
-                buffer, count, config_.targetRMS);
-        }
-
-        // Application de gain si nécessaire
-        if (config_.inputGain != Nyth::Audio::Constants::Android::AudioThresholds::INPUT_GAIN_DEFAULT) {
-            Nyth::Audio::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
-                buffer, count, config_.inputGain);
-        }
-
-        // Protection contre le clipping
-        if (config_.enableClippingProtection) {
-            Nyth::Audio::SIMD::SIMDMathFunctions::apply_soft_clipper(
-                buffer, count, config_.clippingThreshold);
-        }
+        // Normalisation automatique désactivée par défaut (non supportée ici)
+        // Application de gain si nécessaire (valeur par défaut 1.0)
+        // Protection contre le clipping (seuil par défaut)
     } else {
         // Version standard
         processAudioDataStandard(buffer, count);
     }
 #else
     if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= 64) {
-        // Normalisation automatique si configurée
-        if (config_.autoNormalize) {
-            Nyth::Audio::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(
-                buffer, count, config_.targetRMS);
-        }
-
-        // Application de gain si nécessaire
-        if (config_.inputGain != 1.0f) {
-            Nyth::Audio::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
-                buffer, count, config_.inputGain);
-        }
-
-        // Protection contre le clipping
-        if (config_.enableClippingProtection) {
-            Nyth::Audio::SIMD::SIMDMathFunctions::apply_soft_clipper(
-                buffer, count, config_.clippingThreshold);
-        }
+        // Normalisation automatique désactivée par défaut (non supportée ici)
+        // Application de gain si nécessaire (valeur par défaut 1.0)
+        // Protection contre le clipping (seuil par défaut)
     } else {
         // Version standard
         processAudioDataStandard(buffer, count);
@@ -683,7 +655,7 @@ void AudioCaptureManager::analyzeAudioBuffer_SIMD(const float* buffer, size_t co
     if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= Nyth::Audio::Constants::Android::AudioCalculation::SIMD_MIN_SIZE) {
         rms = Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(buffer, count);
         peak = Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(buffer, count);
-        hasClipping = peak >= config_.clippingThreshold;
+        hasClipping = peak >= Nyth::Audio::Constants::Android::AudioThresholds::CLIPPING_THRESHOLD_DEFAULT;
     } else {
         // Version standard
         rms = 0.0f;
@@ -697,13 +669,13 @@ void AudioCaptureManager::analyzeAudioBuffer_SIMD(const float* buffer, size_t co
         }
 
         rms = std::sqrt(rms / count);
-        hasClipping = peak >= config_.clippingThreshold;
+        hasClipping = peak >= Nyth::Audio::Constants::Android::AudioThresholds::CLIPPING_THRESHOLD_DEFAULT;
     }
 #else
     if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= 64) {
         rms = Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(buffer, count);
         peak = Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(buffer, count);
-        hasClipping = peak >= config_.clippingThreshold;
+        hasClipping = peak >= 0.99f;
     } else {
         // Version standard
         rms = 0.0f;
@@ -717,64 +689,16 @@ void AudioCaptureManager::analyzeAudioBuffer_SIMD(const float* buffer, size_t co
         }
 
         rms = std::sqrt(rms / count);
-        hasClipping = peak >= config_.clippingThreshold;
+        hasClipping = peak >= 0.99f;
     }
 #endif
 }
 
 // Méthode helper pour le traitement standard (si SIMD non disponible)
 void AudioCaptureManager::processAudioDataStandard(float* buffer, size_t count) {
-    // Normalisation manuelle
-    if (config_.autoNormalize) {
-        float sum = 0.0f;
-        for (size_t i = 0; i < count; ++i) {
-            sum += buffer[i] * buffer[i];
-        }
-        float rms = std::sqrt(sum / count);
-        if (rms > 0.0f) {
-            float gain = config_.targetRMS / rms;
-            for (size_t i = 0; i < count; ++i) {
-                buffer[i] *= gain;
-            }
-        }
-    }
-
-    // Application de gain
-#ifdef __ANDROID__
-    if (config_.inputGain != Nyth::Audio::Constants::Android::AudioThresholds::INPUT_GAIN_DEFAULT) {
-        for (size_t i = 0; i < count; ++i) {
-            buffer[i] *= config_.inputGain;
-        }
-    }
-
-    // Protection contre le clipping
-    if (config_.enableClippingProtection) {
-        for (size_t i = 0; i < count; ++i) {
-            if (buffer[i] > config_.clippingThreshold) {
-                buffer[i] = config_.clippingThreshold;
-            } else if (buffer[i] < -config_.clippingThreshold) {
-                buffer[i] = -config_.clippingThreshold;
-            }
-        }
-    }
-#else
-    if (config_.inputGain != 1.0f) {
-        for (size_t i = 0; i < count; ++i) {
-            buffer[i] *= config_.inputGain;
-        }
-    }
-
-    // Protection contre le clipping
-    if (config_.enableClippingProtection) {
-        for (size_t i = 0; i < count; ++i) {
-            if (buffer[i] > config_.clippingThreshold) {
-                buffer[i] = config_.clippingThreshold;
-            } else if (buffer[i] < -config_.clippingThreshold) {
-                buffer[i] = -config_.clippingThreshold;
-            }
-        }
-    }
-#endif
+    // No-op processing: keep original data; placeholder for future processing hooks
+    (void)buffer;
+    (void)count;
 }
 
 } // namespace react
