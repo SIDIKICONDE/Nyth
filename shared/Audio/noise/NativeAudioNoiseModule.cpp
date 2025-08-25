@@ -15,10 +15,6 @@ using Nyth::Audio::NoiseState;
 
 NativeAudioNoiseModule::NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsInvoker)
     : TurboModule("NativeAudioNoiseModule", jsInvoker), jsInvoker_(std::move(jsInvoker)) {
-
-NativeAudioNoiseModule::NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsInvoker) : TurboModule() {
-    jsInvoker_ = jsInvoker;
-
     // Initialisation des composants
     initializeManagers();
 
@@ -832,7 +828,7 @@ void NativeAudioNoiseModule::onProcessingComplete(const float* input, const floa
     if (callbackManager_ && runtimeValid_.load()) {
         try {
             // Transmet les buffers d'entrée et de sortie via Float32Array
-            callbackManager_->invokeAudioIOCallback(input, output, frameCount, 1);
+            callbackManager_->invokeAudioIOCallback(input, output, frameCount, config_.channels);
         } catch (const std::exception& e) {
             // Silencer les erreurs de callback
         }

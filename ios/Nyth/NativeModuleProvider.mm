@@ -19,7 +19,7 @@
 #include "../../shared/Audio/safety/NativeAudioSafetyModule.h"
 #include "../../shared/Audio/fft/NativeAudioSpectrumModule.h"
 #include "../../shared/Audio/utils/NativeAudioUtilsModule.h"
-v
+#include <memory>
 #include <memory>
 
 #endif

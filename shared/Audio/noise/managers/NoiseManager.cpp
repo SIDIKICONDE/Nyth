@@ -533,9 +533,24 @@ void NoiseManager::notifyStatisticsCallback() {
 
     // Notification via JSICallbackManager si disponible
     if (callbackManager_) {
-        // Formater les statistiques en JSON pour JavaScript
-        std::string statsJson = formatStatisticsToJSON(currentStats_);
-        callbackManager_->notifyStatistics(statsJson);
+        // Utiliser l'API générique de callback avec un objet JS
+        try {
+            callbackManager_->invokeCallback("statistics", [this](jsi::Runtime& rt) {
+                jsi::Object stats(rt);
+                stats.setProperty(rt, "inputLevel", jsi::Value(currentStats_.inputLevel));
+                stats.setProperty(rt, "outputLevel", jsi::Value(currentStats_.outputLevel));
+                stats.setProperty(rt, "estimatedSNR", jsi::Value(currentStats_.estimatedSNR));
+                stats.setProperty(rt, "noiseReductionDB", jsi::Value(currentStats_.noiseReductionDB));
+                stats.setProperty(rt, "processedFrames", jsi::Value(static_cast<double>(currentStats_.processedFrames)));
+                stats.setProperty(rt, "processedSamples", jsi::Value(static_cast<double>(currentStats_.processedSamples)));
+                stats.setProperty(rt, "durationMs", jsi::Value(static_cast<double>(currentStats_.durationMs)));
+                stats.setProperty(rt, "speechProbability", jsi::Value(currentStats_.speechProbability));
+                stats.setProperty(rt, "musicalNoiseLevel", jsi::Value(currentStats_.musicalNoiseLevel));
+                return std::vector<jsi::Value>{jsi::Value(rt, std::move(stats))};
+            });
+        } catch (...) {
+            // Ignorer les erreurs de callback
+        }
     }
 }
 
@@ -549,7 +564,11 @@ void NoiseManager::handleError(const std::string& error) {
 
     if (callbackManager_) {
         // Notifier l'erreur via callback manager
-        callbackManager_->notifyError(error);
+        try {
+            callbackManager_->invokeErrorCallback(error);
+        } catch (...) {
+            // Ignorer les erreurs de callback
+        }
     }
 }
 
