@@ -7,7 +7,7 @@
 #include <memory>
 #include <mutex>
 
-#include "../../common/jsi/JSICallbackManager.h"
+#include "../common/jsi/JSICallbackManager.h"
 #include "config/SpectrumConfig.h"
 #include "jsi/SpectrumJSIConverter.h"
 #include "managers/SpectrumManager.h"
