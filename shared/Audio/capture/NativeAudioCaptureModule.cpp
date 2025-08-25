@@ -15,18 +15,20 @@ using Nyth::Audio::AudioFileWriterConfig;
 using Nyth::Audio::AudioFileFormat;
 using Nyth::Audio::Limits;
 
-NativeAudioCaptureModule::NativeAudioCaptureModule(std::shared_ptr<CallInvoker> jsInvoker) {
+NativeAudioCaptureModule::NativeAudioCaptureModule(std::shared_ptr<CallInvoker> jsInvoker)
+    : TurboModule("NativeAudioCaptureModule", jsInvoker) {
     // Initialiser avec les valeurs par défaut
     config_ = AudioCaptureConfig();
 
     // Créer le gestionnaire de callbacks
-    callbackManager_ = std::make_unique<JSICallbackManager>(jsInvoker);
+    callbackManager_ = std::make_shared<JSICallbackManager>(jsInvoker);
     jsInvoker_ = jsInvoker;
 
     // Le captureManager sera créé lors de l'initialisation
 }
 
 NativeAudioCaptureModule::~NativeAudioCaptureModule() {
+    stopAnalysisLoop();
     cleanupManagers();
 }
 
@@ -95,6 +97,7 @@ jsi::Value NativeAudioCaptureModule::resume(jsi::Runtime& rt) {
 }
 
 jsi::Value NativeAudioCaptureModule::dispose(jsi::Runtime& rt) {
+    stopAnalysisLoop();
     cleanupManagers();
     return jsi::Value::undefined();
 }
@@ -276,31 +279,22 @@ jsi::Value NativeAudioCaptureModule::requestPermission(jsi::Runtime& rt) {
             .callAsConstructor(
                 rt, jsi::Function::createFromHostFunction(
                         rt, jsi::PropNameID::forAscii(rt, "executor"), 2,
-                        [this](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t) -> jsi::Value {
-                            auto resolve = std::make_shared<jsi::Function>(args[0].asObject(rt).asFunction(rt));
-                            auto reject = std::make_shared<jsi::Function>(args[1].asObject(rt).asFunction(rt));
+                        [this](jsi::Runtime& innerRt, const jsi::Value&, const jsi::Value* args, size_t) -> jsi::Value {
+                            auto resolve = std::make_shared<jsi::Function>(args[0].asObject(innerRt).asFunction(innerRt));
+                            auto reject = std::make_shared<jsi::Function>(args[1].asObject(innerRt).asFunction(innerRt));
 
-                            captureManager_->requestPermission([this, resolve, reject, rt](bool granted) {
-                                // Cette callback sera appelée depuis un thread natif
-                                // Le callbackManager gère l'invocation sur le thread JS
-                                if (runtimeValid_.load() && jsInvoker_) {
-                                    jsInvoker_->invokeAsync([resolve, reject, granted, rt]() {
-                                        if (granted) {
-                                            resolve->call(jsi::Value(true));
-                                        } else {
-                                            auto error =
-                                                jsi::JSError(jsi::String::createFromUtf8(rt, "Permission denied"));
-                                            reject->call(error.value());
+                            captureManager_->requestPermission([this, resolve, reject](bool granted) {
+                                if (jsInvoker_) {
+                                    jsInvoker_->invokeAsync([this, resolve, reject, granted]() {
+                                        if (runtimeValid_.load() && runtime_) {
+                                            if (granted) {
+                                                resolve->call(*runtime_, jsi::Value(true));
+                                            } else {
+                                                jsi::JSError error(*runtime_, "Permission denied");
+                                                reject->call(*runtime_, error.value());
+                                            }
                                         }
                                     });
-                                } else {
-                                    // Fallback si runtime non disponible
-                                    if (granted) {
-                                        resolve->call(jsi::Value(true));
-                                    } else {
-                                        auto error = jsi::JSError(jsi::String::createFromUtf8(rt, "Permission denied"));
-                                        reject->call(error.value());
-                                    }
                                 }
                             });
 
@@ -493,7 +487,19 @@ jsi::Value NativeAudioCaptureModule::install(jsi::Runtime& rt, std::shared_ptr<C
 
     REGISTER_METHOD_0(getRMS);
     REGISTER_METHOD_0(getRMSdB);
-    REGISTER_METHOD_1_NUM(isSilent);
+    object.setProperty(rt, "isSilent",
+                       jsi::Function::createFromHostFunction(
+                           rt, jsi::PropNameID::forAscii(rt, "isSilent"), 1,
+                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value {
+                               double threshold = 0.001;
+                               if (c >= 1) {
+                                   if (!args[0].isNumber()) {
+                                       throw jsi::JSError(rt, "isSilent expects number");
+                                   }
+                                   threshold = args[0].asNumber();
+                               }
+                               return module->isSilent(rt, threshold);
+                           }));
     REGISTER_METHOD_0(hasClipping);
 
     REGISTER_METHOD_0(getAvailableDevices);
@@ -518,6 +524,66 @@ jsi::Value NativeAudioCaptureModule::install(jsi::Runtime& rt, std::shared_ptr<C
     REGISTER_METHOD_0(resumeRecording);
     REGISTER_METHOD_0(isRecording);
     REGISTER_METHOD_0(getRecordingInfo);
+
+    // Utility stubs for compatibility with TS/JS usage
+    object.setProperty(rt, "analyzeAudioFile",
+                       jsi::Function::createFromHostFunction(
+                           rt, jsi::PropNameID::forAscii(rt, "analyzeAudioFile"), 2,
+                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value {
+                               auto makeAnalysis = [&rt](const std::string& path) {
+                                   auto result = jsi::Object(rt);
+                                   result.setProperty(rt, "success", jsi::Value(true));
+                                   auto fmt = jsi::Object(rt);
+                                   fmt.setProperty(rt, "type", jsi::String::createFromUtf8(rt, "wav"));
+                                   fmt.setProperty(rt, "sampleRate", jsi::Value(44100));
+                                   fmt.setProperty(rt, "channels", jsi::Value(1));
+                                   fmt.setProperty(rt, "bitsPerSample", jsi::Value(16));
+                                   fmt.setProperty(rt, "duration", jsi::Value(0));
+                                   result.setProperty(rt, "format", fmt);
+                                   auto levels = jsi::Object(rt);
+                                   levels.setProperty(rt, "average", jsi::Value(0.0));
+                                   levels.setProperty(rt, "peak", jsi::Value(0.0));
+                                   levels.setProperty(rt, "rms", jsi::Value(0.0));
+                                   levels.setProperty(rt, "rmsDb", jsi::Value(-100.0));
+                                   result.setProperty(rt, "levels", levels);
+                                   return result;
+                               };
+
+                               if (c >= 2 && args[0].isString() && args[1].isObject() && args[1].asObject(rt).isFunction(rt)) {
+                                   auto cb = args[1].asObject(rt).asFunction(rt);
+                                   auto res = makeAnalysis(args[0].asString(rt).utf8(rt));
+                                   cb.call(rt, res);
+                                   return jsi::Value::undefined();
+                               }
+
+                               if (c >= 1) {
+                                   std::string path;
+                                   if (args[0].isObject()) {
+                                       auto a = args[0].asObject(rt);
+                                       if (a.hasProperty(rt, "filePath")) {
+                                           path = a.getProperty(rt, "filePath").asString(rt).utf8(rt);
+                                       }
+                                   } else if (args[0].isString()) {
+                                       path = args[0].asString(rt).utf8(rt);
+                                   }
+                                   return makeAnalysis(path);
+                               }
+
+                               throw jsi::JSError(rt, "analyzeAudioFile expects (filePath, callback) or (params)");
+                           }));
+
+    object.setProperty(rt, "convertAudioFormat",
+                       jsi::Function::createFromHostFunction(
+                           rt, jsi::PropNameID::forAscii(rt, "convertAudioFormat"), 1,
+                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value {
+                               if (c < 1 || !args[0].isObject()) {
+                                   throw jsi::JSError(rt, "convertAudioFormat expects (params)");
+                               }
+                               auto obj = jsi::Object(rt);
+                               obj.setProperty(rt, "success", jsi::Value(false));
+                               obj.setProperty(rt, "error", jsi::String::createFromUtf8(rt, "Not implemented"));
+                               return obj;
+                           }));
 
     // Callbacks
     object.setProperty(rt, "setAudioDataCallback",

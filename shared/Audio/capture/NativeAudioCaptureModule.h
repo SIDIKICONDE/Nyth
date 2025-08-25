@@ -115,7 +115,7 @@ public:
 private:
     // === Composants refactorisés ===
     std::unique_ptr<AudioCaptureManager> captureManager_;
-    std::unique_ptr<JSICallbackManager> callbackManager_;
+    std::shared_ptr<JSICallbackManager> callbackManager_;
 
     // Invoker JS pour les appels asynchrones
     std::shared_ptr<CallInvoker> jsInvoker_;

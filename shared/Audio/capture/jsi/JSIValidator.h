@@ -4,6 +4,7 @@
 #include <jsi/jsi.h>
 #include <string>
 #include <vector>
+#include <functional>
 
 
 namespace facebook {
