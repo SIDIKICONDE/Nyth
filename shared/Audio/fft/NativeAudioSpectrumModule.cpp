@@ -1,17 +1,16 @@
-#include "NativeAudioSpectrumModule.h"
+﻿#include "NativeAudioSpectrumModule.h"
 
 #include <algorithm>
 #include <chrono>
 
 namespace facebook {
 namespace react {
-
-// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
-using SpectrumConfig;
-using SpectrumError;
-using SpectrumState;
-using SpectrumData;
-using SpectrumManager;
+// Using declarations handled in header; prefer fully-qualified names when needed
+using Nyth::Audio::SpectrumConfig;
+using Nyth::Audio::SpectrumError;
+using Nyth::Audio::SpectrumState;
+using Nyth::Audio::SpectrumData;
+using Nyth::Audio::SpectrumManager;
 using Nyth::Audio::ISpectrumManager;
 
 NativeAudioSpectrumModule::NativeAudioSpectrumModule(std::shared_ptr<CallInvoker> jsInvoker)
@@ -93,13 +92,8 @@ jsi::Value NativeAudioSpectrumModule::release(jsi::Runtime& rt) {
 jsi::Value NativeAudioSpectrumModule::getState(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    auto stateObj = jsi::Object(rt);
-    stateObj.setProperty(rt, "state", jsi::Value(static_cast<int>(currentState_.load())));
-    stateObj.setProperty(rt, "stateString", jsi::String::createFromUtf8(rt, stateToString(currentState_.load())));
-    stateObj.setProperty(rt, "isInitialized", jsi::Value(isInitialized_.load()));
-    stateObj.setProperty(rt, "isAnalyzing", jsi::Value(isAnalyzing_.load()));
-
-    return stateObj;
+    // Aligne la spec TS: getState() -> number
+    return jsi::Value(static_cast<int>(currentState_.load()));
 }
 
 jsi::Value NativeAudioSpectrumModule::getErrorString(jsi::Runtime& rt, int errorCode) {
@@ -163,7 +157,7 @@ jsi::Value NativeAudioSpectrumModule::processAudioBuffer(jsi::Runtime& rt, const
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (!isInitialized_.load() || !isAnalyzing_.load()) {
-        return jsi::Value(nullptr);
+        return jsi::Value(false);
     }
 
     try {
@@ -172,22 +166,17 @@ jsi::Value NativeAudioSpectrumModule::processAudioBuffer(jsi::Runtime& rt, const
 
         // Vérification des paramètres
         if (inputData.empty()) {
-            return jsi::Value(nullptr);
+            return jsi::Value(false);
         }
 
         // Traitement
         bool success = spectrumManager_->processAudioBuffer(inputData.data(), inputData.size());
 
-        if (success) {
-            // Retourner les données spectrales
-            auto spectrumData = spectrumManager_->getLastSpectrumData();
-            return SpectrumJSIConverter::spectrumDataToJSI(rt, spectrumData);
-        } else {
-            return jsi::Value(nullptr);
-        }
+        // Aligne la spec TS: retourner un booléen
+        return jsi::Value(success);
     } catch (const std::exception& e) {
         handleError(SpectrumError::FFT_FAILED, std::string("Audio processing failed: ") + e.what());
-        return jsi::Value(nullptr);
+        return jsi::Value(false);
     }
 }
 
@@ -196,7 +185,7 @@ jsi::Value NativeAudioSpectrumModule::processAudioBufferStereo(jsi::Runtime& rt,
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (!isInitialized_.load() || !isAnalyzing_.load()) {
-        return jsi::Value(nullptr);
+        return jsi::Value(false);
     }
 
     try {
@@ -207,23 +196,18 @@ jsi::Value NativeAudioSpectrumModule::processAudioBufferStereo(jsi::Runtime& rt,
         // Validation
         if (inputLData.empty() || inputRData.empty() || inputLData.size() != inputRData.size()) {
             handleError(SpectrumError::INVALID_BUFFER, "Invalid stereo input data");
-            return jsi::Value(nullptr);
+            return jsi::Value(false);
         }
 
         // Traitement stéréo
         bool success =
             spectrumManager_->processAudioBufferStereo(inputLData.data(), inputRData.data(), inputLData.size());
 
-        if (success) {
-            // Retourner les données spectrales
-            auto spectrumData = spectrumManager_->getLastSpectrumData();
-            return SpectrumJSIConverter::spectrumDataToJSI(rt, spectrumData);
-        } else {
-            return jsi::Value(nullptr);
-        }
+        // Aligne la spec TS: retourner un booléen
+        return jsi::Value(success);
     } catch (const std::exception& e) {
         handleError(SpectrumError::FFT_FAILED, std::string("Stereo audio processing failed: ") + e.what());
-        return jsi::Value(nullptr);
+        return jsi::Value(false);
     }
 }
 
@@ -463,7 +447,14 @@ jsi::Value NativeAudioSpectrumModule::install(jsi::Runtime& rt, std::shared_ptr<
                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
                                          size_t count) { return module->release(rt); }));
 
-    // Fonction getState
+    // Alias dispose -> release
+    turboModule.setProperty(rt, "dispose",
+                            jsi::Function::createFromHostFunction(
+                                rt, jsi::PropNameID::forUtf8(rt, "dispose"), 0,
+                                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                         size_t count) { return module->release(rt); }));
+
+    // Fonction getState (renvoie un nombre)
     turboModule.setProperty(rt, "getState",
                             jsi::Function::createFromHostFunction(
                                 rt, jsi::PropNameID::forUtf8(rt, "getState"), 0,
@@ -540,7 +531,7 @@ jsi::Value NativeAudioSpectrumModule::install(jsi::Runtime& rt, std::shared_ptr<
                     auto inputArray = args[0].asObject(rt).asArray(rt);
                     return module->processAudioBuffer(rt, inputArray);
                 }
-                return jsi::Value(nullptr);
+                return jsi::Value(false);
             }));
 
     // Fonction processAudioBufferStereo
@@ -554,13 +545,20 @@ jsi::Value NativeAudioSpectrumModule::install(jsi::Runtime& rt, std::shared_ptr<
                     auto inputRArray = args[1].asObject(rt).asArray(rt);
                     return module->processAudioBufferStereo(rt, inputLArray, inputRArray);
                 }
-                return jsi::Value(nullptr);
+                return jsi::Value(false);
             }));
 
     // Fonction getLastSpectrumData
     turboModule.setProperty(rt, "getLastSpectrumData",
                             jsi::Function::createFromHostFunction(
                                 rt, jsi::PropNameID::forUtf8(rt, "getLastSpectrumData"), 0,
+                                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                         size_t count) { return module->getLastSpectrumData(rt); }));
+
+    // Alias TS: getSpectrumData()
+    turboModule.setProperty(rt, "getSpectrumData",
+                            jsi::Function::createFromHostFunction(
+                                rt, jsi::PropNameID::forUtf8(rt, "getSpectrumData"), 0,
                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
                                          size_t count) { return module->getLastSpectrumData(rt); }));
 
@@ -589,6 +587,18 @@ jsi::Value NativeAudioSpectrumModule::install(jsi::Runtime& rt, std::shared_ptr<
                     return module->calculateFFTSize(rt, desiredSize);
                 }
                 return jsi::Value(static_cast<double>(1024));
+            }));
+
+    // Expose validateConfig(config)
+    turboModule.setProperty(
+        rt, "validateConfig",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "validateConfig"), 1,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count > 0 && args[0].isObject()) {
+                    return module->validateConfig(rt, args[0].asObject(rt));
+                }
+                return jsi::Value(false);
             }));
 
     // Callbacks
@@ -638,7 +648,7 @@ void NativeAudioSpectrumModule::initializeManagers() {
     callbackManager_ = std::make_shared<JSICallbackManager>(jsInvoker_);
 
     // Créer le spectrum manager
-    spectrumManager_ = std::make_unique<SpectrumManager>();
+    spectrumManager_ = std::make_unique<Nyth::Audio::SpectrumManager>();
 
     // Configuration des callbacks
     setupCallbacks();
@@ -686,11 +696,11 @@ void NativeAudioSpectrumModule::handleError(SpectrumError error, const std::stri
 }
 
 std::string NativeAudioSpectrumModule::stateToString(SpectrumState state) const {
-    return stateToString(state);
+    return Nyth::Audio::stateToString(state);
 }
 
 std::string NativeAudioSpectrumModule::errorToString(SpectrumError error) const {
-    return errorToString(error);
+    return Nyth::Audio::errorToString(error);
 }
 
 void NativeAudioSpectrumModule::onSpectrumData(const SpectrumData& data) {
@@ -709,13 +719,12 @@ void NativeAudioSpectrumModule::onSpectrumData(const SpectrumData& data) {
 void NativeAudioSpectrumModule::onError(SpectrumError error, const std::string& message) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
-            callbackManager_->invokeCallback("error", [error, message, this](jsi::Runtime& rt) {
-                auto errorObj = jsi::Object(rt);
-                errorObj.setProperty(rt, "errorCode", jsi::Value(static_cast<int>(error)));
-                errorObj.setProperty(rt, "message", jsi::String::createFromUtf8(rt, message));
-                errorObj.setProperty(rt, "errorString", jsi::String::createFromUtf8(rt, errorToString(error)));
-                errorObj.setProperty(rt, "timestamp", jsi::Value(static_cast<double>(std::time(nullptr))));
-                return std::vector<jsi::Value>{errorObj};
+            // Aligne la spec TS: (errorCode: number, message: string)
+            callbackManager_->invokeCallback("error", [error, message](jsi::Runtime& rt) {
+                return std::vector<jsi::Value>{
+                    jsi::Value(static_cast<int>(error)),
+                    jsi::String::createFromUtf8(rt, message)
+                };
             });
         } catch (const std::exception& e) {
             // Silencer les erreurs de callback
@@ -727,13 +736,12 @@ void NativeAudioSpectrumModule::onStateChange(SpectrumState oldState,
                                               SpectrumState newState) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
-            callbackManager_->invokeCallback("stateChange", [oldState, newState, this](jsi::Runtime& rt) {
-                auto stateObj = jsi::Object(rt);
-                stateObj.setProperty(rt, "oldState", jsi::Value(static_cast<int>(oldState)));
-                stateObj.setProperty(rt, "oldStateString", jsi::String::createFromUtf8(rt, stateToString(oldState)));
-                stateObj.setProperty(rt, "newState", jsi::Value(static_cast<int>(newState)));
-                stateObj.setProperty(rt, "newStateString", jsi::String::createFromUtf8(rt, stateToString(newState)));
-                return std::vector<jsi::Value>{stateObj};
+            // Aligne la spec TS: (oldState: number, newState: number)
+            callbackManager_->invokeCallback("stateChange", [oldState, newState](jsi::Runtime& rt) {
+                return std::vector<jsi::Value>{
+                    jsi::Value(static_cast<int>(oldState)),
+                    jsi::Value(static_cast<int>(newState))
+                };
             });
         } catch (const std::exception& e) {
             // Silencer les erreurs de callback

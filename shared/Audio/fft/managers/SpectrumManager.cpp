@@ -48,8 +48,8 @@ bool SpectrumManager::initialize(const SpectrumConfig& config) {
 
     // Initialisation des données spectrales
     lastSpectrumData_.numBands = config_.numBands;
-    lastSpectrumData_.magnitudes = magnitudesBuffer_.data();
-    lastSpectrumData_.frequencies = frequencyBandsBuffer_.data();
+    lastSpectrumData_.magnitudes = Nyth::Audio::ArrayView<float>(magnitudesBuffer_.data(), config_.numBands);
+    lastSpectrumData_.frequencies = Nyth::Audio::ArrayView<float>(frequencyBandsBuffer_.data(), config_.numBands);
 
     setState(SpectrumState::INITIALIZED);
     return true;

@@ -18,6 +18,7 @@ public:
     ~FilterManager();
 
     // === Gestion du cycle de vie ===
+    bool initialize(const Nyth::Audio::AudioConfig& config);
     int64_t createFilter();
     bool destroyFilter(int64_t filterId);
     bool filterExists(int64_t filterId) const;

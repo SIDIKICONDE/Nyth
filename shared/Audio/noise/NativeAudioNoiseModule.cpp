@@ -1,4 +1,4 @@
-#include "NativeAudioNoiseModule.h"
+﻿#include "NativeAudioNoiseModule.h"
 
 #if NYTH_AUDIO_NOISE_ENABLED
 
@@ -8,10 +8,11 @@
 namespace facebook {
 namespace react {
 
-// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
+// Using declarations pour les types frÃ©quemment utilisÃ©s du namespace Nyth::Audio
 using Nyth::Audio::NoiseConfig;
 using Nyth::Audio::NoiseStatistics;
 using Nyth::Audio::NoiseState;
+using Nyth::Audio::NoiseManager;
 
 NativeAudioNoiseModule::NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsInvoker)
     : TurboModule("NativeAudioNoiseModule", jsInvoker), jsInvoker_(std::move(jsInvoker)) {
@@ -22,7 +23,7 @@ NativeAudioNoiseModule::NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsIn
     // Initialisation des composants
     initializeManagers();
 
-    // Configuration par défaut
+    // Configuration par dÃ©faut
     config_ = NoiseConfig();
 }
 
@@ -103,7 +104,7 @@ jsi::Value NativeAudioNoiseModule::dispose(jsi::Runtime& rt) {
     }
 }
 
-// === État et informations ===
+// === Ã‰tat et informations ===
 jsi::Value NativeAudioNoiseModule::getState(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(mutex_);
     return jsi::String::createFromUtf8(rt, stateToString(currentState_));
@@ -206,7 +207,7 @@ jsi::Value NativeAudioNoiseModule::processAudio(jsi::Runtime& rt, const jsi::Arr
     }
 
     try {
-        // Conversion des données d'entrée
+        // Conversion des donnÃ©es d'entrÃ©e
         auto inputData = NoiseJSIConverter::arrayToVector(rt, input);
         std::vector<float> outputData(inputData.size());
 
@@ -235,18 +236,18 @@ jsi::Value NativeAudioNoiseModule::processAudioStereo(jsi::Runtime& rt, const js
     }
 
     try {
-        // Conversion des données d'entrée
+        // Conversion des donnÃ©es d'entrÃ©e
         auto inputLData = NoiseJSIConverter::arrayToVector(rt, inputL);
         auto inputRData = NoiseJSIConverter::arrayToVector(rt, inputR);
 
         std::vector<float> outputLData(inputLData.size());
         std::vector<float> outputRData(inputRData.size());
 
-        // Traitement stéréo
+        // Traitement stÃ©rÃ©o
         noiseManager_->processAudioStereo(inputLData.data(), inputRData.data(), outputLData.data(), outputRData.data(),
                                           inputLData.size());
 
-        // Créer l'objet de retour avec les deux canaux
+        // CrÃ©er l'objet de retour avec les deux canaux
         auto result = jsi::Object(rt);
         result.setProperty(rt, "left", NoiseJSIConverter::vectorToArray(rt, outputLData));
         result.setProperty(rt, "right", NoiseJSIConverter::vectorToArray(rt, outputRData));
@@ -334,12 +335,12 @@ jsi::Value NativeAudioNoiseModule::getMusicalNoiseLevel(jsi::Runtime& rt) {
     }
 }
 
-// === Configuration avancée ===
+// === Configuration avancÃ©e ===
 jsi::Value NativeAudioNoiseModule::initializeIMCRA(jsi::Runtime& rt, const jsi::Object& config) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    // Pour le moment, déléguer au manager si nécessaire
-    // Cette méthode pourrait être étendue pour une configuration spécifique IMCRA
+    // Pour le moment, dÃ©lÃ©guer au manager si nÃ©cessaire
+    // Cette mÃ©thode pourrait Ãªtre Ã©tendue pour une configuration spÃ©cifique IMCRA
     return jsi::Value(true);
 }
 
@@ -347,7 +348,7 @@ jsi::Value NativeAudioNoiseModule::getIMCRAConfig(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     auto config = jsi::Object(rt);
-    // Configuration par défaut IMCRA
+    // Configuration par dÃ©faut IMCRA
     config.setProperty(rt, "speechThreshold", jsi::Value(4.6f));
     config.setProperty(rt, "noiseUpdateRate", jsi::Value(0.95f));
     return config;
@@ -389,7 +390,7 @@ jsi::Value NativeAudioNoiseModule::getMultibandConfig(jsi::Runtime& rt) {
 
     auto config = jsi::Object(rt);
     config.setProperty(rt, "numBands", jsi::Value(8));
-    config.setProperty(rt, "crossoverFrequencies", jsi::Value(nullptr)); // Array à implémenter
+    config.setProperty(rt, "crossoverFrequencies", jsi::Value(nullptr)); // Array Ã  implÃ©menter
     return config;
 }
 
@@ -428,16 +429,16 @@ jsi::Value NativeAudioNoiseModule::setStateChangeCallback(jsi::Runtime& rt, cons
 
 // === Installation du module ===
 jsi::Value NativeAudioNoiseModule::install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker) {
-    // Créer l'instance du module
+    // CrÃ©er l'instance du module
     auto module = std::make_shared<NativeAudioNoiseModule>(jsInvoker);
 
-    // Définir le runtime pour les callbacks
+    // DÃ©finir le runtime pour les callbacks
     module->setRuntime(&rt);
 
-    // Créer l'objet TurboModule
+    // CrÃ©er l'objet TurboModule
     auto turboModule = jsi::Object(rt);
 
-    // Définir le nom du module
+    // DÃ©finir le nom du module
     turboModule.setProperty(
         rt, "getName",
         jsi::Function::createFromHostFunction(
@@ -602,7 +603,7 @@ jsi::Value NativeAudioNoiseModule::install(jsi::Runtime& rt, std::shared_ptr<Cal
                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
                                          size_t count) { return module->getMusicalNoiseLevel(rt); }));
 
-    // Fonctions de configuration avancée
+    // Fonctions de configuration avancÃ©e
     turboModule.setProperty(
         rt, "initializeIMCRA",
         jsi::Function::createFromHostFunction(
@@ -727,12 +728,12 @@ jsi::Value NativeAudioNoiseModule::install(jsi::Runtime& rt, std::shared_ptr<Cal
     return turboModule;
 }
 
-// === Méthodes privées ===
+// === MÃ©thodes privÃ©es ===
 void NativeAudioNoiseModule::initializeManagers() {
-    // Créer le callback manager
+    // CrÃ©er le callback manager
     callbackManager_ = std::make_shared<JSICallbackManager>(jsInvoker_);
 
-    // Créer le noise manager avec le callback manager
+    // CrÃ©er le noise manager avec le callback manager
     noiseManager_ = std::make_unique<NoiseManager>(callbackManager_);
 
     // Configurer les callbacks
@@ -823,7 +824,7 @@ void NativeAudioNoiseModule::onStatisticsUpdate(const NoiseStatistics& stats) {
                 return std::vector<jsi::Value>{statsObj};
             });
         } catch (const std::exception& e) {
-            // Silencer les erreurs de callback pour éviter les boucles
+            // Silencer les erreurs de callback pour Ã©viter les boucles
         }
     }
 }
@@ -831,7 +832,7 @@ void NativeAudioNoiseModule::onStatisticsUpdate(const NoiseStatistics& stats) {
 void NativeAudioNoiseModule::onProcessingComplete(const float* input, const float* output, size_t frameCount) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
-            // Transmet les buffers d'entrée et de sortie via Float32Array
+            // Transmet les buffers d'entrÃ©e et de sortie via Float32Array
             callbackManager_->invokeAudioIOCallback(input, output, frameCount, 1);
         } catch (const std::exception& e) {
             // Silencer les erreurs de callback

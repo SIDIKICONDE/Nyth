@@ -1,13 +1,13 @@
-#pragma once
+﻿#pragma once
 
-// Includes conditionnels pour la compatibilité
+// Includes conditionnels pour la compatibilitÃ©
 #if defined(__has_include)
 #if __has_include(<NythJSI.h>)
 #include <NythJSI.h>
 #endif
 #endif
 
-// Vérification de la disponibilité de TurboModule
+// VÃ©rification de la disponibilitÃ© de TurboModule
 #if defined(__has_include) && __has_include(<ReactCommon/TurboModule.h>) && \
     __has_include(<ReactCommon/TurboModuleUtils.h>)
 #define NYTH_AUDIO_NOISE_ENABLED 1
@@ -18,7 +18,7 @@
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_NOISE_ENABLED && defined(__cplusplus)
 
-// Includes C++ nécessaires pour TurboModule
+// Includes C++ nÃ©cessaires pour TurboModule
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -41,18 +41,19 @@
 namespace facebook {
 namespace react {
 
-// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
+// Using declarations pour les types frÃ©quemment utilisÃ©s du namespace Nyth::Audio
 using Nyth::Audio::NoiseConfig;
 using Nyth::Audio::NoiseStatistics;
 using Nyth::Audio::NoiseState;
+using Nyth::Audio::NoiseManager;
 
-// === Module principal refactorisé ===
+// === Module principal refactorisÃ© ===
 class JSI_EXPORT NativeAudioNoiseModule : public TurboModule {
 public:
     explicit NativeAudioNoiseModule(std::shared_ptr<CallInvoker> jsInvoker);
     ~NativeAudioNoiseModule() override;
 
-    // === Méthodes TurboModule ===
+    // === MÃ©thodes TurboModule ===
     static constexpr auto kModuleName = "NativeAudioNoiseModule";
 
     // === Cycle de vie ===
@@ -61,7 +62,7 @@ public:
     jsi::Value stop(jsi::Runtime& rt);
     jsi::Value dispose(jsi::Runtime& rt);
 
-    // === État et informations ===
+    // === Ã‰tat et informations ===
     jsi::Value getState(jsi::Runtime& rt);
     jsi::Value getStatistics(jsi::Runtime& rt);
     jsi::Value resetStatistics(jsi::Runtime& rt);
@@ -83,7 +84,7 @@ public:
     jsi::Value getSpeechProbability(jsi::Runtime& rt);
     jsi::Value getMusicalNoiseLevel(jsi::Runtime& rt);
 
-    // === Configuration avancée ===
+    // === Configuration avancÃ©e ===
     jsi::Value initializeIMCRA(jsi::Runtime& rt, const jsi::Object& config);
     jsi::Value getIMCRAConfig(jsi::Runtime& rt);
     jsi::Value updateIMCRAConfig(jsi::Runtime& rt, const jsi::Object& config);
@@ -105,7 +106,7 @@ public:
     static jsi::Value install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker);
 
 private:
-    // === Composants refactorisés ===
+    // === Composants refactorisÃ©s ===
     std::unique_ptr<NoiseManager> noiseManager_;
     std::shared_ptr<JSICallbackManager> callbackManager_;
 
@@ -115,7 +116,7 @@ private:
     // === Configuration ===
     NoiseConfig config_;
 
-    // === État interne ===
+    // === Ã‰tat interne ===
     std::atomic<bool> isInitialized_{false};
     int currentState_ = 0; // 0 = UNINITIALIZED, 1 = INITIALIZED, 2 = PROCESSING, 3 = ERROR
 
@@ -126,7 +127,7 @@ private:
     // === Mutex pour thread safety ===
     mutable std::mutex mutex_;
 
-    // === Méthodes privées ===
+    // === MÃ©thodes privÃ©es ===
     void initializeManagers();
     void cleanupManagers();
     void setRuntime(jsi::Runtime* rt);

@@ -12,6 +12,10 @@ FilterManager::~FilterManager() {
 }
 
 // === Gestion du cycle de vie ===
+bool FilterManager::initialize(const Nyth::Audio::AudioConfig& config) {
+    sampleRate_ = config.sampleRate;
+    return true;
+}
 int64_t FilterManager::createFilter() {
     std::lock_guard<std::mutex> lock(filtersMutex_);
 

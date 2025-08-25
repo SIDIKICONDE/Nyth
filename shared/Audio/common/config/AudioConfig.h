@@ -29,6 +29,10 @@ struct AudioConfig {
     double analysisIntervalMs = Limits::DEFAULT_ANALYSIS_INTERVAL_MS;
     float silenceThreshold = Limits::DEFAULT_THRESHOLD;
 
+    // === Configuration de normalisation ===
+    bool autoNormalize = false;
+    float targetRMS = 1.0f;
+
     // === Validation ===
     bool isValid() const {
         return validateConfiguration().empty();
@@ -58,7 +62,8 @@ struct AudioConfig {
                numBuffers == other.numBuffers &&
                enableEchoCancellation == other.enableEchoCancellation &&
                enableNoiseSuppression == other.enableNoiseSuppression &&
-               enableAutoGainControl == other.enableAutoGainControl;
+               enableAutoGainControl == other.enableAutoGainControl &&
+               autoNormalize == other.autoNormalize && targetRMS == other.targetRMS;
     }
 
     bool operator!=(const AudioConfig& other) const {

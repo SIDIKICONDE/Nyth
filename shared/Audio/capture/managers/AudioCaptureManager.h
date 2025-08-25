@@ -17,6 +17,8 @@ namespace react {
 
 class AudioCaptureManager {
 public:
+    using AudioConsumerCallback = std::function<void(const float*, size_t, int)>;
+
     explicit AudioCaptureManager(std::shared_ptr<JSICallbackManager> callbackManager);
     ~AudioCaptureManager();
 
@@ -82,6 +84,9 @@ public:
     };
     RecordingInfo getRecordingInfo() const;
 
+    // === Connexion au pipeline ===
+    void setAudioConsumer(AudioConsumerCallback callback);
+
 private:
     // === Membres privés ===
     std::shared_ptr<Nyth::Audio::AudioCapture> capture_;
@@ -94,6 +99,9 @@ private:
     // Enregistrement
     std::unique_ptr<Nyth::Audio::AudioRecorder> recorder_;
     std::string currentRecordingPath_;
+
+    // === Consommateur audio externe ===
+    AudioConsumerCallback audioConsumer_;
 
     // === Conversion entre les configurations ===
     Nyth::Audio::AudioCaptureConfig convertToEngineConfig(const Nyth::Audio::AudioCaptureConfig& config) const;

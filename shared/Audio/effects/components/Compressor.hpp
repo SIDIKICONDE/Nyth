@@ -3,6 +3,7 @@
 // C++17 standard headers
 #include "EffectBase.hpp"
 #include "../../common/config/EffectConstants.hpp"
+#include "../config/EffectsLimits.h" // Source of truth for default values
 #include <algorithm>
 #include <cmath>
 #include <string>
@@ -265,11 +266,11 @@ private:
     }
 
     // params
-    double thresholdDb_ = Nyth::Audio::FX::DEFAULT_THRESHOLD_DB;
-    double ratio_ = Nyth::Audio::FX::DEFAULT_RATIO;
-    double attackMs_ = Nyth::Audio::FX::DEFAULT_ATTACK_MS;
-    double releaseMs_ = Nyth::Audio::FX::DEFAULT_RELEASE_MS;
-    double makeupDb_ = Nyth::Audio::FX::DEFAULT_MAKEUP_DB;
+    double thresholdDb_ = Nyth::Audio::Effects::Compressor::DEFAULT_THRESHOLD_DB;
+    double ratio_ = Nyth::Audio::Effects::Compressor::DEFAULT_RATIO;
+    double attackMs_ = Nyth::Audio::Effects::Compressor::DEFAULT_ATTACK_MS;
+    double releaseMs_ = Nyth::Audio::Effects::Compressor::DEFAULT_RELEASE_MS;
+    double makeupDb_ = Nyth::Audio::Effects::Compressor::DEFAULT_MAKEUP_DB;
 
     // state
     double envL_ = Nyth::Audio::FX::DEFAULT_ENVELOPE;

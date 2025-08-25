@@ -23,7 +23,17 @@ public class NativeAudioEffectsModule extends NativeAudioEffectsModuleSpec {
     private static final String TAG = "NativeAudioEffectsModule";
     private static final String NAME = "NativeAudioEffectsModule";
 
+    // Load the native library
+    static {
+        try {
+            System.loadLibrary("audioeffects-jni");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to load native library", e);
+        }
+    }
+
     private final ReactApplicationContext reactContext;
+    private long nativeModulePtr; // Pointer to the C++ module instance
     private boolean isInitialized = false;
     private String currentState = "uninitialized";
 
@@ -43,35 +53,49 @@ public class NativeAudioEffectsModule extends NativeAudioEffectsModuleSpec {
     public void initialize() {
         try {
             Log.d(TAG, "Initializing NativeAudioEffectsModule");
-            isInitialized = true;
-            currentState = "initialized";
+            this.nativeModulePtr = nativeInitialize(reactContext.getJavaScriptContextHolder().get());
+            isInitialized = this.nativeModulePtr != 0;
+            currentState = isInitialized ? "initialized" : "error";
         } catch (Exception e) {
             Log.e(TAG, "Failed to initialize module", e);
             currentState = "error";
+            isInitialized = false;
         }
     }
 
     @Override
     public boolean start() {
-        if (!isInitialized) {
+        if (!isInitialized || nativeModulePtr == 0) {
             Log.w(TAG, "Module not initialized, cannot start");
             return false;
         }
-        Log.d(TAG, "Starting audio processing");
-        currentState = "processing";
-        return true;
+        boolean success = nativeStart(nativeModulePtr);
+        if (success) {
+            currentState = "processing";
+        }
+        return success;
     }
 
     @Override
     public boolean stop() {
-        Log.d(TAG, "Stopping audio processing");
-        currentState = "initialized";
-        return true;
+        if (!isInitialized || nativeModulePtr == 0) {
+            Log.w(TAG, "Module not initialized, cannot stop");
+            return false;
+        }
+        boolean success = nativeStop(nativeModulePtr);
+        if (success) {
+            currentState = "initialized";
+        }
+        return success;
     }
 
     @Override
     public void dispose() {
         Log.d(TAG, "Disposing NativeAudioEffectsModule");
+        if (nativeModulePtr != 0) {
+            nativeDispose(nativeModulePtr);
+            nativeModulePtr = 0;
+        }
         isInitialized = false;
         currentState = "uninitialized";
     }
@@ -108,22 +132,29 @@ public class NativeAudioEffectsModule extends NativeAudioEffectsModuleSpec {
     // === Gestion des effets ===
     @Override
     public double createEffect(ReadableMap config) {
-        Log.d(TAG, "Creating effect with config: " + config.toString());
-        // Return a mock effect ID for now
-        // In a real implementation, this would create the actual effect
-        return 1.0;
+        if (!isInitialized || nativeModulePtr == 0) {
+            Log.w(TAG, "Module not initialized, cannot create effect");
+            return -1.0;
+        }
+        return nativeCreateEffect(nativeModulePtr, config);
     }
 
     @Override
     public boolean destroyEffect(double effectId) {
-        Log.d(TAG, "Destroying effect: " + effectId);
-        return true;
+        if (!isInitialized || nativeModulePtr == 0) {
+            Log.w(TAG, "Module not initialized, cannot destroy effect");
+            return false;
+        }
+        return nativeDestroyEffect(nativeModulePtr, (int)effectId);
     }
 
     @Override
     public boolean updateEffect(double effectId, ReadableMap config) {
-        Log.d(TAG, "Updating effect " + effectId + " with config: " + config.toString());
-        return true;
+        if (!isInitialized || nativeModulePtr == 0) {
+            Log.w(TAG, "Module not initialized, cannot update effect");
+            return false;
+        }
+        return nativeUpdateEffect(nativeModulePtr, (int)effectId, config);
     }
 
     @Override
@@ -260,4 +291,14 @@ public class NativeAudioEffectsModule extends NativeAudioEffectsModuleSpec {
     public void setStateChangeCallback(Callback callback) {
         // Store callback for state changes
     }
+
+    // --- Native Methods ---
+    private native long nativeInitialize(long jsContextPointer);
+    private native void nativeDispose(long nativeModulePtr);
+    private native boolean nativeStart(long nativeModulePtr);
+    private native boolean nativeStop(long nativeModulePtr);
+    private native double nativeCreateEffect(long nativeModulePtr, ReadableMap config);
+    private native boolean nativeDestroyEffect(long nativeModulePtr, int effectId);
+    private native boolean nativeUpdateEffect(long nativeModulePtr, int effectId, ReadableMap config);
+    // Add other native methods here
 }

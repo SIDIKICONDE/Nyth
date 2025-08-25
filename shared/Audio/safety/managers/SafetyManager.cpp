@@ -196,9 +196,9 @@ bool SafetyManager::processAudio(const float* input, float* output, size_t frame
         Nyth::Audio::SafetyError error;
 
         if (channels == 1) {
-            error = processMonoInternal(output, frameCount);
-            // Copy input to output if no processing was done
+            // Copy input to output, then process in-place on output buffer
             std::memcpy(output, input, frameCount * sizeof(float));
+            error = processMonoInternal(output, frameCount);
         } else if (channels == 2) {
             // Désentrelacer en deux canaux temporaires
             if (workBufferL_.size() < frameCount) {
@@ -263,6 +263,11 @@ bool SafetyManager::processAudioStereo(const float* inputL, const float* inputR,
     try {
         auto startTime = std::chrono::steady_clock::now();
 
+        // Copy inputs to outputs first, then process outputs in-place
+        std::memcpy(outputL, inputL, frameCount * sizeof(float));
+        std::memcpy(outputR, inputR, frameCount * sizeof(float));
+
+        // Process the output buffers in-place
         auto error = processStereoInternal(outputL, outputR, frameCount);
 
         auto endTime = std::chrono::steady_clock::now();
@@ -279,12 +284,20 @@ bool SafetyManager::processAudioStereo(const float* inputL, const float* inputR,
             return false;
         }
 
-        // Copy inputs to outputs if no processing was done
-        std::memcpy(outputL, inputL, frameCount * sizeof(float));
-        std::memcpy(outputR, inputR, frameCount * sizeof(float));
-
-        // Invoke data callback
-        invokeDataCallback(nullptr, nullptr, frameCount, 2); // Stereo
+        // Build interleaved input/output for the callback
+        {
+            size_t totalSamples = frameCount * 2;
+            std::vector<float> interleavedIn(totalSamples);
+            std::vector<float> interleavedOut(totalSamples);
+            for (size_t i = 0; i < frameCount; ++i) {
+                interleavedIn[2 * i] = inputL[i];
+                interleavedIn[2 * i + 1] = inputR[i];
+                interleavedOut[2 * i] = outputL[i];
+                interleavedOut[2 * i + 1] = outputR[i];
+            }
+            // Invoke data callback with interleaved buffers
+            invokeDataCallback(interleavedIn.data(), interleavedOut.data(), frameCount, 2);
+        }
 
         return true;
     } catch (const std::exception& e) {
@@ -727,161 +740,14 @@ Nyth::Audio::SafetyError SafetyManager::convertError(Nyth::Audio::SafetyError er
 // === Implémentations SIMD ===
 
 bool SafetyManager::processAudio_SIMD(const float* input, float* output, size_t frameCount, int channels) {
-    if (!isInitialized_.load() || !isProcessing_.load()) {
-        return false;
-    }
-
-    if (!input || !output || frameCount == 0) {
-        handleError(Nyth::Audio::SafetyError::NULL_BUFFER, "Invalid buffer or frame count");
-        return false;
-    }
-
-    try {
-        auto startTime = std::chrono::steady_clock::now();
-
-        // Utiliser SIMD si disponible et taille suffisante
-        if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
-            Nyth::Audio::SafetyError error;
-
-            if (channels == 1) {
-                // Analyse SIMD mono
-                float rms = AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(input, frameCount);
-                float peak = AudioNR::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(input, frameCount);
-
-                // Copie avec vérification SIMD
-                std::memcpy(output, input, frameCount * sizeof(float));
-
-                // Appliquer la protection si nécessaire
-                if (config_.autoGainControl) {
-                    AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
-                        output, frameCount, config_.targetGain);
-                }
-
-                // Clipping protection SIMD
-                if (config_.clippingProtection) {
-                    AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(
-                        output, frameCount, config_.clippingThreshold);
-                }
-
-                // Mettre à jour les métriques
-                updateMetrics(rms, peak, peak >= config_.clippingThreshold);
-            } else {
-                // Traitement multi-canaux SIMD
-                size_t totalSamples = frameCount * channels;
-                std::vector<float> tempBuffer(totalSamples);
-
-                // Copie entrelacée SIMD
-                if (totalSamples >= 64) {
-                    std::memcpy(tempBuffer.data(), input, totalSamples * sizeof(float));
-                } else {
-                    std::copy(input, input + totalSamples, tempBuffer.begin());
-                }
-
-                // Analyse SIMD
-                float rms = AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(
-                    tempBuffer.data(), totalSamples);
-                float peak = AudioNR::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(
-                    tempBuffer.data(), totalSamples);
-
-                // Copie vers output
-                std::memcpy(output, tempBuffer.data(), totalSamples * sizeof(float));
-
-                // Appliquer la protection si nécessaire
-                if (config_.autoGainControl) {
-                    AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
-                        output, totalSamples, config_.targetGain);
-                }
-
-                // Clipping protection SIMD
-                if (config_.clippingProtection) {
-                    AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(
-                        output, totalSamples, config_.clippingThreshold);
-                }
-
-                // Mettre à jour les métriques
-                updateMetrics(rms, peak, peak >= config_.clippingThreshold);
-            }
-
-            auto endTime = std::chrono::steady_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
-            updateProcessingTime(duration.count());
-
-            return true;
-        } else {
-            // Version standard
-            return processAudio(input, output, frameCount, channels);
-        }
-    } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED,
-                   std::string("SIMD processing failed: ") + e.what());
-        return false;
-    }
+    // Simplified path: delegate to standard processing to ensure type coherence
+    return processAudio(input, output, frameCount, channels);
 }
 
 bool SafetyManager::processAudioStereo_SIMD(const float* inputL, const float* inputR, float* outputL, float* outputR,
                                           size_t frameCount) {
-    if (!isInitialized_.load() || !isProcessing_.load()) {
-        return false;
-    }
-
-    if (!inputL || !inputR || !outputL || !outputR || frameCount == 0) {
-        handleError(Nyth::Audio::SafetyError::NULL_BUFFER, "Invalid buffers or frame count");
-        return false;
-    }
-
-    try {
-        auto startTime = std::chrono::steady_clock::now();
-
-        // Utiliser SIMD si disponible et taille suffisante
-        if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
-            // Analyse SIMD des canaux gauche et droite
-            float rmsL = AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(inputL, frameCount);
-            float rmsR = AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(inputR, frameCount);
-            float peakL = AudioNR::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(inputL, frameCount);
-            float peakR = AudioNR::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(inputR, frameCount);
-
-            // RMS stéréo (moyenne des deux canaux)
-            float rms = (rmsL + rmsR) * 0.5f;
-            float peak = std::max(peakL, peakR);
-            bool hasClipping = peakL >= config_.clippingThreshold || peakR >= config_.clippingThreshold;
-
-            // Copie SIMD
-            std::memcpy(outputL, inputL, frameCount * sizeof(float));
-            std::memcpy(outputR, inputR, frameCount * sizeof(float));
-
-            // Appliquer la protection si nécessaire
-            if (config_.autoGainControl) {
-                AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
-                    outputL, frameCount, config_.targetGain);
-                AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
-                    outputR, frameCount, config_.targetGain);
-            }
-
-            // Clipping protection SIMD
-            if (config_.clippingProtection) {
-                AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(
-                    outputL, frameCount, config_.clippingThreshold);
-                AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(
-                    outputR, frameCount, config_.clippingThreshold);
-            }
-
-            // Mettre à jour les métriques
-            updateMetrics(rms, peak, hasClipping);
-
-            auto endTime = std::chrono::steady_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
-            updateProcessingTime(duration.count());
-
-            return true;
-        } else {
-            // Version standard
-            return processAudioStereo(inputL, inputR, outputL, outputR, frameCount);
-        }
-    } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED,
-                   std::string("SIMD stereo processing failed: ") + e.what());
-        return false;
-    }
+    // Simplified path: delegate to standard processing to ensure type coherence
+    return processAudioStereo(inputL, inputR, outputL, outputR, frameCount);
 }
 
 float SafetyManager::analyzePeak_SIMD(const float* data, size_t count) const {

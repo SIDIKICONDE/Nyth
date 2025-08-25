@@ -23,11 +23,9 @@ static constexpr size_t CHAIN_START_INDEX = 1;
 static constexpr size_t ZERO_SAMPLES = 0;
 
 // === COMPRESSOR CONSTANTS ===
-static constexpr double DEFAULT_THRESHOLD_DB = -10.0;
-static constexpr double DEFAULT_RATIO = 4.0;
-static constexpr double DEFAULT_ATTACK_MS = 10.0;
-static constexpr double DEFAULT_RELEASE_MS = 100.0;
-static constexpr double DEFAULT_MAKEUP_DB = 0.0;
+// NOTE: Default values for compressor are now defined in EffectsLimits.h
+// to ensure consistency across the application. Only implementation-specific
+// constants should remain here.
 static constexpr double MIN_RATIO = 1.0;
 static constexpr double MIN_TIME_MS = 0.1;
 static constexpr double DEFAULT_ENVELOPE = 0.0;
@@ -46,9 +44,7 @@ static constexpr double GAIN_ATTACK_FACTOR = 0.5;
 static constexpr double STEREO_AVERAGE_FACTOR = 0.5;
 
 // === DELAY CONSTANTS ===
-static constexpr double DEFAULT_DELAY_MS = 100.0;
-static constexpr double DEFAULT_FEEDBACK = 0.5;
-static constexpr double DEFAULT_MIX = 0.5;
+// NOTE: Default values for delay are now defined in EffectsLimits.h.
 static constexpr double MIN_DELAY_VALUE = 0.1;
 static constexpr double MIN_FEEDBACK = 0.0;
 static constexpr double MAX_FEEDBACK = 0.99;

@@ -247,6 +247,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/Audio/capture/NativeAudioCaptureModule.cpp
     ../../../../../shared/NativeAudioSpectrumModule.cpp
     ../../../../../shared/Audio/core/NativeAudioCoreModule.cpp
+    ../../../../../shared/Audio/core/AudioModuleRegistry.cpp
     ../../../../../shared/Audio/fft/FFTEngine.hpp
     ../../../../../shared/Audio/core/AudioEqualizer.cpp
     ../../../../../shared/Audio/core/AudioEqualizerTemplates.hpp
@@ -266,6 +267,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 #Enhanced Audio Capture System with SIMD optimizations
     ../../../../../shared/Audio/capture/components/AudioCaptureImpl.hpp
     ../../../../../shared/Audio/capture/components/platform/ANDROID/AudioCaptureImpl.cpp
+    ../../../../../shared/Audio/capture/components/platform/ANDROID/AudioCaptureJNI.cpp
     ../../../../../shared/Audio/capture/components/utils/AudioCaptureUtils.hpp
     ../../../../../shared/Audio/capture/components/utils/AudioCaptureUtils.cpp
     ../../../../../shared/Audio/capture/components/AudioCaptureException.hpp
@@ -279,42 +281,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/Audio/AudioPipeline.hpp
     ../../../../../shared/Audio/AudioPipeline.cpp
 
-#New Enhanced Features:
-#- AudioCaptureException.hpp : Structured error handling with typed exceptions
-#- AudioCaptureMetrics.hpp : Real - time performance monitoring and profiling
-#- AudioPipeline.hpp / cpp : Complete audio pipeline integrating all modules
-#- integrated_audio_example.cpp : Example showing full integration
-#Performance improvements : 2 - 9x speedup for audio processing operations
-#
-#New Integrated Features:
-#- AudioPipeline : Complete audio processing pipeline
-#- AudioCaptureException : Structured error handling
-#- AudioCaptureMetrics : Real - time performance monitoring
-#- integrated_audio_example.cpp : Android integration example
-#
-#Usage:
-#- Enable validation : - DENABLE_AUDIO_CAPTURE_VALIDATION = ON
-#- Enable performance monitoring : - DENABLE_PERFORMANCE_MONITORING = ON(default)
-#- SIMD is automatically detected and enabled when available
-#
-#Example usage in Android:
-#```cpp
-// #include "AudioPipeline.hpp"
-//
-//// Create and configure pipeline
-// Nyth::Audio::AudioPipeline pipeline;
-// Nyth::Audio::AudioPipeline::Config config;
-// config.captureConfig.sampleRate = 44100;
-// config.enableEqualizer = true;
-// config.enableNoiseReduction = true;
-//
-// if (pipeline.initialize(config)) {
-//     pipeline.start();
-//
-//     // Process audio with full pipeline
-//     // capture -> noise reduction -> EQ -> effects -> limiter -> output
-// }
-#```
+    # Add the new JNI bridge file
+    audioeffects-jni.cpp
 )
 
 #Camera Filters System C++ Sources

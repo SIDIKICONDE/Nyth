@@ -1,13 +1,13 @@
-#pragma once
+﻿#pragma once
 
-// Includes conditionnels pour la compatibilité
+// Includes conditionnels pour la compatibilitÃ©
 #if defined(__has_include)
 #if __has_include(<NythJSI.h>)
 #include <NythJSI.h>
 #endif
 #endif
 
-// Vérification de la disponibilité de TurboModule
+// VÃ©rification de la disponibilitÃ© de TurboModule
 #if defined(__has_include) && __has_include(<ReactCommon/TurboModule.h>) && \
     __has_include(<ReactCommon/TurboModuleUtils.h>)
 #define NYTH_AUDIO_CAPTURE_ENABLED 1
@@ -18,7 +18,7 @@
 // === Interface C++ pour TurboModule ===
 #if NYTH_AUDIO_CAPTURE_ENABLED && defined(__cplusplus)
 
-// Includes C++ nécessaires pour TurboModule
+// Includes C++ nÃ©cessaires pour TurboModule
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -33,7 +33,7 @@
 #include <ReactCommon/TurboModuleUtils.h>
 #include <jsi/jsi.h>
 
-// Includes des composants refactorisés
+// Includes des composants refactorisÃ©s
 #include "../../common/config/AudioConfig.h"
 #include "../../common/config/AudioLimits.h"
 #include "../../common/jsi/JSICallbackManager.h"
@@ -44,20 +44,21 @@
 namespace facebook {
 namespace react {
 
-// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
+// Using declarations pour les types frÃ©quemment utilisÃ©s du namespace Nyth::Audio
 using Nyth::Audio::AudioCaptureConfig;
 using Nyth::Audio::AudioConfig;
+using Nyth::Audio::AudioFileWriterConfig;
 
-// === Module principal refactorisé ===
-class JSI_EXPORT NativeAudioCaptureModule : public TurboModule {
+// === Module principal refactorisÃ© ===
+class JSI_EXPORT NativeAudioCaptureModule : public TurboModule, public std::enable_shared_from_this<NativeAudioCaptureModule> {
 public:
     explicit NativeAudioCaptureModule(std::shared_ptr<CallInvoker> jsInvoker);
     ~NativeAudioCaptureModule() override;
 
-    // === Méthodes TurboModule ===
+    // === MÃ©thodes TurboModule ===
     static constexpr auto kModuleName = "NativeAudioCaptureModule";
 
-    // === Cycle de vie simplifié ===
+    // === Cycle de vie simplifiÃ© ===
     jsi::Value initialize(jsi::Runtime& rt, const jsi::Object& config);
     jsi::Value start(jsi::Runtime& rt);
     jsi::Value stop(jsi::Runtime& rt);
@@ -65,7 +66,7 @@ public:
     jsi::Value resume(jsi::Runtime& rt);
     jsi::Value dispose(jsi::Runtime& rt);
 
-    // === État et informations ===
+    // === Ã‰tat et informations ===
     jsi::Value getState(jsi::Runtime& rt);
     jsi::Value isCapturing(jsi::Runtime& rt);
     jsi::Value getStatistics(jsi::Runtime& rt);
@@ -86,7 +87,7 @@ public:
     jsi::Value isSilent(jsi::Runtime& rt, double threshold);
     jsi::Value hasClipping(jsi::Runtime& rt);
 
-    // === Périphériques ===
+    // === PÃ©riphÃ©riques ===
     jsi::Value getAvailableDevices(jsi::Runtime& rt);
     jsi::Value selectDevice(jsi::Runtime& rt, const jsi::String& deviceId);
     jsi::Value getCurrentDevice(jsi::Runtime& rt);
@@ -109,13 +110,16 @@ public:
     jsi::Value setStateChangeCallback(jsi::Runtime& rt, const jsi::Function& callback);
     jsi::Value setAnalysisCallback(jsi::Runtime& rt, const jsi::Function& callback, double intervalMs);
 
+    // === Intégration inter-modules ===
+    jsi::Value linkToEffectsModule(jsi::Runtime& rt);
+
     // === Installation du module ===
     static jsi::Value install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker);
 
 private:
-    // === Composants refactorisés ===
+    // === Composants refactorisÃ©s ===
     std::unique_ptr<AudioCaptureManager> captureManager_;
-    std::unique_ptr<JSICallbackManager> callbackManager_;
+    std::shared_ptr<JSICallbackManager> callbackManager_;
 
     // Invoker JS pour les appels asynchrones
     std::shared_ptr<CallInvoker> jsInvoker_;
@@ -123,10 +127,10 @@ private:
     // === Configuration ===
     AudioCaptureConfig config_;
 
-    // === État interne ===
+    // === Ã‰tat interne ===
     std::atomic<bool> isInitialized_{false};
 
-    // === Méthodes privées ===
+    // === MÃ©thodes privÃ©es ===
     void initializeManagers();
     void cleanupManagers();
 
@@ -143,7 +147,7 @@ private:
     AudioCaptureConfig toCaptureConfig(const AudioConfig& config) const;
     AudioConfig toAudioConfig(const AudioCaptureConfig& config) const;
 
-    // Analyse périodique
+    // Analyse pÃ©riodique
     std::thread analysisThread_;
     std::atomic<bool> analysisRunning_{false};
     std::atomic<int> analysisIntervalMs_{100};

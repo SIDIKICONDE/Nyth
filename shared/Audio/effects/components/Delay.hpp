@@ -12,6 +12,7 @@
 
 #include "EffectBase.hpp"
 #include "../../common/config/EffectConstants.hpp"
+#include "../config/EffectsLimits.h" // Source of truth for default values
 
 namespace Nyth { namespace Audio { namespace FX {
 
@@ -194,9 +195,9 @@ private:
     }
 
     // params
-    double delayMs_ = Nyth::Audio::FX::DEFAULT_DELAY_MS;
-    double feedback_ = Nyth::Audio::FX::DEFAULT_FEEDBACK;
-    double mix_ = Nyth::Audio::FX::DEFAULT_MIX;
+    double delayMs_ = Nyth::Audio::Effects::Delay::DEFAULT_DELAY_MS;
+    double feedback_ = Nyth::Audio::Effects::Delay::DEFAULT_FEEDBACK;
+    double mix_ = Nyth::Audio::Effects::Delay::DEFAULT_MIX;
 
     // state
     std::vector<std::vector<float>> buffer_;

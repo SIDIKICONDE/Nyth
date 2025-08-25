@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file NativeAudioEffectsModule.cpp
  * @brief Implémentation du module TurboModule pour les effets audio
  *
@@ -33,6 +33,7 @@
 
 // React Native and JSI includes
 #include "jsi/EffectsJSIConverter.h"
+#include "../../core/AudioModuleRegistry.h" // Include the registry
 
 // React Native includes with compatibility fallbacks
 #if defined(__has_include) && __has_include(<ReactCommon/TurboModule.h>)
@@ -75,8 +76,8 @@ namespace react {
 using Nyth::Audio::EffectsConfig;
 using Nyth::Audio::EffectsConfigValidator;
 using Nyth::Audio::Effects::EffectType;
-using CompressorEffect;
-using DelayEffect;
+using CompressorEffect = Nyth::Audio::FX::CompressorEffect;
+using DelayEffect = Nyth::Audio::FX::DelayEffect;
 
 // === Constructeurs et destructeurs ===
 
@@ -84,6 +85,12 @@ NativeAudioEffectsModule::NativeAudioEffectsModule(std::shared_ptr<CallInvoker> 
     : jsInvoker_(jsInvoker) {
     // Initialiser le callback manager pour la communication JSI
     callbackManager_ = std::make_shared<JSICallbackManager>(jsInvoker_);
+
+    // Register this instance with the module registry
+    // Note: This assumes the object is managed by a shared_ptr, which is true
+    // for TurboModules. We will get the shared_ptr in the provider.
+    // For now, we can't call shared_from_this() in the constructor.
+    // Registration must happen after construction.
 }
 
 NativeAudioEffectsModule::~NativeAudioEffectsModule() {
@@ -561,34 +568,8 @@ jsi::Value NativeAudioEffectsModule::getCompressorConfig(jsi::Runtime& rt, int e
     }
 
     try {
-        // Récupérer l'effet et vérifier qu'il s'agit d'un compresseur
-        auto effect = effectManager_->getEffect(effectId);
-        if (!effect) {
-            return jsi::Value::null(rt);
-        }
-
-        // Vérifier le type d'effet
-        auto effectType = effectManager_->getEffectType(effectId);
-        if (effectType != EffectType::COMPRESSOR) {
-            return jsi::Value::null(rt);
-        }
-
-        // Récupérer la configuration spécifique du compresseur
-        auto compressorEffect = dynamic_cast<CompressorEffect*>(effect.get());
-        if (compressorEffect) {
-            // Exposer les paramètres courants à partir de l'effet
-            jsi::Object result(rt);
-            // Pas de getters dédiés: retourner des valeurs plausibles (nécessite amélioration ultérieure)
-            result.setProperty(rt, "thresholdDb", jsi::Value(-24.0f));
-            result.setProperty(rt, "ratio", jsi::Value(4.0f));
-            result.setProperty(rt, "attackMs", jsi::Value(10.0f));
-            result.setProperty(rt, "releaseMs", jsi::Value(100.0f));
-            result.setProperty(rt, "makeupDb", jsi::Value(0.0f));
-            result.setProperty(rt, "enabled", jsi::Value(true));
-            return std::move(result);
-        }
-
-        return jsi::Value::null(rt);
+        // Utiliser l'API de l'EffectManager qui lit les paramètres réels
+        return effectManager_->getCompressorParameters(rt, effectId);
     } catch (const std::exception& e) {
         handleError(9, std::string("Get compressor config failed: ") + e.what());
         return jsi::Value::null(rt);
@@ -601,30 +582,8 @@ jsi::Value NativeAudioEffectsModule::getDelayConfig(jsi::Runtime& rt, int effect
     }
 
     try {
-        // Récupérer l'effet et vérifier qu'il s'agit d'un delay
-        auto effect = effectManager_->getEffect(effectId);
-        if (!effect) {
-            return jsi::Value::null(rt);
-        }
-
-        // Vérifier le type d'effet
-        auto effectType = effectManager_->getEffectType(effectId);
-        if (effectType != EffectType::DELAY) {
-            return jsi::Value::null(rt);
-        }
-
-        // Récupérer la configuration spécifique du delay
-        auto delayEffect = dynamic_cast<DelayEffect*>(effect.get());
-        if (delayEffect) {
-            jsi::Object result(rt);
-            result.setProperty(rt, "delayMs", jsi::Value(250.0f));
-            result.setProperty(rt, "feedback", jsi::Value(0.3f));
-            result.setProperty(rt, "mix", jsi::Value(0.2f));
-            result.setProperty(rt, "enabled", jsi::Value(true));
-            return std::move(result);
-        }
-
-        return jsi::Value::null(rt);
+        // Utiliser l'API de l'EffectManager qui lit les paramètres réels
+        return effectManager_->getDelayParameters(rt, effectId);
     } catch (const std::exception& e) {
         handleError(10, std::string("Get delay config failed: ") + e.what());
         return jsi::Value::null(rt);
@@ -753,7 +712,7 @@ jsi::Value NativeAudioEffectsModule::setProcessingCallback(jsi::Runtime& rt, con
 void NativeAudioEffectsModule::initializeManagers() {
     try {
         // Créer l'EffectManager avec le callback manager
-        effectManager_ = std::make_unique<EffectManager>(callbackManager_);
+        effectManager_ = std::make_shared<EffectManager>(callbackManager_);
 
         // Initialiser avec la configuration par défaut
         if (effectManager_) {
@@ -920,7 +879,9 @@ jsi::Value NativeAudioEffectsModule::getDelayParameters(jsi::Runtime& rt, int ef
 
 // === Fonction d'enregistrement du module ===
 std::shared_ptr<TurboModule> NativeAudioEffectsModuleProvider(std::shared_ptr<CallInvoker> jsInvoker) {
-    return std::make_shared<NativeAudioEffectsModule>(jsInvoker);
+    auto module = std::make_shared<NativeAudioEffectsModule>(jsInvoker);
+    Nyth::Audio::AudioModuleRegistry::registerEffectsModule(module);
+    return module;
 }
 
 } // namespace react

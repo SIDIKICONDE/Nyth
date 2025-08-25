@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <ReactCommon/TurboModule.h>
 #include <ReactCommon/TurboModuleUtils.h>
@@ -7,7 +7,7 @@
 #include <memory>
 #include <mutex>
 
-#include "../../common/jsi/JSICallbackManager.h"
+#include "../common/jsi/JSICallbackManager.h"
 #include "config/SpectrumConfig.h"
 #include "jsi/SpectrumJSIConverter.h"
 #include "managers/SpectrumManager.h"
@@ -22,57 +22,58 @@ class ISpectrumManager;
 namespace facebook {
 namespace react {
 
-// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
+// Using declarations pour les types frÃ©quemment utilisÃ©s du namespace Nyth::Audio
 using Nyth::Audio::SpectrumConfig;
 using Nyth::Audio::SpectrumError;
 using Nyth::Audio::SpectrumState;
 using Nyth::Audio::SpectrumData;
+using Nyth::Audio::SpectrumManager;
 using Nyth::Audio::ISpectrumManager;
 
-// === Module principal refactorisé pour l'analyse spectrale audio ===
+// === Module principal refactorisÃ© pour l'analyse spectrale audio ===
 
 class JSI_EXPORT NativeAudioSpectrumModule : public TurboModule {
 public:
     explicit NativeAudioSpectrumModule(std::shared_ptr<CallInvoker> jsInvoker);
     ~NativeAudioSpectrumModule() override;
 
-    // === Méthodes TurboModule ===
+    // === MÃ©thodes TurboModule ===
     static constexpr auto kModuleName = "NativeAudioSpectrumModule";
 
     // === Cycle de vie ===
 
     /// @brief Initialise le module d'analyse spectrale avec la configuration fournie
-    /// @param rt Runtime JSI pour les opérations JavaScript
-    /// @param config Objet de configuration contenant les paramètres FFT
-    /// @return jsi::Value(true) si l'initialisation réussit, jsi::Value(false) sinon
+    /// @param rt Runtime JSI pour les opÃ©rations JavaScript
+    /// @param config Objet de configuration contenant les paramÃ¨tres FFT
+    /// @return jsi::Value(true) si l'initialisation rÃ©ussit, jsi::Value(false) sinon
     jsi::Value initialize(jsi::Runtime& rt, const jsi::Object& config);
 
-    /// @brief Vérifie si le module est correctement initialisé
-    /// @param rt Runtime JSI pour les opérations JavaScript
-    /// @return jsi::Value(true) si le module est initialisé
+    /// @brief VÃ©rifie si le module est correctement initialisÃ©
+    /// @param rt Runtime JSI pour les opÃ©rations JavaScript
+    /// @return jsi::Value(true) si le module est initialisÃ©
     jsi::Value isInitialized(jsi::Runtime& rt);
 
-    /// @brief Libère toutes les ressources du module et arrête l'analyse
-    /// @param rt Runtime JSI pour les opérations JavaScript
-    /// @return jsi::Value(true) si la libération réussit
+    /// @brief LibÃ¨re toutes les ressources du module et arrÃªte l'analyse
+    /// @param rt Runtime JSI pour les opÃ©rations JavaScript
+    /// @return jsi::Value(true) si la libÃ©ration rÃ©ussit
     jsi::Value release(jsi::Runtime& rt);
 
-    // === État et informations ===
+    // === Ã‰tat et informations ===
 
-    /// @brief Récupère l'état actuel du module
-    /// @param rt Runtime JSI pour les opérations JavaScript
-    /// @return Objet contenant l'état, isInitialized, isAnalyzing
+    /// @brief RÃ©cupÃ¨re l'Ã©tat actuel du module
+    /// @param rt Runtime JSI pour les opÃ©rations JavaScript
+    /// @return Objet contenant l'Ã©tat, isInitialized, isAnalyzing
     jsi::Value getState(jsi::Runtime& rt);
 
     /// @brief Convertit un code d'erreur en message descriptif
-    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @param rt Runtime JSI pour les opÃ©rations JavaScript
     /// @param errorCode Code d'erreur SpectrumError
-    /// @return Chaîne décrivant l'erreur
+    /// @return ChaÃ®ne dÃ©crivant l'erreur
     jsi::Value getErrorString(jsi::Runtime& rt, int errorCode);
 
-    /// @brief Récupère les informations détaillées du module
-    /// @param rt Runtime JSI pour les opérations JavaScript
-    /// @return Objet contenant version, capacités et configuration
+    /// @brief RÃ©cupÃ¨re les informations dÃ©taillÃ©es du module
+    /// @param rt Runtime JSI pour les opÃ©rations JavaScript
+    /// @return Objet contenant version, capacitÃ©s et configuration
     jsi::Value getInfo(jsi::Runtime& rt);
 
     // === Configuration ===
@@ -82,16 +83,16 @@ public:
     // === Traitement audio ===
 
     /// @brief Traite un buffer audio mono pour l'analyse spectrale
-    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @param rt Runtime JSI pour les opÃ©rations JavaScript
     /// @param audioBuffer Tableau de samples audio (float32)
-    /// @return jsi::Value(true) si le traitement réussit
+    /// @return jsi::Value(true) si le traitement rÃ©ussit
     jsi::Value processAudioBuffer(jsi::Runtime& rt, const jsi::Array& audioBuffer);
 
-    /// @brief Traite des buffers audio stéréo pour l'analyse spectrale
-    /// @param rt Runtime JSI pour les opérations JavaScript
+    /// @brief Traite des buffers audio stÃ©rÃ©o pour l'analyse spectrale
+    /// @param rt Runtime JSI pour les opÃ©rations JavaScript
     /// @param audioBufferL Tableau de samples du canal gauche
     /// @param audioBufferR Tableau de samples du canal droit
-    /// @return jsi::Value(true) si le traitement réussit
+    /// @return jsi::Value(true) si le traitement rÃ©ussit
     jsi::Value processAudioBufferStereo(jsi::Runtime& rt, const jsi::Array& audioBufferL,
                                         const jsi::Array& audioBufferR);
 
@@ -100,7 +101,7 @@ public:
     jsi::Value getStatistics(jsi::Runtime& rt);
     jsi::Value resetStatistics(jsi::Runtime& rt);
 
-    // === Contrôles ===
+    // === ContrÃ´les ===
     jsi::Value startAnalysis(jsi::Runtime& rt);
     jsi::Value stopAnalysis(jsi::Runtime& rt);
     jsi::Value isAnalyzing(jsi::Runtime& rt);
@@ -111,29 +112,29 @@ public:
 
     // === Callbacks JavaScript ===
 
-    /// @brief Définit le callback pour recevoir les données spectrales
-    /// @param rt Runtime JSI pour les opérations JavaScript
-    /// @param callback Fonction appelée avec les données spectrales
-    /// @return jsi::Value(true) si l'enregistrement réussit
+    /// @brief DÃ©finit le callback pour recevoir les donnÃ©es spectrales
+    /// @param rt Runtime JSI pour les opÃ©rations JavaScript
+    /// @param callback Fonction appelÃ©e avec les donnÃ©es spectrales
+    /// @return jsi::Value(true) si l'enregistrement rÃ©ussit
     jsi::Value setDataCallback(jsi::Runtime& rt, const jsi::Function& callback);
 
-    /// @brief Définit le callback pour les erreurs
-    /// @param rt Runtime JSI pour les opérations JavaScript
-    /// @param callback Fonction appelée lors d'erreurs (code, message)
-    /// @return jsi::Value(true) si l'enregistrement réussit
+    /// @brief DÃ©finit le callback pour les erreurs
+    /// @param rt Runtime JSI pour les opÃ©rations JavaScript
+    /// @param callback Fonction appelÃ©e lors d'erreurs (code, message)
+    /// @return jsi::Value(true) si l'enregistrement rÃ©ussit
     jsi::Value setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback);
 
-    /// @brief Définit le callback pour les changements d'état
-    /// @param rt Runtime JSI pour les opérations JavaScript
-    /// @param callback Fonction appelée lors des transitions d'état
-    /// @return jsi::Value(true) si l'enregistrement réussit
+    /// @brief DÃ©finit le callback pour les changements d'Ã©tat
+    /// @param rt Runtime JSI pour les opÃ©rations JavaScript
+    /// @param callback Fonction appelÃ©e lors des transitions d'Ã©tat
+    /// @return jsi::Value(true) si l'enregistrement rÃ©ussit
     jsi::Value setStateCallback(jsi::Runtime& rt, const jsi::Function& callback);
 
     // === Installation du module ===
     static jsi::Value install(jsi::Runtime& rt, std::shared_ptr<CallInvoker> jsInvoker);
 
 private:
-    // === Composants refactorisés ===
+    // === Composants refactorisÃ©s ===
     std::unique_ptr<ISpectrumManager> spectrumManager_;
     std::shared_ptr<IJSICallbackManager> callbackManager_;
 
@@ -143,7 +144,7 @@ private:
     // === Configuration ===
     SpectrumConfig config_;
 
-    // === État interne ===
+    // === Ã‰tat interne ===
     std::atomic<bool> isInitialized_{false};
     std::atomic<bool> isAnalyzing_{false};
     SpectrumState currentState_{SpectrumState::UNINITIALIZED};
@@ -155,7 +156,7 @@ private:
     // === Mutex pour thread safety ===
     mutable std::mutex mutex_;
 
-    /// @brief Helper RAII pour gérer l'état avec thread safety
+    /// @brief Helper RAII pour gÃ©rer l'Ã©tat avec thread safety
     template<typename T>
     class AtomicStateGuard {
     public:
@@ -164,7 +165,7 @@ private:
             state_.store(newState);
         }
         ~AtomicStateGuard() {
-            // Restaurer uniquement si nécessaire
+            // Restaurer uniquement si nÃ©cessaire
         }
         T getOldState() const { return oldState_; }
     private:
@@ -172,7 +173,7 @@ private:
         T oldState_;
     };
 
-    // === Méthodes privées ===
+    // === MÃ©thodes privÃ©es ===
     void initializeManagers();
     void cleanupManagers();
     void setRuntime(jsi::Runtime* rt);

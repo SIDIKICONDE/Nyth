@@ -23,6 +23,7 @@ using Nyth::Audio::SafetyError;
 using Nyth::Audio::SafetyState;
 using Nyth::Audio::SafetyReport;
 using Nyth::Audio::SafetyStatistics;
+using Nyth::Audio::SafetyLimits;
 
 // === Module principal refactorisé pour la sécurité audio ===
 

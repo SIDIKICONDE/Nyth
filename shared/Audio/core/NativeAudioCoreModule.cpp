@@ -1,21 +1,23 @@
-#include "NativeAudioCoreModule.h"
+﻿#include "NativeAudioCoreModule.h"
 
 #if NYTH_AUDIO_CORE_ENABLED
 
 #include <algorithm>
+#include <cmath>
 #include "jsi/JSIConverter.h"
 
 namespace facebook {
 namespace react {
 
-// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
+// Using declarations pour les types frÃ©quemment utilisÃ©s du namespace Nyth::Audio
 using Nyth::Audio::AudioConfig;
+using Nyth::Audio::AudioManager;
 
 NativeAudioCoreModule::NativeAudioCoreModule(std::shared_ptr<CallInvoker> jsInvoker) {
-    // Configuration par défaut
+    // Configuration par dÃ©faut
     config_ = AudioConfig();
 
-    // Créer le gestionnaire de callbacks
+    // CrÃ©er le gestionnaire de callbacks
     callbackManager_ = std::make_unique<JSICallbackManager>(jsInvoker);
 }
 
@@ -27,20 +29,21 @@ NativeAudioCoreModule::~NativeAudioCoreModule() {
 /**
  * @brief Initialise le module audio core et tous ses composants
  *
- * Cette méthode doit être appelée avant toute autre opération.
+ * Cette mÃ©thode doit Ãªtre appelÃ©e avant toute autre opÃ©ration.
  * Elle initialise les managers (equalizer, filter, analysis) et configure
  * le runtime JSI pour les callbacks.
  *
- * @param rt Runtime JSI pour l'exécution JavaScript
- * @return jsi::Value(true) si l'initialisation réussit, jsi::Value(false) sinon
+ * @param rt Runtime JSI pour l'exÃ©cution JavaScript
+ * @return jsi::Value(true) si l'initialisation rÃ©ussit, jsi::Value(false) sinon
  */
 jsi::Value NativeAudioCoreModule::initialize(jsi::Runtime& rt) {
     try {
         setRuntime(&rt);
         initializeManagers();
 
-        // Initialiser l'égaliseur avec la configuration par défaut
-        if (equalizerManager_ && equalizerManager_->initialize(config_)) {
+        // Initialiser l'Ã©galiseur avec la configuration par dÃ©faut
+        if (equalizerManager_ && equalizerManager_->initialize(config_) &&
+            filterManager_ && filterManager_->initialize(config_)) {
             isInitialized_.store(true);
             currentState_ = 1; // INITIALIZED
             return jsi::Value(true);
@@ -68,7 +71,7 @@ jsi::Value NativeAudioCoreModule::dispose(jsi::Runtime& rt) {
     return jsi::Value(true);
 }
 
-// === État et informations ===
+// === Ã‰tat et informations ===
 jsi::Value NativeAudioCoreModule::getState(jsi::Runtime& rt) {
     return jsi::String::createFromUtf8(rt, stateToString(currentState_));
 }
@@ -77,17 +80,17 @@ jsi::Value NativeAudioCoreModule::getErrorString(jsi::Runtime& rt, int errorCode
     return jsi::String::createFromUtf8(rt, errorToString(errorCode));
 }
 
-// === Égaliseur ===
+// === Ã‰galiseur ===
 /**
- * @brief Initialise l'égaliseur audio avec une configuration personnalisée
+ * @brief Initialise l'Ã©galiseur audio avec une configuration personnalisÃ©e
  *
  * @param rt Runtime JSI
  * @param config Objet JavaScript contenant la configuration:
- *   - sampleRate: Taux d'échantillonnage (ex: 44100, 48000)
+ *   - sampleRate: Taux d'Ã©chantillonnage (ex: 44100, 48000)
  *   - bufferSize: Taille du buffer audio
- *   - channels: Nombre de canaux (1 pour mono, 2 pour stéréo)
+ *   - channels: Nombre de canaux (1 pour mono, 2 pour stÃ©rÃ©o)
  *   - format: Format audio ("float32", "int16", etc.)
- * @return jsi::Value(true) si succès, jsi::Value(false) sinon
+ * @return jsi::Value(true) si succÃ¨s, jsi::Value(false) sinon
  */
 jsi::Value NativeAudioCoreModule::equalizerInitialize(jsi::Runtime& rt, const jsi::Object& config) {
     if (!isInitialized_.load()) {
@@ -99,7 +102,8 @@ jsi::Value NativeAudioCoreModule::equalizerInitialize(jsi::Runtime& rt, const js
         // Parser la configuration depuis JavaScript
         auto nativeConfig = JSIConverter::jsToAudioConfig(rt, config);
 
-        if (equalizerManager_ && equalizerManager_->initialize(nativeConfig)) {
+        if (equalizerManager_ && equalizerManager_->initialize(nativeConfig) &&
+            filterManager_ && filterManager_->initialize(nativeConfig)) {
             config_ = nativeConfig;
             return jsi::Value(true);
         }
@@ -272,28 +276,31 @@ jsi::Value NativeAudioCoreModule::equalizerGetNumBands(jsi::Runtime& rt) {
 }
 
 /**
- * @brief Traite un signal audio mono avec l'égaliseur
+ * @brief Traite un signal audio mono avec l'Ã©galiseur
  *
- * Cette méthode applique l'égalisation configurée à un signal mono.
+ * Cette mÃ©thode applique l'Ã©galisation configurÃ©e Ã  un signal mono.
  * Supporte les TypedArray (Float32Array) pour de meilleures performances.
  *
  * @param rt Runtime JSI
- * @param input Array JavaScript contenant les échantillons audio (Float32Array recommandé)
- * @return Array JavaScript contenant les échantillons traités, ou null en cas d'erreur
+ * @param input Array JavaScript contenant les Ã©chantillons audio (Float32Array recommandÃ©)
+ * @return Array JavaScript contenant les Ã©chantillons traitÃ©s, ou null en cas d'erreur
  */
-jsi::Value NativeAudioCoreModule::equalizerProcessMono(jsi::Runtime& rt, const jsi::Array& input) {
+jsi::Value NativeAudioCoreModule::equalizerProcessMono(jsi::Runtime& rt, const jsi::Value& input) {
     if (!equalizerManager_ || !equalizerManager_->isInitialized()) {
         handleError(1, "Equalizer not initialized");
         return jsi::Value::null();
     }
 
     try {
-        // Utiliser le JSIConverter pour une conversion optimisée
+        // Utiliser le JSIConverter pour une conversion optimisÃ©e
         auto inputData = JSIConverter::jsArrayToFloatVector(rt, input);
         std::vector<float> outputData(inputData.size());
 
         if (equalizerManager_->processMono(inputData.data(), outputData.data(), inputData.size())) {
-            // Convertir le résultat en array JavaScript (optimisé avec TypedArray si possible)
+            // Invoquer le callback si défini (pour l'intégration avec d'autres modules)
+            invokeAudioDataCallback(outputData, 1);
+
+            // Convertir le rÃ©sultat en array JavaScript (optimisÃ© avec TypedArray si possible)
             return JSIConverter::floatVectorToJSArray(rt, outputData);
         }
 
@@ -306,26 +313,26 @@ jsi::Value NativeAudioCoreModule::equalizerProcessMono(jsi::Runtime& rt, const j
 }
 
 /**
- * @brief Traite un signal audio stéréo avec l'égaliseur
+ * @brief Traite un signal audio stÃ©rÃ©o avec l'Ã©galiseur
  *
- * Cette méthode applique l'égalisation configurée à un signal stéréo.
- * Les canaux gauche et droit sont traités séparément mais avec les mêmes paramètres.
+ * Cette mÃ©thode applique l'Ã©galisation configurÃ©e Ã  un signal stÃ©rÃ©o.
+ * Les canaux gauche et droit sont traitÃ©s sÃ©parÃ©ment mais avec les mÃªmes paramÃ¨tres.
  * Supporte les TypedArray (Float32Array) pour de meilleures performances.
  *
  * @param rt Runtime JSI
- * @param inputL Array JavaScript contenant les échantillons du canal gauche
- * @param inputR Array JavaScript contenant les échantillons du canal droit
- * @return Objet JavaScript avec propriétés 'left' et 'right' contenant les arrays traités
+ * @param inputL Array JavaScript contenant les Ã©chantillons du canal gauche
+ * @param inputR Array JavaScript contenant les Ã©chantillons du canal droit
+ * @return Objet JavaScript avec propriÃ©tÃ©s 'left' et 'right' contenant les arrays traitÃ©s
  */
-jsi::Value NativeAudioCoreModule::equalizerProcessStereo(jsi::Runtime& rt, const jsi::Array& inputL,
-                                                         const jsi::Array& inputR) {
+jsi::Value NativeAudioCoreModule::equalizerProcessStereo(jsi::Runtime& rt, const jsi::Value& inputL,
+                                                         const jsi::Value& inputR) {
     if (!equalizerManager_ || !equalizerManager_->isInitialized()) {
         handleError(1, "Equalizer not initialized");
         return jsi::Value::null();
     }
 
     try {
-        // Utiliser le JSIConverter pour une conversion optimisée
+        // Utiliser le JSIConverter pour une conversion optimisÃ©e
         auto inputLData = JSIConverter::jsArrayToFloatVector(rt, inputL);
         auto inputRData = JSIConverter::jsArrayToFloatVector(rt, inputR);
 
@@ -339,7 +346,18 @@ jsi::Value NativeAudioCoreModule::equalizerProcessStereo(jsi::Runtime& rt, const
 
         if (equalizerManager_->processStereo(inputLData.data(), inputRData.data(), outputLData.data(),
                                              outputRData.data(), inputLData.size())) {
-            // Convertir les résultats en objet JavaScript avec deux arrays optimisés
+            // Combiner les canaux pour le callback (entrelacé)
+            std::vector<float> combinedData;
+            combinedData.reserve(outputLData.size() * 2);
+            for (size_t i = 0; i < outputLData.size(); ++i) {
+                combinedData.push_back(outputLData[i]);
+                combinedData.push_back(outputRData[i]);
+            }
+
+            // Invoquer le callback si défini (pour l'intégration avec d'autres modules)
+            invokeAudioDataCallback(combinedData, 2);
+
+            // Convertir les rÃ©sultats en objet JavaScript avec deux arrays optimisÃ©s
             jsi::Object result(rt);
             result.setProperty(rt, "left", JSIConverter::floatVectorToJSArray(rt, outputLData));
             result.setProperty(rt, "right", JSIConverter::floatVectorToJSArray(rt, outputRData));
@@ -444,7 +462,7 @@ jsi::Value NativeAudioCoreModule::filterGetConfig(jsi::Runtime& rt, int64_t filt
     return jsi::Value::null();
 }
 
-// === Types de filtres spécifiques ===
+// === Types de filtres spÃ©cifiques ===
 jsi::Value NativeAudioCoreModule::filterSetLowpass(jsi::Runtime& rt, int64_t filterId, double frequency,
                                                    double sampleRate, double q) {
     if (!filterManager_) {
@@ -614,13 +632,13 @@ jsi::Value NativeAudioCoreModule::filterReset(jsi::Runtime& rt, int64_t filterId
 
 // === Utilitaires ===
 jsi::Value NativeAudioCoreModule::dbToLinear(jsi::Runtime& rt, double db) {
-    // Conversion simple dB vers linéaire
+    // Conversion simple dB vers linÃ©aire
     double linear = std::pow(10.0, db / 20.0);
     return jsi::Value(linear);
 }
 
 jsi::Value NativeAudioCoreModule::linearToDb(jsi::Runtime& rt, double linear) {
-    // Conversion simple linéaire vers dB
+    // Conversion simple linÃ©aire vers dB
     if (linear <= 0.0) {
         return jsi::Value(-120.0); // Valeur minimale
     }
@@ -647,13 +665,13 @@ jsi::Value NativeAudioCoreModule::validateGainDB(jsi::Runtime& rt, double gainDB
 /**
  * @brief Installe le module NativeAudioCoreModule dans le runtime JavaScript
  *
- * Cette méthode statique crée une instance du module et expose toutes ses méthodes
- * au JavaScript. Elle utilise une macro optimisée pour enregistrer les méthodes
- * avec support des TypedArray pour les conversions de données audio.
+ * Cette mÃ©thode statique crÃ©e une instance du module et expose toutes ses mÃ©thodes
+ * au JavaScript. Elle utilise une macro optimisÃ©e pour enregistrer les mÃ©thodes
+ * avec support des TypedArray pour les conversions de donnÃ©es audio.
  *
- * @param rt Runtime JSI où installer le module
- * @param jsInvoker CallInvoker pour l'exécution asynchrone des callbacks
- * @return Objet JavaScript contenant toutes les méthodes du module
+ * @param rt Runtime JSI oÃ¹ installer le module
+ * @param jsInvoker CallInvoker pour l'exÃ©cution asynchrone des callbacks
+ * @return Objet JavaScript contenant toutes les mÃ©thodes du module
  *
  * @note Le module est accessible globalement via window.NativeAudioCoreModule
  */
@@ -686,14 +704,14 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
     if (c < 2) throw jsi::JSError(rt, #name " expects 2 args"); \
     return module->name(rt, args[0], args[1]); }))
 
-    // Enregistrer les méthodes
+    // Enregistrer les mÃ©thodes
     REG0(initialize);
     REG0(isInitialized);
     REG0(dispose);
     REG0(getState);
     REG1_NUM(getErrorString);
 
-    // Égaliseur
+    // Ã‰galiseur
     REG1_OBJ(equalizerInitialize);
     REG0(equalizerIsInitialized);
     REG0(equalizerRelease);
@@ -705,7 +723,7 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
             return module->equalizerSetBypass(rt, args[0].getBool());
         }));
     REG1_NUM(equalizerSetSampleRate);
-    // Méthodes Equalizer multi-args: on valide explicitement
+    // MÃ©thodes Equalizer multi-args: on valide explicitement
     object.setProperty(rt, "equalizerSetBand", jsi::Function::createFromHostFunction(
         rt, jsi::PropNameID::forAscii(rt, "equalizerSetBand"), 2,
         [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value {
@@ -747,12 +765,17 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
         }));
     REG0(equalizerGetInfo);
     REG0(equalizerGetNumBands);
-    REG1_OBJ(equalizerProcessMono);
+    object.setProperty(rt, "equalizerProcessMono", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "equalizerProcessMono"), 1,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value {
+            if (c < 1) throw jsi::JSError(rt, "equalizerProcessMono expects 1 argument");
+            return module->equalizerProcessMono(rt, args[0]);
+        }));
     object.setProperty(rt, "equalizerProcessStereo", jsi::Function::createFromHostFunction(
         rt, jsi::PropNameID::forAscii(rt, "equalizerProcessStereo"), 2,
         [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
-            if (c < 2 || !a[0].isObject() || !a[1].isObject()) throw jsi::JSError(rt, "equalizerProcessStereo expects (array, array)");
-            return module->equalizerProcessStereo(rt, a[0].asObject(rt).asArray(rt), a[1].asObject(rt).asArray(rt));
+            if (c < 2) throw jsi::JSError(rt, "equalizerProcessStereo expects 2 arguments");
+            return module->equalizerProcessStereo(rt, a[0], a[1]);
         }));
     object.setProperty(rt, "equalizerLoadPreset", jsi::Function::createFromHostFunction(
         rt, jsi::PropNameID::forAscii(rt, "equalizerLoadPreset"), 1,
@@ -857,6 +880,37 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
     REG1_NUM(validateQ);
     REG1_NUM(validateGainDB);
 
+    // Analyse audio
+    REG0(startAnalysis);
+    REG0(stopAnalysis);
+    REG0(isAnalyzing);
+    REG0(getAnalysisMetrics);
+    REG0(getFrequencyAnalysis);
+    REG1_OBJ(setAnalysisConfig);
+
+    // Intégration des données audio
+    object.setProperty(rt, "pushAudioBuffer", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "pushAudioBuffer"), 2,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 2 || !a[1].isNumber()) throw jsi::JSError(rt, "pushAudioBuffer expects (buffer, channels)");
+            return module->pushAudioBuffer(rt, a[0], static_cast<int>(a[1].asNumber()));
+        }));
+    object.setProperty(rt, "pushAudioBuffersStereo", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "pushAudioBuffersStereo"), 2,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 2) throw jsi::JSError(rt, "pushAudioBuffersStereo expects (leftBuffer, rightBuffer)");
+            return module->pushAudioBuffersStereo(rt, a[0], a[1]);
+        }));
+
+    // Intégration avec le module Capture
+    object.setProperty(rt, "setAudioDataCallback", jsi::Function::createFromHostFunction(
+        rt, jsi::PropNameID::forAscii(rt, "setAudioDataCallback"), 1,
+        [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* a, size_t c) -> jsi::Value {
+            if (c < 1) throw jsi::JSError(rt, "setAudioDataCallback expects (callback)");
+            return module->setAudioDataCallback(rt, a[0]);
+        }));
+    REG0(removeAudioDataCallback);
+
 #undef REG0
 #undef REG1_NUM
 #undef REG1_OBJ
@@ -865,7 +919,7 @@ jsi::Value NativeAudioCoreModule::install(jsi::Runtime& rt, std::shared_ptr<Call
     return object;
 }
 
-// === Méthodes privées ===
+// === MÃ©thodes privÃ©es ===
 void NativeAudioCoreModule::initializeManagers() {
     if (!equalizerManager_) {
         equalizerManager_ = std::make_unique<EqualizerManager>(callbackManager_);
@@ -886,7 +940,7 @@ void NativeAudioCoreModule::cleanupManagers() {
     }
 
     if (filterManager_) {
-        // Le destructeur de FilterManager gère le nettoyage
+        // Le destructeur de FilterManager gÃ¨re le nettoyage
     }
 
     if (analysisManager_) {
@@ -1077,7 +1131,7 @@ jsi::Value NativeAudioCoreModule::getFrequencyAnalysis(jsi::Runtime& rt) {
             magnitudesArray.setValueAtIndex(rt, i, jsi::Value(analysis.magnitudes[i]));
         }
 
-        // Convertir les fréquences en Array JavaScript
+        // Convertir les frÃ©quences en Array JavaScript
         auto frequenciesArray = jsi::Array(rt, analysis.frequencies.size());
         for (size_t i = 0; i < analysis.frequencies.size(); ++i) {
             frequenciesArray.setValueAtIndex(rt, i, jsi::Value(analysis.frequencies[i]));
@@ -1131,6 +1185,197 @@ jsi::Value NativeAudioCoreModule::setAnalysisConfig(jsi::Runtime& rt, const jsi:
     } catch (const std::exception& e) {
         handleError(2, std::string("Failed to set analysis config: ") + e.what());
         return jsi::Value(false);
+    }
+}
+
+// === Intégration des données audio ===
+/**
+ * @brief Injecte des données audio dans le système d'analyse
+ *
+ * Cette méthode permet d'alimenter AudioAnalysisManager avec des buffers audio
+ * provenant de n'importe quelle source (capture, lecture, génération, etc.).
+ * Supporte les TypedArray (Float32Array) pour de meilleures performances.
+ *
+ * @param rt Runtime JSI
+ * @param buffer Buffer audio (Array ou TypedArray JavaScript)
+ * @param channels Nombre de canaux (1 = mono, 2 = stéréo entrelacé)
+ * @return jsi::Value(true) si le traitement réussi, jsi::Value(false) sinon
+ */
+jsi::Value NativeAudioCoreModule::pushAudioBuffer(jsi::Runtime& rt, const jsi::Value& buffer, int channels) {
+    if (!isInitialized_.load()) {
+        handleError(1, "Audio core not initialized");
+        return jsi::Value(false);
+    }
+
+    if (!analysisManager_ || !analysisManager_->isInitialized()) {
+        handleError(1, "Analysis manager not initialized");
+        return jsi::Value(false);
+    }
+
+    if (channels < 1 || channels > 2) {
+        handleError(2, "Invalid number of channels (must be 1 or 2)");
+        return jsi::Value(false);
+    }
+
+    try {
+        // Convertir le buffer JavaScript en données C++
+        auto audioData = JSIConverter::jsArrayToFloatVector(rt, buffer);
+        size_t frameCount = audioData.size() / channels;
+
+        if (frameCount == 0) {
+            return jsi::Value(true); // Buffer vide, rien à traiter
+        }
+
+        // Traiter selon le nombre de canaux
+        bool success = false;
+        if (channels == 1) {
+            // Traitement mono
+            success = analysisManager_->processAudioData(audioData.data(), frameCount, 1);
+        } else {
+            // Traitement stéréo entrelacé
+            success = analysisManager_->processAudioData(audioData.data(), frameCount, 2);
+        }
+
+        if (!success) {
+            handleError(3, "Failed to process audio buffer");
+            return jsi::Value(false);
+        }
+
+        // Invoquer le callback avec les données traitées (pour l'intégration)
+        invokeAudioDataCallback(audioData, channels);
+
+        return jsi::Value(true);
+
+    } catch (const std::exception& e) {
+        handleError(3, std::string("Failed to push audio buffer: ") + e.what());
+        return jsi::Value(false);
+    }
+}
+
+/**
+ * @brief Injecte des données audio stéréo séparées dans le système d'analyse
+ *
+ * Cette méthode permet d'alimenter AudioAnalysisManager avec des buffers stéréo
+ * séparés (canal gauche et droit distincts), utile pour l'intégration avec
+ * des sources audio qui fournissent les canaux séparément.
+ *
+ * @param rt Runtime JSI
+ * @param leftBuffer Buffer du canal gauche (Array ou TypedArray)
+ * @param rightBuffer Buffer du canal droit (Array ou TypedArray)
+ * @return jsi::Value(true) si le traitement réussi, jsi::Value(false) sinon
+ */
+jsi::Value NativeAudioCoreModule::pushAudioBuffersStereo(jsi::Runtime& rt, const jsi::Value& leftBuffer, const jsi::Value& rightBuffer) {
+    if (!isInitialized_.load()) {
+        handleError(1, "Audio core not initialized");
+        return jsi::Value(false);
+    }
+
+    if (!analysisManager_ || !analysisManager_->isInitialized()) {
+        handleError(1, "Analysis manager not initialized");
+        return jsi::Value(false);
+    }
+
+    try {
+        // Convertir les buffers JavaScript en données C++
+        auto leftData = JSIConverter::jsArrayToFloatVector(rt, leftBuffer);
+        auto rightData = JSIConverter::jsArrayToFloatVector(rt, rightBuffer);
+
+        // Vérifier que les deux canaux ont la même taille
+        if (leftData.size() != rightData.size()) {
+            handleError(2, "Left and right buffers must have the same length");
+            return jsi::Value(false);
+        }
+
+        if (leftData.empty()) {
+            return jsi::Value(true); // Buffers vides, rien à traiter
+        }
+
+        // Utiliser la méthode stéréo spécialisée d'AudioAnalysisManager
+        bool success = analysisManager_->processAudioDataStereo(leftData.data(), rightData.data(), leftData.size());
+
+        if (!success) {
+            handleError(3, "Failed to process stereo audio buffers");
+            return jsi::Value(false);
+        }
+
+        // Combiner les canaux pour le callback (entrelacé)
+        std::vector<float> combinedData;
+        combinedData.reserve(leftData.size() * 2);
+        for (size_t i = 0; i < leftData.size(); ++i) {
+            combinedData.push_back(leftData[i]);
+            combinedData.push_back(rightData[i]);
+        }
+
+        // Invoquer le callback avec les données traitées (pour l'intégration)
+        invokeAudioDataCallback(combinedData, 2);
+
+        return jsi::Value(true);
+
+    } catch (const std::exception& e) {
+        handleError(3, std::string("Failed to push stereo audio buffers: ") + e.what());
+        return jsi::Value(false);
+    }
+}
+
+/**
+ * @brief Définit un callback JavaScript pour recevoir les données audio traitées
+ *
+ * Cette méthode permet au module Capture ou à d'autres sources de recevoir
+ * automatiquement les données audio après traitement par le Core (égalisation, etc.).
+ * Le callback recevra les buffers audio déjà traités.
+ *
+ * @param rt Runtime JSI
+ * @param callback Fonction JavaScript à appeler avec les données audio
+ * @return jsi::Value(true) si réussi, jsi::Value(false) sinon
+ */
+jsi::Value NativeAudioCoreModule::setAudioDataCallback(jsi::Runtime& rt, const jsi::Value& callback) {
+    if (!callback.isObject() || !callback.asObject(rt).isFunction(rt)) {
+        handleError(2, "setAudioDataCallback expects a function");
+        return jsi::Value(false);
+    }
+
+    try {
+        audioDataCallback_ = callback.asObject(rt).asFunction(rt);
+        return jsi::Value(true);
+    } catch (const std::exception& e) {
+        handleError(2, std::string("Failed to set audio data callback: ") + e.what());
+        return jsi::Value(false);
+    }
+}
+
+/**
+ * @brief Supprime le callback JavaScript pour les données audio
+ *
+ * @param rt Runtime JSI
+ * @return jsi::Value(true) si réussi, jsi::Value(false) sinon
+ */
+jsi::Value NativeAudioCoreModule::removeAudioDataCallback(jsi::Runtime& rt) {
+    try {
+        audioDataCallback_ = jsi::Function();
+        return jsi::Value(true);
+    } catch (const std::exception& e) {
+        handleError(2, std::string("Failed to remove audio data callback: ") + e.what());
+        return jsi::Value(false);
+    }
+}
+
+// === Helpers pour l'intégration ===
+void NativeAudioCoreModule::invokeAudioDataCallback(const std::vector<float>& audioData, int channels) {
+    if (!runtimeValid_.load() || !audioDataCallback_) {
+        return;
+    }
+
+    try {
+        // Convertir les données en TypedArray JavaScript
+        auto jsArray = JSIConverter::floatVectorToJSArray(*runtime_, audioData);
+
+        // Invoquer le callback JavaScript
+        audioDataCallback_.call(*runtime_, jsArray, jsi::Value(channels));
+    } catch (const std::exception& e) {
+        // Ne pas propager l'erreur du callback vers le traitement audio
+        if (callbackManager_) {
+            callbackManager_->invokeErrorCallback(std::string("Audio data callback error: ") + e.what());
+        }
     }
 }
 

@@ -127,6 +127,8 @@ public class AudioCaptureJNIBridge {
     }
 
     // === Méthodes natives (implémentées en C++) ===
+    // Ces méthodes sont implémentées dans AudioCaptureJNI.cpp
+    // qui fait le lien avec AudioCaptureAndroid
 
     private native long nativeCreate();
     private native void nativeDestroy(long ptr);
@@ -136,7 +138,7 @@ public class AudioCaptureJNIBridge {
     // === Méthodes statiques pour le chargement de la bibliothèque ===
 
     static {
-        // Charger la bibliothèque native
-        System.loadLibrary("nyth-audio");
+        // Charger la bibliothèque native (appmodules depuis CMakeLists.txt)
+        System.loadLibrary("appmodules");
     }
 }
