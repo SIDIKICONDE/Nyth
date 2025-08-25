@@ -27,11 +27,12 @@ enum class AudioFileFormat {
 #ifdef __APPLE__
 #if TARGET_OS_IOS
     ALAC,    // Apple Lossless Audio Codec (.m4a)
-    CAF,     // Core Audio Format (.caf)
-    AMR,     // Adaptive Multi-Rate (.amr) pour la voix
+    CAF,     // Core Audio Format (.caf) - pas de limite 4GB
+    AIFF,    // Audio Interchange File Format (.aiff)
+    M4A_AAC, // AAC dans conteneur M4A (.m4a)
 #endif
 #endif
-    // Futurs formats possibles : MP3, AAC, OGG, etc.
+    // Futurs formats possibles : MP3, OGG, etc.
 };
 
 // Configuration pour l'écriture de fichier audio

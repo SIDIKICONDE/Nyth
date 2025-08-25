@@ -17,7 +17,7 @@ namespace AudioFormats {
 #if TARGET_OS_IOS
     const std::string ALAC = "ALAC";  // Apple Lossless Audio Codec
     const std::string CAF = "CAF";    // Core Audio Format
-    const std::string AMR = "AMR";    // Adaptive Multi-Rate
+    const std::string AIFF = "AIFF";  // Audio Interchange File Format
 #endif
 #endif
 }

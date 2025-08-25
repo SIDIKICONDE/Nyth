@@ -15,12 +15,14 @@ namespace IOSAudioFormats {
     // Formats Apple natifs
     const std::string ALAC = "ALAC";  // Apple Lossless Audio Codec
     const std::string CAF = "CAF";    // Core Audio Format
-    const std::string AMR = "AMR";    // Adaptive Multi-Rate (pour la voix)
+    const std::string AIFF = "AIFF";  // Audio Interchange File Format (Apple)
+    const std::string M4A_AAC = "M4A_AAC";  // AAC dans conteneur M4A
     
     // Extensions de fichier
     const std::string ALAC_EXT = ".m4a";
     const std::string CAF_EXT = ".caf";
-    const std::string AMR_EXT = ".amr";
+    const std::string AIFF_EXT = ".aiff";
+    const std::string M4A_EXT = ".m4a";
 }
 
 // === Configuration spécifique pour les formats iOS ===
@@ -40,17 +42,25 @@ struct IOSAudioFormatConfig {
         bool optimizeForSpeech = false;    // Optimisation pour la voix
     };
     
-    // Format AMR (Adaptive Multi-Rate)
-    struct AMRConfig {
+    // Format AIFF (Audio Interchange File Format)
+    struct AIFFConfig {
         bool enabled = true;
-        int bitrate = 12200;  // 12.2 kbps par défaut (AMR-NB)
-        bool wideband = false;  // false = AMR-NB (8kHz), true = AMR-WB (16kHz)
-        bool dtxEnabled = true;  // Discontinuous Transmission (économie batterie)
+        bool compressed = false;  // false = PCM non compressé, true = AIFF-C
+        int bitsPerSample = 16;   // 8, 16, 24, ou 32 bits
+    };
+    
+    // Format M4A avec AAC
+    struct M4AConfig {
+        bool enabled = true;
+        int bitrate = 128000;     // 128 kbps par défaut
+        int aacProfile = 2;       // AAC-LC = 2, HE-AAC = 5, HE-AACv2 = 29
+        bool vbr = true;          // Variable Bit Rate
     };
     
     ALACConfig alac;
     CAFConfig caf;
-    AMRConfig amr;
+    AIFFConfig aiff;
+    M4AConfig m4a;
     
     // Méthodes utilitaires
     static IOSAudioFormatConfig forHighQualityRecording() {
@@ -62,8 +72,9 @@ struct IOSAudioFormatConfig {
     
     static IOSAudioFormatConfig forVoiceRecording() {
         IOSAudioFormatConfig config;
-        config.amr.enabled = true;
-        config.amr.bitrate = 7950;  // 7.95 kbps pour économie
+        config.m4a.enabled = true;
+        config.m4a.bitrate = 64000;  // 64 kbps pour la voix
+        config.m4a.aacProfile = 2;   // AAC-LC
         config.caf.optimizeForSpeech = true;
         return config;
     }
@@ -85,8 +96,10 @@ public:
             return kAudioFileM4AType;
         } else if (format == IOSAudioFormats::CAF) {
             return kAudioFileCAFType;
-        } else if (format == IOSAudioFormats::AMR) {
-            return kAudioFileAMRType;
+        } else if (format == IOSAudioFormats::AIFF) {
+            return kAudioFileAIFFType;
+        } else if (format == IOSAudioFormats::M4A_AAC) {
+            return kAudioFileM4AType;
         }
         return kAudioFileWAVEType;  // Par défaut
     }
@@ -95,8 +108,10 @@ public:
     static AudioFormatID getAudioFormatID(const std::string& format) {
         if (format == IOSAudioFormats::ALAC) {
             return kAudioFormatAppleLossless;
-        } else if (format == IOSAudioFormats::AMR) {
-            return kAudioFormatAMR;
+        } else if (format == IOSAudioFormats::AIFF) {
+            return kAudioFormatLinearPCM;  // AIFF utilise PCM
+        } else if (format == IOSAudioFormats::M4A_AAC) {
+            return kAudioFormatMPEG4AAC;
         }
         return kAudioFormatLinearPCM;  // Par défaut pour CAF et WAV
     }
@@ -105,7 +120,8 @@ public:
     static bool isFormatSupported(const std::string& format) {
         return format == IOSAudioFormats::ALAC ||
                format == IOSAudioFormats::CAF ||
-               format == IOSAudioFormats::AMR ||
+               format == IOSAudioFormats::AIFF ||
+               format == IOSAudioFormats::M4A_AAC ||
                format == "WAV" || format == "M4A" || 
                format == "AAC" || format == "FLAC";
     }
@@ -124,11 +140,18 @@ public:
             desc.mFormatID = kAudioFormatAppleLossless;
             desc.mFormatFlags = kAppleLosslessFormatFlag_16BitSourceData;
             desc.mFramesPerPacket = 4096;  // Typique pour ALAC
-        } else if (format == IOSAudioFormats::AMR) {
-            desc.mFormatID = kAudioFormatAMR;
-            desc.mSampleRate = 8000;  // AMR-NB utilise 8kHz
-            desc.mChannelsPerFrame = 1;  // Mono seulement
-            desc.mFramesPerPacket = 160;  // 20ms frames
+        } else if (format == IOSAudioFormats::AIFF) {
+            desc.mFormatID = kAudioFormatLinearPCM;
+            desc.mFormatFlags = kAudioFormatFlagIsBigEndian | 
+                               kAudioFormatFlagIsSignedInteger | 
+                               kAudioFormatFlagIsPacked;
+            desc.mBitsPerChannel = 16;
+            desc.mFramesPerPacket = 1;
+            desc.mBytesPerFrame = desc.mChannelsPerFrame * 2;
+            desc.mBytesPerPacket = desc.mBytesPerFrame;
+        } else if (format == IOSAudioFormats::M4A_AAC) {
+            desc.mFormatID = kAudioFormatMPEG4AAC;
+            desc.mFramesPerPacket = 1024;  // AAC typique
         } else if (format == IOSAudioFormats::CAF) {
             desc.mFormatID = kAudioFormatLinearPCM;
             desc.mFormatFlags = kAudioFormatFlagIsFloat | 
