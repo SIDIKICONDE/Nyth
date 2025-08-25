@@ -13,6 +13,13 @@ namespace AudioFormats {
     const std::string M4A = "M4A";
     const std::string FLAC = "FLAC";
     const std::string WAV = "WAV";
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+    const std::string ALAC = "ALAC";  // Apple Lossless Audio Codec
+    const std::string CAF = "CAF";    // Core Audio Format
+    const std::string AIFF = "AIFF";  // Audio Interchange File Format
+#endif
+#endif
 }
 
 // === Configuration des formats audio pour plateformes mobiles ===
@@ -37,7 +44,13 @@ struct AudioFormatConfig {
 
     // === Validation ===
     bool isValid() const {
-        if (format != AudioFormats::AAC && format != AudioFormats::M4A && format != AudioFormats::FLAC && format != AudioFormats::WAV) {
+        if (format != AudioFormats::AAC && format != AudioFormats::M4A && format != AudioFormats::FLAC && format != AudioFormats::WAV
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+            && format != AudioFormats::ALAC && format != AudioFormats::CAF && format != AudioFormats::AMR
+#endif
+#endif
+        ) {
             return false;
         }
 
@@ -57,8 +70,20 @@ struct AudioFormatConfig {
     }
 
     std::string getValidationError() const {
-        if (format != AudioFormats::AAC && format != AudioFormats::M4A && format != AudioFormats::FLAC && format != AudioFormats::WAV) {
-            return "Format must be 'AAC', 'M4A', 'FLAC', or 'WAV'";
+        if (format != AudioFormats::AAC && format != AudioFormats::M4A && format != AudioFormats::FLAC && format != AudioFormats::WAV
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+            && format != AudioFormats::ALAC && format != AudioFormats::CAF && format != AudioFormats::AMR
+#endif
+#endif
+        ) {
+            return "Format must be 'AAC', 'M4A', 'FLAC', 'WAV'"
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+                   ", 'ALAC', 'CAF', or 'AMR'"
+#endif
+#endif
+            ;
         }
 
         if (format == AudioFormats::AAC || format == AudioFormats::M4A) {
@@ -83,11 +108,24 @@ struct AudioFormatConfig {
         if (format == AudioFormats::M4A) return ".m4a";
         if (format == AudioFormats::FLAC) return ".flac";
         if (format == AudioFormats::WAV) return ".wav";
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+        if (format == AudioFormats::ALAC) return ".m4a";  // ALAC utilise l'extension .m4a
+        if (format == AudioFormats::CAF) return ".caf";
+        if (format == AudioFormats::AMR) return ".amr";
+#endif
+#endif
         return ".aac"; // Par défaut
     }
 
     bool isLossless() const {
-        return format == AudioFormats::FLAC || format == AudioFormats::WAV;
+        return format == AudioFormats::FLAC || format == AudioFormats::WAV
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+            || format == AudioFormats::ALAC  // ALAC est sans perte
+#endif
+#endif
+        ;
     }
 
     bool isMobileOptimized() const {
@@ -131,7 +169,13 @@ namespace AudioFormat {
 
     // Vérifier si le format est supporté nativement par iOS
     inline bool isIOSNative(const std::string& format) {
-        return format == AudioFormats::AAC || format == AudioFormats::M4A || format == AudioFormats::FLAC || format == AudioFormats::WAV;
+        return format == AudioFormats::AAC || format == AudioFormats::M4A || format == AudioFormats::FLAC || format == AudioFormats::WAV
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+            || format == AudioFormats::ALAC || format == AudioFormats::CAF || format == AudioFormats::AMR
+#endif
+#endif
+        ;
     }
 
     // Obtenir le meilleur format pour la plateforme

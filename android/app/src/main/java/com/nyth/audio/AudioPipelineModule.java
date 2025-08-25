@@ -1,8 +1,15 @@
 package com.nyth.audio;
 
+import android.Manifest;
+import android.app.Activity;
+import android.content.pm.PackageManager;
 import android.util.Log;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import com.facebook.react.bridge.*;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.facebook.react.modules.core.PermissionAwareActivity;
+import com.facebook.react.modules.core.PermissionListener;
 
 /**
  * Module React Native pour le pipeline audio intégré
@@ -20,18 +27,22 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
  * - Enregistrement vers fichiers WAV
  * - Configuration dynamique
  */
-public class AudioPipelineModule extends ReactContextBaseJavaModule {
+public class AudioPipelineModule extends ReactContextBaseJavaModule implements PermissionListener {
 
     private static final String TAG = "AudioPipelineModule";
     private static final String EVENT_AUDIO_LEVELS = "AudioLevels";
     private static final String EVENT_AUDIO_ERROR = "AudioError";
     private static final String EVENT_RECORDING_STATUS = "RecordingStatus";
+    private static final int PERMISSION_REQUEST_CODE = 201;
 
     // États du pipeline
     private boolean isInitialized = false;
     private boolean isRunning = false;
     private boolean isPaused = false;
     private boolean isRecording = false;
+
+    // Stockage des Promises pour les opérations asynchrones
+    private Promise pendingPermissionPromise;
 
     // Configuration par défaut
     private static final int DEFAULT_SAMPLE_RATE = 44100;
@@ -45,6 +56,51 @@ public class AudioPipelineModule extends ReactContextBaseJavaModule {
     public String getName() {
         return "AudioPipeline";
     }
+
+    /**
+     * Vérifie si la permission d'enregistrement est accordée.
+     */
+    @ReactMethod
+    public void hasPermission(Promise promise) {
+        if (getReactApplicationContext() == null) {
+            promise.reject("CONTEXT_ERROR", "React context is null.");
+            return;
+        }
+        boolean hasPermission = ContextCompat.checkSelfPermission(getReactApplicationContext(), Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        promise.resolve(hasPermission);
+    }
+
+    /**
+     * Demande la permission d'enregistrement à l'utilisateur.
+     */
+    @ReactMethod
+    public void requestPermission(Promise promise) {
+        Activity currentActivity = getCurrentActivity();
+        if (currentActivity == null || !(currentActivity instanceof PermissionAwareActivity)) {
+            promise.reject("ACTIVITY_ERROR", "Activity is not available or does not support permission requests.");
+            return;
+        }
+
+        if (ContextCompat.checkSelfPermission(currentActivity, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            promise.resolve(true);
+            return;
+        }
+
+        pendingPermissionPromise = promise;
+        PermissionAwareActivity permissionAwareActivity = (PermissionAwareActivity) currentActivity;
+        permissionAwareActivity.requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQUEST_CODE, this);
+    }
+
+    @Override
+    public boolean onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == PERMISSION_REQUEST_CODE && pendingPermissionPromise != null) {
+            boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            pendingPermissionPromise.resolve(granted);
+            pendingPermissionPromise = null;
+        }
+        return true;
+    }
+
 
     /**
      * Initialise le pipeline audio

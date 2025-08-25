@@ -1,4 +1,4 @@
-#include "AudioCaptureImpl.hpp"
+#include "../../core/AudioCapture.hpp"
 #import <AVFoundation/AVFoundation.h>
 #include "../../../../common/config/Constant.hpp"
 #include "../../../../common/SIMD/SIMDIntegration.hpp" // Ajout de l'en-tête SIMD
@@ -89,6 +89,13 @@ bool AudioCaptureIOS::initialize(const AudioCaptureConfig &config) {
 
 bool AudioCaptureIOS::start() {
   if (state_ != CaptureState::Initialized && state_ != CaptureState::Stopped) {
+    return false;
+  }
+
+  // Vérifier la permission avant de démarrer
+  if (!hasPermission()) {
+    reportError("Audio permission not granted. Please request it from React Native.");
+    setState(CaptureState::Error);
     return false;
   }
 
@@ -337,15 +344,6 @@ bool AudioCaptureIOS::hasPermission() const {
   AVAudioSession *session = [AVAudioSession sharedInstance];
   AVAudioSessionRecordPermission permission = [session recordPermission];
   return permission == AVAudioSessionRecordPermissionGranted;
-}
-
-void AudioCaptureIOS::requestPermission(std::function<void(bool)> callback) {
-  AVAudioSession *session = [AVAudioSession sharedInstance];
-  [session requestRecordPermission:^(BOOL granted) {
-    if (callback) {
-      callback(granted);
-    }
-  }];
 }
 
 std::vector<AudioDeviceInfo> AudioCaptureIOS::getAvailableDevices() const {

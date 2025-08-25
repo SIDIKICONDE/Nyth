@@ -1,6 +1,5 @@
 #pragma once
 
-#include "AudioCaptureUtils.hpp"
 #include "../../common/config/Constant.hpp"
 #include <algorithm>
 #include <atomic>
@@ -400,6 +399,23 @@ inline void AudioAnalyzer::normalizeRMS(float* data, size_t sampleCount, float t
         data[i] *= scale;
     }
 }
+
+// === Fonctions libres (compatibilité) ===
+
+// Convertisseur int16 vers float - version portable
+void convertInt16ToFloat(const int16_t* input, float* output, size_t count);
+
+// Calculateur RMS - version portable
+float calculateRMS(const float* data, size_t count);
+
+// Compteur d'échantillons clippés - version portable
+size_t countClippedSamples(const float* data, size_t count, float threshold);
+
+// Fonction pour mélanger des canaux stéréo
+void mixStereoToMono(const float* left, const float* right, float* output, size_t count);
+
+// Appliquer un gain avec protection contre le clipping
+void applyGain(const float* input, float* output, size_t count, float gain);
 
 } // namespace Audio
 } // namespace Nyth
