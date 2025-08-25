@@ -13,8 +13,7 @@
 #include <type_traits>
 
 // Legacy constants header
-#include "../constant/CoreConstants.hpp"
-#include <cstdint>
+#include "../../core/components/constant/CoreConstants.hpp"
 #include <cstddef>
 
 // C++17 pure - no platform-specific SIMD optimizations

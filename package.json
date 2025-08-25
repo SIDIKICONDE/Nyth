@@ -128,24 +128,20 @@
       "javaPackageName": "com.nyth.specs",
       "modulesProvider": {
         "NativeAudioCaptureModule": "NativeAudioCaptureModuleProvider",
+        "NativeAudioCoreModule": "NativeAudioCoreModuleProvider",
         "NativeAudioEffectsModule": "NativeAudioEffectsModuleProvider",
         "NativeAudioNoiseModule": "NativeAudioNoiseModuleProvider",
         "NativeAudioSafetyModule": "NativeAudioSafetyModuleProvider",
-        "NativeAudioCoreModule": "NativeAudioCoreModuleProvider",
-        "NativeAudioUtilsModule": "NativeAudioUtilsModuleProvider",
-        "NativeAudioPipelineModule": "NativeAudioPipelineModuleProvider",
         "NativeAudioSpectrumModule": "NativeAudioSpectrumModuleProvider"
       }
     },
     "ios": {
       "modulesProvider": {
         "NativeAudioCaptureModule": "NativeAudioCaptureModuleProvider",
+        "NativeAudioCoreModule": "NativeAudioCoreModuleProvider",
         "NativeAudioEffectsModule": "NativeAudioEffectsModuleProvider",
         "NativeAudioNoiseModule": "NativeAudioNoiseModuleProvider",
         "NativeAudioSafetyModule": "NativeAudioSafetyModuleProvider",
-        "NativeAudioCoreModule": "NativeAudioCoreModuleProvider",
-        "NativeAudioUtilsModule": "NativeAudioUtilsModuleProvider",
-        "NativeAudioPipelineModule": "NativeAudioPipelineModuleProvider",
         "NativeAudioSpectrumModule": "NativeAudioSpectrumModuleProvider"
       }
     }

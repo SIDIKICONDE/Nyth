@@ -19,8 +19,7 @@ MODULE_FILES=(
     "shared/Audio/effects/NativeAudioEffectsModule.cpp"
     "shared/Audio/core/NativeAudioCoreModule.h"
     "shared/Audio/core/NativeAudioCoreModule.cpp"
-    "shared/Audio/capture/NativeAudioCaptureModule.h"
-    "shared/Audio/capture/NativeAudioCaptureModule.cpp"
+
 )
 
 ERRORS_FOUND=0

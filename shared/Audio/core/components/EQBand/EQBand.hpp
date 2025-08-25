@@ -3,7 +3,7 @@
 #define AUDIOFX_EQBAND_HPP
 
 #include "../../../common/dsp/BiquadFilter.hpp"
-#include "CoreConstants.hpp"
+#include "../constant/CoreConstants.hpp"
 #include <memory>
 
 

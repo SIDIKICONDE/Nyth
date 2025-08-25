@@ -42,7 +42,7 @@
 #include "../../shared/Audio/core/components/EQBand/EQBand.hpp"
 #include "../../shared/Audio/core/components/EQBand/EQPreset.hpp"
 #include "../../shared/Audio/core/components/EQBand/EQPresetFactory.hpp"
-#include "../../shared/Audio/capture/config/AudioConfig.h"
+#include "../../shared/Audio/common/config/AudioConfig.h"
 
 // Utiliser les vraies classes du namespace Audio::core et AudioFX
 using Audio::core::AudioEqualizer;

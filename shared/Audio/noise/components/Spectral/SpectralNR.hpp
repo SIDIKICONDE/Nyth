@@ -2,7 +2,7 @@
 
 #ifdef __cplusplus
 #include "../../../common/dsp/FFTEngine.hpp"
-#include "../../common/config/NoiseContants.hpp"
+#include "../../../common/config/NoiseConstants.hpp"
 #include <cstdint>
 #include <memory>
 #include <vector>

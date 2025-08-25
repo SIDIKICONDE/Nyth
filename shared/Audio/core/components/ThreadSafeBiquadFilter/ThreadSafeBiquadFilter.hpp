@@ -13,6 +13,10 @@ namespace Nyth {
 namespace Audio {
 namespace FX {
 
+// Using declarations for error handling types
+using Constants::AudioError;
+using Constants::AudioValidator;
+
 /**
  * Thread-safe wrapper for BiquadFilter
  * Ensures safe concurrent access to filter state
@@ -68,7 +72,7 @@ public:
     }
 
     // Thread-safe processing with error handling
-    Nyth::Audio::Constants::AudioError process(const float* input, float* output, size_t numSamples) noexcept {
+    AudioError process(const float* input, float* output, size_t numSamples) noexcept {
         // Validate inputs first
         AUDIO_RETURN_IF_ERROR(AudioValidator::validateBuffer(input, numSamples));
         AUDIO_RETURN_IF_ERROR(AudioValidator::validateBuffer(output, numSamples));
@@ -77,14 +81,14 @@ public:
         std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
         if (lock.owns_lock()) {
             m_filter->process(input, output, numSamples);
-            return Nyth::Audio::Constants::AudioError::OK;
+            return AudioError::OK;
         } else {
             // If can't acquire lock, pass through unprocessed
             // This prevents audio dropouts in real-time context
             if (input != output) {
                 std::copy(input, input + numSamples, output);
             }
-            return Nyth::Audio::Constants::AudioError::RESOURCE_BUSY;
+            return AudioError::RESOURCE_BUSY;
         }
     }
 

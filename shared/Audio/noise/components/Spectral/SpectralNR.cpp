@@ -1,5 +1,5 @@
 #include "SpectralNR.hpp"
-#include "../../common/config/NoiseContants.hpp"
+#include "../../../common/config/NoiseConstants.hpp"
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>

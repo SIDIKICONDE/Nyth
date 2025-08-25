@@ -4,8 +4,8 @@
 #include <cmath>
 #include <memory>
 #include <vector>
-#include "../../common/dsp/BiquadFilter.hpp"
-#include "../../common/config/NoiseContants.hpp"
+#include "../../../common/dsp/BiquadFilter.hpp"
+#include "../../../common/config/NoiseConstants.hpp"
 
 namespace AudioNR {
 

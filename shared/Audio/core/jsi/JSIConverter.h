@@ -3,7 +3,7 @@
 #include <jsi/jsi.h>
 #include <memory>
 #include <vector>
-#include "../../common/config/AudioConfig.h"
+#include "../../common/config/AudioConfig.hpp"
 
 namespace facebook {
 namespace react {

@@ -39,7 +39,7 @@
 #include <jsi/jsi.h>
 
 // Includes des composants refactorisÃ©s
-#include "../common/config/AudioConfig.h"
+#include "../common/config/AudioConfig.hpp"
 #include "managers/AudioAnalysisManager.h"
 #include "managers/EqualizerManager.h"
 #include "managers/FilterManager.h"

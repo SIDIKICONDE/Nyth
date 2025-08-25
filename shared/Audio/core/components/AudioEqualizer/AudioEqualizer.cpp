@@ -1,6 +1,6 @@
 
 #include "AudioEqualizer.hpp"
-#include "EQPreset.hpp"
+#include "../EQBand/EQPreset.hpp"
 
 // Headers système C++ standard
 #include <algorithm>

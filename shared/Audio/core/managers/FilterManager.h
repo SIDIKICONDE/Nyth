@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../common/config/AudioConfig.h"
+#include "../../common/config/AudioConfig.hpp"
 #include "../../common/dsp/BiquadFilter.hpp"
 #include "../../common/jsi/JSICallbackManager.h"
 #include <atomic>

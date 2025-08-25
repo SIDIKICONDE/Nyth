@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../common/config/AudioConfig.h"
+#include "../../common/config/AudioConfig.hpp"
 #include "../components/AudioEqualizer/AudioEqualizer.hpp"
 #include "../../common/config/ErrorCodes.hpp"
 #include "../components/EQBand/EQPresetFactory.hpp"

@@ -1,7 +1,16 @@
 #pragma once
 
+#ifdef __cplusplus
+
 #include "ReactCommon/CallInvoker.h"
 #include <atomic>
+
+// Forward declaration to avoid dependency issues
+namespace facebook {
+namespace react {
+class CallInvoker;
+}
+}
 #include <condition_variable>
 #include <functional>
 #include "jsi/jsi.h"
@@ -59,7 +68,7 @@ public:
 
 class JSICallbackManager : public IJSICallbackManager {
 public:
-    explicit JSICallbackManager(std::shared_ptr<CallInvoker> jsInvoker);
+    explicit JSICallbackManager(std::shared_ptr<facebook::react::CallInvoker> jsInvoker);
     ~JSICallbackManager();
 
     // === Configuration du runtime ===
@@ -131,7 +140,7 @@ private:
     };
 
     // === Membres privés ===
-    std::shared_ptr<CallInvoker> jsInvoker_;
+    std::shared_ptr<facebook::react::CallInvoker> jsInvoker_;
     jsi::Runtime* runtime_ = nullptr;
     std::atomic<bool> runtimeValid_{false};
 
@@ -165,3 +174,5 @@ private:
 
 } // namespace react
 } // namespace facebook
+
+#endif // __cplusplus

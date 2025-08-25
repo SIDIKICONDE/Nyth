@@ -1,5 +1,5 @@
 #include "EQPresetFactory.hpp"
-#include "CoreConstants.hpp"
+#include "../constant/CoreConstants.hpp"
 #include <vector>
 
 namespace Nyth {

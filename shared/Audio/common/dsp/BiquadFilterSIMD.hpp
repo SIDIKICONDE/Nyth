@@ -9,6 +9,8 @@
 #include <new>
 #include <type_traits>
 
+#include "BiquadFilterOptimized.hpp" // Include the parallel filter
+
 // Platform detection and SIMD headers
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
 #define AUDIOFX_X86
@@ -136,40 +138,30 @@ public:
      */
     void processStereoAVX2(const float* inputL, const float* inputR, float* outputL, float* outputR,
                            size_t numSamples) {
-        const __m256 a0_vec = _mm256_set1_ps(static_cast<float>(m_a0));
-        const __m256 a1_vec = _mm256_set1_ps(static_cast<float>(m_a1));
-        const __m256 a2_vec = _mm256_set1_ps(static_cast<float>(m_a2));
-        const __m256 b1_vec = _mm256_set1_ps(static_cast<float>(m_b1));
-        const __m256 b2_vec = _mm256_set1_ps(static_cast<float>(m_b2));
 
-        size_t i = 0;
+        // Use a parallel processing approach for stereo channels
+        float a0_f[4] = { static_cast<float>(m_a0), static_cast<float>(m_a0), 0.0f, 0.0f };
+        float a1_f[4] = { static_cast<float>(m_a1), static_cast<float>(m_a1), 0.0f, 0.0f };
+        float a2_f[4] = { static_cast<float>(m_a2), static_cast<float>(m_a2), 0.0f, 0.0f };
+        float b1_f[4] = { static_cast<float>(m_b1), static_cast<float>(m_b1), 0.0f, 0.0f };
+        float b2_f[4] = { static_cast<float>(m_b2), static_cast<float>(m_b2), 0.0f, 0.0f };
+        
+        BiquadFilterNEONParallelOpt stereoFilter(a0_f, a1_f, a2_f, b1_f, b2_f);
+        
+        stereoFilter.m_y1[0] = static_cast<float>(m_y1);
+        stereoFilter.m_y1[1] = static_cast<float>(m_y1R);
+        stereoFilter.m_y2[0] = static_cast<float>(m_y2);
+        stereoFilter.m_y2[1] = static_cast<float>(m_y2R);
 
-        // Process 4 stereo pairs at a time (8 samples total)
-        for (; i + 3 < numSamples; i += 4) {
-            // Load 4 samples from each channel
-            __m128 xL = _mm_loadu_ps(&inputL[i]);
-            __m128 xR = _mm_loadu_ps(&inputR[i]);
+        const float* inputs[4] = { inputL, inputR, nullptr, nullptr };
+        float* outputs[4] = { outputL, outputR, nullptr, nullptr };
 
-            // Combine into 256-bit register for processing
-            __m256 x = _mm256_set_m128(xR, xL);
+        stereoFilter.process(inputs, outputs, numSamples);
 
-            // Apply filter
-            __m256 y = _mm256_mul_ps(a0_vec, x);
-
-            // Extract results
-            __m128 yL = _mm256_extractf128_ps(y, 0);
-            __m128 yR = _mm256_extractf128_ps(y, 1);
-
-            // Store results
-            _mm_storeu_ps(&outputL[i], yL);
-            _mm_storeu_ps(&outputR[i], yR);
-        }
-
-        // Process remaining samples
-        for (; i < numSamples; ++i) {
-            outputL[i] = processSample(inputL[i]);
-            outputR[i] = processSample(inputR[i]);
-        }
+        m_y1 = stereoFilter.m_y1[0];
+        m_y1R = stereoFilter.m_y1[1];
+        m_y2 = stereoFilter.m_y2[0];
+        m_y2R = stereoFilter.m_y2[1];
     }
 #endif // AUDIOFX_AVX2
 
@@ -236,32 +228,42 @@ public:
      */
     void processStereoNEON(const float* inputL, const float* inputR, float* outputL, float* outputR,
                            size_t numSamples) {
-        const float32x4_t a0_vec = vdupq_n_f32(static_cast<float>(m_a0));
-        const float32x4_t a1_vec = vdupq_n_f32(static_cast<float>(m_a1));
-        const float32x4_t a2_vec = vdupq_n_f32(static_cast<float>(m_a2));
+        // Load coefficients for L and R channels into a 4-lane vector
+        const float a0_f = static_cast<float>(m_a0);
+        const float a1_f = static_cast<float>(m_a1);
+        const float a2_f = static_cast<float>(m_a2);
+        const float b1_f = static_cast<float>(m_b1);
+        const float b2_f = static_cast<float>(m_b2);
 
-        size_t i = 0;
+        float32x2_t a0_vec = vdup_n_f32(a0_f);
+        float32x2_t a1_vec = vdup_n_f32(a1_f);
+        float32x2_t a2_vec = vdup_n_f32(a2_f);
+        float32x2_t b1_vec = vdup_n_f32(b1_f);
+        float32x2_t b2_vec = vdup_n_f32(b2_f);
 
-        // Process 4 samples per channel at a time
-        for (; i + 3 < numSamples; i += 4) {
-            // Load samples
-            float32x4_t xL = vld1q_f32(&inputL[i]);
-            float32x4_t xR = vld1q_f32(&inputR[i]);
+        // Load state for L and R channels
+        float32x2_t y1_vec = {static_cast<float>(m_y1), static_cast<float>(m_y1R)};
+        float32x2_t y2_vec = {static_cast<float>(m_y2), static_cast<float>(m_y2R)};
 
-            // Apply filter
-            float32x4_t yL = vmulq_f32(a0_vec, xL);
-            float32x4_t yR = vmulq_f32(a0_vec, xR);
+        for (size_t i = 0; i < numSamples; ++i) {
+            float32x2_t x_vec = {inputL[i], inputR[i]};
 
-            // Store results
-            vst1q_f32(&outputL[i], yL);
-            vst1q_f32(&outputR[i], yR);
+            // Process L and R channels in parallel
+            float32x2_t w_vec = vsub_f32(x_vec, vadd_f32(vmul_f32(b1_vec, y1_vec), vmul_f32(b2_vec, y2_vec)));
+            float32x2_t y_vec = vadd_f32(vmul_f32(a0_vec, w_vec), vadd_f32(vmul_f32(a1_vec, y1_vec), vmul_f32(a2_vec, y2_vec)));
+
+            outputL[i] = vget_lane_f32(y_vec, 0);
+            outputR[i] = vget_lane_f32(y_vec, 1);
+
+            y2_vec = y1_vec;
+            y1_vec = w_vec;
         }
 
-        // Process remaining
-        for (; i < numSamples; ++i) {
-            outputL[i] = processSample(inputL[i]);
-            outputR[i] = processSample(inputR[i]);
-        }
+        // Store final state
+        m_y1 = vget_lane_f32(y1_vec, 0);
+        m_y1R = vget_lane_f32(y1_vec, 1);
+        m_y2 = vget_lane_f32(y2_vec, 0);
+        m_y2R = vget_lane_f32(y2_vec, 1);
     }
 #endif // AUDIOFX_NEON
 

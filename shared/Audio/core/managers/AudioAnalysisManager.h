@@ -1,12 +1,15 @@
 #pragma once
 
-#include "../../common/config/AudioConfig.h"
-#include "../../common/jsi/JSICallbackManager.h"
+#include <cstddef>
+#include <cstdint>
 #include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <vector>
+
+#include "../../common/config/AudioConfig.hpp"
+#include "../../common/jsi/JSICallbackManager.h"
 
 namespace facebook {
 namespace react {

@@ -11,7 +11,11 @@
 #include <cstring>
 #include <string>
 
-#include "../../common/config/utilsConstants.hpp"
+#include "../../../common/config/utilsConstants.hpp"
+
+#if !defined(NYTH_SOURCE_LOCATION)
+    #define NYTH_SOURCE_LOCATION ""
+#endif
 
 // ============================================================================
 // COMPATIBILITÉ CROSS-PLATFORM POUR XCODE/CLANG/GCC

@@ -1,7 +1,9 @@
 #include "AudioAnalysisManager.h"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <numeric>
+#include <cstdint>
 
 namespace facebook {
 namespace react {
@@ -109,7 +111,8 @@ bool AudioAnalysisManager::setAnalysisConfig(int analysisIntervalMs, double sile
     }
 }
 
-bool AudioAnalysisManager::setFrequencyBands(const std::vector<double>& bands) {
+bool AudioAnalysisManager::setFrequencyBands(const std::vector<double>& bands)
+{
     std::lock_guard<std::mutex> lock(analysisMutex_);
 
     if (isAnalyzing_.load()) {
@@ -447,7 +450,7 @@ double AudioAnalysisManager::calculatePeak(const float* data, size_t frameCount)
 
     double peak = 0.0;
     for (size_t i = 0; i < frameCount; ++i) {
-        peak = std::max(peak, std::abs(data[i]));
+        peak = std::max<double>(peak, std::abs(data[i]));
     }
 
     return peak;
@@ -507,7 +510,8 @@ std::vector<double> AudioAnalysisManager::performFFT(const float* data, size_t f
     return fftData;
 }
 
-std::vector<double> AudioAnalysisManager::calculateBandMagnitudes(const std::vector<double>& fftData) const {
+std::vector<double> AudioAnalysisManager::calculateBandMagnitudes(const std::vector<double>& fftData) const
+{
     std::vector<double> bandMagnitudes(frequencyBands_.size(), 0.0);
 
     for (size_t i = 0; i < frequencyBands_.size(); ++i) {
@@ -522,7 +526,8 @@ std::vector<double> AudioAnalysisManager::calculateBandMagnitudes(const std::vec
     return bandMagnitudes;
 }
 
-double AudioAnalysisManager::calculateSpectralCentroid(const std::vector<double>& magnitudes) const {
+double AudioAnalysisManager::calculateSpectralCentroid(const std::vector<double>& magnitudes) const
+{
     if (magnitudes.empty()) {
         return 0.0;
     }
@@ -540,7 +545,8 @@ double AudioAnalysisManager::calculateSpectralCentroid(const std::vector<double>
 }
 
 double AudioAnalysisManager::calculateSpectralRolloff(const std::vector<double>& magnitudes,
-                                                      double rolloffPercent) const {
+                                                      double rolloffPercent) const
+{
     if (magnitudes.empty()) {
         return 0.0;
     }
@@ -560,7 +566,8 @@ double AudioAnalysisManager::calculateSpectralRolloff(const std::vector<double>&
 }
 
 double AudioAnalysisManager::calculateSpectralFlux(const std::vector<double>& currentMagnitudes,
-                                                   const std::vector<double>& previousMagnitudes) const {
+                                                   const std::vector<double>& previousMagnitudes) const
+{
     if (currentMagnitudes.size() != previousMagnitudes.size()) {
         return 0.0;
     }

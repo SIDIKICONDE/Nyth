@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-#include "../../common/utils/MathUtils.hpp"
+#include "../../../common/utils/MathUtils.hpp"
 
 namespace AudioNR {
 

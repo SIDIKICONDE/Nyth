@@ -2,17 +2,21 @@
 #ifndef NYTH_AUDIO_FX_BIQUADFILTER_SAFE_HPP
 #define BIQUADFILTER_SAFE_HPP
 
-#include "../config/ErrorCodes.hpp"
+#include "../config/ErrorCode.hpp"
 #include "BiquadFilter.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <new>
 
-
 namespace Nyth {
 namespace Audio {
 namespace FX {
+
+// Using declarations pour faciliter l'accès aux types d'erreur
+using Nyth::Audio::Constants::AudioError;
+using Nyth::Audio::Constants::AudioValidator;
+using Nyth::Audio::Constants::AudioResult;
 
 /**
  * @brief Safe version of BiquadFilter with complete bounds checking

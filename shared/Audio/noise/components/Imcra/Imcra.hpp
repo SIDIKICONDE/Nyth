@@ -1,11 +1,11 @@
 #pragma once
 
 #ifdef __cplusplus
-#include <cmath>
+
 #include <cstdint>
 #include <vector>
-#include "../../common/utils/MathUtils.hpp"
-#include "../../common/config/NoiseContants.hpp"
+
+
 
 namespace AudioNR {
 

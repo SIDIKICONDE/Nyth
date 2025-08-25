@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../capture/components/AudioCapture.hpp"
-#include "../../common/config/AudioConfig.h"
+
+#include "../../common/config/AudioConfig.hpp"
 #include "../../common/jsi/JSICallbackManager.h"
 #include <atomic>
 #include <functional>

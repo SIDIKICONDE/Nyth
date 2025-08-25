@@ -15,9 +15,9 @@
 
 
 // Project headers
-#include "CoreConstants.hpp"
-#include "EQBand.hpp"
-#include "EQPreset.hpp"
+#include "../constant/CoreConstants.hpp"
+#include "../EQBand/EQBand.hpp"
+#include "../EQBand/EQPreset.hpp"
 
 namespace Nyth {
 namespace Audio {
@@ -37,13 +37,13 @@ public:
   template <typename T = float,
             typename = std::enable_if_t<std::is_floating_point<T>::value>>
   void process(const std::vector<T> &input, std::vector<T> &output,
-               const std::string &location = NYTH_SOURCE_LOCATION);
+               [[maybe_unused]] const std::string &location = NYTH_SOURCE_LOCATION);
 
   template <typename T = float,
             typename = std::enable_if_t<std::is_floating_point<T>::value>>
   void processStereo(const std::vector<T> &inputL, const std::vector<T> &inputR,
                      std::vector<T> &outputL, std::vector<T> &outputR,
-                     const std::string &location = NYTH_SOURCE_LOCATION);
+                     [[maybe_unused]] const std::string &location = NYTH_SOURCE_LOCATION);
 
   // Mono processing method for single channel audio
   void processMono(const float* input, float* output, size_t numSamples);
@@ -109,7 +109,7 @@ public:
             typename = std::enable_if_t<std::is_floating_point<T>::value>>
   bool
   validateAudioBuffer(const std::vector<T> &buffer,
-                      const std::string &location = NYTH_SOURCE_LOCATION) const;
+                      [[maybe_unused]] const std::string &location = NYTH_SOURCE_LOCATION) const;
 
   // Filter operations
     std::vector<std::reference_wrapper<const EQBand>> getActiveBands() const;
