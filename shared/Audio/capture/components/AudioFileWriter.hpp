@@ -24,7 +24,15 @@ namespace Audio {
 enum class AudioFileFormat {
     WAV,     // Format WAV standard
     RAW_PCM, // PCM brut sans en-tête
-    // Futurs formats possibles : MP3, AAC, OGG, etc.
+#ifdef __APPLE__
+#if TARGET_OS_IOS
+    ALAC,    // Apple Lossless Audio Codec (.m4a)
+    CAF,     // Core Audio Format (.caf) - pas de limite 4GB
+    AIFF,    // Audio Interchange File Format (.aiff)
+    M4A_AAC, // AAC dans conteneur M4A (.m4a)
+#endif
+#endif
+    // Futurs formats possibles : MP3, OGG, etc.
 };
 
 // Configuration pour l'écriture de fichier audio
