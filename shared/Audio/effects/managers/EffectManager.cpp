@@ -478,7 +478,7 @@ EffectType EffectManager::getEffectType(int effectId) const {
         } else if (dynamic_cast<Nyth::Audio::FX::DelayEffect*>(it->second.get())) {
             return EffectType::DELAY;
         } else {
-            return EffectType::REVERB; // Par défaut pour les autres effets
+            return EffectType::UNKNOWN; // Type non déterminé
         }
     }
 
@@ -497,7 +497,7 @@ EffectState EffectManager::getEffectState(int effectId) const {
         }
     }
 
-    return EffectState::UNKNOWN;
+    return EffectState::UNINITIALIZED;
 }
 
 uint32_t EffectManager::getEffectLatency(int effectId) const {
@@ -765,18 +765,7 @@ bool EffectManager::setDelayParameters(int effectId, float delayMs, float feedba
     return true;
 }
 
-std::string EffectManager::effectTypeToString(EffectType type) const {
-    switch (type) {
-        case EffectType::COMPRESSOR:
-            return "compressor";
-        case EffectType::DELAY:
-            return "delay";
-        case EffectType::REVERB:
-            return "reverb";
-            default:
-        return "unknown";
-    }
-}
+// (duplicate removed) effectTypeToString is already defined earlier in this file
 
 // === Implémentations SIMD ===
 
@@ -811,18 +800,18 @@ bool EffectManager::processAudio_SIMD(const float* input, float* output, size_t 
         // Utiliser SIMD si disponible et taille suffisante
         if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
             // Pré-traitement SIMD
-            if (masterLevels_.input != 1.0f) {
+            if (masterInputLevel_.load() != 1.0f) {
                 AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
-                    const_cast<float*>(input), frameCount * channels, masterLevels_.input);
+                    const_cast<float*>(input), frameCount * channels, masterInputLevel_.load());
             }
 
             // Traitement de la chaîne d'effets
             effectChain_.processMono_SIMD(input, output, frameCount * channels);
 
             // Post-traitement SIMD
-            if (masterLevels_.output != 1.0f) {
+            if (masterOutputLevel_.load() != 1.0f) {
                 AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
-                    output, frameCount * channels, masterLevels_.output);
+                    output, frameCount * channels, masterOutputLevel_.load());
             }
         } else {
             // Version standard
@@ -882,22 +871,22 @@ bool EffectManager::processAudioStereo_SIMD(const float* inputL, const float* in
         // Utiliser SIMD si disponible et taille suffisante
         if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
             // Pré-traitement SIMD
-            if (masterLevels_.input != 1.0f) {
+            if (masterInputLevel_.load() != 1.0f) {
                 AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
-                    const_cast<float*>(inputL), frameCount, masterLevels_.input);
+                    const_cast<float*>(inputL), frameCount, masterInputLevel_.load());
                 AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
-                    const_cast<float*>(inputR), frameCount, masterLevels_.input);
+                    const_cast<float*>(inputR), frameCount, masterInputLevel_.load());
             }
 
             // Traitement de la chaîne d'effets stéréo SIMD
             effectChain_.processStereo_SIMD(inputL, inputR, outputL, outputR, frameCount);
 
             // Post-traitement SIMD
-            if (masterLevels_.output != 1.0f) {
+            if (masterOutputLevel_.load() != 1.0f) {
                 AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
-                    outputL, frameCount, masterLevels_.output);
+                    outputL, frameCount, masterOutputLevel_.load());
                 AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
-                    outputR, frameCount, masterLevels_.output);
+                    outputR, frameCount, masterOutputLevel_.load());
             }
         } else {
             // Version standard

@@ -1,5 +1,91 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
+namespace AudioNR {
+namespace MathUtils {
+
+class SIMDIntegration {
+public:
+    static bool isSIMDMathAvailable();
+    static std::string getSIMDMathInfo();
+    static void enableSIMDAcceleration(bool enable);
+    static bool isSIMDAccelerationEnabled();
+
+    static float expint_with_simd(float x);
+    static void expint_vectorized(const float* x, float* result, size_t count);
+    static void runMathUtilsSIMDBenchmark(size_t count);
+};
+
+class MathUtilsSIMDExtension {
+public:
+    static float calculateMeanSIMD(const float* data, size_t count);
+    static float calculateRMSSIMD(const float* data, size_t count);
+    static float calculatePeakSIMD(const float* data, size_t count);
+
+    static void normalizeAudioSIMD(float* data, size_t count, float targetRMS);
+    static void convertFloatToInt16SIMD(const float* input, int16_t* output, size_t count);
+    static void convertInt16ToFloatSIMD(const int16_t* input, float* output, size_t count);
+    static void applyGainSIMD(float* data, size_t count, float gain);
+    static void mixAudioSIMD(const float* input1, const float* input2, float* output,
+                             size_t count, float gain1, float gain2);
+};
+
+class SIMDHelper {
+public:
+    static void replaceScalarWithSIMD(float* data, size_t count,
+                                      std::function<void(float*, size_t)> scalarFunc,
+                                      std::function<void(float*, size_t)> simdFunc);
+
+    static void compareScalarSIMD(std::function<void(float*, size_t)> scalarFunc,
+                                  std::function<void(float*, size_t)> simdFunc,
+                                  const std::string& functionName,
+                                  size_t count);
+
+    static void suggestOptimizations(const std::string& functionName, size_t count);
+};
+
+} // namespace MathUtils
+
+namespace Audio {
+namespace SIMD {
+
+class AudioSIMDWrapper {
+public:
+    static void processAudioBuffer(float* buffer, size_t count, float gain, float pan);
+    static void applyAudioEffect(float* buffer, size_t count, const std::string& effectType, float intensity);
+    static void mixAudioBuffers(const float* input1, const float* input2, float* output, size_t count,
+                                float gain1, float gain2);
+    static float analyzeRMS(const float* buffer, size_t count);
+    static float analyzePeak(const float* buffer, size_t count);
+    static float analyzeMean(const float* buffer, size_t count);
+    static void convertFormat(const void* input, void* output, size_t count,
+                              const std::string& fromFormat, const std::string& toFormat);
+};
+
+class SIMDAudioEffectManager {
+public:
+    enum EffectType { LOWPASS_FILTER, HIGHPASS_FILTER, DISTORTION, REVERB, DELAY };
+
+    void addEffect(EffectType type, float parameter);
+    void removeEffect(size_t index);
+    void processAudio(float* buffer, size_t count, float sampleRate);
+    size_t getEffectCount() const;
+    std::string getEffectInfo(size_t index) const;
+};
+
+} // namespace SIMD
+} // namespace Audio
+
+} // namespace AudioNR
+
+#pragma once
+
 #ifdef __cplusplus
 #include "SIMDCore.hpp"
 #include "SIMDMathFunctions.hpp"

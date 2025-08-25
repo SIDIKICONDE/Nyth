@@ -18,13 +18,13 @@ Nyth::Audio::EffectsConfig EffectsJSIConverter::effectsConfigFromJS(jsi::Runtime
     }
 
     if (hasProperty(rt, jsConfig, "inputLevel")) {
-        config.inputLevel =
-            static_cast<float>(getNumberProperty(rt, jsConfig, "inputLevel", Nyth::Audio::DEFAULT_INPUT_LEVEL));
+        config.inputLevel = static_cast<float>(
+            getNumberProperty(rt, jsConfig, "inputLevel", Nyth::Audio::EffectsConfig::DEFAULT_INPUT_LEVEL));
     }
 
     if (hasProperty(rt, jsConfig, "outputLevel")) {
-        config.outputLevel =
-            static_cast<float>(getNumberProperty(rt, jsConfig, "outputLevel", Nyth::Audio::DEFAULT_OUTPUT_LEVEL));
+        config.outputLevel = static_cast<float>(
+            getNumberProperty(rt, jsConfig, "outputLevel", Nyth::Audio::EffectsConfig::DEFAULT_OUTPUT_LEVEL));
     }
 
     if (hasProperty(rt, jsConfig, "bypassAll")) {
@@ -51,28 +51,28 @@ Nyth::Audio::CompressorConfig EffectsJSIConverter::compressorConfigFromJS(jsi::R
     Nyth::Audio::CompressorConfig config;
 
     if (hasProperty(rt, jsConfig, "thresholdDb")) {
-        config.thresholdDb = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "thresholdDb", Nyth::Audio::DEFAULT_THRESHOLD_DB));
+        config.thresholdDb = static_cast<float>(getNumberProperty(
+            rt, jsConfig, "thresholdDb", Nyth::Audio::Effects::Compressor::DEFAULT_THRESHOLD_DB));
     }
 
     if (hasProperty(rt, jsConfig, "ratio")) {
         config.ratio = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "ratio", Nyth::Audio::DEFAULT_RATIO));
+            getNumberProperty(rt, jsConfig, "ratio", Nyth::Audio::Effects::Compressor::DEFAULT_RATIO));
     }
 
     if (hasProperty(rt, jsConfig, "attackMs")) {
         config.attackMs = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "attackMs", Nyth::Audio::DEFAULT_ATTACK_MS));
+            getNumberProperty(rt, jsConfig, "attackMs", Nyth::Audio::Effects::Compressor::DEFAULT_ATTACK_MS));
     }
 
     if (hasProperty(rt, jsConfig, "releaseMs")) {
         config.releaseMs = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "releaseMs", Nyth::Audio::DEFAULT_RELEASE_MS));
+            getNumberProperty(rt, jsConfig, "releaseMs", Nyth::Audio::Effects::Compressor::DEFAULT_RELEASE_MS));
     }
 
     if (hasProperty(rt, jsConfig, "makeupDb")) {
         config.makeupDb = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "makeupDb", Nyth::Audio::DEFAULT_MAKEUP_DB));
+            getNumberProperty(rt, jsConfig, "makeupDb", Nyth::Audio::Effects::Compressor::DEFAULT_MAKEUP_DB));
     }
 
     if (hasProperty(rt, jsConfig, "enabled")) {
@@ -100,17 +100,17 @@ Nyth::Audio::DelayConfig EffectsJSIConverter::delayConfigFromJS(jsi::Runtime& rt
 
     if (hasProperty(rt, jsConfig, "delayMs")) {
         config.delayMs = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "delayMs", Nyth::Audio::DEFAULT_DELAY_MS));
+            getNumberProperty(rt, jsConfig, "delayMs", Nyth::Audio::Effects::Delay::DEFAULT_DELAY_MS));
     }
 
     if (hasProperty(rt, jsConfig, "feedback")) {
         config.feedback = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "feedback", Nyth::Audio::DEFAULT_FEEDBACK));
+            getNumberProperty(rt, jsConfig, "feedback", Nyth::Audio::Effects::Delay::DEFAULT_FEEDBACK));
     }
 
     if (hasProperty(rt, jsConfig, "mix")) {
-        config.mix =
-            static_cast<float>(getNumberProperty(rt, jsConfig, "mix", Nyth::Audio::DEFAULT_MIX));
+        config.mix = static_cast<float>(
+            getNumberProperty(rt, jsConfig, "mix", Nyth::Audio::Effects::Delay::DEFAULT_MIX));
     }
 
     if (hasProperty(rt, jsConfig, "enabled")) {
@@ -136,22 +136,22 @@ Nyth::Audio::ReverbConfig EffectsJSIConverter::reverbConfigFromJS(jsi::Runtime& 
 
     if (hasProperty(rt, jsConfig, "roomSize")) {
         config.roomSize = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "roomSize", Nyth::Audio::DEFAULT_ROOM_SIZE));
+            getNumberProperty(rt, jsConfig, "roomSize", Nyth::Audio::Effects::Reverb::DEFAULT_ROOM_SIZE));
     }
 
     if (hasProperty(rt, jsConfig, "damping")) {
         config.damping = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "damping", Nyth::Audio::DEFAULT_DAMPING));
+            getNumberProperty(rt, jsConfig, "damping", Nyth::Audio::Effects::Reverb::DEFAULT_DAMPING));
     }
 
     if (hasProperty(rt, jsConfig, "wetLevel")) {
         config.wetLevel = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "wetLevel", Nyth::Audio::DEFAULT_WET_LEVEL));
+            getNumberProperty(rt, jsConfig, "wetLevel", Nyth::Audio::Effects::Reverb::DEFAULT_WET_LEVEL));
     }
 
     if (hasProperty(rt, jsConfig, "dryLevel")) {
         config.dryLevel = static_cast<float>(
-            getNumberProperty(rt, jsConfig, "dryLevel", Nyth::Audio::DEFAULT_DRY_LEVEL));
+            getNumberProperty(rt, jsConfig, "dryLevel", Nyth::Audio::Effects::Reverb::DEFAULT_DRY_LEVEL));
     }
 
     if (hasProperty(rt, jsConfig, "enabled")) {
