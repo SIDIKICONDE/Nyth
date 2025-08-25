@@ -1,56 +1,69 @@
-# Makefile pour compiler et exécuter les tests AudioEqualizer
+# Makefile pour compiler la démonstration AudioEqualizer
 CXX = g++
-CXXFLAGS = -std=c++20 -O2 -Wall -Wextra -pedantic
-INCLUDES = -I./shared -I./shared/Audio/core -I./shared/compat
+CXXFLAGS = -std=c++20 -O2 -Wall -Wextra -pedantic -pthread
+INCLUDES = -I./shared -I./shared/Audio/core -I./shared/Audio/core/components -I./shared/Audio/common -I./shared/Audio/common/dsp -I./shared/Audio/utils
 LDFLAGS =
 
-# Fichiers sources
-SOURCES = test_AudioEqualizer.cpp
+# Programme principal simple (pas de tests pour le moment)
+SOURCES = main.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
-# Fichiers de l'AudioEqualizer à compiler avec
-EQ_SOURCES = shared/Audio/core/AudioEqualizer.cpp shared/Audio/core/BiquadFilter.cpp
-EQ_OBJECTS = $(EQ_SOURCES:.cpp=.o)
+# Fichiers sources du moteur audio
+AUDIO_SOURCES = shared/Audio/core/components/AudioEqualizer/AudioEqualizer.cpp \
+                shared/Audio/common/dsp/BiquadFilter.cpp
+
+AUDIO_OBJECTS = $(AUDIO_SOURCES:.cpp=.o)
 
 # Cible principale
-TARGET = test_audio_equalizer
+TARGET = audio_demo
 
 # Règle par défaut
 all: $(TARGET)
 	@echo "✅ Compilation réussie. Exécutez avec: make run"
 
 # Compilation de l'exécutable
-$(TARGET): $(OBJECTS) $(EQ_OBJECTS)
-	$(CXX) $(CXXFLAGS) $(OBJECTS) $(EQ_OBJECTS) $(LDFLAGS) -o $(TARGET)
+$(TARGET): $(OBJECTS) $(AUDIO_OBJECTS)
+	$(CXX) $(CXXFLAGS) $(OBJECTS) $(AUDIO_OBJECTS) $(LDFLAGS) -o $(TARGET)
 
-# Compilation des objets de test
+# Compilation de l'objet principal
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-# Compilation des objets AudioEqualizer
+# Compilation des objets du moteur audio
 shared/Audio/core/%.o: shared/Audio/core/%.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-# Exécution des tests
+shared/Audio/common/%.o: shared/Audio/common/%.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+shared/Audio/common/dsp/%.o: shared/Audio/common/dsp/%.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+shared/Audio/utils/%.o: shared/Audio/utils/%.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# Exécution du programme compilé
 run: $(TARGET)
 	./$(TARGET)
 
 # Nettoyage
 clean:
-	rm -f $(OBJECTS) $(EQ_OBJECTS) $(TARGET)
+	rm -f $(OBJECTS) $(AUDIO_OBJECTS) $(TARGET)
 	@echo "🧹 Nettoyage terminé"
 
-# Test rapide
-test: clean all run
+# Test rapide (commenté - peut être activé plus tard si nécessaire)
+# test: clean all run
 
 # Aide
 help:
 	@echo "Commandes disponibles:"
-	@echo "  make all      - Compile le projet"
-	@echo "  make run      - Exécute les tests"
+	@echo "  make all      - Compile la démonstration AudioEqualizer"
+	@echo "  make run      - Exécute la démonstration"
 	@echo "  make clean    - Nettoie les fichiers générés"
-	@echo "  make test     - Nettoie, compile et exécute"
 	@echo "  make help     - Affiche cette aide"
+	@echo ""
+	@echo "🎵 Cette configuration compile une démonstration simple"
+	@echo "   de l'AudioEqualizer sans les tests unitaires."
 
 # ============================================
 # 🔍 VÉRIFICATIONS DE NAMESPACES (CI/CD)
@@ -112,4 +125,4 @@ namespaces: verify-namespaces
 ns: verify-namespaces
 check-ns: verify-namespaces
 
-.PHONY: all run clean test help verify-namespaces test-namespaces clean-namespaces help-namespaces status-namespaces namespaces ns check-ns
+.PHONY: all run clean help verify-namespaces test-namespaces clean-namespaces help-namespaces status-namespaces namespaces ns check-ns

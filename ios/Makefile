@@ -1,7 +1,7 @@
 # Makefile pour la gestion des modules Shared
 # Utilise les scripts Ruby pour ajouter/supprimer automatiquement tous les fichiers shared/
 
-.PHONY: help add-shared remove-shared demo backup restore clean list-backups maintenance clean-cache check-project backup-project update-deps monitor maintenance-all maintenance-install install-deps clean-deps link-deps install-node-modules clean-node-modules setup-react-native stop-ports kill-processes clean-simulator reset-simulator start-simulator troubleshoot fresh-install test test-watch test-coverage archive export-dev export-prod devices logs clear-logs version bump-version assets-clean code-sign-check provisioning
+.PHONY: help add-shared remove-shared demo backup restore clean list-backups maintenance clean-cache check-project backup-project update-deps monitor maintenance-all maintenance-install install-deps clean-deps link-deps install-node-modules clean-node-modules setup-react-native stop-ports kill-processes clean-simulator reset-simulator start-simulator troubleshoot fresh-install test test-watch test-coverage archive export-dev export-prod devices logs clear-logs version bump-version assets-clean code-sign-check provisioning open-project fix-react-imports rebuild-xcode-cache fix-build-issues
 
 # Couleurs pour les messages
 RED=\033[0;31m
@@ -74,6 +74,11 @@ help:
 	@echo "  $(GREEN)make assets-clean$(NC)      - Nettoyer le cache des assets"
 	@echo "  $(GREEN)make clear-logs$(NC)        - Effacer tous les logs"
 	@echo ""
+	@echo "$(PURPLE)🔧 COMPILATION:$(NC)"
+	@echo "  $(GREEN)make fix-react-imports$(NC) - Corriger les imports React"
+	@echo "  $(GREEN)make rebuild-xcode-cache$(NC) - Rebuild cache Xcode"
+	@echo "  $(GREEN)make fix-build-issues$(NC)   - Fix complet des problèmes de build"
+	@echo ""
 	@echo "$(PURPLE)🧪 TESTS & QUALITÉ:$(NC)"
 	@echo "  $(GREEN)make test$(NC)              - Exécuter tous les tests"
 	@echo "  $(GREEN)make test-watch$(NC)        - Tests en mode watch"
@@ -91,6 +96,7 @@ help:
 	@echo "  $(GREEN)make logs$(NC)              - Afficher les logs en temps réel"
 	@echo "  $(GREEN)make version$(NC)           - Afficher la version actuelle"
 	@echo "  $(GREEN)make bump-version$(NC)      - Incrémenter la version"
+	@echo "  $(GREEN)make open-project$(NC)      - Ouvrir le projet dans Xcode"
 	@echo ""
 	@echo "$(CYAN)Prérequis:$(NC)"
 	@echo "  - Ruby >= 2.0"
@@ -650,6 +656,72 @@ fresh-start:
 	@echo "   ✅ Préservés et nettoyés"
 	@echo "   🚀 Prêt à être utilisé"
 
+# === PROBLÈMES DE COMPILATION ===
+
+# Corriger les imports React dans les fichiers Swift/Objective-C
+fix-react-imports:
+	@echo "$(CYAN)🔧 CORRECTION DES IMPORTS REACT$(NC)"
+	@echo ""
+	@echo "$(BLUE)🔍 Recherche des fichiers Swift/Objective-C:$(NC)"
+	@find . -name "*.swift" -o -name "*.m" -o -name "*.mm" | head -10
+	@echo ""
+	@echo "$(YELLOW)⚠️  Problèmes courants d'imports React:$(NC)"
+	@echo "   - 'import React' non trouvé"
+	@echo "   - Headers React manquants"
+	@echo "   - Chemins d'inclusion incorrects"
+	@echo ""
+	@echo "$(CYAN)💡 Solutions recommandées:$(NC)"
+	@echo "   1. $(GREEN)make rebuild-xcode-cache$(NC) - Rebuild cache"
+	@echo "   2. $(GREEN)make fix-build-issues$(NC) - Fix complet"
+	@echo "   3. $(GREEN)make clean-deps && make install-deps$(NC) - Reinstall"
+
+# Rebuild du cache Xcode
+rebuild-xcode-cache:
+	@echo "$(CYAN)🔄 RECONSTRUCTION CACHE XCODE$(NC)"
+	@echo ""
+	@echo "$(YELLOW)⚠️  IMPORTANT:$(NC)"
+	@echo "   - Supprime le cache dérivé"
+	@echo "   - Force la recompilation"
+	@echo "   - Peut prendre du temps"
+	@echo ""
+	@read -p "Voulez-vous continuer ? [y/N] " confirm && [ "$$confirm" = "y" ] || { echo "$(RED)❌ Rebuild annulé$(NC)"; exit 1; }
+	@echo ""
+	@echo "$(GREEN)▶️  Arrêt de Xcode...$(NC)"
+	@pkill -f "Xcode" 2>/dev/null && echo "$(GREEN)✅ Xcode arrêté$(NC)" || echo "$(BLUE)ℹ️  Xcode déjà arrêté$(NC)"
+	@echo ""
+	@echo "$(GREEN)▶️  Suppression du cache dérivé...$(NC)"
+	@rm -rf ~/Library/Developer/Xcode/DerivedData/* 2>/dev/null && echo "$(GREEN)✅ Cache dérivé supprimé$(NC)" || echo "$(RED)❌ Erreur suppression cache$(NC)"
+	@echo ""
+	@echo "$(GREEN)▶️  Suppression du cache des appareils...$(NC)"
+	@rm -rf ~/Library/Developer/CoreSimulator/Caches/* 2>/dev/null && echo "$(GREEN)✅ Cache simulateur supprimé$(NC)" || echo "$(BLUE)ℹ️  Aucun cache simulateur$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ Cache Xcode reconstruit$(NC)"
+	@echo ""
+	@echo "$(CYAN)💡 Prochaines étapes:$(NC)"
+	@echo "   1. Ouvrir le workspace: $(GREEN)make xcode$(NC)"
+	@echo "   2. Product > Clean Build Folder (Maj+Cmd+K)"
+	@echo "   3. Recompiler (Cmd+B)"
+
+# Fix complet des problèmes de build
+fix-build-issues: kill-processes clean-cache rebuild-xcode-cache
+	@echo ""
+	@echo "$(PURPLE)🔧 FIX COMPLET DES PROBLÈMES DE BUILD$(NC)"
+	@echo ""
+	@echo "$(CYAN)📋 Actions effectuées:$(NC)"
+	@echo "   ✅ Processus React tués"
+	@echo "   ✅ Cache Metro nettoyé"
+	@echo "   ✅ Cache Xcode reconstruit"
+	@echo ""
+	@echo "$(GREEN)🎉 Prêt pour une nouvelle compilation !$(NC)"
+	@echo ""
+	@echo "$(YELLOW)🚨 SI LES ERREURS PERSISTENT:$(NC)"
+	@echo "   1. $(GREEN)make clean-deps$(NC) - Nettoyer dépendances"
+	@echo "   2. $(GREEN)make install-deps$(NC) - Réinstaller"
+	@echo "   3. $(GREEN)make link-deps$(NC) - Relier natives"
+	@echo ""
+	@echo "$(CYAN)💡 Commande complète:$(NC)"
+	@echo "   $(GREEN)make fresh-install$(NC) - Reset complet"
+
 # === TESTS & QUALITÉ ===
 
 # Exécuter tous les tests
@@ -875,6 +947,36 @@ bump-version:
 		exit 1; \
 	fi
 
+# Ouvrir le projet dans Xcode
+open-project:
+	@echo "$(CYAN)📱 OUVERTURE DU PROJET XCODE$(NC)"
+	@echo ""
+	@echo "$(BLUE)🔍 Recherche du workspace ou projet:$(NC)"
+	@if [ -f "Nyth.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist" ]; then \
+		echo "$(GREEN)✅ Workspace trouvé: Nyth.xcworkspace$(NC)"; \
+		echo ""; \
+		echo "$(GREEN)▶️  Ouverture du workspace...$(NC)"; \
+		open Nyth.xcworkspace; \
+		echo ""; \
+		echo "$(GREEN)✅ Workspace ouvert dans Xcode$(NC)"; \
+	elif [ -f "Nyth.xcodeproj/project.pbxproj" ]; then \
+		echo "$(GREEN)✅ Projet trouvé: Nyth.xcodeproj$(NC)"; \
+		echo ""; \
+		echo "$(GREEN)▶️  Ouverture du projet...$(NC)"; \
+		open Nyth.xcodeproj; \
+		echo ""; \
+		echo "$(GREEN)✅ Projet ouvert dans Xcode$(NC)"; \
+	else \
+		echo "$(RED)❌ Aucun workspace ou projet trouvé$(NC)"; \
+		echo "   Vérifiez que vous êtes dans le bon répertoire"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "$(CYAN)💡 Prochaines étapes:$(NC)"
+	@echo "   1. Attendez que Xcode charge complètement"
+	@echo "   2. Sélectionnez un simulateur dans la barre d'outils"
+	@echo "   3. Appuyez sur Cmd+R pour compiler et exécuter"
+
 # Raccourcis de dépannage
 fix-issues: troubleshoot
 reset-all:
@@ -894,6 +996,14 @@ build-prod: archive export-prod
 dev-setup: clean-cache install-deps link-deps start-simulator
 dev-logs: logs
 dev-clean: assets-clean clear-logs clean-cache
+
+# Raccourci pour ouvrir le projet
+xcode: open-project
+
+# Raccourcis de compilation
+fix-build: fix-build-issues
+rebuild-cache: rebuild-xcode-cache
+fix-imports: fix-react-imports
 
 # Raccourcis de version
 show-version: version
