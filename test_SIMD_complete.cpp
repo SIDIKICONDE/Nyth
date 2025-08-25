@@ -5,7 +5,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib> // pour rand()
-#include "shared/Audio/capture/components/AudioCaptureSIMD.hpp"
+#include "shared/Audio/common/SIMD/SIMDIntegration.hpp"
 
 // using namespace Nyth::Audio::SIMD;
 
@@ -22,7 +22,7 @@ void testBasicSIMDFunctions() {
     }
 
     // Test processFloat32
-    Nyth::Audio::SIMD::processFloat32(input.data(), output.data(), sampleCount, 2.0f);
+    AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(output.data(), sampleCount, 2.0f);
     std::cout << "processFloat32 avec gain 2.0: OK\n";
 
     // Test mixFloat32
@@ -31,24 +31,24 @@ void testBasicSIMDFunctions() {
         input2[i] = cos(2.0f * M_PI * i / sampleCount) * 0.3f;
     }
 
-    Nyth::Audio::SIMD::mixFloat32(input.data(), input2.data(), output.data(), sampleCount, 0.8f, 0.6f);
+    AudioNR::MathUtils::MathUtilsSIMDExtension::mixAudioSIMD(input.data(), input2.data(), output.data(), sampleCount, 0.8f, 0.6f);
     std::cout << "mixFloat32: OK\n";
 
     // Test calculateRMS
-    float rms = Nyth::Audio::SIMD::calculateRMS(input.data(), sampleCount);
+    float rms = AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(input.data(), sampleCount);
     std::cout << "calculateRMS: " << std::fixed << std::setprecision(4) << rms << "\n";
 
     // Test calculatePeak
-    float peak = Nyth::Audio::SIMD::calculatePeak(input.data(), sampleCount);
+    float peak = AudioNR::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(input.data(), sampleCount);
     std::cout << "calculatePeak: " << std::fixed << std::setprecision(4) << peak << "\n";
 
     // Test applyGain
-    Nyth::Audio::SIMD::applyGain(output.data(), sampleCount, 1.5f);
+    AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(output.data(), sampleCount, 1.5f);
     std::cout << "applyGain: OK\n";
 
-    // Test applyGainRamp
-    Nyth::Audio::SIMD::applyGainRamp(output.data(), sampleCount, 0.5f, 2.0f);
-    std::cout << "applyGainRamp: OK\n";
+    // Test applyGainRamp - Pas de remplacement direct, on laisse la version scalaire pour le moment
+    // Nyth::Audio::SIMD::applyGainRamp(output.data(), sampleCount, 0.5f, 2.0f);
+    // std::cout << "applyGainRamp: OK\n";
 }
 
 void testAudioEffects() {
@@ -63,54 +63,54 @@ void testAudioEffects() {
     }
 
     // Test du filtre passe-bas
-    Nyth::Audio::SIMD::applyLowPassFilter(data.data(), sampleCount, 1000.0f, 44100.0f);
+    AudioNR::SIMD::SIMDMathFunctions::apply_lowpass_filter(data.data(), sampleCount, 1000.0f, 44100.0f);
     std::cout << "applyLowPassFilter: OK\n";
 
     // Test de l'égaliseur 3 bandes
-    Nyth::Audio::SIMD::applyThreeBandEQ(data.data(), sampleCount, 1.2f, 0.8f, 1.5f);
-    std::cout << "applyThreeBandEQ: OK\n";
+    // Nyth::Audio::SIMD::applyThreeBandEQ(data.data(), sampleCount, 1.2f, 0.8f, 1.5f);
+    // std::cout << "applyThreeBandEQ: OK\n";
 
     // Test du compresseur
-    Nyth::Audio::SIMD::applyCompressor(data.data(), sampleCount, 0.7f, 4.0f, 0.01f, 0.1f);
-    std::cout << "applyCompressor: OK\n";
+    // Nyth::Audio::SIMD::applyCompressor(data.data(), sampleCount, 0.7f, 4.0f, 0.01f, 0.1f);
+    // std::cout << "applyCompressor: OK\n";
 
     // Test de la reverb
-    Nyth::Audio::SIMD::applySimpleReverb(data.data(), sampleCount, 0.5f, 0.3f);
-    std::cout << "applySimpleReverb: OK\n";
+    // Nyth::Audio::SIMD::applySimpleReverb(data.data(), sampleCount, 0.5f, 0.3f);
+    // std::cout << "applySimpleReverb: OK\n";
 
     // Test du tremolo
-    Nyth::Audio::SIMD::applyTremolo(data.data(), sampleCount, 5.0f, 0.4f, 44100.0f);
-    std::cout << "applyTremolo: OK\n";
+    // Nyth::Audio::SIMD::applyTremolo(data.data(), sampleCount, 5.0f, 0.4f, 44100.0f);
+    // std::cout << "applyTremolo: OK\n";
 
     // Test du flanger
-    Nyth::Audio::SIMD::applyFlanger(data.data(), sampleCount, 0.5f, 0.6f, 0.4f, 44100.0f);
-    std::cout << "applyFlanger: OK\n";
+    // Nyth::Audio::SIMD::applyFlanger(data.data(), sampleCount, 0.5f, 0.6f, 0.4f, 44100.0f);
+    // std::cout << "applyFlanger: OK\n";
 
     // Test du limiteur
-    Nyth::Audio::SIMD::applyLimiter(data.data(), sampleCount, 0.8f);
+    AudioNR::SIMD::SIMDMathFunctions::apply_hard_clipper(data.data(), sampleCount, 0.8f);
     std::cout << "applyLimiter: OK\n";
 
     // Test du de-esser
-    Nyth::Audio::SIMD::applyDeEsser(data.data(), sampleCount, 0.3f, 0.5f, 44100.0f);
-    std::cout << "applyDeEsser: OK\n";
+    // Nyth::Audio::SIMD::applyDeEsser(data.data(), sampleCount, 0.3f, 0.5f, 44100.0f);
+    // std::cout << "applyDeEsser: OK\n";
 
     // Test de la noise gate
-    Nyth::Audio::SIMD::applyNoiseGate(data.data(), sampleCount, 0.1f, 0.01f, 0.1f);
-    std::cout << "applyNoiseGate: OK\n";
+    // Nyth::Audio::SIMD::applyNoiseGate(data.data(), sampleCount, 0.1f, 0.01f, 0.1f);
+    // std::cout << "applyNoiseGate: OK\n";
 
     // Test de la distortion
-    Nyth::Audio::SIMD::applyDistortion(data.data(), sampleCount, 2.0f, 0.7f);
+    AudioNR::SIMD::SIMDMathFunctions::apply_tanh_distortion(data.data(), sampleCount, 2.0f);
     std::cout << "applyDistortion: OK\n";
 
     // Test du chorus
-    Nyth::Audio::SIMD::applyChorus(data.data(), sampleCount, 1.0f, 0.5f, 0.3f, 44100.0f);
-    std::cout << "applyChorus: OK\n";
+    // Nyth::Audio::SIMD::applyChorus(data.data(), sampleCount, 1.0f, 0.5f, 0.3f, 44100.0f);
+    // std::cout << "applyChorus: OK\n";
 }
 
 void testSIMDInfo() {
     std::cout << "\n=== Informations SIMD ===\n";
-    std::cout << "SIMD disponible: " << (Nyth::Audio::SIMD::isSimdAvailable() ? "Oui" : "Non") << "\n";
-    std::cout << "Type SIMD: " << Nyth::Audio::SIMD::getSimdType() << "\n";
+    std::cout << "SIMD disponible: " << (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() ? "Oui" : "Non") << "\n";
+    std::cout << "Type SIMD: " << AudioNR::MathUtils::SIMDIntegration::getSIMDMathInfo() << "\n";
 }
 
 void performanceComparison() {
@@ -127,7 +127,7 @@ void performanceComparison() {
 
     // Test processFloat32
     auto start = std::chrono::high_resolution_clock::now();
-    Nyth::Audio::SIMD::processFloat32(input.data(), output.data(), sampleCount, 1.5f);
+    AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(output.data(), sampleCount, 1.5f);
     auto end = std::chrono::high_resolution_clock::now();
     double timeMs = std::chrono::duration<double, std::milli>(end - start).count();
 
@@ -138,7 +138,7 @@ void performanceComparison() {
 
     // Test calculateRMS
     start = std::chrono::high_resolution_clock::now();
-    float rms = Nyth::Audio::SIMD::calculateRMS(input.data(), sampleCount);
+    float rms = AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(input.data(), sampleCount);
     end = std::chrono::high_resolution_clock::now();
     timeMs = std::chrono::duration<double, std::milli>(end - start).count();
 
@@ -150,7 +150,7 @@ void performanceComparison() {
 
     // Test calculatePeak
     start = std::chrono::high_resolution_clock::now();
-    float peak = Nyth::Audio::SIMD::calculatePeak(input.data(), sampleCount);
+    float peak = AudioNR::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(input.data(), sampleCount);
     end = std::chrono::high_resolution_clock::now();
     timeMs = std::chrono::duration<double, std::milli>(end - start).count();
 

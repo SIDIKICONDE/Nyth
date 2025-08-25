@@ -197,7 +197,7 @@ WienerConfig NoiseConfigValidator::getDefaultWiener() {
 MultibandConfig NoiseConfigValidator::getDefaultMultiband() {
     MultibandConfig config;
     config.sampleRate = GlobalAudioConstants::DEFAULT_SAMPLE_RATE;
-    config.fftSize = 2048; // Valeur spécifique pour multiband
+    config.fftSize = GlobalAudioConstants::DEFAULT_FFT_SIZE; // Valeur par défaut (peut être remplacée par une constante multiband si nécessaire)
     config.subBassReduction = 0.9f;
     config.bassReduction = 0.7f;
     config.lowMidReduction = 0.5f;

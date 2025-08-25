@@ -1,0 +1,36 @@
+name: 🔍 Verify Namespaces
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'shared/Audio/**/*.h'
+      - 'shared/Audio/**/*.cpp'
+      - 'scripts/verify_namespaces.sh'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'shared/Audio/**/*.h'
+      - 'shared/Audio/**/*.cpp'
+      - 'scripts/verify_namespaces.sh'
+
+jobs:
+  verify-namespaces:
+    name: '🔍 Vérifier les Namespaces'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Rendre le script exécutable
+        run: chmod +x scripts/verify_namespaces.sh
+
+      - name: 🔍 Vérifier les namespaces
+        run: ./scripts/verify_namespaces.sh
+
+      - name: 📊 Rapport des résultats
+        if: always()
+        run: |
+          echo "📋 Résumé de la vérification des namespaces"
+          echo "✅ Pipeline de vérification des namespaces terminé"

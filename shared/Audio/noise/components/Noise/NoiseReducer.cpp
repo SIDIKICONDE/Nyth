@@ -105,7 +105,7 @@ void NoiseReducer::ensureFilters() {
     for (auto& st : ch_) {
         if (config_.enableHighPass) {
             if (!st.highPass)
-                st.highPass = std::make_unique<AudioFX::BiquadFilter>();
+                st.highPass = std::make_unique<Nyth::Audio::FX::BiquadFilter>();
             st.highPass->calculateHighpass(config_.highPassHz, sampleRate_, BUTTERWORTH_Q_FACTOR);
         } else {
             st.highPass.reset();

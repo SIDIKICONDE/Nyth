@@ -7,17 +7,20 @@ Le système de capture audio a été **considérablement amélioré** avec des o
 ## 🚀 Améliorations Principales
 
 ### 1. Optimisations SIMD (2-9x plus rapide)
+
 - **Calcul RMS**: 9.4x plus rapide (10 G samples/s)
 - **Détection Peak**: 5.1x plus rapide (5.4 G samples/s)
 - **Détection Silence**: 7.0x plus rapide (7.4 G samples/s)
 - **Conversion Format**: 2-4x plus rapide
 
 ### 2. Gestion d'Erreurs Structurée
+
 - Exceptions typées pour chaque type d'erreur
 - Validation stricte des paramètres
 - Recovery automatique après erreur
 
 ### 3. Monitoring et Métriques Temps Réel
+
 - Métriques de performance en direct
 - Profiling intégré des fonctions
 - Export JSON des statistiques
@@ -28,15 +31,21 @@ Le système de capture audio a été **considérablement amélioré** avec des o
 shared/Audio/capture/
 ├── AudioCaptureException.hpp    # Gestion d'erreurs structurée
 ├── AudioCaptureMetrics.hpp      # Monitoring et profiling
-├── AudioCaptureSIMD.hpp         # Optimisations SIMD
 ├── AudioCapture.hpp             # Interface principale (améliorée)
 ├── AudioCaptureImpl.hpp         # Implémentations (améliorées)
 └── AudioCaptureUtils.hpp        # Utilitaires (améliorés)
+
+shared/Audio/common/SIMD/
+├── SIMDIntegration.hpp          # Bibliothèque SIMD commune
+├── SIMDCore.hpp                 # Cœur SIMD (NEON/SSE/AVX)
+├── SIMDMathFunctions.hpp        # Fonctions mathématiques SIMD
+└── SIMDConfig.hpp               # Configuration SIMD
 ```
 
 ## 🏗️ Compilation
 
 ### Configuration CMake Standard
+
 ```bash
 cd tests
 mkdir build && cd build
@@ -45,6 +54,7 @@ make -j$(nproc)
 ```
 
 ### Configuration avec Validation
+
 ```bash
 cmake .. \
     -DCMAKE_BUILD_TYPE=Debug \
@@ -53,6 +63,7 @@ cmake .. \
 ```
 
 ### Configuration Android (CMakeLists.txt mis à jour)
+
 ```bash
 # Dans android/app/src/main/jni/
 cmake .. \
@@ -63,6 +74,7 @@ cmake .. \
 ## 🧪 Tests et Benchmarks
 
 ### Tests Unitaires (70+ tests)
+
 ```bash
 # Exécuter tous les tests
 make run_tests
@@ -73,6 +85,7 @@ make run_tests
 ```
 
 ### Benchmarks de Performance
+
 ```bash
 # Benchmarks complets
 make run_benchmarks
@@ -83,6 +96,7 @@ make run_benchmarks
 ```
 
 ### Validation du Build
+
 ```bash
 # Script de validation (Linux/macOS)
 ./validate_build.sh
@@ -97,16 +111,17 @@ make audio_capture_benchmarks
 
 ### Benchmarks Réalisés (Release build, x86)
 
-| Opération | Scalaire | SIMD | Speedup |
-|-----------|----------|------|---------|
-| **Calcul RMS** | 957 ns | **102 ns** | **9.4x** |
-| **Détection Peak** | 978 ns | **190 ns** | **5.1x** |
-| **Détection Silence** | 968 ns | **138 ns** | **7.0x** |
-| **Comptage Clipping** | 89.1 ns | **94.9 ns** | ~1x (limité par branches) |
-| **Stéréo → Mono** | 98.9 ns | **139 ns** | ~0.7x (overhead vectorisation) |
-| **Normalisation** | 3077 ns | **2337 ns** | **1.3x** |
+| Opération             | Scalaire | SIMD        | Speedup                        |
+| --------------------- | -------- | ----------- | ------------------------------ |
+| **Calcul RMS**        | 957 ns   | **102 ns**  | **9.4x**                       |
+| **Détection Peak**    | 978 ns   | **190 ns**  | **5.1x**                       |
+| **Détection Silence** | 968 ns   | **138 ns**  | **7.0x**                       |
+| **Comptage Clipping** | 89.1 ns  | **94.9 ns** | ~1x (limité par branches)      |
+| **Stéréo → Mono**     | 98.9 ns  | **139 ns**  | ~0.7x (overhead vectorisation) |
+| **Normalisation**     | 3077 ns  | **2337 ns** | **1.3x**                       |
 
 ### Throughput Maximal
+
 - **RMS Processing**: 10.0 G samples/seconde
 - **Peak Detection**: 5.4 G samples/seconde
 - **Silence Detection**: 7.4 G samples/seconde
@@ -114,6 +129,7 @@ make audio_capture_benchmarks
 ## ⚙️ Configuration Options
 
 ### CMake Options
+
 ```cmake
 # Validation et tests
 ENABLE_AUDIO_CAPTURE_VALIDATION=ON/OFF
@@ -126,6 +142,7 @@ HAS_AVX2=1      # x86 AVX2
 ```
 
 ### Définitions de Compilation
+
 ```cpp
 // Validation
 #ifdef AUDIO_CAPTURE_VALIDATION_ENABLED
@@ -148,6 +165,7 @@ HAS_AVX2=1      # x86 AVX2
 ## 📝 Utilisation dans le Code
 
 ### Gestion d'Erreurs
+
 ```cpp
 try {
     auto capture = AudioCapture::create(config);
@@ -160,6 +178,7 @@ try {
 ```
 
 ### Monitoring de Performance
+
 ```cpp
 AudioMetricsCollector metrics;
 metrics.startCollection();
@@ -174,6 +193,7 @@ std::cout << "CPU Usage: " << realtimeMetrics.cpuUsagePercent << "%" << std::end
 ```
 
 ### Optimisations SIMD Automatiques
+
 ```cpp
 // Le code utilise automatiquement les optimisations SIMD
 // quand elles sont disponibles
@@ -186,12 +206,14 @@ AudioFormatConverter::int16ToFloat(in, out, size);  // Conversion optimisée
 ### Problèmes Courants
 
 1. **SIMD non détecté**
+
    ```bash
    # Vérifier les flags de compilation
    cmake .. -DCMAKE_BUILD_TYPE=Release --debug-output
    ```
 
 2. **Tests échouent**
+
    ```bash
    # Exécuter avec sortie détaillée
    ./audio_capture_tests --gtest_output=xml:test_results.xml
@@ -205,6 +227,7 @@ AudioFormatConverter::int16ToFloat(in, out, size);  // Conversion optimisée
    ```
 
 ### Logs de Debug
+
 ```bash
 # Activer les logs de validation
 cmake .. -DENABLE_AUDIO_CAPTURE_VALIDATION=ON -DCMAKE_BUILD_TYPE=Debug
@@ -231,6 +254,7 @@ cmake .. -DENABLE_PERFORMANCE_MONITORING=ON
 ## 📞 Support
 
 Pour toute question sur le système de capture audio amélioré :
+
 1. Vérifiez les logs CMake pour les optimisations SIMD
 2. Exécutez les benchmarks pour valider les performances
 3. Consultez les tests unitaires pour les exemples d'utilisation

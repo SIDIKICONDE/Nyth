@@ -1,8 +1,8 @@
 #pragma once
-#ifndef BIQUADFILTER_SAFE_HPP
+#ifndef NYTH_AUDIO_FX_BIQUADFILTER_SAFE_HPP
 #define BIQUADFILTER_SAFE_HPP
 
-#include "AudioError.hpp"
+#include "../config/ErrorCodes.hpp"
 #include "BiquadFilter.hpp"
 #include <algorithm>
 #include <cmath>
@@ -10,7 +10,9 @@
 #include <new>
 
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 
 /**
  * @brief Safe version of BiquadFilter with complete bounds checking
@@ -52,7 +54,7 @@ public:
             output[i] = result;
         }
 
-        return AudioError::OK;
+        return Nyth::Audio::Constants::AudioError::OK;
     }
 
     /**
@@ -85,7 +87,7 @@ public:
             outputR[i] = std::max(-10.0f, std::min(resultR, 10.0f));
         }
 
-        return AudioError::OK;
+        return Nyth::Audio::Constants::AudioError::OK;
     }
 
     /**
@@ -104,13 +106,13 @@ public:
         // For stability, poles must be inside unit circle
         // This is a simplified check - full stability analysis is complex
         if (std::abs(b0) < 1e-10) {
-            return AudioError::INVALID_PARAMETER; // b0 must not be zero
+            return Nyth::Audio::Constants::AudioError::INVALID_PARAMETER; // b0 must not be zero
         }
 
         // Normalize and set
         setCoefficients(a0, a1, a2, b0, b1, b2);
 
-        return AudioError::OK;
+        return Nyth::Audio::Constants::AudioError::OK;
     }
 
     /**
@@ -135,7 +137,7 @@ public:
         AUDIO_RETURN_IF_ERROR(AudioValidator::validateFinite(b1));
         AUDIO_RETURN_IF_ERROR(AudioValidator::validateFinite(b2));
 
-        return AudioError::OK;
+        return Nyth::Audio::Constants::AudioError::OK;
     }
 
 protected:
@@ -215,7 +217,7 @@ public:
      */
     AudioResult<T&> at(size_t index) noexcept {
         if (index >= m_size) {
-            return AudioError::OUT_OF_RANGE;
+            return Nyth::Audio::Constants::AudioError::OUT_OF_RANGE;
         }
         return m_data[index];
     }
@@ -225,7 +227,7 @@ public:
      */
     AudioResult<const T&> at(size_t index) const noexcept {
         if (index >= m_size) {
-            return AudioError::OUT_OF_RANGE;
+            return Nyth::Audio::Constants::AudioError::OUT_OF_RANGE;
         }
         return m_data[index];
     }
@@ -252,18 +254,18 @@ public:
      */
     AudioError validate() const noexcept {
         if (!m_data)
-            return AudioError::NULL_POINTER;
+            return Nyth::Audio::Constants::AudioError::NULL_POINTER;
         if (m_size == 0)
-            return AudioError::INVALID_SIZE;
+            return Nyth::Audio::Constants::AudioError::INVALID_SIZE;
 
         // Check for NaN/Inf in buffer
         for (size_t i = 0; i < m_size; ++i) {
             if (!std::isfinite(m_data[i])) {
-                return AudioError::NAN_DETECTED;
+                return Nyth::Audio::Constants::AudioError::NAN_DETECTED;
             }
         }
 
-        return AudioError::OK;
+        return Nyth::Audio::Constants::AudioError::OK;
     }
 
     /**
@@ -347,6 +349,8 @@ private:
     size_t m_size = 0;
 };
 
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth
 
-#endif // BIQUADFILTER_SAFE_HPP
+#endif // NYTH_AUDIO_FX_BIQUADFILTER_SAFE_HPP

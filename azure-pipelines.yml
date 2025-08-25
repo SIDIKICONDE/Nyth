@@ -1,0 +1,43 @@
+# Azure DevOps Pipeline pour la vérification des namespaces
+# Ajouter cette configuration à votre azure-pipelines.yml existant
+
+trigger:
+  branches:
+    include:
+    - main
+    - develop
+  paths:
+    include:
+    - 'shared/Audio/**/*.h'
+    - 'shared/Audio/**/*.cpp'
+    - 'scripts/verify_namespaces.sh'
+
+stages:
+- stage: Verify
+  displayName: "🔍 Vérifier les Namespaces"
+  jobs:
+  - job: NamespaceVerification
+    displayName: "Vérification des Namespaces"
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+    - task: Bash@3
+      displayName: "🛠️ Rendre le script exécutable"
+      inputs:
+        targetType: 'inline'
+        script: 'chmod +x scripts/verify_namespaces.sh'
+
+    - task: Bash@3
+      displayName: "🔍 Vérifier les namespaces"
+      inputs:
+        targetType: 'inline'
+        script: './scripts/verify_namespaces.sh'
+      continueOnError: false
+
+    - task: PublishBuildArtifacts@1
+      displayName: "📊 Publier les résultats"
+      condition: always()
+      inputs:
+        pathToPublish: 'scripts/'
+        artifactName: 'namespace-verification-results'

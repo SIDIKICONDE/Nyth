@@ -22,7 +22,8 @@
 #define SAFETY_NEON
 #endif
 
-namespace AudioSafety {
+namespace Nyth {
+namespace Audio {
 
 /**
  * @brief Optimized version of AudioSafetyEngine with SIMD and branch-free algorithms
@@ -38,22 +39,14 @@ public:
     AudioSafetyEngineOptimized(uint32_t sampleRate, int channels, SafetyError* error = nullptr);
     ~AudioSafetyEngineOptimized();
 
-    // Override processing methods with optimized versions
-    SafetyError processMono(float* buffer, size_t numSamples) noexcept;
-    SafetyError processStereo(float* left, float* right, size_t numSamples) noexcept;
+    // Override analysis method with optimized SIMD version
+    SafetyReport analyzeAndClean(float* x, size_t n) noexcept override;
 
 private:
     // Memory pool for SafetyReport allocations
-    static AudioFX::ObjectPool<SafetyReport> reportPool_;
+    static Nyth::Audio::FX::ObjectPool<SafetyReport> reportPool_;
 
-    // Optimized DC removal with SIMD
-    void dcRemoveSIMD(float* x, size_t n, float mean) noexcept;
 
-    // Branch-free limiting
-    void limitBufferBranchFree(float* x, size_t n, float threshold) noexcept;
-
-    // Optimized analysis with SIMD
-    SafetyReport analyzeAndCleanOptimized(float* x, size_t n) noexcept;
 
 #ifdef SAFETY_AVX2
     void dcRemoveAVX2(float* x, size_t n, float mean) noexcept;
@@ -76,7 +69,7 @@ inline AudioSafetyEngineOptimized::AudioSafetyEngineOptimized(uint32_t sampleRat
 inline AudioSafetyEngineOptimized::~AudioSafetyEngineOptimized() = default;
 
 // Initialize static memory pool
-inline AudioFX::ObjectPool<SafetyReport> AudioSafetyEngineOptimized::reportPool_(DEFAULT_MEMORY_POOL_SIZE_OPTIMIZED);
+inline Nyth::Audio::FX::ObjectPool<SafetyReport> AudioSafetyEngineOptimized::reportPool_(DEFAULT_MEMORY_POOL_SIZE_OPTIMIZED);
 
 inline void AudioSafetyEngineOptimized::dcRemoveSIMD(float* x, size_t n, float mean) noexcept {
 #ifdef SAFETY_AVX2
@@ -125,7 +118,7 @@ inline void AudioSafetyEngineOptimized::limitBufferAVX2(float* x, size_t n, floa
 
     // Process remaining samples with branch-free scalar
     for (; i < n; ++i) {
-        x[i] = AudioFX::BranchFree::clamp(x[i], -threshold, threshold);
+        x[i] = Nyth::Audio::FX::BranchFree::clamp(x[i], -threshold, threshold);
     }
 }
 
@@ -234,7 +227,7 @@ inline void AudioSafetyEngineOptimized::limitBufferNEON(float* x, size_t n, floa
 
     // Process remaining samples
     for (; i < n; ++i) {
-        x[i] = AudioFX::BranchFree::clamp(x[i], -threshold, threshold);
+        x[i] = Nyth::Audio::FX::BranchFree::clamp(x[i], -threshold, threshold);
     }
 }
 
@@ -311,14 +304,14 @@ inline void AudioSafetyEngineOptimized::limitBufferBranchFree(float* x, size_t n
 #else
     // Branch-free scalar fallback
     for (size_t i = 0; i < n; ++i) {
-        x[i] = AudioFX::BranchFree::clamp(x[i], -threshold, threshold);
+        x[i] = Nyth::Audio::FX::BranchFree::clamp(x[i], -threshold, threshold);
     }
 #endif
 }
 
-inline SafetyReport AudioSafetyEngineOptimized::analyzeAndCleanOptimized(float* x, size_t n) noexcept {
+inline SafetyReport AudioSafetyEngineOptimized::analyzeAndClean(float* x, size_t n) noexcept {
     // Get report from pool
-    auto pooledReport = AudioFX::PooledObject<SafetyReport>(reportPool_);
+    auto pooledReport = Nyth::Audio::FX::PooledObject<SafetyReport>(reportPool_);
     SafetyReport& report = *pooledReport;
 
 #ifdef SAFETY_AVX2
@@ -327,18 +320,32 @@ inline SafetyReport AudioSafetyEngineOptimized::analyzeAndCleanOptimized(float* 
     report = analyzeNEON(x, n);
 #else
     // Fallback to base implementation
-    report = analyzeAndClean(x, n);
+    report = AudioSafetyEngine::analyzeAndClean(x, n);
 #endif
 
     // DC removal with SIMD if needed
     if (config_.dcRemovalEnabled && std::abs(report.dcOffset) > config_.dcThreshold) {
-        dcRemoveSIMD(x, n, static_cast<float>(report.dcOffset));
-        report.dcOffset = ZERO_DC_OFFSET;
+#ifdef SAFETY_AVX2
+        dcRemoveAVX2(x, n, static_cast<float>(report.dcOffset));
+#elif defined(SAFETY_NEON)
+        dcRemoveNEON(x, n, static_cast<float>(report.dcOffset));
+#else
+        dcRemove(x, n, report.dcOffset);
+#endif
+        report.dcOffset = INITIAL_DC_OFFSET;
     }
 
     // Branch-free limiting if needed
     if (config_.limiterEnabled) {
-        limitBufferBranchFree(x, n, static_cast<float>(limiterThresholdLin_));
+#ifdef SAFETY_AVX2
+        limitBufferAVX2(x, n, static_cast<float>(limiterThresholdLin_));
+#elif defined(SAFETY_NEON)
+        limitBufferNEON(x, n, static_cast<float>(limiterThresholdLin_));
+#else
+        for (size_t i = 0; i < n; ++i) {
+            x[i] = Nyth::Audio::FX::BranchFree::clamp(x[i], -limiterThresholdLin_, limiterThresholdLin_);
+        }
+#endif
         report.overloadActive = report.peak > limiterThresholdLin_;
     }
 
@@ -351,41 +358,7 @@ inline SafetyReport AudioSafetyEngineOptimized::analyzeAndCleanOptimized(float* 
     return report;
 }
 
-inline SafetyError AudioSafetyEngineOptimized::processMono(float* buffer, size_t numSamples) noexcept {
-    if (!buffer) {
-        return SafetyError::NULL_BUFFER;
-    }
-    if (!config_.enabled || numSamples == 0) {
-        return SafetyError::OK;
-    }
 
-    report_ = analyzeAndCleanOptimized(buffer, numSamples);
-    return SafetyError::OK;
-}
 
-inline SafetyError AudioSafetyEngineOptimized::processStereo(float* left, float* right, size_t numSamples) noexcept {
-    if (!left || !right) {
-        return SafetyError::NULL_BUFFER;
-    }
-    if (!config_.enabled || numSamples == 0) {
-        return SafetyError::OK;
-    }
-
-    // Process each channel with optimized version
-    SafetyReport rl = analyzeAndCleanOptimized(left, numSamples);
-    SafetyReport rr = analyzeAndCleanOptimized(right, numSamples);
-
-    // Aggregate reports
-    report_.peak = std::max(rl.peak, rr.peak);
-    report_.rms = std::sqrt((rl.rms * rl.rms + rr.rms * rr.rms) / STEREO_CHANNEL_DIVISOR);
-    report_.dcOffset = (rl.dcOffset + rr.dcOffset) / STEREO_CHANNEL_DIVISOR;
-    report_.clippedSamples = rl.clippedSamples + rr.clippedSamples;
-    report_.overloadActive = rl.overloadActive || rr.overloadActive;
-    report_.feedbackScore = std::max(rl.feedbackScore, rr.feedbackScore);
-    report_.hasNaN = rl.hasNaN || rr.hasNaN;
-    report_.feedbackLikely = report_.feedbackScore >= config_.feedbackCorrThreshold;
-
-    return SafetyError::OK;
-}
-
-} // namespace AudioSafety
+} // namespace Audio
+} // namespace Nyth

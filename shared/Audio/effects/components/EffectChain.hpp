@@ -16,7 +16,7 @@
 #include "EffectBase.hpp"
 #include "../../common/config/EffectConstants.hpp"
 
-namespace AudioFX {
+namespace Nyth { namespace Audio { namespace FX {
 
 class EffectChain {
 public:
@@ -31,10 +31,10 @@ public:
     }
 
     void setSampleRate(uint32_t sampleRate, int numChannels) noexcept {
-        sampleRate_ = sampleRate >= AudioFX::MIN_SAMPLE_RATE ? sampleRate : AudioFX::DEFAULT_SAMPLE_RATE;
-        channels_ = (numChannels == AudioFX::MONO_CHANNELS || numChannels == AudioFX::STEREO_CHANNELS)
+        sampleRate_ = sampleRate >= Nyth::Audio::FX::MIN_SAMPLE_RATE ? sampleRate : Nyth::Audio::FX::DEFAULT_SAMPLE_RATE;
+        channels_ = (numChannels == Nyth::Audio::FX::MONO_CHANNELS || numChannels == Nyth::Audio::FX::STEREO_CHANNELS)
                         ? numChannels
-                        : AudioFX::DEFAULT_CHANNELS;
+                        : Nyth::Audio::FX::DEFAULT_CHANNELS;
         std::for_each(effects_.begin(), effects_.end(), [&](const auto& e) {
             if (e)
                 e->setSampleRate(sampleRate_, channels_);
@@ -79,17 +79,17 @@ public:
 
         // First effect - try modern method, fallback to legacy
         if (std::is_same<T, float>::value) {
-            effects_[AudioFX::FIRST_EFFECT_INDEX]->processMono(input.data(), output.data(), input.size());
+            effects_[Nyth::Audio::FX::FIRST_EFFECT_INDEX]->processMono(input.data(), output.data(), input.size());
         } else {
             // Convert for processing
             std::vector<float> tempInput(input.begin(), input.end());
             std::vector<float> tempOutput(output.size());
-            effects_[AudioFX::FIRST_EFFECT_INDEX]->processMono(tempInput.data(), tempOutput.data(), tempInput.size());
+            effects_[Nyth::Audio::FX::FIRST_EFFECT_INDEX]->processMono(tempInput.data(), tempOutput.data(), tempInput.size());
             std::copy(tempOutput.begin(), tempOutput.end(), output.begin());
         }
 
         // Chain remaining effects in-place
-        for (size_t i = AudioFX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
+        for (size_t i = Nyth::Audio::FX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
             if (std::is_same<T, float>::value) {
                 effects_[i]->processMono(output.data(), output.data(), output.size());
             } else {
@@ -123,9 +123,9 @@ public:
 
         // Process chain using modern methods
         if (std::is_same<T, float>::value) {
-            effects_[AudioFX::FIRST_EFFECT_INDEX]->processStereo(inputL.data(), inputR.data(), outputL.data(),
+            effects_[Nyth::Audio::FX::FIRST_EFFECT_INDEX]->processStereo(inputL.data(), inputR.data(), outputL.data(),
                                                                  outputR.data(), inputL.size());
-            for (size_t i = AudioFX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
+            for (size_t i = Nyth::Audio::FX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
                 effects_[i]->processStereo(outputL.data(), outputR.data(), outputL.data(), outputR.data(),
                                            outputL.size());
             }
@@ -136,9 +136,9 @@ public:
             std::vector<float> tempOutputL(outputL.size());
             std::vector<float> tempOutputR(outputR.size());
 
-            effects_[AudioFX::FIRST_EFFECT_INDEX]->processStereo(
+            effects_[Nyth::Audio::FX::FIRST_EFFECT_INDEX]->processStereo(
                 tempInputL.data(), tempInputR.data(), tempOutputL.data(), tempOutputR.data(), tempInputL.size());
-            for (size_t i = AudioFX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
+            for (size_t i = Nyth::Audio::FX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
                 effects_[i]->processStereo(tempOutputL.data(), tempOutputR.data(), tempOutputL.data(),
                                            tempOutputR.data(), tempOutputL.size());
             }
@@ -160,9 +160,9 @@ public:
         if (!scratch_.size())
             scratch_.resize(numSamples);
         // run first
-        effects_[AudioFX::FIRST_EFFECT_INDEX]->processMono(input, output, numSamples);
+        effects_[Nyth::Audio::FX::FIRST_EFFECT_INDEX]->processMono(input, output, numSamples);
         // then chain in-place
-        for (size_t i = AudioFX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
+        for (size_t i = Nyth::Audio::FX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
             effects_[i]->processMono(output, output, numSamples);
         }
     }
@@ -177,8 +177,8 @@ public:
                     outR[i] = inR[i];
             return;
         }
-        effects_[AudioFX::FIRST_EFFECT_INDEX]->processStereo(inL, inR, outL, outR, numSamples);
-        for (size_t i = AudioFX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
+        effects_[Nyth::Audio::FX::FIRST_EFFECT_INDEX]->processStereo(inL, inR, outL, outR, numSamples);
+        for (size_t i = Nyth::Audio::FX::CHAIN_START_INDEX; i < effects_.size(); ++i) {
             effects_[i]->processStereo(outL, outR, outL, outR, numSamples);
         }
     }
@@ -186,11 +186,11 @@ public:
 private:
     // All constants are now centralized in EffectConstants.hpp
 
-    bool enabled_ = AudioFX::DEFAULT_ENABLED;
-    uint32_t sampleRate_ = AudioFX::DEFAULT_SAMPLE_RATE;
-    int channels_ = AudioFX::DEFAULT_CHANNELS;
+    bool enabled_ = Nyth::Audio::FX::DEFAULT_ENABLED;
+    uint32_t sampleRate_ = Nyth::Audio::FX::DEFAULT_SAMPLE_RATE;
+    int channels_ = Nyth::Audio::FX::DEFAULT_CHANNELS;
     std::vector<std::unique_ptr<IAudioEffect>> effects_;
     std::vector<float> scratch_;
 };
 
-} // namespace AudioFX
+} // namespace Nyth { namespace Audio { namespace FX

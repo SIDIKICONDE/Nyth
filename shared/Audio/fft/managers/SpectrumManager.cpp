@@ -226,7 +226,7 @@ bool SpectrumManager::initializeFFT() {
         }
 
         // Création du moteur FFT avec gestion d'erreur
-        fftEngine_ = AudioFX::createFFTEngine(config_.fftSize);
+        fftEngine_ = Nyth::Audio::FX::createFFTEngine(config_.fftSize);
 
         if (!fftEngine_) {
             lastError_ = "Failed to create FFT engine";

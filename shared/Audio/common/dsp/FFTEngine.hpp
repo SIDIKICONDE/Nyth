@@ -11,7 +11,9 @@
 #include <type_traits>
 #include <vector>
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 
 // C++17 constexpr constants for FFT
 namespace FFTConstants {
@@ -176,6 +178,8 @@ inline std::unique_ptr<IFFTEngine> createFFTEngine(size_t size) {
     return std::make_unique<SimpleFFT>(size);
 }
 
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth
 
 #endif // __cplusplus

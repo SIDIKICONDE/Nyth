@@ -12,10 +12,21 @@
 #include <thread>
 
 #ifdef __ANDROID__
+#if defined(__has_include)
+#  if __has_include(<oboe/Oboe.h>)
+#    define NYTH_HAS_OBOE 1
+#  else
+#    define NYTH_HAS_OBOE 0
+#  endif
+#else
+#  define NYTH_HAS_OBOE 0
+#endif
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 #include <aaudio/AAudio.h>
+#if NYTH_HAS_OBOE
 #include <oboe/Oboe.h>
+#endif
 #endif
 
 #ifdef __APPLE__
@@ -34,6 +45,10 @@ namespace Audio {
 
 class AudioCaptureAndroid : public AudioCaptureBase {
 private:
+    // JNI pour la gestion des permissions Android
+    JavaVM* javaVM_ = nullptr;
+    jobject androidContext_ = nullptr;
+
     // Option 1: OpenSL ES (compatible avec plus d'appareils)
     struct OpenSLContext {
         SLObjectItf engineObject = nullptr;
@@ -53,6 +68,7 @@ private:
     } aaudio_;
 
     // Option 3: Oboe (wrapper moderne, recommandé)
+#if NYTH_HAS_OBOE
     class OboeCallback : public oboe::AudioStreamDataCallback {
     public:
         AudioCaptureAndroid* parent = nullptr;
@@ -65,6 +81,7 @@ private:
 
     std::shared_ptr<oboe::AudioStream> oboeStream_;
     std::unique_ptr<OboeCallback> oboeCallback_;
+#endif
 
     // Méthodes privées
     bool initializeOpenSL();
@@ -96,6 +113,19 @@ public:
 
     bool hasPermission() const override;
     void requestPermission(std::function<void(bool granted)> callback) override;
+
+    // Configuration JNI pour les permissions
+    void setJavaVM(JavaVM* vm) { javaVM_ = vm; }
+    void setAndroidContext(jobject context) {
+        androidContext_ = context;
+        if (androidContext_ && javaVM_) {
+            // Garder une référence globale pour éviter la destruction
+            JNIEnv* env = nullptr;
+            if (javaVM_->GetEnv((void**)&env, JNI_VERSION_1_6) == JNI_OK && env) {
+                androidContext_ = env->NewGlobalRef(context);
+            }
+        }
+    }
 };
 
 #endif // __ANDROID__
@@ -155,6 +185,10 @@ private:
     // Gestion des interruptions
     void handleInterruption(NSNotification* notification);
     void handleRouteChange(NSNotification* notification);
+
+    // Méthodes SIMD
+    void processAudioData_SIMD(const float* data, size_t sampleCount);
+    void updateLevels_SIMD(const float* data, size_t sampleCount);
 
 public:
     bool initialize(const AudioCaptureConfig& config) override;
@@ -250,25 +284,38 @@ inline void AudioCaptureBase::updateLevels(const float* data, size_t sampleCount
     if (!data || sampleCount == Constants::NULL_DATA_CHECK)
         return;
 
-    float sum = Constants::SUM_INITIAL_VALUE;
-    float maxVal = Constants::MAX_INITIAL_VALUE;
+    // Utiliser SIMD si disponible
+    if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && sampleCount >= 64) {
+        // Calcul RMS et Peak avec SIMD
+        float rms = Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(data, sampleCount);
+        float peak = Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(data, sampleCount);
 
-    for (size_t i = 0; i < sampleCount; ++i) {
-        float absVal = std::abs(data[i]);
-        sum += absVal;
-        maxVal = std::max(maxVal, absVal);
+        currentLevel_ = rms;
+        peakLevel_ = std::max(peakLevel_.load(), peak);
+        statistics_.averageLevel = rms;
+        statistics_.peakLevel = peak;
+    } else {
+        // Version standard
+        float sum = Constants::SUM_INITIAL_VALUE;
+        float maxVal = Constants::MAX_INITIAL_VALUE;
+
+        for (size_t i = 0; i < sampleCount; ++i) {
+            float absVal = std::abs(data[i]);
+            sum += absVal;
+            maxVal = std::max(maxVal, absVal);
+        }
+
+        float avgLevel = sum / sampleCount;
+        currentLevel_ = avgLevel;
+
+        float currentPeak = peakLevel_.load();
+        if (maxVal > currentPeak) {
+            peakLevel_ = maxVal;
+        }
+
+        statistics_.averageLevel = avgLevel;
+        statistics_.peakLevel = maxVal;
     }
-
-    float avgLevel = sum / sampleCount;
-    currentLevel_ = avgLevel;
-
-    float currentPeak = peakLevel_.load();
-    if (maxVal > currentPeak) {
-        peakLevel_ = maxVal;
-    }
-
-    statistics_.averageLevel = avgLevel;
-    statistics_.peakLevel = maxVal;
 }
 
 inline void AudioCaptureBase::updateLevelsInt16(const int16_t* data, size_t sampleCount) {

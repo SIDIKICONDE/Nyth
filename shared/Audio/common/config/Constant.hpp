@@ -205,6 +205,60 @@ static constexpr int ANDROID_SUCCESS = 0;
 static constexpr int ANDROID_FALSE = 0;
 static constexpr int ANDROID_TRUE = 1;
 
+// ============================================================================
+// Constantes spécifiques à la plateforme Android
+// ============================================================================
+namespace Android {
+
+// Seuils et paramètres audio
+namespace AudioThresholds {
+    static constexpr float CLIPPING_THRESHOLD_DEFAULT = 0.99f;        // Seuil de clipping par défaut
+    static constexpr float SILENCE_THRESHOLD_DEFAULT = 0.001f;        // Seuil de silence par défaut
+    static constexpr float PEAK_LEVEL_MAX = 1.0f;                     // Niveau de crête maximum
+    static constexpr float RMS_TARGET_DEFAULT = 0.7f;                 // RMS cible par défaut pour la normalisation
+    static constexpr float INPUT_GAIN_DEFAULT = 1.0f;                 // Gain d'entrée par défaut
+}
+
+// Paramètres de calcul audio
+namespace AudioCalculation {
+    static constexpr float RMS_DB_LOW_LEVEL = -100.0f;                // Niveau très bas en dB
+    static constexpr float DB_MULTIPLIER = 20.0f;                     // Multiplicateur pour conversion linéaire -> dB
+    static constexpr size_t SIMD_MIN_SIZE = 64;                       // Taille minimale pour utiliser SIMD
+}
+
+// Paramètres de buffer et streaming
+namespace BufferConfig {
+    static constexpr size_t MIN_BUFFER_SIZE = 1024;                   // Taille minimale du buffer
+    static constexpr size_t DEFAULT_BUFFER_SIZE = 4096;               // Taille par défaut du buffer
+    static constexpr int32_t DEFAULT_NUM_BUFFERS = 2;                 // Nombre de buffers par défaut
+}
+
+// Paramètres temporels
+namespace TimeConfig {
+    static constexpr float MAX_DURATION_UNLIMITED = 0.0f;             // Durée illimitée
+    static constexpr size_t MAX_FILE_SIZE_UNLIMITED = 0;              // Taille de fichier illimitée
+}
+
+// États et flags
+namespace StateFlags {
+    static constexpr bool DEFAULT_AUTO_NORMALIZE = false;             // Normalisation automatique par défaut
+    static constexpr bool DEFAULT_ENABLE_CLIPPING_PROTECTION = true;  // Protection contre le clipping activée par défaut
+}
+
+// Validation des paramètres
+namespace ValidationLimits {
+    static constexpr int MIN_SAMPLE_RATE = 8000;                      // Taux d'échantillonnage minimum
+    static constexpr int MAX_SAMPLE_RATE = 192000;                    // Taux d'échantillonnage maximum
+    static constexpr int MIN_CHANNEL_COUNT = 1;                       // Nombre minimum de canaux
+    static constexpr int MAX_CHANNEL_COUNT = 8;                       // Nombre maximum de canaux
+    static constexpr int MIN_BITS_PER_SAMPLE = 8;                     // Bits par échantillon minimum
+    static constexpr int MAX_BITS_PER_SAMPLE = 32;                    // Bits par échantillon maximum
+    static constexpr size_t MIN_BUFFER_SIZE_FRAMES = 256;             // Taille minimale du buffer en frames
+    static constexpr size_t MAX_BUFFER_SIZE_FRAMES = 16384;           // Taille maximale du buffer en frames
+}
+
+} // namespace Android
+
 } // namespace Constants
 } // namespace Audio
 } // namespace Nyth

@@ -7,7 +7,9 @@
 #include <memory>
 
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 
 // Structure for a single EQ band
 struct EQBand {
@@ -52,6 +54,8 @@ struct EQBand {
   EQBand &operator=(EQBand &&) = default;
 };
 
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth
 
-#endif // AUDIOFX_EQBAND_HPP
+#endif // NYTH_AUDIO_FX_EQBAND_HPP

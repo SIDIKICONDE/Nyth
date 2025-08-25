@@ -11,7 +11,7 @@
 #include <stack>
 #include <vector>
 
-namespace AudioFX {
+namespace Nyth { namespace Audio { namespace FX {
 
 /**
  * @brief Lock-free memory pool for real-time audio processing
@@ -416,6 +416,6 @@ private:
     T* m_object;
 };
 
-} // namespace AudioFX
+} // namespace Nyth { namespace Audio { namespace FX
 
 #endif // MEMORY_POOL_HPP

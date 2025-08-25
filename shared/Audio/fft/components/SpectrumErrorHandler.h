@@ -2,7 +2,7 @@
 
 #include <functional>
 #include <memory>
-#include <shared/Audio/fft/config/SpectrumConfig.h>
+#include "../config/SpectrumConfig.h"
 
 namespace Nyth {
 namespace Audio {

@@ -107,7 +107,7 @@ private:
 
     // Per-channel filters and states
     struct ChannelState {
-        std::unique_ptr<AudioFX::BiquadFilter> highPass;
+        std::unique_ptr<Nyth::Audio::FX::BiquadFilter> highPass;
         double env = INITIAL_ENVELOPE;      // envelope follower (linear)
         double gain = INITIAL_GAIN;     // smoothed gain (linear)
     };

@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include "../../common/config/Constant.hpp"
+
 namespace facebook {
 namespace react {
 
@@ -234,9 +236,17 @@ double AudioCaptureManager::getRMS() const {
 double AudioCaptureManager::getRMSdB() const {
     double rms = getRMS();
     if (rms > 0) {
+#ifdef __ANDROID__
+        return Nyth::Audio::Constants::Android::AudioCalculation::DB_MULTIPLIER * std::log10(rms);
+#else
         return 20.0 * std::log10(rms);
+#endif
     }
+#ifdef __ANDROID__
+    return Nyth::Audio::Constants::Android::AudioCalculation::RMS_DB_LOW_LEVEL; // Niveau très bas en dB
+#else
     return -100.0; // Niveau très bas en dB
+#endif
 }
 
 bool AudioCaptureManager::isSilent(float threshold) const {
@@ -244,7 +254,11 @@ bool AudioCaptureManager::isSilent(float threshold) const {
 }
 
 bool AudioCaptureManager::hasClipping() const {
+#ifdef __ANDROID__
+    return getPeakLevel() >= Nyth::Audio::Constants::Android::AudioThresholds::CLIPPING_THRESHOLD_DEFAULT;
+#else
     return getPeakLevel() >= 0.99f;
+#endif
 }
 
 // === Périphériques ===
@@ -337,6 +351,87 @@ void AudioCaptureManager::requestPermission(std::function<void(bool)> callback) 
             callback(false);
         }
     }
+}
+
+// === Enregistrement ===
+bool AudioCaptureManager::startRecording(const std::string& filePath,
+                                         const Nyth::Audio::AudioFileWriterConfig& writerConfig,
+                                         float maxDurationSeconds,
+                                         size_t maxFileSizeBytes) {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+
+    if (!isInitialized_.load() || !capture_) {
+        return false;
+    }
+
+    if (!recorder_) {
+        recorder_ = std::make_unique<Nyth::Audio::AudioRecorder>();
+    }
+
+    currentRecordingPath_ = filePath;
+    auto cfg = writerConfig;
+    cfg.filePath = filePath;
+
+    if (!recorder_->initialize(capture_, cfg)) {
+        return false;
+    }
+
+#ifdef __ANDROID__
+    if (maxDurationSeconds > Nyth::Audio::Constants::Android::TimeConfig::MAX_DURATION_UNLIMITED) {
+        recorder_->setDurationLimit(maxDurationSeconds);
+    }
+    if (maxFileSizeBytes > Nyth::Audio::Constants::Android::TimeConfig::MAX_FILE_SIZE_UNLIMITED) {
+        recorder_->setFileSizeLimit(maxFileSizeBytes);
+    }
+#else
+    if (maxDurationSeconds > 0.0f) {
+        recorder_->setDurationLimit(maxDurationSeconds);
+    }
+    if (maxFileSizeBytes > 0) {
+        recorder_->setFileSizeLimit(maxFileSizeBytes);
+    }
+#endif
+
+    return recorder_->startRecording();
+}
+
+void AudioCaptureManager::stopRecording() {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    if (recorder_) {
+        recorder_->stopRecording();
+    }
+}
+
+void AudioCaptureManager::pauseRecording() {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    if (recorder_) {
+        recorder_->pauseRecording();
+    }
+}
+
+void AudioCaptureManager::resumeRecording() {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    if (recorder_) {
+        recorder_->resumeRecording();
+    }
+}
+
+bool AudioCaptureManager::isRecording() const {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    return recorder_ && recorder_->isRecording();
+}
+
+AudioCaptureManager::RecordingInfo AudioCaptureManager::getRecordingInfo() const {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    RecordingInfo info;
+    if (recorder_) {
+        info.durationSeconds = recorder_->getRecordingDuration();
+        info.frames = recorder_->getFramesRecorded();
+        info.path = currentRecordingPath_;
+        info.recording = recorder_->isRecording();
+        info.paused = recorder_->isPaused();
+    }
+    return info;
 }
 
 // === Conversion entre les configurations ===
@@ -438,11 +533,248 @@ void AudioCaptureManager::cleanup() {
 
 bool AudioCaptureManager::validateConfig(const Nyth::Audio::AudioCaptureConfig& config) const {
     // Basic validation for AudioCaptureConfig
+#ifdef __ANDROID__
+    return config.sampleRate >= Nyth::Audio::Constants::Android::ValidationLimits::MIN_SAMPLE_RATE &&
+           config.sampleRate <= Nyth::Audio::Constants::Android::ValidationLimits::MAX_SAMPLE_RATE &&
+           config.channelCount >= Nyth::Audio::Constants::Android::ValidationLimits::MIN_CHANNEL_COUNT &&
+           config.channelCount <= Nyth::Audio::Constants::Android::ValidationLimits::MAX_CHANNEL_COUNT &&
+           config.bitsPerSample >= Nyth::Audio::Constants::Android::ValidationLimits::MIN_BITS_PER_SAMPLE &&
+           config.bitsPerSample <= Nyth::Audio::Constants::Android::ValidationLimits::MAX_BITS_PER_SAMPLE &&
+           config.bufferSizeFrames >= Nyth::Audio::Constants::Android::ValidationLimits::MIN_BUFFER_SIZE_FRAMES &&
+           config.bufferSizeFrames <= Nyth::Audio::Constants::Android::ValidationLimits::MAX_BUFFER_SIZE_FRAMES &&
+           config.numBuffers > 0;
+#else
     return config.sampleRate > 0 &&
            config.channelCount > 0 &&
            config.bitsPerSample > 0 &&
            config.bufferSizeFrames > 0 &&
            config.numBuffers > 0;
+#endif
+}
+
+// === Implémentations SIMD ===
+
+float AudioCaptureManager::getRMS_SIMD() const {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+
+    if (!isInitialized_.load() || !capture_) {
+        return 0.0f;
+    }
+
+    // Obtenir le buffer audio actuel
+    auto buffer = capture_->getCurrentBuffer();
+    if (buffer.empty()) {
+        return 0.0f;
+    }
+
+    // Utiliser SIMD si disponible et taille suffisante
+#ifdef __ANDROID__
+    if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && buffer.size() >= Nyth::Audio::Constants::Android::AudioCalculation::SIMD_MIN_SIZE) {
+        return Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(buffer.data(), buffer.size());
+    } else {
+        // Version standard
+        return getRMS(); // Utiliser la méthode existante
+    }
+#else
+    if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && buffer.size() >= 64) {
+        return Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(buffer.data(), buffer.size());
+    } else {
+        // Version standard
+        return getRMS(); // Utiliser la méthode existante
+    }
+#endif
+}
+
+float AudioCaptureManager::getPeakLevel_SIMD() const {
+    std::lock_guard<std::mutex> lock(captureMutex_);
+
+    if (!isInitialized_.load() || !capture_) {
+        return 0.0f;
+    }
+
+    // Obtenir le buffer audio actuel
+    auto buffer = capture_->getCurrentBuffer();
+    if (buffer.empty()) {
+        return 0.0f;
+    }
+
+    // Utiliser SIMD si disponible et taille suffisante
+#ifdef __ANDROID__
+    if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && buffer.size() >= Nyth::Audio::Constants::Android::AudioCalculation::SIMD_MIN_SIZE) {
+        return Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(buffer.data(), buffer.size());
+    } else {
+        // Version standard
+        return getPeakLevel();
+    }
+#else
+    if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && buffer.size() >= 64) {
+        return Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(buffer.data(), buffer.size());
+    } else {
+        // Version standard
+        return getPeakLevel();
+    }
+#endif
+}
+
+void AudioCaptureManager::processAudioData_SIMD(float* buffer, size_t count) {
+    if (!buffer || count == 0) return;
+
+    // Utiliser SIMD si disponible et taille suffisante
+#ifdef __ANDROID__
+    if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= Nyth::Audio::Constants::Android::AudioCalculation::SIMD_MIN_SIZE) {
+        // Normalisation automatique si configurée
+        if (config_.autoNormalize) {
+            Nyth::Audio::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(
+                buffer, count, config_.targetRMS);
+        }
+
+        // Application de gain si nécessaire
+        if (config_.inputGain != Nyth::Audio::Constants::Android::AudioThresholds::INPUT_GAIN_DEFAULT) {
+            Nyth::Audio::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
+                buffer, count, config_.inputGain);
+        }
+
+        // Protection contre le clipping
+        if (config_.enableClippingProtection) {
+            Nyth::Audio::SIMD::SIMDMathFunctions::apply_soft_clipper(
+                buffer, count, config_.clippingThreshold);
+        }
+    } else {
+        // Version standard
+        processAudioDataStandard(buffer, count);
+    }
+#else
+    if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= 64) {
+        // Normalisation automatique si configurée
+        if (config_.autoNormalize) {
+            Nyth::Audio::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(
+                buffer, count, config_.targetRMS);
+        }
+
+        // Application de gain si nécessaire
+        if (config_.inputGain != 1.0f) {
+            Nyth::Audio::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
+                buffer, count, config_.inputGain);
+        }
+
+        // Protection contre le clipping
+        if (config_.enableClippingProtection) {
+            Nyth::Audio::SIMD::SIMDMathFunctions::apply_soft_clipper(
+                buffer, count, config_.clippingThreshold);
+        }
+    } else {
+        // Version standard
+        processAudioDataStandard(buffer, count);
+    }
+#endif
+}
+
+void AudioCaptureManager::analyzeAudioBuffer_SIMD(const float* buffer, size_t count,
+                                                 float& rms, float& peak, bool& hasClipping) {
+    if (!buffer || count == 0) {
+        rms = 0.0f;
+        peak = 0.0f;
+        hasClipping = false;
+        return;
+    }
+
+    // Utiliser SIMD si disponible et taille suffisante
+#ifdef __ANDROID__
+    if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= Nyth::Audio::Constants::Android::AudioCalculation::SIMD_MIN_SIZE) {
+        rms = Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(buffer, count);
+        peak = Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(buffer, count);
+        hasClipping = peak >= config_.clippingThreshold;
+    } else {
+        // Version standard
+        rms = 0.0f;
+        peak = 0.0f;
+        hasClipping = false;
+
+        for (size_t i = 0; i < count; ++i) {
+            float absSample = std::abs(buffer[i]);
+            rms += buffer[i] * buffer[i];
+            peak = std::max(peak, absSample);
+        }
+
+        rms = std::sqrt(rms / count);
+        hasClipping = peak >= config_.clippingThreshold;
+    }
+#else
+    if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= 64) {
+        rms = Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(buffer, count);
+        peak = Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(buffer, count);
+        hasClipping = peak >= config_.clippingThreshold;
+    } else {
+        // Version standard
+        rms = 0.0f;
+        peak = 0.0f;
+        hasClipping = false;
+
+        for (size_t i = 0; i < count; ++i) {
+            float absSample = std::abs(buffer[i]);
+            rms += buffer[i] * buffer[i];
+            peak = std::max(peak, absSample);
+        }
+
+        rms = std::sqrt(rms / count);
+        hasClipping = peak >= config_.clippingThreshold;
+    }
+#endif
+}
+
+// Méthode helper pour le traitement standard (si SIMD non disponible)
+void AudioCaptureManager::processAudioDataStandard(float* buffer, size_t count) {
+    // Normalisation manuelle
+    if (config_.autoNormalize) {
+        float sum = 0.0f;
+        for (size_t i = 0; i < count; ++i) {
+            sum += buffer[i] * buffer[i];
+        }
+        float rms = std::sqrt(sum / count);
+        if (rms > 0.0f) {
+            float gain = config_.targetRMS / rms;
+            for (size_t i = 0; i < count; ++i) {
+                buffer[i] *= gain;
+            }
+        }
+    }
+
+    // Application de gain
+#ifdef __ANDROID__
+    if (config_.inputGain != Nyth::Audio::Constants::Android::AudioThresholds::INPUT_GAIN_DEFAULT) {
+        for (size_t i = 0; i < count; ++i) {
+            buffer[i] *= config_.inputGain;
+        }
+    }
+
+    // Protection contre le clipping
+    if (config_.enableClippingProtection) {
+        for (size_t i = 0; i < count; ++i) {
+            if (buffer[i] > config_.clippingThreshold) {
+                buffer[i] = config_.clippingThreshold;
+            } else if (buffer[i] < -config_.clippingThreshold) {
+                buffer[i] = -config_.clippingThreshold;
+            }
+        }
+    }
+#else
+    if (config_.inputGain != 1.0f) {
+        for (size_t i = 0; i < count; ++i) {
+            buffer[i] *= config_.inputGain;
+        }
+    }
+
+    // Protection contre le clipping
+    if (config_.enableClippingProtection) {
+        for (size_t i = 0; i < count; ++i) {
+            if (buffer[i] > config_.clippingThreshold) {
+                buffer[i] = config_.clippingThreshold;
+            } else if (buffer[i] < -config_.clippingThreshold) {
+                buffer[i] = -config_.clippingThreshold;
+            }
+        }
+    }
+#endif
 }
 
 } // namespace react

@@ -73,7 +73,7 @@ public:
 
 } // namespace MathUtils
 
-// Intégration avec AudioCaptureSIMD
+// Intégration avec les fonctionnalités audio de base
 namespace Audio {
 namespace SIMD {
 

@@ -62,14 +62,7 @@ public:
     static bool isPropertyBool(jsi::Runtime& rt, const jsi::Object& obj, const std::string& prop);
     static bool isPropertyString(jsi::Runtime& rt, const jsi::Object& obj, const std::string& prop);
 
-    // === Méthodes template pour validation de type ===
-    template<typename T>
-    static bool isPropertyType(jsi::Runtime& rt, const jsi::Object& obj, const std::string& prop);
-
-    template<typename T>
-    static T getPropertyWithDefault(jsi::Runtime& rt, const jsi::Object& obj, const std::string& prop, T defaultValue);
-
-    // === Méthodes template pour validation de type ===
+        // === Méthodes template pour validation de type ===
     template <typename T>
     static bool isPropertyType(jsi::Runtime& rt, const jsi::Object& obj, const std::string& prop);
 

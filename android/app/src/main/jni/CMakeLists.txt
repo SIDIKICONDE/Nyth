@@ -244,9 +244,9 @@ endif()
 #Audio System C++ 20 Sources
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/NativeAudioEqualizerModule.cpp
-    ../../../../../shared/Audio/NativeAudioCaptureModule.cpp
+    ../../../../../shared/Audio/capture/NativeAudioCaptureModule.cpp
     ../../../../../shared/NativeAudioSpectrumModule.cpp
-    ../../../../../shared/Audio/NativeAudioCoreModule.cpp
+    ../../../../../shared/Audio/core/NativeAudioCoreModule.cpp
     ../../../../../shared/Audio/fft/FFTEngine.hpp
     ../../../../../shared/Audio/core/AudioEqualizer.cpp
     ../../../../../shared/Audio/core/AudioEqualizerTemplates.hpp
@@ -264,15 +264,17 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../../../../../shared/Audio/safety/AudioSafety.cpp
     ../../../../../shared/Audio/utils/AudioBuffer.cpp
 #Enhanced Audio Capture System with SIMD optimizations
-    ../../../../../shared/Audio/capture/AudioCaptureImpl.cpp
-    ../../../../../shared/Audio/capture/AudioCaptureUtils.hpp
-    ../../../../../shared/Audio/capture/AudioCaptureUtils.cpp
-    ../../../../../shared/Audio/capture/AudioCaptureException.hpp
-    ../../../../../shared/Audio/capture/AudioCaptureMetrics.hpp
-    ../../../../../shared/Audio/capture/AudioCaptureMetrics.cpp
-    ../../../../../shared/Audio/capture/AudioCaptureSIMD.hpp
-    ../../../../../shared/Audio/capture/AudioCaptureSIMD.cpp
-    ../../../../../shared/Audio/capture/AudioFileWriter.hpp
+    ../../../../../shared/Audio/capture/components/AudioCaptureImpl.hpp
+    ../../../../../shared/Audio/capture/components/platform/ANDROID/AudioCaptureImpl.cpp
+    ../../../../../shared/Audio/capture/components/utils/AudioCaptureUtils.hpp
+    ../../../../../shared/Audio/capture/components/utils/AudioCaptureUtils.cpp
+    ../../../../../shared/Audio/capture/components/AudioCaptureException.hpp
+    ../../../../../shared/Audio/capture/components/AudioCaptureMetrics.hpp
+    ../../../../../shared/Audio/capture/components/AudioCaptureMetrics.cpp
+    ../../../../../shared/Audio/common/SIMD/SIMDCore.cpp
+    ../../../../../shared/Audio/common/SIMD/SIMDMathFunctions.cpp
+    ../../../../../shared/Audio/common/SIMD/SIMDIntegration.cpp
+    ../../../../../shared/Audio/capture/components/AudioFileWriter.hpp
 #Audio Pipeline Integration System
     ../../../../../shared/Audio/AudioPipeline.hpp
     ../../../../../shared/Audio/AudioPipeline.cpp
@@ -280,7 +282,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 #New Enhanced Features:
 #- AudioCaptureException.hpp : Structured error handling with typed exceptions
 #- AudioCaptureMetrics.hpp : Real - time performance monitoring and profiling
-#- AudioCaptureSIMD.hpp : SIMD optimizations for ARM NEON and x86 SSE / AVX
 #- AudioPipeline.hpp / cpp : Complete audio pipeline integrating all modules
 #- integrated_audio_example.cpp : Example showing full integration
 #Performance improvements : 2 - 9x speedup for audio processing operations
@@ -289,7 +290,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 #- AudioPipeline : Complete audio processing pipeline
 #- AudioCaptureException : Structured error handling
 #- AudioCaptureMetrics : Real - time performance monitoring
-#- AudioCaptureSIMD : SIMD optimizations for ARM / x86
 #- integrated_audio_example.cpp : Android integration example
 #
 #Usage:

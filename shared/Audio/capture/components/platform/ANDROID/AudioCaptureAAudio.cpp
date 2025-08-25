@@ -1,5 +1,6 @@
 #include "../../AudioCaptureImpl.hpp"
 #include "../../../common/config/Constant.hpp"
+#include "../../../common/config/ErrorCodes.hpp"
 #include <cstring>
 #include <aaudio/AAudio.h>
 
@@ -15,7 +16,7 @@ bool AudioCaptureAndroid::initializeAAudio() {
     if (__builtin_available(android 26, *)) {
         AAudioStreamBuilder* builder;
         aaudio_result_t result = AAudio_createStreamBuilder(&builder);
-        if (result != AAUDIO_OK)
+        if (result != Constants::AAudio::OK)
             return false;
 
         AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
@@ -29,7 +30,7 @@ bool AudioCaptureAndroid::initializeAAudio() {
         result = AAudioStreamBuilder_openStream(builder, &aaudio_.stream);
         AAudioStreamBuilder_delete(builder);
 
-        if (result == AAUDIO_OK) {
+        if (result == Constants::AAudio::OK) {
             aaudio_.useAAudio = true;
             return true;
         }
@@ -72,52 +73,52 @@ void AudioCaptureAndroid::aaudioErrorCallback(AAudioStream* stream, void* userDa
     std::string errorMsg = "AAudio error: " + std::to_string(error);
 
     switch (error) {
-        case AAUDIO_ERROR_DISCONNECTED:
+        case Constants::AAudio::ERROR_DISCONNECTED:
             errorMsg = "AAudio device disconnected";
             break;
-        case AAUDIO_ERROR_ILLEGAL_ARGUMENT:
+        case Constants::AAudio::ERROR_ILLEGAL_ARGUMENT:
             errorMsg = "AAudio illegal argument";
             break;
-        case AAUDIO_ERROR_INTERNAL:
+        case Constants::AAudio::ERROR_INTERNAL:
             errorMsg = "AAudio internal error";
             break;
-        case AAUDIO_ERROR_INVALID_STATE:
+        case Constants::AAudio::ERROR_INVALID_STATE:
             errorMsg = "AAudio invalid state";
             break;
-        case AAUDIO_ERROR_INVALID_HANDLE:
+        case Constants::AAudio::ERROR_INVALID_HANDLE:
             errorMsg = "AAudio invalid handle";
             break;
-        case AAUDIO_ERROR_UNIMPLEMENTED:
+        case Constants::AAudio::ERROR_UNIMPLEMENTED:
             errorMsg = "AAudio unimplemented";
             break;
-        case AAUDIO_ERROR_UNAVAILABLE:
+        case Constants::AAudio::ERROR_UNAVAILABLE:
             errorMsg = "AAudio unavailable";
             break;
-        case AAUDIO_ERROR_NO_FREE_HANDLES:
+        case Constants::AAudio::ERROR_NO_FREE_HANDLES:
             errorMsg = "AAudio no free handles";
             break;
-        case AAUDIO_ERROR_NO_MEMORY:
+        case Constants::AAudio::ERROR_NO_MEMORY:
             errorMsg = "AAudio no memory";
             break;
-        case AAUDIO_ERROR_NULL:
+        case Constants::AAudio::ERROR_NULL:
             errorMsg = "AAudio null pointer";
             break;
-        case AAUDIO_ERROR_TIMEOUT:
+        case Constants::AAudio::ERROR_TIMEOUT:
             errorMsg = "AAudio timeout";
             break;
-        case AAUDIO_ERROR_WOULD_BLOCK:
+        case Constants::AAudio::ERROR_WOULD_BLOCK:
             errorMsg = "AAudio would block";
             break;
-        case AAUDIO_ERROR_INVALID_FORMAT:
+        case Constants::AAudio::ERROR_INVALID_FORMAT:
             errorMsg = "AAudio invalid format";
             break;
-        case AAUDIO_ERROR_OUT_OF_RANGE:
+        case Constants::AAudio::ERROR_OUT_OF_RANGE:
             errorMsg = "AAudio out of range";
             break;
-        case AAUDIO_ERROR_NO_SERVICE:
+        case Constants::AAudio::ERROR_NO_SERVICE:
             errorMsg = "AAudio no service";
             break;
-        case AAUDIO_ERROR_INVALID_RATE:
+        case Constants::AAudio::ERROR_INVALID_RATE:
             errorMsg = "AAudio invalid rate";
             break;
     }

@@ -107,7 +107,7 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
-    
+
     // Activer la séparation par architecture pour réduire la taille
     splits {
         abi {

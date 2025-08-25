@@ -11,12 +11,12 @@
 #include <sstream>
 #include <vector>
 
+namespace Nyth {
 namespace Audio {
-namespace core {
+namespace FX {
 
 // Import des constantes pour éviter la répétition des namespace
-using namespace AudioFX;
-using namespace AudioFX::EqualizerConstants;
+using namespace EqualizerConstants;
 
 AudioEqualizer::AudioEqualizer(size_t numBands, uint32_t sampleRate)
     : m_sampleRate(sampleRate)
@@ -459,34 +459,34 @@ void AudioEqualizer::resetAllBands() {
 
 void AudioEqualizer::reset() {
     std::lock_guard<std::mutex> lock(m_parameterMutex);
-    
+
     // Reset all bands to default values
     setupDefaultBands();
-    
+
     // Reset master gain and bypass
     m_masterGain.store(EqualizerConstants::DEFAULT_MASTER_GAIN);
     m_bypass.store(false);
-    
+
     // Mark parameters as changed to trigger filter update
     m_parametersChanged.store(true);
 }
 
 void AudioEqualizer::processMono(const float* input, float* output, size_t numSamples) {
     std::lock_guard<std::mutex> lock(m_parameterMutex);
-    
+
     // Check if bypass is enabled
     if (m_bypass.load()) {
         std::copy(input, input + numSamples, output);
         return;
     }
-    
+
     // Convert to vectors for processing
     std::vector<float> inputVector(input, input + numSamples);
     std::vector<float> outputVector(numSamples);
-    
+
     // Process using the optimized mono method
     processOptimized(inputVector, outputVector);
-    
+
     // Apply master gain
     double masterGain = m_masterGain.load();
     if (std::abs(masterGain - EqualizerConstants::DEFAULT_MASTER_GAIN) > 0.001) {
@@ -579,15 +579,16 @@ std::string AudioEqualizer::getDebugInfo(const std::string& location) const {
 // Les définitions de validateAudioBuffer sont dans AudioEqualizer.inl
 
 // Explicit template instantiations
-template void Audio::core::AudioEqualizer::process<float>(const std::vector<float>&, std::vector<float>&, const std::string&);
-template void Audio::core::AudioEqualizer::process<double>(const std::vector<double>&, std::vector<double>&, const std::string&);
-template void Audio::core::AudioEqualizer::processStereo<float>(const std::vector<float>&, const std::vector<float>&,
+template void Nyth::Audio::FX::AudioEqualizer::process<float>(const std::vector<float>&, std::vector<float>&, const std::string&);
+template void Nyth::Audio::FX::AudioEqualizer::process<double>(const std::vector<double>&, std::vector<double>&, const std::string&);
+template void Nyth::Audio::FX::AudioEqualizer::processStereo<float>(const std::vector<float>&, const std::vector<float>&,
                                                   std::vector<float>&, std::vector<float>&, const std::string&);
-template void Audio::core::AudioEqualizer::processStereo<double>(const std::vector<double>&, const std::vector<double>&,
+template void Nyth::Audio::FX::AudioEqualizer::processStereo<double>(const std::vector<double>&, const std::vector<double>&,
                                                    std::vector<double>&, std::vector<double>&, const std::string&);
 
-template bool Audio::core::AudioEqualizer::validateAudioBuffer<float>(const std::vector<float>&, const std::string&) const;
-template bool Audio::core::AudioEqualizer::validateAudioBuffer<double>(const std::vector<double>&, const std::string&) const;
+template bool Nyth::Audio::FX::AudioEqualizer::validateAudioBuffer<float>(const std::vector<float>&, const std::string&) const;
+template bool Nyth::Audio::FX::AudioEqualizer::validateAudioBuffer<double>(const std::vector<double>&, const std::string&) const;
 
-} // namespace core
+} // namespace FX
 } // namespace Audio
+} // namespace Nyth

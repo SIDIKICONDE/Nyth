@@ -41,7 +41,7 @@ void SpectralNR::setConfig(const SpectralNRConfig& cfg) {
     cfg_ = cfg;
     buildWindow();
     // Init FFT engine
-    fftEngine_ = AudioFX::createFFTEngine(cfg_.fftSize);
+    fftEngine_ = Nyth::Audio::FX::createFFTEngine(cfg_.fftSize);
     inBuf_.assign(cfg_.fftSize, ZERO);
     outBuf_.assign(cfg_.fftSize, ZERO);
     noiseMag_.assign(cfg_.fftSize / FFT_HALF_DIVISOR + SPECTRUM_NYQUIST_OFFSET, ZERO);

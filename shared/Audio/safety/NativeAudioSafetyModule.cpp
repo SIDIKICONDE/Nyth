@@ -6,13 +6,23 @@
 namespace facebook {
 namespace react {
 
+// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
+using Nyth::Audio::SafetyConfig;
+using SafetyError;
+using SafetyState;
+using SafetyReport;
+using SafetyStatistics;
+using SafetyLimits;
+using Nyth::Audio::SafetyParameterValidator;
+
 NativeAudioSafetyModule::NativeAudioSafetyModule(std::shared_ptr<CallInvoker> jsInvoker)
     : TurboModule("NativeAudioSafetyModule", jsInvoker) {
+    jsInvoker_ = jsInvoker;
     // Initialisation des composants
     initializeManagers();
 
     // Configuration par défaut
-    config_ = Nyth::Audio::SafetyConfig::getDefault();
+    config_ = SafetyConfig::getDefault();
 }
 
 NativeAudioSafetyModule::~NativeAudioSafetyModule() {
@@ -26,14 +36,14 @@ jsi::Value NativeAudioSafetyModule::initialize(jsi::Runtime& rt, uint32_t sample
 
     try {
         // Validation des paramètres
-        if (!Nyth::Audio::SafetyParameterValidator::isValidSampleRate(sampleRate)) {
-            handleError(Nyth::Audio::SafetyError::INVALID_SAMPLE_RATE,
+        if (!SafetyParameterValidator::isValidSampleRate(sampleRate)) {
+            handleError(SafetyError::INVALID_SAMPLE_RATE,
                         "Invalid sample rate: " + std::to_string(sampleRate));
             return jsi::Value(false);
         }
 
-        if (!Nyth::Audio::SafetyParameterValidator::isValidChannels(channels)) {
-            handleError(Nyth::Audio::SafetyError::INVALID_CHANNELS, "Invalid channels: " + std::to_string(channels));
+        if (!SafetyParameterValidator::isValidChannels(channels)) {
+            handleError(SafetyError::INVALID_CHANNELS, "Invalid channels: " + std::to_string(channels));
             return jsi::Value(false);
         }
 
@@ -44,20 +54,20 @@ jsi::Value NativeAudioSafetyModule::initialize(jsi::Runtime& rt, uint32_t sample
         // Initialisation du manager
         if (safetyManager_->initialize(config_)) {
             isInitialized_.store(true);
-            currentState_ = Nyth::Audio::SafetyState::INITIALIZED;
+            currentState_ = SafetyState::INITIALIZED;
 
             // Allocation des buffers de travail
             resetBuffers();
 
             return jsi::Value(true);
         } else {
-            currentState_ = Nyth::Audio::SafetyState::ERROR;
-            handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED, "Failed to initialize safety manager");
+            currentState_ = SafetyState::ERROR;
+            handleError(SafetyError::PROCESSING_FAILED, "Failed to initialize safety manager");
             return jsi::Value(false);
         }
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED, std::string("Initialization failed: ") + e.what());
-        currentState_ = Nyth::Audio::SafetyState::ERROR;
+        handleError(SafetyError::PROCESSING_FAILED, std::string("Initialization failed: ") + e.what());
+        currentState_ = SafetyState::ERROR;
         return jsi::Value(false);
     }
 }
@@ -81,11 +91,11 @@ jsi::Value NativeAudioSafetyModule::dispose(jsi::Runtime& rt) {
 
         isInitialized_.store(false);
         isProcessing_.store(false);
-        currentState_ = Nyth::Audio::SafetyState::SHUTDOWN;
+        currentState_ = SafetyState::SHUTDOWN;
 
         return jsi::Value(true);
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED, std::string("Dispose failed: ") + e.what());
+        handleError(SafetyError::PROCESSING_FAILED, std::string("Dispose failed: ") + e.what());
         return jsi::Value(false);
     }
 }
@@ -95,17 +105,12 @@ jsi::Value NativeAudioSafetyModule::dispose(jsi::Runtime& rt) {
 jsi::Value NativeAudioSafetyModule::getState(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    auto stateObj = jsi::Object(rt);
-    stateObj.setProperty(rt, "state", jsi::Value(static_cast<int32_t>(currentState_.load())));
-    stateObj.setProperty(rt, "stateString", jsi::String::createFromUtf8(rt, stateToString(currentState_.load())));
-    stateObj.setProperty(rt, "isInitialized", jsi::Value(isInitialized_.load()));
-    stateObj.setProperty(rt, "isProcessing", jsi::Value(isProcessing_.load()));
-
-    return stateObj;
+    // Retourner une string pour compat TS (SafetyState)
+    return jsi::String::createFromUtf8(rt, stateToString(currentState_.load()));
 }
 
 jsi::Value NativeAudioSafetyModule::getErrorString(jsi::Runtime& rt, int errorCode) {
-    auto error = static_cast<Nyth::Audio::SafetyError>(errorCode);
+    auto error = static_cast<SafetyError>(errorCode);
     return jsi::String::createFromUtf8(rt, errorToString(error));
 }
 
@@ -134,26 +139,29 @@ jsi::Value NativeAudioSafetyModule::setConfig(jsi::Runtime& rt, const jsi::Objec
 
         // Validation
         if (!validateConfig(newConfig)) {
-            handleError(Nyth::Audio::SafetyError::INVALID_CONFIG, "Invalid configuration provided");
+            handleError(SafetyError::INVALID_CONFIG, "Invalid configuration provided");
             return jsi::Value(false);
         }
 
         // Application de la configuration
         if (safetyManager_ && safetyManager_->setConfig(newConfig)) {
+            // Sauvegarder l'ancienne configuration pour détecter les changements de taille
+            auto prevSampleRate = config_.sampleRate;
+            auto prevChannels = config_.channels;
             config_ = newConfig;
 
             // Reallocation des buffers si nécessaire
-            if (newConfig.sampleRate != config_.sampleRate || newConfig.channels != config_.channels) {
+            if (newConfig.sampleRate != prevSampleRate || newConfig.channels != prevChannels) {
                 resetBuffers();
             }
 
             return jsi::Value(true);
         } else {
-            handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED, "Failed to update safety manager configuration");
+            handleError(SafetyError::PROCESSING_FAILED, "Failed to update safety manager configuration");
             return jsi::Value(false);
         }
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED,
+        handleError(SafetyError::PROCESSING_FAILED,
                     std::string("Configuration update failed: ") + e.what());
         return jsi::Value(false);
     }
@@ -178,7 +186,7 @@ jsi::Value NativeAudioSafetyModule::setOptimizationConfig(jsi::Runtime& rt, cons
 
         return jsi::Value(true);
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED,
+        handleError(SafetyError::PROCESSING_FAILED,
                     std::string("Optimization config update failed: ") + e.what());
         return jsi::Value(false);
     }
@@ -208,7 +216,7 @@ jsi::Value NativeAudioSafetyModule::processAudio(jsi::Runtime& rt, const jsi::Ar
 
         // Validation du nombre de canaux
         if (channels != config_.channels) {
-            handleError(Nyth::Audio::SafetyError::INVALID_CHANNELS, "Channel count mismatch");
+            handleError(SafetyError::INVALID_CHANNELS, "Channel count mismatch");
             return jsi::Value(nullptr);
         }
 
@@ -228,7 +236,7 @@ jsi::Value NativeAudioSafetyModule::processAudio(jsi::Runtime& rt, const jsi::Ar
             return jsi::Value(nullptr);
         }
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED, std::string("Audio processing failed: ") + e.what());
+        handleError(SafetyError::PROCESSING_FAILED, std::string("Audio processing failed: ") + e.what());
         return jsi::Value(nullptr);
     }
 }
@@ -248,7 +256,7 @@ jsi::Value NativeAudioSafetyModule::processAudioStereo(jsi::Runtime& rt, const j
 
         // Validation
         if (inputLData.empty() || inputRData.empty() || inputLData.size() != inputRData.size()) {
-            handleError(Nyth::Audio::SafetyError::NULL_BUFFER, "Invalid stereo input data");
+            handleError(SafetyError::NULL_BUFFER, "Invalid stereo input data");
             return jsi::Value(nullptr);
         }
 
@@ -273,7 +281,7 @@ jsi::Value NativeAudioSafetyModule::processAudioStereo(jsi::Runtime& rt, const j
             return jsi::Value(nullptr);
         }
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED,
+        handleError(SafetyError::PROCESSING_FAILED,
                     std::string("Stereo audio processing failed: ") + e.what());
         return jsi::Value(nullptr);
     }
@@ -292,7 +300,7 @@ jsi::Value NativeAudioSafetyModule::getLastReport(jsi::Runtime& rt) {
         auto report = safetyManager_->getLastReport();
         return SafetyJSIConverter::safetyReportToJSI(rt, report);
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED, std::string("Get report failed: ") + e.what());
+        handleError(SafetyError::PROCESSING_FAILED, std::string("Get report failed: ") + e.what());
         return jsi::Value(nullptr);
     }
 }
@@ -308,7 +316,7 @@ jsi::Value NativeAudioSafetyModule::getStatistics(jsi::Runtime& rt) {
         auto stats = safetyManager_->getStatistics();
         return SafetyJSIConverter::safetyStatisticsToJSI(rt, stats);
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED, std::string("Get statistics failed: ") + e.what());
+        handleError(SafetyError::PROCESSING_FAILED, std::string("Get statistics failed: ") + e.what());
         return jsi::Value(nullptr);
     }
 }
@@ -324,7 +332,7 @@ jsi::Value NativeAudioSafetyModule::resetStatistics(jsi::Runtime& rt) {
         safetyManager_->resetStatistics();
         return jsi::Value(true);
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED, std::string("Reset statistics failed: ") + e.what());
+        handleError(SafetyError::PROCESSING_FAILED, std::string("Reset statistics failed: ") + e.what());
         return jsi::Value(false);
     }
 }
@@ -407,7 +415,7 @@ jsi::Value NativeAudioSafetyModule::start(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (!isInitialized_.load()) {
-        handleError(Nyth::Audio::SafetyError::ENGINE_NOT_INITIALIZED, "Module not initialized");
+        handleError(SafetyError::ENGINE_NOT_INITIALIZED, "Module not initialized");
         return jsi::Value(false);
     }
 
@@ -418,13 +426,13 @@ jsi::Value NativeAudioSafetyModule::start(jsi::Runtime& rt) {
     try {
         if (safetyManager_->start()) {
             isProcessing_.store(true);
-            currentState_ = Nyth::Audio::SafetyState::PROCESSING;
+            currentState_ = SafetyState::PROCESSING;
             return jsi::Value(true);
         } else {
             return jsi::Value(false);
         }
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED, std::string("Start failed: ") + e.what());
+        handleError(SafetyError::PROCESSING_FAILED, std::string("Start failed: ") + e.what());
         return jsi::Value(false);
     }
 }
@@ -439,13 +447,13 @@ jsi::Value NativeAudioSafetyModule::stop(jsi::Runtime& rt) {
     try {
         if (safetyManager_->stop()) {
             isProcessing_.store(false);
-            currentState_ = Nyth::Audio::SafetyState::INITIALIZED;
+            currentState_ = SafetyState::INITIALIZED;
             return jsi::Value(true);
         } else {
             return jsi::Value(false);
         }
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED, std::string("Stop failed: ") + e.what());
+        handleError(SafetyError::PROCESSING_FAILED, std::string("Stop failed: ") + e.what());
         return jsi::Value(false);
     }
 }
@@ -458,11 +466,11 @@ jsi::Value NativeAudioSafetyModule::isProcessing(jsi::Runtime& rt) {
 // === Utilitaires ===
 
 jsi::Value NativeAudioSafetyModule::dbToLinear(jsi::Runtime& rt, double db) {
-    return jsi::Value(Nyth::Audio::dbToLinear(db));
+    return jsi::Value(dbToLinear(db));
 }
 
 jsi::Value NativeAudioSafetyModule::linearToDb(jsi::Runtime& rt, double linear) {
-    return jsi::Value(Nyth::Audio::linearToDb(linear));
+    return jsi::Value(linearToDb(linear));
 }
 
 jsi::Value NativeAudioSafetyModule::validateConfig(jsi::Runtime& rt, const jsi::Object& config) {
@@ -476,7 +484,7 @@ jsi::Value NativeAudioSafetyModule::setAudioDataCallback(jsi::Runtime& rt, const
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("audioData", rt, callback);
+        callbackManager_->setAudioDataCallback(callback);
     }
 
     if (safetyManager_) {
@@ -492,7 +500,7 @@ jsi::Value NativeAudioSafetyModule::setErrorCallback(jsi::Runtime& rt, const jsi
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("error", rt, callback);
+        callbackManager_->setErrorCallback(callback);
     }
 
     return jsi::Value(true);
@@ -502,7 +510,7 @@ jsi::Value NativeAudioSafetyModule::setStateChangeCallback(jsi::Runtime& rt, con
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("stateChange", rt, callback);
+        callbackManager_->setStateChangeCallback(callback);
     }
 
     return jsi::Value(true);
@@ -512,12 +520,12 @@ jsi::Value NativeAudioSafetyModule::setReportCallback(jsi::Runtime& rt, const js
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (callbackManager_) {
-        callbackManager_->registerCallback("report", rt, callback);
+        callbackManager_->setAnalysisCallback(callback);
     }
 
     if (safetyManager_) {
         safetyManager_->setReportCallback(
-            [this](const Nyth::Audio::SafetyReport& report) { this->onReportUpdate(report); });
+            [this](const SafetyReport& report) { this->onReportUpdate(report); });
     }
 
     return jsi::Value(true);
@@ -686,12 +694,68 @@ jsi::Value NativeAudioSafetyModule::install(jsi::Runtime& rt, std::shared_ptr<Ca
                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
                                          size_t count) { return module->getLastReport(rt); }));
 
+    // Alias getReport
+    turboModule.setProperty(rt, "getReport",
+                            jsi::Function::createFromHostFunction(
+                                rt, jsi::PropNameID::forUtf8(rt, "getReport"), 0,
+                                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                         size_t count) { return module->getLastReport(rt); }));
+
     // Fonction getStatistics
     turboModule.setProperty(rt, "getStatistics",
                             jsi::Function::createFromHostFunction(
                                 rt, jsi::PropNameID::forUtf8(rt, "getStatistics"), 0,
                                 [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
                                          size_t count) { return module->getStatistics(rt); }));
+
+    // Alias getMetrics -> getStatisticsSimple
+    turboModule.setProperty(rt, "getMetrics",
+                            jsi::Function::createFromHostFunction(
+                                rt, jsi::PropNameID::forUtf8(rt, "getMetrics"), 0,
+                                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                         size_t count) {
+                                    // Reuse simple mapping
+                                    auto statsVal = module->getStatistics(rt);
+                                    if (!statsVal.isObject()) {
+                                        return jsi::Value::null(rt);
+                                    }
+                                    auto original = statsVal.asObject(rt);
+                                    jsi::Object result(rt);
+                                    if (original.hasProperty(rt, "minReport")) {
+                                        result.setProperty(rt, "min", original.getProperty(rt, "minReport"));
+                                    }
+                                    if (original.hasProperty(rt, "maxReport")) {
+                                        result.setProperty(rt, "max", original.getProperty(rt, "maxReport"));
+                                    }
+                                    if (original.hasProperty(rt, "avgReport")) {
+                                        result.setProperty(rt, "avg", original.getProperty(rt, "avgReport"));
+                                    }
+                                    return jsi::Value(result);
+                                }));
+
+    // Fonction getStatisticsSimple (min/max/avg)
+    turboModule.setProperty(
+        rt, "getStatisticsSimple",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "getStatisticsSimple"), 0,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                auto statsVal = module->getStatistics(rt);
+                if (!statsVal.isObject()) {
+                    return jsi::Value::null(rt);
+                }
+                auto original = statsVal.asObject(rt);
+                jsi::Object result(rt);
+                if (original.hasProperty(rt, "minReport")) {
+                    result.setProperty(rt, "min", original.getProperty(rt, "minReport"));
+                }
+                if (original.hasProperty(rt, "maxReport")) {
+                    result.setProperty(rt, "max", original.getProperty(rt, "maxReport"));
+                }
+                if (original.hasProperty(rt, "avgReport")) {
+                    result.setProperty(rt, "avg", original.getProperty(rt, "avgReport"));
+                }
+                return jsi::Value(result);
+            }));
 
     // Fonction resetStatistics
     turboModule.setProperty(rt, "resetStatistics",
@@ -735,6 +799,44 @@ jsi::Value NativeAudioSafetyModule::install(jsi::Runtime& rt, std::shared_ptr<Ca
                                                                       }
                                                                       return jsi::Value(0.0);
                                                                   }));
+
+    // Alias pour la compatibilité TS
+    turboModule.setProperty(
+        rt, "processMono",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "processMono"), 1,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 1 && args[0].isObject()) {
+                    auto inputArray = args[0].asObject(rt).asArray(rt);
+                    return module->processAudio(rt, inputArray, 1);
+                }
+                return jsi::Value(nullptr);
+            }));
+
+    turboModule.setProperty(
+        rt, "processStereo",
+        jsi::Function::createFromHostFunction(
+            rt, jsi::PropNameID::forUtf8(rt, "processStereo"), 2,
+            [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+                if (count >= 2 && args[0].isObject() && args[1].isObject()) {
+                    auto inputLArray = args[0].asObject(rt).asArray(rt);
+                    auto inputRArray = args[1].asObject(rt).asArray(rt);
+                    return module->processAudioStereo(rt, inputLArray, inputRArray);
+                }
+                return jsi::Value(nullptr);
+            }));
+
+    turboModule.setProperty(rt, "getCurrentPeak",
+                            jsi::Function::createFromHostFunction(
+                                rt, jsi::PropNameID::forUtf8(rt, "getCurrentPeak"), 0,
+                                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                         size_t count) { return module->getCurrentPeakLevel(rt); }));
+
+    turboModule.setProperty(rt, "getCurrentRMS",
+                            jsi::Function::createFromHostFunction(
+                                rt, jsi::PropNameID::forUtf8(rt, "getCurrentRMS"), 0,
+                                [module](jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args,
+                                         size_t count) { return module->getCurrentRMSLevel(rt); }));
 
     // Callbacks
     turboModule.setProperty(
@@ -792,7 +894,7 @@ jsi::Value NativeAudioSafetyModule::install(jsi::Runtime& rt, std::shared_ptr<Ca
 
 void NativeAudioSafetyModule::initializeManagers() {
     // Créer le callback manager
-    callbackManager_ = std::make_shared<JSICallbackManager>();
+    callbackManager_ = std::make_shared<JSICallbackManager>(jsInvoker_);
 
     // Créer le safety manager
     safetyManager_ = std::make_unique<SafetyManager>(callbackManager_);
@@ -833,8 +935,8 @@ void NativeAudioSafetyModule::invalidateRuntime() {
     }
 }
 
-void NativeAudioSafetyModule::handleError(Nyth::Audio::SafetyError error, const std::string& message) {
-    currentState_ = Nyth::Audio::SafetyState::ERROR;
+void NativeAudioSafetyModule::handleError(SafetyError error, const std::string& message) {
+    currentState_ = SafetyState::ERROR;
 
     // Notifier via callback si disponible
     if (callbackManager_ && runtimeValid_.load()) {
@@ -842,15 +944,15 @@ void NativeAudioSafetyModule::handleError(Nyth::Audio::SafetyError error, const 
     }
 }
 
-std::string NativeAudioSafetyModule::stateToString(Nyth::Audio::SafetyState state) const {
-    return Nyth::Audio::stateToString(state);
+std::string NativeAudioSafetyModule::stateToString(SafetyState state) const {
+    return stateToString(state);
 }
 
-std::string NativeAudioSafetyModule::errorToString(Nyth::Audio::SafetyError error) const {
-    return Nyth::Audio::errorToString(error);
+std::string NativeAudioSafetyModule::errorToString(SafetyError error) const {
+    return errorToString(error);
 }
 
-void NativeAudioSafetyModule::onStatisticsUpdate(const Nyth::Audio::SafetyStatistics& stats) {
+void NativeAudioSafetyModule::onStatisticsUpdate(const SafetyStatistics& stats) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
             callbackManager_->invokeCallback("statistics", [this, stats](jsi::Runtime& rt) {
@@ -903,7 +1005,7 @@ void NativeAudioSafetyModule::onError(const std::string& error) {
     }
 }
 
-void NativeAudioSafetyModule::onStateChange(Nyth::Audio::SafetyState oldState, Nyth::Audio::SafetyState newState) {
+void NativeAudioSafetyModule::onStateChange(SafetyState oldState, SafetyState newState) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
             callbackManager_->invokeCallback("stateChange", [oldState, newState, this](jsi::Runtime& rt) {
@@ -920,7 +1022,7 @@ void NativeAudioSafetyModule::onStateChange(Nyth::Audio::SafetyState oldState, N
     }
 }
 
-void NativeAudioSafetyModule::onReportUpdate(const Nyth::Audio::SafetyReport& report) {
+void NativeAudioSafetyModule::onReportUpdate(const SafetyReport& report) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
             callbackManager_->invokeCallback("report", [this, report](jsi::Runtime& rt) {
@@ -933,23 +1035,23 @@ void NativeAudioSafetyModule::onReportUpdate(const Nyth::Audio::SafetyReport& re
     }
 }
 
-bool NativeAudioSafetyModule::validateConfig(const Nyth::Audio::SafetyConfig& config) const {
+bool NativeAudioSafetyModule::validateConfig(const SafetyConfig& config) const {
     return config.isValid();
 }
 
 void NativeAudioSafetyModule::setupCallbacks() {
     if (safetyManager_) {
-        safetyManager_->setStateCallback([this](Nyth::Audio::SafetyState oldState, Nyth::Audio::SafetyState newState) {
+        safetyManager_->setStateCallback([this](SafetyState oldState, SafetyState newState) {
             this->onStateChange(oldState, newState);
         });
 
         safetyManager_->setErrorCallback(
-            [this](Nyth::Audio::SafetyError error, const std::string& message) { this->handleError(error, message); });
+            [this](SafetyError error, const std::string& message) { this->handleError(error, message); });
     }
 }
 
 void NativeAudioSafetyModule::resetBuffers() {
-    size_t maxFrameSize = Nyth::Audio::SafetyLimits::MAX_FRAME_SIZE * config_.channels;
+    size_t maxFrameSize = SafetyLimits::MAX_FRAME_SIZE * config_.channels;
     workBufferL_.resize(maxFrameSize);
     workBufferR_.resize(maxFrameSize);
     tempBuffer_.resize(maxFrameSize);
@@ -974,4 +1076,3 @@ JSI_EXPORT std::shared_ptr<facebook::react::TurboModule> NativeAudioSafetyModule
 
 } // namespace react
 } // namespace facebook
-

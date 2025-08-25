@@ -1,5 +1,6 @@
 #include "NoiseManager.h"
 #include "../../common/jsi/JSICallbackManager.h"
+#include "../../common/config/NoiseContants.hpp"
 
 namespace facebook {
 namespace react {
@@ -93,7 +94,8 @@ bool NoiseManager::setAlgorithm(Nyth::Audio::NoiseAlgorithm algorithm) {
 bool NoiseManager::setAggressiveness(float aggressiveness) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    if (aggressiveness < 0.0f || aggressiveness > 3.0f) {
+    if (aggressiveness < NoiseManagerConstants::MIN_AGGRESSIVENESS ||
+        aggressiveness > NoiseManagerConstants::MAX_AGGRESSIVENESS) {
         return false;
     }
 
@@ -487,7 +489,7 @@ void NoiseManager::updateStatistics(const float* input, const float* output, siz
 
     if (input) {
         // Calcul du niveau d'entrée
-        float inputLevel = 0.0f;
+        float inputLevel = NoiseManagerConstants::DEFAULT_RESET_VALUE;
         for (size_t i = 0; i < frameCount * channels; ++i) {
             inputLevel = std::max(inputLevel, std::abs(input[i]));
         }
@@ -499,23 +501,26 @@ void NoiseManager::updateStatistics(const float* input, const float* output, siz
 
     if (output) {
         // Calcul du niveau de sortie
-        float outputLevel = 0.0f;
+        float outputLevel = NoiseManagerConstants::DEFAULT_RESET_VALUE;
         for (size_t i = 0; i < frameCount * channels; ++i) {
             outputLevel = std::max(outputLevel, std::abs(output[i]));
         }
         currentStats_.outputLevel = outputLevel;
 
         // Calcul du SNR estimé (simplifié)
-        if (currentStats_.inputLevel > 0.0f) {
-            currentStats_.estimatedSNR = 20.0f * std::log10(currentStats_.outputLevel / currentStats_.inputLevel);
+        if (currentStats_.inputLevel > NoiseManagerConstants::DEFAULT_RESET_VALUE) {
+            currentStats_.estimatedSNR = NoiseManagerConstants::SNR_LOG_FACTOR *
+                std::log10(currentStats_.outputLevel / currentStats_.inputLevel);
         }
     }
 
     // Calcul de la probabilité de parole (simplifié)
-    currentStats_.speechProbability = std::min(1.0f, currentStats_.inputLevel / 0.1f);
+    currentStats_.speechProbability = std::min(1.0f,
+        currentStats_.inputLevel / NoiseManagerConstants::SPEECH_THRESHOLD_LEVEL);
 
     // Mise à jour du niveau de bruit musical (estimation simplifiée)
-    currentStats_.musicalNoiseLevel = std::max(0.0f, currentStats_.inputLevel - currentStats_.outputLevel);
+    currentStats_.musicalNoiseLevel = std::max(NoiseManagerConstants::DEFAULT_RESET_VALUE,
+        currentStats_.inputLevel - currentStats_.outputLevel);
 
     // Notification du callback
     notifyStatisticsCallback();
@@ -528,7 +533,9 @@ void NoiseManager::notifyStatisticsCallback() {
 
     // Notification via JSICallbackManager si disponible
     if (callbackManager_) {
-        // TODO: Implémenter la notification via callback manager
+        // Formater les statistiques en JSON pour JavaScript
+        std::string statsJson = formatStatisticsToJSON(currentStats_);
+        callbackManager_->notifyStatistics(statsJson);
     }
 }
 
@@ -541,7 +548,8 @@ void NoiseManager::handleError(const std::string& error) {
     currentState_ = Nyth::Audio::NoiseState::ERROR;
 
     if (callbackManager_) {
-        // TODO: Implémenter la gestion d'erreur via callback manager
+        // Notifier l'erreur via callback manager
+        callbackManager_->notifyError(error);
     }
 }
 
@@ -555,6 +563,191 @@ float NoiseManager::calculateRMS(const float* data, size_t size) const {
     }
 
     return std::sqrt(sum / size);
+}
+
+std::string NoiseManager::formatStatisticsToJSON(const Nyth::Audio::NoiseStatistics& stats) const {
+    // Formater les statistiques en JSON simple pour JavaScript
+    std::string json = "{";
+    json += "\"inputLevel\":" + std::to_string(stats.inputLevel) + ",";
+    json += "\"outputLevel\":" + std::to_string(stats.outputLevel) + ",";
+    json += "\"estimatedSNR\":" + std::to_string(stats.estimatedSNR) + ",";
+    json += "\"noiseReductionDB\":" + std::to_string(stats.noiseReductionDB) + ",";
+    json += "\"processedFrames\":" + std::to_string(stats.processedFrames) + ",";
+    json += "\"processedSamples\":" + std::to_string(stats.processedSamples) + ",";
+    json += "\"durationMs\":" + std::to_string(stats.durationMs) + ",";
+    json += "\"speechProbability\":" + std::to_string(stats.speechProbability) + ",";
+    json += "\"musicalNoiseLevel\":" + std::to_string(stats.musicalNoiseLevel);
+    json += "}";
+
+    return json;
+}
+
+// === Implémentations SIMD ===
+
+bool NoiseManager::processAudio_SIMD(const float* input, float* output, size_t frameCount, int channels) {
+    if (!isInitialized_.load() || !isProcessing_.load()) {
+        if (input != output) {
+            if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
+                std::memcpy(output, input, frameCount * channels * sizeof(float));
+            } else {
+                std::copy(input, input + frameCount * channels, output);
+            }
+        }
+        return true;
+    }
+
+    if (!input || !output || frameCount == 0) {
+        return false;
+    }
+
+    try {
+        // Utiliser SIMD si disponible et taille suffisante
+        if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() &&
+            frameCount >= NoiseManagerConstants::SIMD_MIN_SIZE) {
+            // Pré-traitement SIMD
+            if (channels == 1) {
+                // Copie SIMD
+                std::memcpy(output, input, frameCount * sizeof(float));
+
+                // Appliquer la réduction de bruit avec SIMD
+                applyNoiseReduction_SIMD(output, frameCount);
+
+                // Normalisation SIMD
+                if (config_.autoNormalize) {
+                    AudioNR::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(
+                        output, frameCount, config_.targetLevel);
+                }
+            } else {
+                // Traitement multi-canaux SIMD
+                size_t totalSamples = frameCount * channels;
+                std::vector<float> tempBuffer(totalSamples);
+
+                // Copie entrelacée SIMD
+                std::memcpy(tempBuffer.data(), input, totalSamples * sizeof(float));
+
+                // Appliquer la réduction de bruit avec SIMD
+                applyNoiseReduction_SIMD(tempBuffer.data(), totalSamples);
+
+                // Normalisation SIMD
+                if (config_.autoNormalize) {
+                    AudioNR::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(
+                        tempBuffer.data(), totalSamples, config_.targetLevel);
+                }
+
+                // Copie vers output
+                std::memcpy(output, tempBuffer.data(), totalSamples * sizeof(float));
+            }
+
+            return true;
+        } else {
+            // Version standard
+            return processAudio(input, output, frameCount, channels);
+        }
+    } catch (const std::exception& e) {
+        handleError("SIMD noise processing failed: " + std::string(e.what()));
+        return false;
+    }
+}
+
+bool NoiseManager::processAudioStereo_SIMD(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                         size_t frameCount) {
+    if (!isInitialized_.load() || !isProcessing_.load()) {
+        if (inputL != outputL) {
+            if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
+                std::memcpy(outputL, inputL, frameCount * sizeof(float));
+                std::memcpy(outputR, inputR, frameCount * sizeof(float));
+            } else {
+                std::copy(inputL, inputL + frameCount, outputL);
+                std::copy(inputR, inputR + frameCount, outputR);
+            }
+        }
+        return true;
+    }
+
+    if (!inputL || !inputR || !outputL || !outputR || frameCount == 0) {
+        return false;
+    }
+
+    try {
+        // Utiliser SIMD si disponible et taille suffisante
+        if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() &&
+            frameCount >= NoiseManagerConstants::SIMD_MIN_SIZE) {
+            // Copie SIMD
+            std::memcpy(outputL, inputL, frameCount * sizeof(float));
+            std::memcpy(outputR, inputR, frameCount * sizeof(float));
+
+            // Appliquer la réduction de bruit SIMD sur chaque canal
+            applyNoiseReduction_SIMD(outputL, frameCount);
+            applyNoiseReduction_SIMD(outputR, frameCount);
+
+            // Normalisation SIMD
+            if (config_.autoNormalize) {
+                AudioNR::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(
+                    outputL, frameCount, config_.targetLevel);
+                AudioNR::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(
+                    outputR, frameCount, config_.targetLevel);
+            }
+
+            return true;
+        } else {
+            // Version standard
+            return processAudioStereo(inputL, inputR, outputL, outputR, frameCount);
+        }
+    } catch (const std::exception& e) {
+        handleError("SIMD stereo noise processing failed: " + std::string(e.what()));
+        return false;
+    }
+}
+
+float NoiseManager::analyzeLevel_SIMD(const float* data, size_t count) const {
+    if (!data || count == 0) return 0.0f;
+
+    if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= 64) {
+        return AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(data, count);
+    } else {
+        // Version standard
+        float sum = 0.0f;
+        for (size_t i = 0; i < count; ++i) {
+            sum += data[i] * data[i];
+        }
+        return std::sqrt(sum / count);
+    }
+}
+
+// Méthode helper pour appliquer la réduction de bruit SIMD
+void NoiseManager::applyNoiseReduction_SIMD(float* data, size_t count) {
+    if (!data || count == 0) return;
+
+    // Appliquer des filtres anti-bruit SIMD selon l'algorithme
+    switch (config_.algorithm) {
+        case Nyth::Audio::NoiseAlgorithm::SPECTRAL_SUBTRACTION:
+            // Filtre spectral simple SIMD
+            AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(data, count, config_.aggressiveness);
+            break;
+
+        case Nyth::Audio::NoiseAlgorithm::WIENER_FILTER:
+            // Filtre Wiener SIMD
+            if (count >= NoiseManagerConstants::SIMD_STEREO_MIN_SIZE) {
+                // Appliquer un filtre passe-bas pour réduire le bruit haute fréquence
+                AudioNR::SIMD::SIMDMathFunctions::apply_lowpass_filter(
+                    data, count, NoiseManagerConstants::LOWPASS_CUTOFF_FREQUENCY, config_.sampleRate);
+            }
+            break;
+
+        case Nyth::Audio::NoiseAlgorithm::MULTIBAND:
+            // Réduction multi-bande SIMD
+            if (count >= NoiseManagerConstants::SIMD_MULTIBAND_MIN_SIZE) {
+                // Appliquer différents niveaux de réduction selon les bandes
+                AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(data, count,
+                    config_.aggressiveness * NoiseManagerConstants::MULTIBAND_REDUCTION_FACTOR);
+            }
+            break;
+
+        default:
+            // Réduction par défaut SIMD
+            AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(data, count, config_.aggressiveness);
+            break;
+    }
 }
 
 } // namespace react

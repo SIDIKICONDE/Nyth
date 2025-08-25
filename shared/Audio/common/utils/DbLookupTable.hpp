@@ -7,7 +7,7 @@
 #include <cmath>
 
 
-namespace AudioFX {
+namespace Nyth { namespace Audio { namespace FX {
 
 /**
  * @brief High-performance lookup table for dB ↔ linear conversions
@@ -292,6 +292,6 @@ inline float ultrafast_db_to_linear(float db) noexcept {
 }
 } // namespace FastMath
 
-} // namespace AudioFX
+} // namespace Nyth { namespace Audio { namespace FX
 
 #endif // DB_LOOKUP_TABLE_HPP

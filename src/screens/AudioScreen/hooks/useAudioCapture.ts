@@ -61,8 +61,12 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
   );
   const [hasPermission, setHasPermission] = useState(false);
   const [statistics, setStatistics] = useState<CaptureStatistics | null>(null);
-  const [availableDevices, setAvailableDevices] = useState<AudioDeviceInfo[]>([]);
-  const [currentDevice, setCurrentDevice] = useState<AudioDeviceInfo | null>(null);
+  const [availableDevices, setAvailableDevices] = useState<AudioDeviceInfo[]>(
+    [],
+  );
+  const [currentDevice, setCurrentDevice] = useState<AudioDeviceInfo | null>(
+    null,
+  );
   const [isSilent, setIsSilent] = useState(false);
   const [hasClipping, setHasClipping] = useState(false);
   const [rmsLevel, setRmsLevel] = useState(0);
@@ -78,78 +82,93 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fonction utilitaire pour créer des erreurs structurées
-  const createError = useCallback((
-    code: string,
-    message: string,
-    context?: string
-  ): AudioCaptureError => {
-    const error: AudioCaptureError = {
-      code,
-      message,
-      timestamp: Date.now(),
-      context,
-    };
+  const createError = useCallback(
+    (code: string, message: string, context?: string): AudioCaptureError => {
+      const error: AudioCaptureError = {
+        code,
+        message,
+        timestamp: Date.now(),
+        context,
+      };
 
-    setLastError(error);
-    setErrorCount(prev => prev + 1);
+      setLastError(error);
+      setErrorCount(prev => prev + 1);
 
-    logger.error(`❌ Erreur audio [${code}]: ${message}` + (context ? ` (${context})` : ''));
-    return error;
-  }, []);
+      logger.error(
+        `❌ Erreur audio [${code}]: ${message}` +
+          (context ? ` (${context})` : ''),
+      );
+      return error;
+    },
+    [],
+  );
 
   // Fonction de récupération d'erreur
-  const attemptRecovery = useCallback(async (error: AudioCaptureError) => {
-    if (!enableErrorRecovery || retryCount >= maxRetryAttempts) {
-      logger.warn('🚫 Récupération impossible - nombre maximum de tentatives atteint');
-      return false;
-    }
-
-    setIsRecovering(true);
-    setRetryCount(prev => prev + 1);
-
-    logger.info(`🔄 Tentative de récupération ${retryCount + 1}/${maxRetryAttempts}...`);
-
-    try {
-      // Arrêter tout ce qui est en cours
-      if (isRecording) {
-        await new Promise<void>((resolve) => {
-          NativeAudioCaptureModule.stopRecording();
-          setTimeout(resolve, 100);
-        });
+  const attemptRecovery = useCallback(
+    async (error: AudioCaptureError) => {
+      if (!enableErrorRecovery || retryCount >= maxRetryAttempts) {
+        logger.warn(
+          '🚫 Récupération impossible - nombre maximum de tentatives atteint',
+        );
+        return false;
       }
 
-      // Nettoyer les ressources
-      NativeAudioCaptureModule.dispose();
+      setIsRecovering(true);
+      setRetryCount(prev => prev + 1);
 
-      // Attendre un moment avant de réessayer
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      logger.info(
+        `🔄 Tentative de récupération ${retryCount + 1}/${maxRetryAttempts}...`,
+      );
 
-      // Réinitialiser l'état
-      setIsInitialized(false);
-      setIsRecording(false);
-      setIsPaused(false);
-      setCaptureState('uninitialized');
+      try {
+        // Arrêter tout ce qui est en cours
+        if (isRecording) {
+          await new Promise<void>(resolve => {
+            NativeAudioCaptureModule.stopRecording();
+            setTimeout(resolve, 100);
+          });
+        }
 
-      // Tenter de réinitialiser
-      const success = await initialize();
+        // Nettoyer les ressources
+        NativeAudioCaptureModule.dispose();
 
-      if (success) {
-        logger.info('✅ Récupération réussie');
-        setRetryCount(0);
-        setLastError(null);
-        setIsRecovering(false);
-        return true;
-      } else {
-        logger.warn('❌ Échec de la récupération');
+        // Attendre un moment avant de réessayer
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Réinitialiser l'état
+        setIsInitialized(false);
+        setIsRecording(false);
+        setIsPaused(false);
+        setCaptureState('uninitialized');
+
+        // Tenter de réinitialiser
+        const success = await initialize();
+
+        if (success) {
+          logger.info('✅ Récupération réussie');
+          setRetryCount(0);
+          setLastError(null);
+          setIsRecovering(false);
+          return true;
+        } else {
+          logger.warn('❌ Échec de la récupération');
+          setIsRecovering(false);
+          return false;
+        }
+      } catch (recoveryError) {
+        logger.error('❌ Erreur lors de la récupération:', recoveryError);
         setIsRecovering(false);
         return false;
       }
-    } catch (recoveryError) {
-      logger.error('❌ Erreur lors de la récupération:', recoveryError);
-      setIsRecovering(false);
-      return false;
-    }
-  }, [enableErrorRecovery, retryCount, maxRetryAttempts, isRecording, createError]);
+    },
+    [
+      enableErrorRecovery,
+      retryCount,
+      maxRetryAttempts,
+      isRecording,
+      createError,
+    ],
+  );
 
   // Initialiser le module
   const initialize = useCallback(async () => {
@@ -158,18 +177,19 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
 
       // Vérifier les permissions sur mobile
       if (Platform.OS !== 'web') {
-        const permissionGranted = await new Promise<boolean>((resolve) => {
-          NativeAudioCaptureModule.requestPermission((granted) => {
-            setHasPermission(granted);
-            resolve(granted);
-          });
-        });
+<<<<<<< Current (Your changes)
+        const permissionGranted =
+          await NativeAudioCaptureModule.requestPermission();
+=======
+        const permissionGranted = await NativeAudioCaptureModule.requestPermission();
+>>>>>>> Incoming (Background Agent changes)
+        setHasPermission(permissionGranted);
 
         if (!permissionGranted) {
           const error = createError(
             'PERMISSION_DENIED',
             'Permission microphone refusée',
-            'initialize'
+            'initialize',
           );
           onError?.(error);
           Alert.alert(
@@ -189,11 +209,11 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
 
         // Configurer les callbacks
         if (onError) {
-          NativeAudioCaptureModule.setErrorCallback((nativeError) => {
+          NativeAudioCaptureModule.setErrorCallback(nativeError => {
             const error = createError(
               'NATIVE_MODULE_ERROR',
               nativeError,
-              'native_callback'
+              'native_callback',
             );
             onError(error);
 
@@ -235,7 +255,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       const audioError = createError(
         'INITIALIZATION_FAILED',
         `Erreur lors de l'initialisation: ${String(error)}`,
-        'initialize'
+        'initialize',
       );
       onError?.(audioError);
 
@@ -246,7 +266,15 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
 
       return false;
     }
-  }, [config, onError, onStateChange, onAnalysis, createError, attemptRecovery, enableErrorRecovery]);
+  }, [
+    config,
+    onError,
+    onStateChange,
+    onAnalysis,
+    createError,
+    attemptRecovery,
+    enableErrorRecovery,
+  ]);
 
   // Démarrer l'enregistrement
   const startRecording = useCallback(
@@ -306,7 +334,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
         const audioError = createError(
           'RECORDING_FAILED',
           `Erreur lors du démarrage de l'enregistrement: ${String(error)}`,
-          'startRecording'
+          'startRecording',
         );
         onError?.(audioError);
         return false;
@@ -346,7 +374,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       const audioError = createError(
         'STOP_RECORDING_FAILED',
         `Erreur lors de l'arrêt de l'enregistrement: ${String(error)}`,
-        'stopRecording'
+        'stopRecording',
       );
       onError?.(audioError);
       return false;
@@ -366,7 +394,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       const audioError = createError(
         'PAUSE_RECORDING_FAILED',
         `Erreur lors de la mise en pause: ${String(error)}`,
-        'pauseRecording'
+        'pauseRecording',
       );
       onError?.(audioError);
       return false;
@@ -386,7 +414,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       const audioError = createError(
         'RESUME_RECORDING_FAILED',
         `Erreur lors de la reprise: ${String(error)}`,
-        'resumeRecording'
+        'resumeRecording',
       );
       onError?.(audioError);
       return false;
@@ -399,7 +427,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       try {
         logger.debug('📊 Analyse du fichier audio:', filePath);
         return new Promise((resolve, reject) => {
-          NativeAudioCaptureModule.analyzeAudioFile(filePath, (analysis) => {
+          NativeAudioCaptureModule.analyzeAudioFile(filePath, analysis => {
             logger.debug('✅ Analyse terminée:', analysis);
             resolve(analysis);
           });
@@ -408,7 +436,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
         const audioError = createError(
           'ANALYSIS_FAILED',
           `Erreur lors de l'analyse: ${String(error)}`,
-          'analyzeAudioFile'
+          'analyzeAudioFile',
         );
         onError?.(audioError);
         return null;
@@ -418,46 +446,52 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
   );
 
   // Sélectionner un périphérique audio
-  const selectDevice = useCallback((deviceId: string) => {
-    try {
-      const success = NativeAudioCaptureModule.selectDevice(deviceId);
-      if (success) {
-        const currentDev = NativeAudioCaptureModule.getCurrentDevice();
-        setCurrentDevice(currentDev);
-        logger.debug('✅ Périphérique audio sélectionné:', currentDev?.name);
+  const selectDevice = useCallback(
+    (deviceId: string) => {
+      try {
+        const success = NativeAudioCaptureModule.selectDevice(deviceId);
+        if (success) {
+          const currentDev = NativeAudioCaptureModule.getCurrentDevice();
+          setCurrentDevice(currentDev);
+          logger.debug('✅ Périphérique audio sélectionné:', currentDev?.name);
+        }
+        return success;
+      } catch (error) {
+        const audioError = createError(
+          'DEVICE_SELECTION_FAILED',
+          `Erreur lors de la sélection du périphérique: ${String(error)}`,
+          'selectDevice',
+        );
+        onError?.(audioError);
+        return false;
       }
-      return success;
-    } catch (error) {
-      const audioError = createError(
-        'DEVICE_SELECTION_FAILED',
-        `Erreur lors de la sélection du périphérique: ${String(error)}`,
-        'selectDevice'
-      );
-      onError?.(audioError);
-      return false;
-    }
-  }, [onError, createError]);
+    },
+    [onError, createError],
+  );
 
   // Mettre à jour la configuration
-  const updateConfig = useCallback((newConfig: Partial<AudioCaptureConfig>) => {
-    try {
-      const currentConfig = NativeAudioCaptureModule.getConfig();
-      const updatedConfig = { ...currentConfig, ...newConfig };
-      const success = NativeAudioCaptureModule.updateConfig(updatedConfig);
-      if (success) {
-        logger.debug('✅ Configuration audio mise à jour:', newConfig);
+  const updateConfig = useCallback(
+    (newConfig: Partial<AudioCaptureConfig>) => {
+      try {
+        const currentConfig = NativeAudioCaptureModule.getConfig();
+        const updatedConfig = { ...currentConfig, ...newConfig };
+        const success = NativeAudioCaptureModule.updateConfig(updatedConfig);
+        if (success) {
+          logger.debug('✅ Configuration audio mise à jour:', newConfig);
+        }
+        return success;
+      } catch (error) {
+        const audioError = createError(
+          'CONFIG_UPDATE_FAILED',
+          `Erreur lors de la mise à jour de la configuration: ${String(error)}`,
+          'updateConfig',
+        );
+        onError?.(audioError);
+        return false;
       }
-      return success;
-    } catch (error) {
-      const audioError = createError(
-        'CONFIG_UPDATE_FAILED',
-        `Erreur lors de la mise à jour de la configuration: ${String(error)}`,
-        'updateConfig'
-      );
-      onError?.(audioError);
-      return false;
-    }
-  }, [onError, createError]);
+    },
+    [onError, createError],
+  );
 
   // Réinitialiser les statistiques
   const resetStatistics = useCallback(() => {
@@ -469,7 +503,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       const audioError = createError(
         'STATISTICS_RESET_FAILED',
         `Erreur lors de la réinitialisation des statistiques: ${String(error)}`,
-        'resetStatistics'
+        'resetStatistics',
       );
       onError?.(audioError);
     }
@@ -484,8 +518,10 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
     } catch (error) {
       const audioError = createError(
         'PEAK_RESET_FAILED',
-        `Erreur lors de la réinitialisation du niveau de crête: ${String(error)}`,
-        'resetPeakLevel'
+        `Erreur lors de la réinitialisation du niveau de crête: ${String(
+          error,
+        )}`,
+        'resetPeakLevel',
       );
       onError?.(audioError);
     }

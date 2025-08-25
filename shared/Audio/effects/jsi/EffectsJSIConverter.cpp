@@ -190,7 +190,7 @@ jsi::Object EffectsJSIConverter::processingMetricsToJS(jsi::Runtime& rt,
 }
 
 jsi::Object EffectsJSIConverter::compressorMetricsToJS(jsi::Runtime& rt,
-                                                       const AudioFX::CompressorEffect::CompressorMetrics& metrics) {
+                                                       const Nyth::Audio::FX::CompressorEffect::CompressorMetrics& metrics) {
     jsi::Object jsMetrics(rt);
 
     jsMetrics.setProperty(rt, "inputLevel", jsi::Value(metrics.inputLevel));
@@ -202,7 +202,7 @@ jsi::Object EffectsJSIConverter::compressorMetricsToJS(jsi::Runtime& rt,
     return jsMetrics;
 }
 
-jsi::Object EffectsJSIConverter::delayMetricsToJS(jsi::Runtime& rt, const AudioFX::DelayEffect::DelayMetrics& metrics) {
+jsi::Object EffectsJSIConverter::delayMetricsToJS(jsi::Runtime& rt, const Nyth::Audio::FX::DelayEffect::DelayMetrics& metrics) {
     jsi::Object jsMetrics(rt);
 
     jsMetrics.setProperty(rt, "inputLevel", jsi::Value(metrics.inputLevel));

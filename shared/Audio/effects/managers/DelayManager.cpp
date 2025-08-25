@@ -21,7 +21,7 @@ bool DelayManager::initialize(const Nyth::Audio::EffectsConfig& config) {
 
     try {
         // Créer l'effet delay AudioFX
-        delay_ = std::make_unique<AudioFX::DelayEffect>();
+        delay_ = std::make_unique<Nyth::Audio::FX::DelayEffect>();
 
         // Configuration initiale
         config_ = config;

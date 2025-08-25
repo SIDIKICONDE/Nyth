@@ -97,7 +97,7 @@ private:
     std::vector<float> time_;
 
     // FFT engine (pluggable: KissFFT or fallback radix-2)
-    std::unique_ptr<AudioFX::IFFTEngine> fftEngine_;
+    std::unique_ptr<Nyth::Audio::FX::IFFTEngine> fftEngine_;
     void buildWindow();
 
     // FFT helpers

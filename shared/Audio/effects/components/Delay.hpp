@@ -13,7 +13,7 @@
 #include "EffectBase.hpp"
 #include "../../common/config/EffectConstants.hpp"
 
-namespace AudioFX {
+namespace Nyth { namespace Audio { namespace FX {
 
 class DelayEffect final : public IAudioEffect {
 public:
@@ -36,18 +36,34 @@ public:
         return DelayMetrics{
             .inputLevel = 20.0f * std::log10(std::max(0.1f, 1.0f)), // Estimation
             .outputLevel = 20.0f * std::log10(std::max(0.1f, 1.0f)), // Estimation
-            .feedbackLevel = 20.0f * std::log10(std::max(static_cast<double>(AudioFX::EPSILON_DB), static_cast<double>(feedback_))),
+            .feedbackLevel = 20.0f * std::log10(std::max(static_cast<double>(Nyth::Audio::FX::EPSILON_DB), static_cast<double>(feedback_))),
             .wetLevel = static_cast<float>(mix_),
-            .isActive = isEnabled() && (mix_ > AudioFX::MIX_THRESHOLD)
+            .isActive = isEnabled() && (mix_ > Nyth::Audio::FX::MIX_THRESHOLD)
         };
     }
     void setParameters(double delayMs, double feedback, double mix) noexcept {
-        delayMs_ = (delayMs > AudioFX::MIN_DELAY_VALUE) ? delayMs : AudioFX::MIN_DELAY_VALUE;
-        feedback_ = (feedback < AudioFX::MIN_FEEDBACK)   ? AudioFX::MIN_FEEDBACK
-                    : (feedback > AudioFX::MAX_FEEDBACK) ? AudioFX::MAX_FEEDBACK
+        delayMs_ = (delayMs > Nyth::Audio::FX::MIN_DELAY_VALUE) ? delayMs : Nyth::Audio::FX::MIN_DELAY_VALUE;
+        feedback_ = (feedback < Nyth::Audio::FX::MIN_FEEDBACK)   ? Nyth::Audio::FX::MIN_FEEDBACK
+                    : (feedback > Nyth::Audio::FX::MAX_FEEDBACK) ? Nyth::Audio::FX::MAX_FEEDBACK
                                                          : feedback;
-        mix_ = (mix < AudioFX::MIN_MIX) ? AudioFX::MIN_MIX : (mix > AudioFX::MAX_MIX) ? AudioFX::MAX_MIX : mix;
+        mix_ = (mix < Nyth::Audio::FX::MIN_MIX) ? Nyth::Audio::FX::MIN_MIX : (mix > Nyth::Audio::FX::MAX_MIX) ? Nyth::Audio::FX::MAX_MIX : mix;
         updateBuffers();
+    }
+
+    // Structure pour récupérer les paramètres actuels
+    struct DelayParameters {
+        float delayMs;
+        float feedback;
+        float mix;
+    };
+
+    // === Getter pour récupérer les paramètres actuels ===
+    DelayParameters getParameters() const noexcept {
+        return DelayParameters{
+            .delayMs = static_cast<float>(delayMs_),
+            .feedback = static_cast<float>(feedback_),
+            .mix = static_cast<float>(mix_)
+        };
     }
 
     void setSampleRate(uint32_t sampleRate, int numChannels) noexcept override {
@@ -87,7 +103,7 @@ public:
 
     // Legacy methods (call the modern versions for C++17)
     void processMono(const float* input, float* output, size_t numSamples) override {
-        if (!isEnabled() || mix_ <= AudioFX::MIX_THRESHOLD || !input || !output || numSamples == 0) {
+        if (!isEnabled() || mix_ <= Nyth::Audio::FX::MIX_THRESHOLD || !input || !output || numSamples == 0) {
             if (output != input && input && output) {
                 std::copy_n(input, numSamples, output);
             }
@@ -112,7 +128,7 @@ public:
     }
 
     void processStereo(const float* inL, const float* inR, float* outL, float* outR, size_t numSamples) override {
-        if (!isEnabled() || mix_ <= AudioFX::MIX_THRESHOLD || !inL || !inR || !outL || !outR || numSamples == 0) {
+        if (!isEnabled() || mix_ <= Nyth::Audio::FX::MIX_THRESHOLD || !inL || !inR || !outL || !outR || numSamples == 0) {
             if (outL != inL && inL && outL)
                 for (size_t i = 0; i < numSamples; ++i)
                     outL[i] = inL[i];
@@ -144,28 +160,28 @@ private:
     void updateBuffers() noexcept {
         ensureState(channels_);
         size_t maxDelaySamples =
-            static_cast<size_t>(std::round(delayMs_ * AudioFX::MS_TO_SECONDS_DELAY * static_cast<double>(sampleRate_)));
-        if (maxDelaySamples < AudioFX::MIN_DELAY_SAMPLES)
-            maxDelaySamples = AudioFX::MIN_DELAY_SAMPLES;
-        if (maxDelaySamples > AudioFX::MAX_DELAY_SECONDS * AudioFX::REFERENCE_SAMPLE_RATE)
-            maxDelaySamples = AudioFX::MAX_DELAY_SECONDS * AudioFX::REFERENCE_SAMPLE_RATE; // clamp 4s max
+            static_cast<size_t>(std::round(delayMs_ * Nyth::Audio::FX::MS_TO_SECONDS_DELAY * static_cast<double>(sampleRate_)));
+        if (maxDelaySamples < Nyth::Audio::FX::MIN_DELAY_SAMPLES)
+            maxDelaySamples = Nyth::Audio::FX::MIN_DELAY_SAMPLES;
+        if (maxDelaySamples > Nyth::Audio::FX::MAX_DELAY_SECONDS * Nyth::Audio::FX::REFERENCE_SAMPLE_RATE)
+            maxDelaySamples = Nyth::Audio::FX::MAX_DELAY_SECONDS * Nyth::Audio::FX::REFERENCE_SAMPLE_RATE; // clamp 4s max
         for (int ch = 0; ch < channels_; ++ch) {
-            buffer_[ch].assign(maxDelaySamples, AudioFX::BUFFER_INIT_VALUE);
+            buffer_[ch].assign(maxDelaySamples, Nyth::Audio::FX::BUFFER_INIT_VALUE);
         }
         // set read/write offset
-        writeIndex_ = AudioFX::DEFAULT_INDEX;
-        readIndex_ = (maxDelaySamples + writeIndex_ - AudioFX::MIN_DELAY_SAMPLES) %
+        writeIndex_ = Nyth::Audio::FX::DEFAULT_INDEX;
+        readIndex_ = (maxDelaySamples + writeIndex_ - Nyth::Audio::FX::MIN_DELAY_SAMPLES) %
                      maxDelaySamples; // ~delay of N-1 samples initially
     }
 
     void ensureState(int requiredChannels) {
         if (static_cast<int>(buffer_.size()) != requiredChannels) {
             buffer_.assign(static_cast<size_t>(requiredChannels), std::vector<float>());
-            writeIndex_ = readIndex_ = AudioFX::DEFAULT_INDEX;
+            writeIndex_ = readIndex_ = Nyth::Audio::FX::DEFAULT_INDEX;
         }
         for (auto& b : buffer_)
             if (b.empty())
-                b.assign(AudioFX::DEFAULT_BUFFER_SIZE, AudioFX::BUFFER_INIT_VALUE);
+                b.assign(Nyth::Audio::FX::DEFAULT_BUFFER_SIZE, Nyth::Audio::FX::BUFFER_INIT_VALUE);
     }
 
     inline void incrementIndices(size_t maxN) noexcept {
@@ -178,14 +194,14 @@ private:
     }
 
     // params
-    double delayMs_ = AudioFX::DEFAULT_DELAY_MS;
-    double feedback_ = AudioFX::DEFAULT_FEEDBACK;
-    double mix_ = AudioFX::DEFAULT_MIX;
+    double delayMs_ = Nyth::Audio::FX::DEFAULT_DELAY_MS;
+    double feedback_ = Nyth::Audio::FX::DEFAULT_FEEDBACK;
+    double mix_ = Nyth::Audio::FX::DEFAULT_MIX;
 
     // state
     std::vector<std::vector<float>> buffer_;
-    size_t writeIndex_ = AudioFX::DEFAULT_INDEX;
-    size_t readIndex_ = AudioFX::DEFAULT_INDEX;
+    size_t writeIndex_ = Nyth::Audio::FX::DEFAULT_INDEX;
+    size_t readIndex_ = Nyth::Audio::FX::DEFAULT_INDEX;
 };
 
-} // namespace AudioFX
+} // namespace Nyth { namespace Audio { namespace FX

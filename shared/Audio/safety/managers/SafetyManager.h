@@ -13,6 +13,7 @@
 #include "../config/SafetyConfig.h"
 #include "../components/AudioSafety.hpp"
 #include "../components/AudioSafetyOptimized.hpp"
+#include "../../common/SIMD/SIMDIntegration.hpp"
 
 namespace facebook {
 namespace react {
@@ -42,6 +43,13 @@ public:
     bool processAudio(const float* input, float* output, size_t frameCount, int channels);
     bool processAudioStereo(const float* inputL, const float* inputR, float* outputL, float* outputR,
                             size_t frameCount);
+
+    // === Méthodes SIMD ===
+    bool processAudio_SIMD(const float* input, float* output, size_t frameCount, int channels);
+    bool processAudioStereo_SIMD(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                 size_t frameCount);
+    float analyzePeak_SIMD(const float* data, size_t count) const;
+    float analyzeRMS_SIMD(const float* data, size_t count) const;
 
     // === Analyse et rapports ===
     Nyth::Audio::SafetyReport getLastReport() const;
@@ -74,8 +82,8 @@ public:
 
 private:
     // === Moteurs de sécurité ===
-    std::unique_ptr<AudioSafety::AudioSafetyEngine> safetyEngine_;
-    std::unique_ptr<AudioSafety::AudioSafetyEngineOptimized> optimizedEngine_;
+    std::unique_ptr<Nyth::Audio::AudioSafetyEngine> safetyEngine_;
+    std::unique_ptr<Nyth::Audio::AudioSafetyEngineOptimized> optimizedEngine_;
 
     // === Gestionnaire de callbacks ===
     std::shared_ptr<JSICallbackManager> callbackManager_;
@@ -120,7 +128,7 @@ private:
     Nyth::Audio::SafetyError processStereoInternal(float* left, float* right, size_t frameCount);
 
     // Analyse et statistiques
-    void updateStatistics(const AudioSafety::SafetyReport& nativeReport, double processingTimeMs);
+    void updateStatistics(const Nyth::Audio::SafetyReport& nativeReport, double processingTimeMs);
     void analyzeAudio(const float* input, size_t frameCount, int channels);
     double calculatePeakLevel(const float* data, size_t size) const;
     double calculateRMSLevel(const float* data, size_t size) const;
@@ -143,8 +151,8 @@ private:
     std::string formatProcessingInfo() const;
 
     // Conversion helpers
-    AudioSafety::SafetyConfig convertConfig(const Nyth::Audio::SafetyConfig& src) const;
-    Nyth::Audio::SafetyError convertError(AudioSafety::SafetyError error) const;
+    Nyth::Audio::SafetyConfig convertConfig(const Nyth::Audio::SafetyConfig& src) const;
+    Nyth::Audio::SafetyError convertError(Nyth::Audio::SafetyError error) const;
 };
 
 } // namespace react

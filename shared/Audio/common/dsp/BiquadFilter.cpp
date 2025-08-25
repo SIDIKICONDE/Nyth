@@ -6,21 +6,23 @@
 #include <sstream>
 #include <iomanip>
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 
 // Import des constantes pour éviter la répétition des namespace
 using namespace BiquadConstants;
 
-AudioFX::BiquadFilter::BiquadFilter()
+BiquadFilter::BiquadFilter()
     : m_a0(BiquadConstants::DEFAULT_A0), m_a1(BiquadConstants::DEFAULT_COEFFICIENT), m_a2(BiquadConstants::DEFAULT_COEFFICIENT)
     , m_b1(BiquadConstants::DEFAULT_COEFFICIENT), m_b2(BiquadConstants::DEFAULT_COEFFICIENT)
     , m_y1(BiquadConstants::DEFAULT_COEFFICIENT), m_y2(BiquadConstants::DEFAULT_COEFFICIENT)
     , m_y1R(BiquadConstants::DEFAULT_COEFFICIENT), m_y2R(BiquadConstants::DEFAULT_COEFFICIENT) {
 }
 
-AudioFX::BiquadFilter::~BiquadFilter() = default;
+BiquadFilter::~BiquadFilter() = default;
 
-void AudioFX::BiquadFilter::setCoefficients(double a0, double a1, double a2,
+void BiquadFilter::setCoefficients(double a0, double a1, double a2,
                                   double b0, double b1, double b2) {
     normalizeCoefficients(a0, a1, a2, b0, b1, b2);
     m_a0 = a0;
@@ -30,7 +32,7 @@ void AudioFX::BiquadFilter::setCoefficients(double a0, double a1, double a2,
     m_b2 = b2;
 }
 
-void AudioFX::BiquadFilter::normalizeCoefficients(double& a0, double& a1, double& a2,
+void BiquadFilter::normalizeCoefficients(double& a0, double& a1, double& a2,
                                         double& b0, double& b1, double& b2) {
     if (std::abs(b0) < EPSILON) {
         b0 = BiquadConstants::UNITY_COEFFICIENT;
@@ -44,7 +46,7 @@ void AudioFX::BiquadFilter::normalizeCoefficients(double& a0, double& a1, double
     b2 *= inv_b0;
 }
 
-void AudioFX::BiquadFilter::calculateLowpass(double frequency, double sampleRate, double q) {
+void BiquadFilter::calculateLowpass(double frequency, double sampleRate, double q) {
     double omega = BiquadConstants::TWO_PI_MULTIPLIER * BiquadConstants::PI_PRECISE * frequency / sampleRate;
     double sin_omega = std::sin(omega);
     double cos_omega = std::cos(omega);
@@ -60,7 +62,7 @@ void AudioFX::BiquadFilter::calculateLowpass(double frequency, double sampleRate
     setCoefficients(a0, a1, a2, b0, b1, b2);
 }
 
-void AudioFX::BiquadFilter::calculateHighpass(double frequency, double sampleRate, double q) {
+void BiquadFilter::calculateHighpass(double frequency, double sampleRate, double q) {
     double omega = BiquadConstants::TWO_PI_MULTIPLIER * BiquadConstants::PI_PRECISE * frequency / sampleRate;
     double sin_omega = std::sin(omega);
     double cos_omega = std::cos(omega);
@@ -76,7 +78,7 @@ void AudioFX::BiquadFilter::calculateHighpass(double frequency, double sampleRat
     setCoefficients(a0, a1, a2, b0, b1, b2);
 }
 
-void AudioFX::BiquadFilter::calculateBandpass(double frequency, double sampleRate, double q) {
+void BiquadFilter::calculateBandpass(double frequency, double sampleRate, double q) {
     double omega = BiquadConstants::TWO_PI_MULTIPLIER * BiquadConstants::PI_PRECISE * frequency / sampleRate;
     double sin_omega = std::sin(omega);
     double cos_omega = std::cos(omega);
@@ -92,7 +94,7 @@ void AudioFX::BiquadFilter::calculateBandpass(double frequency, double sampleRat
     setCoefficients(a0, a1, a2, b0, b1, b2);
 }
 
-void AudioFX::BiquadFilter::calculateNotch(double frequency, double sampleRate, double q) {
+void BiquadFilter::calculateNotch(double frequency, double sampleRate, double q) {
     double omega = BiquadConstants::TWO_PI_MULTIPLIER * BiquadConstants::PI_PRECISE * frequency / sampleRate;
     double sin_omega = std::sin(omega);
     double cos_omega = std::cos(omega);
@@ -108,7 +110,7 @@ void AudioFX::BiquadFilter::calculateNotch(double frequency, double sampleRate, 
     setCoefficients(a0, a1, a2, b0, b1, b2);
 }
 
-void AudioFX::BiquadFilter::calculatePeaking(double frequency, double sampleRate, double q, double gainDB) {
+void BiquadFilter::calculatePeaking(double frequency, double sampleRate, double q, double gainDB) {
     double omega = BiquadConstants::TWO_PI_MULTIPLIER * BiquadConstants::PI_PRECISE * frequency / sampleRate;
     double sin_omega = std::sin(omega);
     double cos_omega = std::cos(omega);
@@ -128,7 +130,7 @@ void AudioFX::BiquadFilter::calculatePeaking(double frequency, double sampleRate
     setCoefficients(a0, a1, a2, b0, b1, b2);
 }
 
-void AudioFX::BiquadFilter::calculateLowShelf(double frequency, double sampleRate, double q, double gainDB) {
+void BiquadFilter::calculateLowShelf(double frequency, double sampleRate, double q, double gainDB) {
     double omega = BiquadConstants::TWO_PI_MULTIPLIER * BiquadConstants::PI_PRECISE * frequency / sampleRate;
     double sin_omega = std::sin(omega);
     double cos_omega = std::cos(omega);
@@ -147,7 +149,7 @@ void AudioFX::BiquadFilter::calculateLowShelf(double frequency, double sampleRat
     setCoefficients(a0, a1, a2, b0, b1, b2);
 }
 
-void AudioFX::BiquadFilter::calculateHighShelf(double frequency, double sampleRate, double q, double gainDB) {
+void BiquadFilter::calculateHighShelf(double frequency, double sampleRate, double q, double gainDB) {
     double omega = BiquadConstants::TWO_PI_MULTIPLIER * BiquadConstants::PI_PRECISE * frequency / sampleRate;
     double sin_omega = std::sin(omega);
     double cos_omega = std::cos(omega);
@@ -166,7 +168,7 @@ void AudioFX::BiquadFilter::calculateHighShelf(double frequency, double sampleRa
     setCoefficients(a0, a1, a2, b0, b1, b2);
 }
 
-void AudioFX::BiquadFilter::calculateAllpass(double frequency, double sampleRate, double q) {
+void BiquadFilter::calculateAllpass(double frequency, double sampleRate, double q) {
     double omega = BiquadConstants::TWO_PI_MULTIPLIER * BiquadConstants::PI_PRECISE * frequency / sampleRate;
     double sin_omega = std::sin(omega);
     double cos_omega = std::cos(omega);
@@ -182,7 +184,7 @@ void AudioFX::BiquadFilter::calculateAllpass(double frequency, double sampleRate
     setCoefficients(a0, a1, a2, b0, b1, b2);
 }
 
-void AudioFX::BiquadFilter::process(const float* input, float* output, size_t numSamples) {
+void BiquadFilter::process(const float* input, float* output, size_t numSamples) {
     // Optimized C++17 implementation - Direct Form II Transposed
     double y1 = m_y1, y2 = m_y2;
 
@@ -259,7 +261,7 @@ void AudioFX::BiquadFilter::process(const float* input, float* output, size_t nu
     m_y2 = y2;
 }
 
-void AudioFX::BiquadFilter::processMono(const float* input, float* output, size_t numSamples) {
+void BiquadFilter::processMono(const float* input, float* output, size_t numSamples) {
     // Optimized mono processing - Direct Form II Transposed
     double y1 = m_y1, y2 = m_y2;
 
@@ -320,7 +322,7 @@ void AudioFX::BiquadFilter::processMono(const float* input, float* output, size_
     m_y2 = y2;
 }
 
-void AudioFX::BiquadFilter::processStereo(const float* inputL, const float* inputR,
+void BiquadFilter::processStereo(const float* inputL, const float* inputR,
                                 float* outputL, float* outputR, size_t numSamples) {
     // Optimized stereo processing - interleaved for better cache usage
     double y1L = m_y1, y2L = m_y2;
@@ -506,11 +508,13 @@ std::string BiquadFilter::getDebugInfo(const std::string& location) const {
 }
 
 // Explicit template instantiations for common audio types
-template void AudioFX::BiquadFilter::process<float>(const std::vector<float>&, std::vector<float>&, const std::string&);
-template void AudioFX::BiquadFilter::process<double>(const std::vector<double>&, std::vector<double>&, const std::string&);
-template void AudioFX::BiquadFilter::processStereo<float>(const std::vector<float>&, const std::vector<float>&,
+template void BiquadFilter::process<float>(const std::vector<float>&, std::vector<float>&, const std::string&);
+template void BiquadFilter::process<double>(const std::vector<double>&, std::vector<double>&, const std::string&);
+template void BiquadFilter::processStereo<float>(const std::vector<float>&, const std::vector<float>&,
                                                 std::vector<float>&, std::vector<float>&, const std::string&);
-template void AudioFX::BiquadFilter::processStereo<double>(const std::vector<double>&, const std::vector<double>&,
+template void BiquadFilter::processStereo<double>(const std::vector<double>&, const std::vector<double>&,
                                                  std::vector<double>&, std::vector<double>&, const std::string&);
 
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth

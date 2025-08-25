@@ -117,7 +117,7 @@ private:
     std::vector<float> frequencyBandsBuffer_;
 
     // Moteur FFT
-    std::unique_ptr<AudioFX::IFFTEngine> fftEngine_;
+    std::unique_ptr<Nyth::Audio::FX::IFFTEngine> fftEngine_;
 
     // Callbacks
     SpectrumDataCallback dataCallback_;

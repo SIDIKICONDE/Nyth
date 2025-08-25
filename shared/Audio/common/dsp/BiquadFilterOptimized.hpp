@@ -1,5 +1,5 @@
 #pragma once
-#ifndef BIQUADFILTER_OPTIMIZED_HPP
+#ifndef NYTH_AUDIO_FX_BIQUADFILTER_OPTIMIZED_HPP
 #define BIQUADFILTER_OPTIMIZED_HPP
 
 #include <cmath>
@@ -13,7 +13,9 @@
 #include <arm_neon.h> // For ARM NEON intrinsics
 #endif
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 
 // Specialized float-only processing to avoid conversions
 class BiquadFilterFloat : public BiquadFilter {
@@ -116,6 +118,8 @@ public:
 #endif
 };
 
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth
 
-#endif // BIQUADFILTER_OPTIMIZED_HPP
+#endif // NYTH_AUDIO_FX_BIQUADFILTER_OPTIMIZED_HPP

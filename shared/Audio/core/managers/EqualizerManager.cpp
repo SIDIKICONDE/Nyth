@@ -1,5 +1,6 @@
 #include "EqualizerManager.h"
 #include <algorithm>
+#include "../../common/SIMD/SIMDIntegration.hpp"
 
 namespace facebook {
 namespace react {
@@ -147,7 +148,7 @@ bool EqualizerManager::setBand(size_t bandIndex, double frequency, double gainDB
         equalizer_->setBandQ(bandIndex, q);
         equalizer_->setBandEnabled(bandIndex, enabled);
 
-        AudioFX::FilterType type = convertToAudioFXFilterType(filterType);
+        Nyth::Audio::FX::FilterType type = convertToFilterType(filterType);
         equalizer_->setBandType(bandIndex, type);
 
         return true;
@@ -177,8 +178,8 @@ bool EqualizerManager::getBand(size_t bandIndex, double& frequency, double& gain
         q = equalizer_->getBandQ(bandIndex);
         enabled = equalizer_->isBandEnabled(bandIndex);
 
-        AudioFX::FilterType type = equalizer_->getBandType(bandIndex);
-        filterType = convertFromAudioFXFilterType(type);
+        Nyth::Audio::FX::FilterType type = equalizer_->getBandType(bandIndex);
+        filterType = convertFromFilterType(type);
 
         return true;
     } catch (const std::exception& e) {
@@ -264,7 +265,7 @@ bool EqualizerManager::setBandType(size_t bandIndex, int filterType) {
     }
 
     try {
-        AudioFX::FilterType type = convertToAudioFXFilterType(filterType);
+        Nyth::Audio::FX::FilterType type = convertToFilterType(filterType);
         equalizer_->setBandType(bandIndex, type);
         return true;
     } catch (const std::exception& e) {
@@ -321,12 +322,29 @@ bool EqualizerManager::processMono(const float* input, float* output, size_t num
     }
 
     try {
-        std::vector<float> inputVec(input, input + numSamples);
-        std::vector<float> outputVec(numSamples);
+        // Utiliser SIMD si disponible et taille suffisante
+        if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && numSamples >= 64) {
+            // Copier directement dans les buffers alignés
+            std::vector<float> inputVec(input, input + numSamples);
+            std::vector<float> outputVec(numSamples);
 
-        equalizer_->processMono(inputVec, outputVec);
+            equalizer_->processMono(inputVec, outputVec);
 
-        std::copy(outputVec.begin(), outputVec.end(), output);
+            // Appliquer normalisation SIMD si nécessaire
+            if (config_.autoNormalize) {
+                AudioNR::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(
+                    outputVec.data(), numSamples, config_.targetRMS);
+            }
+
+            std::copy(outputVec.begin(), outputVec.end(), output);
+        } else {
+            // Version standard
+            std::vector<float> inputVec(input, input + numSamples);
+            std::vector<float> outputVec(numSamples);
+
+            equalizer_->processMono(inputVec, outputVec);
+            std::copy(outputVec.begin(), outputVec.end(), output);
+        }
         return true;
     } catch (const std::exception& e) {
         if (callbackManager_) {
@@ -372,29 +390,29 @@ bool EqualizerManager::loadPreset(const std::string& presetName) {
     }
 
     try {
-        AudioFX::EQPreset preset;
+        Nyth::Audio::FX::EQPreset preset;
 
         // Presets prédéfinis
         if (presetName == "flat") {
-            preset = AudioFX::EQPresetFactory::createFlatPreset();
+            preset = Nyth::Audio::FX::EQPresetFactory::createFlatPreset();
         } else if (presetName == "rock") {
-            preset = AudioFX::EQPresetFactory::createRockPreset();
+            preset = Nyth::Audio::FX::EQPresetFactory::createRockPreset();
         } else if (presetName == "pop") {
-            preset = AudioFX::EQPresetFactory::createPopPreset();
+            preset = Nyth::Audio::FX::EQPresetFactory::createPopPreset();
         } else if (presetName == "jazz") {
-            preset = AudioFX::EQPresetFactory::createJazzPreset();
+            preset = Nyth::Audio::FX::EQPresetFactory::createJazzPreset();
         } else if (presetName == "classical") {
-            preset = AudioFX::EQPresetFactory::createClassicalPreset();
+            preset = Nyth::Audio::FX::EQPresetFactory::createClassicalPreset();
         } else if (presetName == "electronic") {
-            preset = AudioFX::EQPresetFactory::createElectronicPreset();
+            preset = Nyth::Audio::FX::EQPresetFactory::createElectronicPreset();
         } else if (presetName == "vocal_boost") {
-            preset = AudioFX::EQPresetFactory::createVocalBoostPreset();
+            preset = Nyth::Audio::FX::EQPresetFactory::createVocalBoostPreset();
         } else if (presetName == "bass_boost") {
-            preset = AudioFX::EQPresetFactory::createBassBoostPreset();
+            preset = Nyth::Audio::FX::EQPresetFactory::createBassBoostPreset();
         } else if (presetName == "treble_boost") {
-            preset = AudioFX::EQPresetFactory::createTrebleBoostPreset();
+            preset = Nyth::Audio::FX::EQPresetFactory::createTrebleBoostPreset();
         } else if (presetName == "loudness") {
-            preset = AudioFX::EQPresetFactory::createLoudnessPreset();
+            preset = Nyth::Audio::FX::EQPresetFactory::createLoudnessPreset();
         } else {
             // Vérifier les presets personnalisés
             auto it = customPresets_.find(presetName);
@@ -423,7 +441,7 @@ bool EqualizerManager::savePreset(const std::string& presetName) {
     }
 
     try {
-        AudioFX::EQPreset preset;
+        Nyth::Audio::FX::EQPreset preset;
         equalizer_->savePreset(preset);
         customPresets_[presetName] = preset;
         return true;
@@ -464,46 +482,46 @@ std::vector<std::string> EqualizerManager::getAvailablePresets() const {
 }
 
 // === Méthodes privées ===
-AudioFX::FilterType EqualizerManager::convertToAudioFXFilterType(int filterType) const {
+Nyth::Audio::FX::FilterType EqualizerManager::convertToFilterType(int filterType) const {
     switch (filterType) {
         case 0:
-            return AudioFX::FilterType::LOWPASS;
+            return Nyth::Audio::FX::FilterType::LOWPASS;
         case 1:
-            return AudioFX::FilterType::HIGHPASS;
+            return Nyth::Audio::FX::FilterType::HIGHPASS;
         case 2:
-            return AudioFX::FilterType::BANDPASS;
+            return Nyth::Audio::FX::FilterType::BANDPASS;
         case 3:
-            return AudioFX::FilterType::NOTCH;
+            return Nyth::Audio::FX::FilterType::NOTCH;
         case 4:
-            return AudioFX::FilterType::PEAK;
+            return Nyth::Audio::FX::FilterType::PEAK;
         case 5:
-            return AudioFX::FilterType::LOWSHELF;
+            return Nyth::Audio::FX::FilterType::LOWSHELF;
         case 6:
-            return AudioFX::FilterType::HIGHSHELF;
+            return Nyth::Audio::FX::FilterType::HIGHSHELF;
         case 7:
-            return AudioFX::FilterType::ALLPASS;
+            return Nyth::Audio::FX::FilterType::ALLPASS;
         default:
-            return AudioFX::FilterType::PEAK;
+            return Nyth::Audio::FX::FilterType::PEAK;
     }
 }
 
-int EqualizerManager::convertFromAudioFXFilterType(AudioFX::FilterType type) const {
+int EqualizerManager::convertFromFilterType(Nyth::Audio::FX::FilterType type) const {
     switch (type) {
-        case AudioFX::FilterType::LOWPASS:
+        case Nyth::Audio::FX::FilterType::LOWPASS:
             return 0;
-        case AudioFX::FilterType::HIGHPASS:
+        case Nyth::Audio::FX::FilterType::HIGHPASS:
             return 1;
-        case AudioFX::FilterType::BANDPASS:
+        case Nyth::Audio::FX::FilterType::BANDPASS:
             return 2;
-        case AudioFX::FilterType::NOTCH:
+        case Nyth::Audio::FX::FilterType::NOTCH:
             return 3;
-        case AudioFX::FilterType::PEAK:
+        case Nyth::Audio::FX::FilterType::PEAK:
             return 4;
-        case AudioFX::FilterType::LOWSHELF:
+        case Nyth::Audio::FX::FilterType::LOWSHELF:
             return 5;
-        case AudioFX::FilterType::HIGHSHELF:
+        case Nyth::Audio::FX::FilterType::HIGHSHELF:
             return 6;
-        case AudioFX::FilterType::ALLPASS:
+        case Nyth::Audio::FX::FilterType::ALLPASS:
             return 7;
         default:
             return 4;
@@ -518,6 +536,55 @@ bool EqualizerManager::validateParameters(double frequency, double gainDB, doubl
     // Validation basique des paramètres
     return frequency > 0.0 && frequency < config_.sampleRate / 2.0 && gainDB >= -60.0 && gainDB <= 30.0 && q > 0.0 &&
            q <= 10.0;
+}
+
+// === Implémentations SIMD ===
+
+float EqualizerManager::calculateRMS_SIMD(const float* data, size_t count) const {
+    if (!data || count == 0) return 0.0f;
+
+    if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= 64) {
+        return AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(data, count);
+    } else {
+        // Version standard
+        float sum = 0.0f;
+        for (size_t i = 0; i < count; ++i) {
+            sum += data[i] * data[i];
+        }
+        return std::sqrt(sum / count);
+    }
+}
+
+float EqualizerManager::calculatePeak_SIMD(const float* data, size_t count) const {
+    if (!data || count == 0) return 0.0f;
+
+    if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= 64) {
+        return AudioNR::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(data, count);
+    } else {
+        // Version standard
+        float peak = 0.0f;
+        for (size_t i = 0; i < count; ++i) {
+            peak = std::max(peak, std::abs(data[i]));
+        }
+        return peak;
+    }
+}
+
+void EqualizerManager::normalizeAudio_SIMD(float* data, size_t count, float targetRMS) const {
+    if (!data || count == 0) return;
+
+    if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= 64) {
+        AudioNR::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(data, count, targetRMS);
+    } else {
+        // Version standard
+        float rms = calculateRMS_SIMD(data, count);
+        if (rms > 0.0f) {
+            float gain = targetRMS / rms;
+            for (size_t i = 0; i < count; ++i) {
+                data[i] *= gain;
+            }
+        }
+    }
 }
 
 } // namespace react

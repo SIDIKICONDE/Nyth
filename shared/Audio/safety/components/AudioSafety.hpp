@@ -20,7 +20,8 @@
 #endif
 #include "../../common/config/SafetyConstants.hpp"
 
-namespace AudioSafety {
+namespace Nyth {
+namespace Audio {
 
 // Import des constantes pour éviter la répétition des namespace
 using namespace SafetyConstants;
@@ -158,7 +159,7 @@ protected:
     double linToDb(double linear) const noexcept;
 
     // Analyse + nettoyage d'un canal. Retourne un rapport pour ce canal
-    SafetyReport analyzeAndClean(float* x, size_t n) noexcept;
+    virtual SafetyReport analyzeAndClean(float* x, size_t n) noexcept;
     void dcRemove(float* x, size_t n, double mean) noexcept;
     void limitBuffer(float* x, size_t n) noexcept;
     double estimateFeedbackScore(const float* x, size_t n) noexcept;
@@ -192,6 +193,7 @@ inline const char* safetyErrorToString(SafetyError error) noexcept {
     }
 }
 
-} // namespace AudioSafety
+} // namespace Audio
+} // namespace Nyth
 
 #endif // __cplusplus

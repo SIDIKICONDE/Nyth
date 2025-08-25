@@ -12,6 +12,7 @@
 #include "../components/EffectChain.hpp"
 #include "../config/EffectsConfig.h"
 #include "../config/EffectsLimits.h"
+#include "../../common/SIMD/SIMDIntegration.hpp"
 #include <jsi/jsi.h>
 
 namespace facebook {
@@ -36,6 +37,7 @@ public:
     bool destroyEffect(int effectId);
     bool hasEffect(int effectId) const;
     std::vector<int> getActiveEffects() const;
+    size_t getEffectCount() const;
 
     // === Configuration des effets ===
     bool setEffectConfig(jsi::Runtime& rt, int effectId, const jsi::Object& config);
@@ -53,6 +55,11 @@ public:
     bool processAudio(const float* input, float* output, size_t frameCount, int channels);
     bool processAudioStereo(const float* inputL, const float* inputR, float* outputL, float* outputR,
                             size_t frameCount);
+
+    // === Méthodes SIMD ===
+    bool processAudio_SIMD(const float* input, float* output, size_t frameCount, int channels);
+    bool processAudioStereo_SIMD(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                 size_t frameCount);
 
     // === Métriques et statistiques ===
     struct ProcessingMetrics {
@@ -72,10 +79,16 @@ public:
     uint32_t getLatency() const;
 
     // === Accès aux effets individuels ===
-    AudioFX::IAudioEffect* getEffect(int effectId);
+    Nyth::Audio::FX::IAudioEffect* getEffect(int effectId);
     EffectType getEffectType(int effectId) const;
     EffectState getEffectState(int effectId) const;
     uint32_t getEffectLatency(int effectId) const;
+
+    // === Paramètres spécifiques aux effets ===
+    jsi::Object getCompressorParameters(jsi::Runtime& rt, int effectId) const;
+    jsi::Object getDelayParameters(jsi::Runtime& rt, int effectId) const;
+    bool setCompressorParameters(int effectId, float thresholdDb, float ratio, float attackMs, float releaseMs, float makeupDb);
+    bool setDelayParameters(int effectId, float delayMs, float feedback, float mix);
 
     // === Conversion string ↔ enum ===
     std::string effectTypeToString(EffectType type) const;
@@ -101,7 +114,8 @@ private:
 
     // === Gestion des IDs ===
     std::atomic<int> nextEffectId_{1};
-    std::map<int, std::unique_ptr<AudioFX::IAudioEffect>> activeEffects_;
+    std::map<int, std::unique_ptr<Nyth::Audio::FX::IAudioEffect>> activeEffects_;
+    std::map<int, Nyth::Audio::FX::IAudioEffect*> idToChainEffect_;
 
     // === Niveaux maître ===
     std::atomic<float> masterInputLevel_{1.0f};
@@ -116,7 +130,7 @@ private:
     EffectCallback effectCallback_;
 
     // === Chaîne d'effets ===
-    AudioFX::EffectChain effectChain_;
+    Nyth::Audio::FX::EffectChain effectChain_;
 
     // === Buffers de travail ===
     std::vector<float> workBufferL_;
@@ -124,7 +138,7 @@ private:
 
     // === Méthodes privées ===
     bool validateEffectType(EffectType type) const;
-    std::unique_ptr<AudioFX::IAudioEffect> createEffectByType(EffectType type);
+    std::unique_ptr<Nyth::Audio::FX::IAudioEffect> createEffectByType(EffectType type);
     void updateMetrics();
     void notifyProcessingCallback();
     void notifyEffectCallback(int effectId, const std::string& event);

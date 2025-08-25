@@ -2,7 +2,7 @@
 
 #include "../../common/config/AudioConfig.h"
 #include "../components/AudioEqualizer/AudioEqualizer.hpp"
-#include "../components/AudioError/AudioError.hpp"
+#include "../../common/config/ErrorCodes.hpp"
 #include "../components/EQBand/EQPresetFactory.hpp"
 #include "../../common/jsi/JSICallbackManager.h"
 #include <atomic>
@@ -54,6 +54,11 @@ public:
     void resetAllBands();
     std::vector<std::string> getAvailablePresets() const;
 
+    // === Méthodes SIMD ===
+    float calculateRMS_SIMD(const float* data, size_t count) const;
+    float calculatePeak_SIMD(const float* data, size_t count) const;
+    void normalizeAudio_SIMD(float* data, size_t count, float targetRMS = 1.0f) const;
+
 private:
     // === Membres privés ===
     std::unique_ptr<Audio::core::AudioEqualizer> equalizer_;
@@ -64,11 +69,11 @@ private:
     std::atomic<bool> isInitialized_{false};
 
     // Cache des presets personnalisés
-    std::unordered_map<std::string, AudioFX::EQPreset> customPresets_;
+    std::unordered_map<std::string, Nyth::Audio::FX::EQPreset> customPresets_;
 
     // === Conversion d'enums ===
-    AudioFX::FilterType convertToAudioFXFilterType(int filterType) const;
-    int convertFromAudioFXFilterType(AudioFX::FilterType type) const;
+    Nyth::Audio::FX::FilterType convertToFilterType(int filterType) const;
+    int convertFromFilterType(Nyth::Audio::FX::FilterType type) const;
 
     // === Validation ===
     bool validateBandIndex(size_t bandIndex) const;

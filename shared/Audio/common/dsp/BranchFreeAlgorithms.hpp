@@ -1,12 +1,14 @@
 #pragma once
-#ifndef BRANCH_FREE_ALGORITHMS_HPP
+#ifndef NYTH_AUDIO_FX_BRANCH_FREE_ALGORITHMS_HPP
 #define BRANCH_FREE_ALGORITHMS_HPP
 
 #include <cmath>
 #include <cstdint>
 #include <type_traits>
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 namespace BranchFree {
 
 /**
@@ -441,6 +443,8 @@ private:
 };
 
 } // namespace BranchFree
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth
 
-#endif // BRANCH_FREE_ALGORITHMS_HPP
+#endif // NYTH_AUDIO_FX_BRANCH_FREE_ALGORITHMS_HPP

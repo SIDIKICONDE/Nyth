@@ -25,6 +25,8 @@ bool EffectManager::initialize(const Nyth::Audio::EffectsConfig& config) {
         // Initialiser la chaîne d'effets
         effectChain_.setSampleRate(config.sampleRate, config.channels);
         effectChain_.setEnabled(true);
+        workBufferL_.clear();
+        workBufferR_.clear();
 
         isInitialized_.store(true);
         return true;
@@ -67,8 +69,35 @@ int EffectManager::createEffect(EffectType type) {
             return -1;
         }
 
+        // Associer l'effet à la chaîne pour qu'il soit réellement utilisé
+        Nyth::Audio::FX::IAudioEffect* rawPtr = nullptr;
+        switch (type) {
+            case EffectType::COMPRESSOR: {
+                rawPtr = effectChain_.emplaceEffect<Nyth::Audio::FX::CompressorEffect>();
+                break;
+            }
+            case EffectType::DELAY: {
+                rawPtr = effectChain_.emplaceEffect<Nyth::Audio::FX::DelayEffect>();
+                break;
+            }
+            default: {
+                // Types non gérés pour l'instant
+                break;
+            }
+        }
+
         int effectId = nextEffectId_.fetch_add(1);
+        // Conserver l'instance principale dans activeEffects_
         activeEffects_[effectId] = std::move(effect);
+        if (rawPtr) {
+            idToChainEffect_[effectId] = rawPtr;
+        }
+
+        // S'assurer que l'effet dans la chaîne a le même SR/channels et enabled
+        if (rawPtr) {
+            rawPtr->setSampleRate(config_.sampleRate, config_.channels);
+            rawPtr->setEnabled(true);
+        }
 
         return effectId;
 
@@ -82,6 +111,12 @@ bool EffectManager::destroyEffect(int effectId) {
 
     auto it = activeEffects_.find(effectId);
     if (it != activeEffects_.end()) {
+        auto jt = idToChainEffect_.find(effectId);
+        if (jt != idToChainEffect_.end() && jt->second) {
+            // Désactiver l'effet dans la chaîne pour ne plus l'appliquer
+            jt->second->setEnabled(false);
+            idToChainEffect_.erase(jt);
+        }
         activeEffects_.erase(it);
         return true;
     }
@@ -107,19 +142,105 @@ std::vector<int> EffectManager::getActiveEffects() const {
     return effectIds;
 }
 
+size_t EffectManager::getEffectCount() const {
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+    return activeEffects_.size();
+}
+
 // === Configuration des effets ===
 bool EffectManager::setEffectConfig(jsi::Runtime& rt, int effectId, const jsi::Object& config) {
-    // Cette méthode nécessiterait une implémentation plus complexe
-    // pour parser la configuration JSI et l'appliquer à l'effet spécifique
-    // Pour l'instant, on retourne false pour indiquer non implémenté
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+    auto it = activeEffects_.find(effectId);
+    if (it == activeEffects_.end()) {
+        return false;
+    }
+    auto* effect = it->second.get();
+
+    // Déterminer le type et appliquer les paramètres spécifiques
+    if (auto* compressor = dynamic_cast<Nyth::Audio::FX::CompressorEffect*>(effect)) {
+        float thresholdDb = -24.0f;
+        float ratio = 4.0f;
+        float attackMs = 10.0f;
+        float releaseMs = 100.0f;
+        float makeupDb = 0.0f;
+        if (config.hasProperty(rt, "compressor")) {
+            auto compObj = config.getProperty(rt, "compressor").asObject(rt);
+            if (compObj.hasProperty(rt, "thresholdDb")) thresholdDb = compObj.getProperty(rt, "thresholdDb").asNumber();
+            if (compObj.hasProperty(rt, "ratio")) ratio = compObj.getProperty(rt, "ratio").asNumber();
+            if (compObj.hasProperty(rt, "attackMs")) attackMs = compObj.getProperty(rt, "attackMs").asNumber();
+            if (compObj.hasProperty(rt, "releaseMs")) releaseMs = compObj.getProperty(rt, "releaseMs").asNumber();
+            if (compObj.hasProperty(rt, "makeupDb")) makeupDb = compObj.getProperty(rt, "makeupDb").asNumber();
+        }
+        compressor->setParameters(thresholdDb, ratio, attackMs, releaseMs, makeupDb);
+        if (config.hasProperty(rt, "enabled")) {
+            bool enabled = config.getProperty(rt, "enabled").asBool();
+            compressor->setEnabled(enabled);
+        }
+        // Mettre aussi à jour l'effet de la chaîne
+        auto cit = idToChainEffect_.find(effectId);
+        if (cit != idToChainEffect_.end()) {
+            if (auto* c2 = dynamic_cast<Nyth::Audio::FX::CompressorEffect*>(cit->second)) {
+                c2->setParameters(thresholdDb, ratio, attackMs, releaseMs, makeupDb);
+                if (config.hasProperty(rt, "enabled")) {
+                    bool enabled = config.getProperty(rt, "enabled").asBool();
+                    c2->setEnabled(enabled);
+                }
+            }
+        }
+        return true;
+    }
+
+    if (auto* delay = dynamic_cast<Nyth::Audio::FX::DelayEffect*>(effect)) {
+        float delayMs = 250.0f;
+        float feedback = 0.3f;
+        float mix = 0.2f;
+        if (config.hasProperty(rt, "delay")) {
+            auto delObj = config.getProperty(rt, "delay").asObject(rt);
+            if (delObj.hasProperty(rt, "delayMs")) delayMs = delObj.getProperty(rt, "delayMs").asNumber();
+            if (delObj.hasProperty(rt, "feedback")) feedback = delObj.getProperty(rt, "feedback").asNumber();
+            if (delObj.hasProperty(rt, "mix")) mix = delObj.getProperty(rt, "mix").asNumber();
+        }
+        delay->setParameters(delayMs, feedback, mix);
+        if (config.hasProperty(rt, "enabled")) {
+            bool enabled = config.getProperty(rt, "enabled").asBool();
+            delay->setEnabled(enabled);
+        }
+        auto dit = idToChainEffect_.find(effectId);
+        if (dit != idToChainEffect_.end()) {
+            if (auto* d2 = dynamic_cast<Nyth::Audio::FX::DelayEffect*>(dit->second)) {
+                d2->setParameters(delayMs, feedback, mix);
+                if (config.hasProperty(rt, "enabled")) {
+                    bool enabled = config.getProperty(rt, "enabled").asBool();
+                    d2->setEnabled(enabled);
+                }
+            }
+        }
+        return true;
+    }
     return false;
 }
 
 jsi::Object EffectManager::getEffectConfig(jsi::Runtime& rt, int effectId) const {
-    // Cette méthode nécessiterait une implémentation pour récupérer
-    // la configuration de l'effet spécifique et la convertir en JSI
-    // Pour l'instant, on retourne un objet vide
-    return jsi::Object(rt);
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+    auto it = activeEffects_.find(effectId);
+    if (it == activeEffects_.end()) {
+        return jsi::Object(rt);
+    }
+    auto* effect = it->second.get();
+
+    jsi::Object result(rt);
+    result.setProperty(rt, "enabled", jsi::Value(effect->isEnabled()));
+    result.setProperty(rt, "sampleRate", jsi::Value(static_cast<int>(effect->getSampleRate())));
+    result.setProperty(rt, "channels", jsi::Value(effect->getChannels()));
+
+    if (dynamic_cast<Nyth::Audio::FX::CompressorEffect*>(effect)) {
+        result.setProperty(rt, "type", jsi::String::createFromUtf8(rt, "compressor"));
+    } else if (dynamic_cast<Nyth::Audio::FX::DelayEffect*>(effect)) {
+        result.setProperty(rt, "type", jsi::String::createFromUtf8(rt, "delay"));
+    } else {
+        result.setProperty(rt, "type", jsi::String::createFromUtf8(rt, "unknown"));
+    }
+    return result;
 }
 
 bool EffectManager::enableEffect(int effectId, bool enabled) {
@@ -127,8 +248,14 @@ bool EffectManager::enableEffect(int effectId, bool enabled) {
 
     auto it = activeEffects_.find(effectId);
     if (it != activeEffects_.end()) {
-        // TODO: Implémenter la méthode enable/disable sur l'effet
-        return true;
+        if (it->second) {
+            it->second->setEnabled(enabled);
+            auto jt = idToChainEffect_.find(effectId);
+            if (jt != idToChainEffect_.end() && jt->second) {
+                jt->second->setEnabled(enabled);
+            }
+            return true;
+        }
     }
 
     return false;
@@ -139,8 +266,9 @@ bool EffectManager::isEffectEnabled(int effectId) const {
 
     auto it = activeEffects_.find(effectId);
     if (it != activeEffects_.end()) {
-        // TODO: Implémenter la méthode isEnabled sur l'effet
-        return true;
+        if (it->second) {
+            return it->second->isEnabled();
+        }
     }
 
     return false;
@@ -178,7 +306,7 @@ bool EffectManager::processAudio(const float* input, float* output, size_t frame
 
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
-    if (activeEffects_.empty()) {
+    if (activeEffects_.empty() || idToChainEffect_.empty()) {
         if (input != output) {
             std::copy(input, input + frameCount * channels, output);
         }
@@ -204,17 +332,23 @@ bool EffectManager::processAudio(const float* input, float* output, size_t frame
                 std::copy(outputVec.begin(), outputVec.end(), output);
             }
         } else if (channels == 2) {
-            // Stereo - utiliser les méthodes stéréo
-            std::vector<float> inputVecL(input, input + frameCount);
-            std::vector<float> inputVecR(input + frameCount, input + 2 * frameCount);
+            // Stereo interleaved input -> deinterleave for chain API
+            std::vector<float> inputVecL(frameCount);
+            std::vector<float> inputVecR(frameCount);
+            for (size_t i = 0; i < frameCount; ++i) {
+                inputVecL[i] = input[i * 2];
+                inputVecR[i] = input[i * 2 + 1];
+            }
             std::vector<float> outputVecL(frameCount);
             std::vector<float> outputVecR(frameCount);
 
             effectChain_.processStereo(inputVecL, inputVecR, outputVecL, outputVecR);
 
             if (output) {
-                std::copy(outputVecL.begin(), outputVecL.end(), output);
-                std::copy(outputVecR.begin(), outputVecR.end(), output + frameCount);
+                for (size_t i = 0; i < frameCount; ++i) {
+                    output[i * 2] = outputVecL[i];
+                    output[i * 2 + 1] = outputVecR[i];
+                }
             }
         }
 
@@ -322,7 +456,7 @@ void EffectManager::setEffectCallback(EffectCallback callback) {
 }
 
 // === Accès aux effets individuels ===
-AudioFX::IAudioEffect* EffectManager::getEffect(int effectId) {
+Nyth::Audio::FX::IAudioEffect* EffectManager::getEffect(int effectId) {
     std::lock_guard<std::mutex> lock(effectsMutex_);
 
     auto it = activeEffects_.find(effectId);
@@ -339,9 +473,9 @@ EffectType EffectManager::getEffectType(int effectId) const {
     auto it = activeEffects_.find(effectId);
     if (it != activeEffects_.end()) {
         // Déterminer le type par dynamic_cast
-        if (dynamic_cast<AudioFX::CompressorEffect*>(it->second.get())) {
+        if (dynamic_cast<Nyth::Audio::FX::CompressorEffect*>(it->second.get())) {
             return EffectType::COMPRESSOR;
-        } else if (dynamic_cast<AudioFX::DelayEffect*>(it->second.get())) {
+        } else if (dynamic_cast<Nyth::Audio::FX::DelayEffect*>(it->second.get())) {
             return EffectType::DELAY;
         } else {
             return EffectType::REVERB; // Par défaut pour les autres effets
@@ -437,19 +571,19 @@ bool EffectManager::validateEffectType(EffectType type) const {
     }
 }
 
-std::unique_ptr<AudioFX::IAudioEffect> EffectManager::createEffectByType(EffectType type) {
+std::unique_ptr<Nyth::Audio::FX::IAudioEffect> EffectManager::createEffectByType(EffectType type) {
     try {
         switch (type) {
             case EffectType::COMPRESSOR: {
                 // Créer un effet compresseur
-                auto compressor = std::make_unique<AudioFX::CompressorEffect>();
+                auto compressor = std::make_unique<Nyth::Audio::FX::CompressorEffect>();
                 compressor->setSampleRate(config_.sampleRate, config_.channels);
                 return compressor;
             }
 
             case EffectType::DELAY: {
                 // Créer un effet de délai
-                auto delay = std::make_unique<AudioFX::DelayEffect>();
+                auto delay = std::make_unique<Nyth::Audio::FX::DelayEffect>();
                 delay->setSampleRate(config_.sampleRate, config_.channels);
                 return delay;
             }
@@ -522,6 +656,115 @@ EffectType EffectManager::stringToEffectType(const std::string& typeStr) const {
     return EffectType::UNKNOWN;
 }
 
+// === Paramètres spécifiques aux effets ===
+jsi::Object EffectManager::getCompressorParameters(jsi::Runtime& rt, int effectId) const {
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+
+    auto it = activeEffects_.find(effectId);
+    if (it == activeEffects_.end()) {
+        // Retourner un objet vide si l'effet n'existe pas
+        return jsi::Object(rt);
+    }
+
+    // Vérifier que c'est bien un compresseur
+    if (getEffectType(effectId) != EffectType::COMPRESSOR) {
+        return jsi::Object(rt);
+    }
+
+    // Convertir l'effet en CompressorEffect et récupérer ses paramètres
+    auto* compressor = dynamic_cast<Nyth::Audio::FX::CompressorEffect*>(it->second.get());
+    if (!compressor) {
+        return jsi::Object(rt);
+    }
+
+    auto params = compressor->getParameters();
+    jsi::Object result(rt);
+
+    result.setProperty(rt, "thresholdDb", jsi::Value(params.thresholdDb));
+    result.setProperty(rt, "ratio", jsi::Value(params.ratio));
+    result.setProperty(rt, "attackMs", jsi::Value(params.attackMs));
+    result.setProperty(rt, "releaseMs", jsi::Value(params.releaseMs));
+    result.setProperty(rt, "makeupDb", jsi::Value(params.makeupDb));
+
+    return result;
+}
+
+jsi::Object EffectManager::getDelayParameters(jsi::Runtime& rt, int effectId) const {
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+
+    auto it = activeEffects_.find(effectId);
+    if (it == activeEffects_.end()) {
+        // Retourner un objet vide si l'effet n'existe pas
+        return jsi::Object(rt);
+    }
+
+    // Vérifier que c'est bien un delay
+    if (getEffectType(effectId) != EffectType::DELAY) {
+        return jsi::Object(rt);
+    }
+
+    // Convertir l'effet en DelayEffect et récupérer ses paramètres
+    auto* delay = dynamic_cast<Nyth::Audio::FX::DelayEffect*>(it->second.get());
+    if (!delay) {
+        return jsi::Object(rt);
+    }
+
+    auto params = delay->getParameters();
+    jsi::Object result(rt);
+
+    result.setProperty(rt, "delayMs", jsi::Value(params.delayMs));
+    result.setProperty(rt, "feedback", jsi::Value(params.feedback));
+    result.setProperty(rt, "mix", jsi::Value(params.mix));
+
+    return result;
+}
+
+bool EffectManager::setCompressorParameters(int effectId, float thresholdDb, float ratio, float attackMs, float releaseMs, float makeupDb) {
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+
+    auto it = activeEffects_.find(effectId);
+    if (it == activeEffects_.end()) {
+        return false;
+    }
+
+    // Vérifier que c'est bien un compresseur
+    if (getEffectType(effectId) != EffectType::COMPRESSOR) {
+        return false;
+    }
+
+    // Convertir l'effet en CompressorEffect et définir ses paramètres
+    auto* compressor = dynamic_cast<Nyth::Audio::FX::CompressorEffect*>(it->second.get());
+    if (!compressor) {
+        return false;
+    }
+
+    compressor->setParameters(thresholdDb, ratio, attackMs, releaseMs, makeupDb);
+    return true;
+}
+
+bool EffectManager::setDelayParameters(int effectId, float delayMs, float feedback, float mix) {
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+
+    auto it = activeEffects_.find(effectId);
+    if (it == activeEffects_.end()) {
+        return false;
+    }
+
+    // Vérifier que c'est bien un delay
+    if (getEffectType(effectId) != EffectType::DELAY) {
+        return false;
+    }
+
+    // Convertir l'effet en DelayEffect et définir ses paramètres
+    auto* delay = dynamic_cast<Nyth::Audio::FX::DelayEffect*>(it->second.get());
+    if (!delay) {
+        return false;
+    }
+
+    delay->setParameters(delayMs, feedback, mix);
+    return true;
+}
+
 std::string EffectManager::effectTypeToString(EffectType type) const {
     switch (type) {
         case EffectType::COMPRESSOR:
@@ -530,8 +773,143 @@ std::string EffectManager::effectTypeToString(EffectType type) const {
             return "delay";
         case EffectType::REVERB:
             return "reverb";
-        default:
-            return "unknown";
+            default:
+        return "unknown";
+    }
+}
+
+// === Implémentations SIMD ===
+
+bool EffectManager::processAudio_SIMD(const float* input, float* output, size_t frameCount, int channels) {
+    if (!isInitialized_.load() || bypassAll_.load()) {
+        if (input != output) {
+            // Utiliser SIMD pour la copie si disponible
+            if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
+                // Copie optimisée SIMD
+                std::memcpy(output, input, frameCount * channels * sizeof(float));
+            } else {
+                std::copy(input, input + frameCount * channels, output);
+            }
+        }
+        return true;
+    }
+
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+
+    if (activeEffects_.empty() || idToChainEffect_.empty()) {
+        if (input != output) {
+            if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
+                std::memcpy(output, input, frameCount * channels * sizeof(float));
+            } else {
+                std::copy(input, input + frameCount * channels, output);
+            }
+        }
+        return true;
+    }
+
+    try {
+        // Utiliser SIMD si disponible et taille suffisante
+        if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
+            // Pré-traitement SIMD
+            if (masterLevels_.input != 1.0f) {
+                AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
+                    const_cast<float*>(input), frameCount * channels, masterLevels_.input);
+            }
+
+            // Traitement de la chaîne d'effets
+            effectChain_.processMono_SIMD(input, output, frameCount * channels);
+
+            // Post-traitement SIMD
+            if (masterLevels_.output != 1.0f) {
+                AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
+                    output, frameCount * channels, masterLevels_.output);
+            }
+        } else {
+            // Version standard
+            return processAudio(input, output, frameCount, channels);
+        }
+
+        return true;
+    } catch (const std::exception& e) {
+        if (callbackManager_) {
+            callbackManager_->invokeErrorCallback(std::string("SIMD processing failed: ") + e.what());
+        }
+        return false;
+    }
+}
+
+bool EffectManager::processAudioStereo_SIMD(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                           size_t frameCount) {
+    if (!isInitialized_.load() || bypassAll_.load()) {
+        if (inputL != outputL) {
+            if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
+                std::memcpy(outputL, inputL, frameCount * sizeof(float));
+            } else {
+                std::copy(inputL, inputL + frameCount, outputL);
+            }
+        }
+        if (inputR != outputR) {
+            if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
+                std::memcpy(outputR, inputR, frameCount * sizeof(float));
+            } else {
+                std::copy(inputR, inputR + frameCount, outputR);
+            }
+        }
+        return true;
+    }
+
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+
+    if (activeEffects_.empty() || idToChainEffect_.empty()) {
+        if (inputL != outputL) {
+            if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
+                std::memcpy(outputL, inputL, frameCount * sizeof(float));
+            } else {
+                std::copy(inputL, inputL + frameCount, outputL);
+            }
+        }
+        if (inputR != outputR) {
+            if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
+                std::memcpy(outputR, inputR, frameCount * sizeof(float));
+            } else {
+                std::copy(inputR, inputR + frameCount, outputR);
+            }
+        }
+        return true;
+    }
+
+    try {
+        // Utiliser SIMD si disponible et taille suffisante
+        if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
+            // Pré-traitement SIMD
+            if (masterLevels_.input != 1.0f) {
+                AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
+                    const_cast<float*>(inputL), frameCount, masterLevels_.input);
+                AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
+                    const_cast<float*>(inputR), frameCount, masterLevels_.input);
+            }
+
+            // Traitement de la chaîne d'effets stéréo SIMD
+            effectChain_.processStereo_SIMD(inputL, inputR, outputL, outputR, frameCount);
+
+            // Post-traitement SIMD
+            if (masterLevels_.output != 1.0f) {
+                AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
+                    outputL, frameCount, masterLevels_.output);
+                AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
+                    outputR, frameCount, masterLevels_.output);
+            }
+        } else {
+            // Version standard
+            return processAudioStereo(inputL, inputR, outputL, outputR, frameCount);
+        }
+
+        return true;
+    } catch (const std::exception& e) {
+        if (callbackManager_) {
+            callbackManager_->invokeErrorCallback(std::string("SIMD stereo processing failed: ") + e.what());
+        }
+        return false;
     }
 }
 

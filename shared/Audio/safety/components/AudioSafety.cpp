@@ -17,10 +17,11 @@ inline T minValue(const T& a, const T& b) {
 }
 
 // Import des constantes pour éviter la répétition des namespace
-using namespace AudioSafety::SafetyConstants;
+using namespace SafetyConstants;
 } // namespace
 
-namespace AudioSafety {
+namespace Nyth {
+namespace Audio {
 
 AudioSafetyEngine::AudioSafetyEngine(std::uint32_t sampleRate, int channels, SafetyError* error)
     : sampleRate_(sampleRate), channels_(channels), valid_(false) {
@@ -75,12 +76,12 @@ SafetyError AudioSafetyEngine::setConfig(const SafetyConfig& cfg) noexcept {
 // Optimized dB conversion using LUT
 double AudioSafetyEngine::dbToLin(double dB) const noexcept {
     // Use the optimized lookup table
-    return static_cast<double>(AudioFX::DbLookupTable::getInstance().dbToLinear(static_cast<float>(dB)));
+    return static_cast<double>(Nyth::Audio::FX::DbLookupTable::getInstance().dbToLinear(static_cast<float>(dB)));
 }
 
 double AudioSafetyEngine::linToDb(double linear) const noexcept {
     // Use the optimized lookup table
-    return static_cast<double>(AudioFX::DbLookupTable::getInstance().linearToDb(static_cast<float>(linear)));
+    return static_cast<double>(Nyth::Audio::FX::DbLookupTable::getInstance().linearToDb(static_cast<float>(linear)));
 }
 
 SafetyError AudioSafetyEngine::processMono(float* buffer, std::size_t numSamples) noexcept {
@@ -258,6 +259,7 @@ double AudioSafetyEngine::estimateFeedbackScore(const float* x, std::size_t n) n
     return score;
 }
 
-} // namespace AudioSafety
+} // namespace Audio
+} // namespace Nyth
 
 // Pas d'implémentation locale pour éviter les conflits de linkage.

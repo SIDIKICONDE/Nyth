@@ -4,8 +4,11 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 
 // Preset structure
 struct EQPreset {
@@ -18,6 +21,8 @@ struct EQPreset {
         : name(n), gains(g) {}
 };
 
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth
 
-#endif // AUDIOFX_EQPRESET_HPP
+#endif // NYTH_AUDIO_FX_EQPRESET_HPP

@@ -3,12 +3,15 @@
 #define THREADSAFE_BIQUADFILTER_HPP
 
 #include "../../../common/dsp/BiquadFilter.hpp"
+#include "../../../common/config/ErrorCodes.hpp"
 #include <atomic>
 #include <cstring> // for memcpy
 #include <mutex>
 
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 
 /**
  * Thread-safe wrapper for BiquadFilter
@@ -65,7 +68,7 @@ public:
     }
 
     // Thread-safe processing with error handling
-    AudioError process(const float* input, float* output, size_t numSamples) noexcept {
+    Nyth::Audio::Constants::AudioError process(const float* input, float* output, size_t numSamples) noexcept {
         // Validate inputs first
         AUDIO_RETURN_IF_ERROR(AudioValidator::validateBuffer(input, numSamples));
         AUDIO_RETURN_IF_ERROR(AudioValidator::validateBuffer(output, numSamples));
@@ -74,14 +77,14 @@ public:
         std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
         if (lock.owns_lock()) {
             m_filter->process(input, output, numSamples);
-            return AudioError::OK;
+            return Nyth::Audio::Constants::AudioError::OK;
         } else {
             // If can't acquire lock, pass through unprocessed
             // This prevents audio dropouts in real-time context
             if (input != output) {
                 std::copy(input, input + numSamples, output);
             }
-            return AudioError::RESOURCE_BUSY;
+            return Nyth::Audio::Constants::AudioError::RESOURCE_BUSY;
         }
     }
 
@@ -154,6 +157,8 @@ private:
     std::atomic<int> m_activeIndex;
 };
 
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth
 
-#endif // THREADSAFE_BIQUADFILTER_HPP
+#endif // NYTH_AUDIO_FX_THREADSAFE_BIQUADFILTER_HPP

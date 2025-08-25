@@ -1,5 +1,5 @@
 #pragma once
-#ifndef BIQUADFILTER_SIMD_HPP
+#ifndef NYTH_AUDIO_FX_BIQUADFILTER_SIMD_HPP
 #define BIQUADFILTER_SIMD_HPP
 
 #include "BiquadFilter.hpp"
@@ -26,7 +26,9 @@
 #include <arm_neon.h>
 #endif
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 
 /**
  * @brief SIMD-optimized Biquad Filter implementation
@@ -388,6 +390,8 @@ private:
     size_t m_size;
 };
 
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth
 
-#endif // BIQUADFILTER_SIMD_HPP
+#endif // NYTH_AUDIO_FX_BIQUADFILTER_SIMD_HPP

@@ -1,4 +1,5 @@
 #include "WienerFilter.hpp"
+#include "../../common/utils/MathUtils.hpp"
 #include <algorithm>
 
 namespace AudioNR {

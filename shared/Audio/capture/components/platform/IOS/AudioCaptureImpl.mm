@@ -1,6 +1,7 @@
 #include "AudioCaptureImpl.hpp"
 #import <AVFoundation/AVFoundation.h>
 #include "../../../../common/config/Constant.hpp"
+#include "../../../../common/SIMD/SIMDIntegration.hpp" // Ajout de l'en-tête SIMD
 #include <cstring>
 
 namespace Nyth {
@@ -279,8 +280,8 @@ OSStatus AudioCaptureIOS::recordingCallback(
                       inBusNumber, inNumberFrames, &bufferList);
 
   if (status == noErr) {
-    // Traiter les données
-    capture->processAudioData(
+    // Traiter les données avec SIMD
+    capture->processAudioData_SIMD(
         static_cast<const float *>(bufferList.mBuffers[0].mData),
         bufferList.mBuffers[0].mDataByteSize / sizeof(float));
   }
@@ -455,6 +456,46 @@ AudioCapture::create(const AudioCaptureConfig &config) {
 
 #endif // TARGET_OS_IOS
 #endif // __APPLE__
+
+// === Implémentations SIMD pour iOS ===
+#if defined(__APPLE__) && TARGET_OS_IOS
+
+void AudioCaptureIOS::processAudioData_SIMD(const float* data, size_t sampleCount) {
+    if (!data || sampleCount == 0) return;
+
+    // Mise à jour des niveaux avec SIMD
+    updateLevels_SIMD(data, sampleCount);
+
+    // Mise à jour des statistiques
+    statistics_.framesProcessed += sampleCount / config_.channelCount;
+    statistics_.bytesProcessed += sampleCount * sizeof(float);
+
+    // Appel du callback
+    if (dataCallback_) {
+        dataCallback_(data, sampleCount / config_.channelCount, config_.channelCount);
+    }
+}
+
+void AudioCaptureIOS::updateLevels_SIMD(const float* data, size_t sampleCount) {
+    if (!data || sampleCount == 0) return;
+
+    // Utiliser SIMD si disponible et taille suffisante
+    if (Nyth::Audio::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && sampleCount >= 64) {
+        // Calcul RMS et Peak avec SIMD
+        float rms = Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(data, sampleCount);
+        float peak = Nyth::Audio::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(data, sampleCount);
+
+        currentLevel_ = rms;
+        peakLevel_ = std::max(peakLevel_.load(), peak);
+        statistics_.averageLevel = rms;
+        statistics_.peakLevel = peak;
+    } else {
+        // Fallback vers la version standard
+        updateLevels(data, sampleCount);
+    }
+}
+
+#endif // TARGET_OS_IOS
 
 } // namespace Audio
 } // namespace Nyth

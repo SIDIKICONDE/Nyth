@@ -6,6 +6,7 @@
 
 #include "../config/EffectsConfig.h"
 #include "../config/EffectsLimits.h"
+#include "../managers/EffectManager.h"
 #include "../components/Compressor.hpp"
 #include "../components/Delay.hpp"
 
@@ -34,8 +35,8 @@ public:
     // === Conversion des métriques ===
     static jsi::Object processingMetricsToJS(jsi::Runtime& rt, const EffectManager::ProcessingMetrics& metrics);
     // Note: CompressorMetrics et DelayMetrics définis dans les classes respectives
-    static jsi::Object compressorMetricsToJS(jsi::Runtime& rt, const AudioFX::CompressorEffect::CompressorMetrics& metrics);
-    static jsi::Object delayMetricsToJS(jsi::Runtime& rt, const AudioFX::DelayEffect::DelayMetrics& metrics);
+    static jsi::Object compressorMetricsToJS(jsi::Runtime& rt, const Nyth::Audio::FX::CompressorEffect::CompressorMetrics& metrics);
+    static jsi::Object delayMetricsToJS(jsi::Runtime& rt, const Nyth::Audio::FX::DelayEffect::DelayMetrics& metrics);
 
     // === Conversion des statistiques ===
     static jsi::Object statisticsToJS(jsi::Runtime& rt, const Nyth::Audio::EffectsStatistics& stats);

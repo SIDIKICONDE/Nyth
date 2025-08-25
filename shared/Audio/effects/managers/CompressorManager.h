@@ -4,6 +4,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include "../../common/SIMD/SIMDIntegration.hpp"
 #include <vector>
 
 #include "../../common/jsi/JSICallbackManager.h"
@@ -43,6 +44,11 @@ public:
     bool processStereo(std::vector<float>& inputL, std::vector<float>& inputR, std::vector<float>& outputL,
                        std::vector<float>& outputR);
 
+    // === Méthodes SIMD ===
+    bool processMono_SIMD(std::vector<float>& input, std::vector<float>& output);
+    bool processStereo_SIMD(std::vector<float>& inputL, std::vector<float>& inputR, std::vector<float>& outputL,
+                            std::vector<float>& outputR);
+
     // === Métriques ===
     struct CompressorMetrics {
         float inputLevel = 0.0f;
@@ -64,7 +70,7 @@ public:
 
 private:
     // === Composants AudioFX ===
-    std::unique_ptr<AudioFX::CompressorEffect> compressor_;
+    std::unique_ptr<Nyth::Audio::FX::CompressorEffect> compressor_;
 
     // === Gestionnaire de callbacks ===
     std::shared_ptr<JSICallbackManager> callbackManager_;

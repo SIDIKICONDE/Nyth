@@ -18,13 +18,13 @@ std::shared_ptr<IJSICallbackManager> SpectrumComponentFactory::createJSICallback
     return std::make_shared<JSICallbackManager>(jsInvoker);
 }
 
-std::unique_ptr<AudioFX::IFFTEngine> SpectrumComponentFactory::createFFTEngine(size_t fftSize) {
+std::unique_ptr<Nyth::Audio::FX::IFFTEngine> SpectrumComponentFactory::createFFTEngine(size_t fftSize) {
     if (!isValidFFTSize(fftSize)) {
         throw std::invalid_argument("Invalid FFT size: must be a power of 2 between " +
                                     std::to_string(SpectrumConstants::MIN_FFT_SIZE) + " and " +
                                     std::to_string(SpectrumConstants::MAX_FFT_SIZE));
     }
-    return AudioFX::createFFTEngine(fftSize);
+    return Nyth::Audio::FX::createFFTEngine(fftSize);
 }
 
 std::tuple<std::unique_ptr<ISpectrumManager>, std::shared_ptr<IJSICallbackManager>>

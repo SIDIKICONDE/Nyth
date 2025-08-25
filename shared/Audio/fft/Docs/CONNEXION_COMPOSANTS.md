@@ -35,7 +35,7 @@ NativeAudioSpectrumModule (Module principal)
 
 - Initialisation : `initializeFFT()` (ligne 36)
 - Utilisation : `fftEngine_->forwardR2C()` dans `processFFT()` (ligne 147)
-- Stockage : `std::unique_ptr<AudioFX::IFFTEngine> fftEngine_` (ligne 77)
+- Stockage : `std::unique_ptr<Nyth::Audio::FX::IFFTEngine> fftEngine_` (ligne 77)
 
 ### 1.3 NativeAudioSpectrumModule ↔ SpectrumJSIConverter
 

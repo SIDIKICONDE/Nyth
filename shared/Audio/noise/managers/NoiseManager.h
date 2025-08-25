@@ -12,6 +12,7 @@
 #include "../components/Spectral/AdvancedSpectralNR.hpp"
 #include "../components/Spectral/SpectralNR.hpp"
 #include "../config/NoiseConfig.h"
+#include "../../common/SIMD/SIMDIntegration.hpp"
 
 namespace facebook {
 namespace react {
@@ -53,6 +54,12 @@ public:
     bool processAudioStereo(const float* inputL, const float* inputR, float* outputL, float* outputR,
                             size_t frameCount);
 
+    // === Méthodes SIMD ===
+    bool processAudio_SIMD(const float* input, float* output, size_t frameCount, int channels);
+    bool processAudioStereo_SIMD(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                 size_t frameCount);
+    float analyzeLevel_SIMD(const float* data, size_t count) const;
+
     // === Statistiques et métriques ===
     Nyth::Audio::NoiseStatistics getStatistics() const;
     float getInputLevel() const;
@@ -65,6 +72,9 @@ public:
     // === Informations ===
     std::string getInfo() const;
     Nyth::Audio::NoiseState getState() const;
+
+    // === Méthodes privées SIMD ===
+    void applyNoiseReduction_SIMD(float* data, size_t count);
 
     // === Callbacks ===
     using StatisticsCallback = std::function<void(const Nyth::Audio::NoiseStatistics& stats)>;
@@ -112,6 +122,7 @@ private:
     // === Helpers ===
     float calculateRMS(const float* data, size_t size) const;
     void handleError(const std::string& error);
+    std::string formatStatisticsToJSON(const Nyth::Audio::NoiseStatistics& stats) const;
 
     // === Pipeline de traitement ===
     bool processWithPipeline(const float* input, float* output, size_t frameCount, int channels);

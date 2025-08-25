@@ -1,0 +1,17 @@
+# Pipeline GitLab CI pour la vérification des namespaces
+# Ajouter cette configuration à votre .gitlab-ci.yml existant
+
+verify-namespaces:
+  stage: test
+  image: ubuntu:latest
+  script:
+    - chmod +x scripts/verify_namespaces.sh
+    - ./scripts/verify_namespaces.sh
+  only:
+    changes:
+      - "shared/Audio/**/*.{h,cpp}"
+      - "scripts/verify_namespaces.sh"
+  allow_failure: false
+
+# Pour Jenkins - créer un Jenkinsfile
+# Jenkinsfile exemple dans le prochain fichier

@@ -38,11 +38,11 @@ struct NoiseConfig {
 
     // Paramètres avancés
     struct {
-        float beta = 0.01f;              // Over-subtraction factor
-        float floorGain = 0.001f;        // Spectral floor
-        float noiseUpdateRate = 0.95f;   // Noise estimation smoothing
-        float speechThreshold = 0.5f;    // Speech detection threshold
-        float transientThreshold = 0.3f; // Transient detection
+        float beta = GlobalValidationConstants::DEFAULT_BETA;              // Over-subtraction factor
+        float floorGain = GlobalValidationConstants::DEFAULT_FLOOR_GAIN;   // Spectral floor
+        float noiseUpdateRate = GlobalValidationConstants::DEFAULT_NOISE_UPDATE; // Noise estimation smoothing
+        float speechThreshold = 0.5f;    // Speech detection threshold (valeur spécifique)
+        float transientThreshold = 0.3f; // Transient detection (valeur spécifique)
     } advanced;
 };
 
@@ -50,15 +50,15 @@ struct NoiseConfig {
 struct IMCRAConfig {
     size_t fftSize = GlobalAudioConstants::DEFAULT_FFT_SIZE;
     uint32_t sampleRate = GlobalAudioConstants::DEFAULT_SAMPLE_RATE;
-    double alphaS = 0.95;  // Lissage spectral
-    double alphaD = 0.95;  // Lissage bruit
-    double alphaD2 = 0.9;  // Lissage minima
-    double betaMax = 0.96; // Correction biais max
-    double gamma0 = 4.6;   // Seuil SNR
-    double gamma1 = 3.0;   // Seuil secondaire
-    double zeta0 = 1.67;   // Seuil SNR a priori
-    size_t windowLength = 80;
-    size_t subWindowLength = 8;
+    double alphaS = GlobalValidationConstants::DEFAULT_ALPHA;  // Lissage spectral
+    double alphaD = GlobalValidationConstants::DEFAULT_ALPHA;  // Lissage bruit
+    double alphaD2 = 0.9;  // Lissage minima (valeur spécifique)
+    double betaMax = 0.96; // Correction biais max (valeur spécifique)
+    double gamma0 = 4.6;   // Seuil SNR (valeur spécifique)
+    double gamma1 = 3.0;   // Seuil secondaire (valeur spécifique)
+    double zeta0 = 1.67;   // Seuil SNR a priori (valeur spécifique)
+    size_t windowLength = 80;  // Fenêtre (valeur spécifique)
+    size_t subWindowLength = 8; // Sous-fenêtre (valeur spécifique)
 };
 
 // === Configuration Wiener ===
@@ -69,8 +69,8 @@ struct WienerConfig {
     double minGain = GlobalValidationConstants::DEFAULT_MIN_GAIN;
     double maxGain = GlobalValidationConstants::DEFAULT_MAX_GAIN;
     bool useLSA = true; // Log-Spectral Amplitude
-    double gainSmoothing = 0.7;
-    double frequencySmoothing = 0.3;
+    double gainSmoothing = 0.7;  // Lissage gain (valeur spécifique)
+    double frequencySmoothing = 0.3; // Lissage fréquence (valeur spécifique)
     bool usePerceptualWeighting = true;
 };
 

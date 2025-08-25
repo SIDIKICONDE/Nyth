@@ -34,7 +34,7 @@
 #include <jsi/jsi.h>
 
 // Includes des composants refactorisés
-#include "config/AudioConfig.h"
+#include "../../common/config/AudioConfig.h"
 #include "../../common/config/AudioLimits.h"
 #include "../../common/jsi/JSICallbackManager.h"
 #include "jsi/JSIConverter.h"
@@ -43,6 +43,10 @@
 
 namespace facebook {
 namespace react {
+
+// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
+using Nyth::Audio::AudioCaptureConfig;
+using Nyth::Audio::AudioConfig;
 
 // === Module principal refactorisé ===
 class JSI_EXPORT NativeAudioCaptureModule : public TurboModule {
@@ -113,8 +117,11 @@ private:
     std::unique_ptr<AudioCaptureManager> captureManager_;
     std::unique_ptr<JSICallbackManager> callbackManager_;
 
+    // Invoker JS pour les appels asynchrones
+    std::shared_ptr<CallInvoker> jsInvoker_;
+
     // === Configuration ===
-    Nyth::Audio::AudioConfig config_;
+    AudioCaptureConfig config_;
 
     // === État interne ===
     std::atomic<bool> isInitialized_{false};
@@ -131,6 +138,17 @@ private:
 
     // Gestion des erreurs
     void handleError(const std::string& error);
+
+    // Conversion de configuration
+    AudioCaptureConfig toCaptureConfig(const AudioConfig& config) const;
+    AudioConfig toAudioConfig(const AudioCaptureConfig& config) const;
+
+    // Analyse périodique
+    std::thread analysisThread_;
+    std::atomic<bool> analysisRunning_{false};
+    std::atomic<int> analysisIntervalMs_{100};
+    void startAnalysisLoop();
+    void stopAnalysisLoop();
 };
 
 // === Fonction d'enregistrement du module ===

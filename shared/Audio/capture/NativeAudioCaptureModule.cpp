@@ -8,12 +8,20 @@
 namespace facebook {
 namespace react {
 
+// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
+using Nyth::Audio::AudioCaptureConfig;
+using Nyth::Audio::AudioConfig;
+using Nyth::Audio::AudioFileWriterConfig;
+using Nyth::Audio::AudioFileFormat;
+using Nyth::Audio::Limits;
+
 NativeAudioCaptureModule::NativeAudioCaptureModule(std::shared_ptr<CallInvoker> jsInvoker) {
     // Initialiser avec les valeurs par défaut
-    config_ = Nyth::Audio::AudioConfig();
+    config_ = AudioCaptureConfig();
 
     // Créer le gestionnaire de callbacks
     callbackManager_ = std::make_unique<JSICallbackManager>(jsInvoker);
+    jsInvoker_ = jsInvoker;
 
     // Le captureManager sera créé lors de l'initialisation
 }
@@ -26,7 +34,8 @@ NativeAudioCaptureModule::~NativeAudioCaptureModule() {
 jsi::Value NativeAudioCaptureModule::initialize(jsi::Runtime& rt, const jsi::Object& config) {
     try {
         // Parser et valider la configuration
-        config_ = JSIConverter::jsToAudioConfig(rt, config);
+        const auto highLevel = JSIConverter::jsToAudioConfig(rt, config);
+        config_ = toCaptureConfig(highLevel);
 
         // Sauvegarder le runtime pour les callbacks
         setRuntime(&rt);
@@ -126,7 +135,7 @@ jsi::Value NativeAudioCaptureModule::resetStatistics(jsi::Runtime& rt) {
 
 // === Configuration ===
 jsi::Value NativeAudioCaptureModule::getConfig(jsi::Runtime& rt) {
-    return JSIConverter::audioConfigToJS(rt, config_);
+    return JSIConverter::audioConfigToJS(rt, toAudioConfig(config_));
 }
 
 jsi::Value NativeAudioCaptureModule::updateConfig(jsi::Runtime& rt, const jsi::Object& config) {
@@ -135,7 +144,8 @@ jsi::Value NativeAudioCaptureModule::updateConfig(jsi::Runtime& rt, const jsi::O
     }
 
     try {
-        auto newConfig = JSIConverter::jsToAudioConfig(rt, config);
+        auto newHighLevel = JSIConverter::jsToAudioConfig(rt, config);
+        auto newConfig = toCaptureConfig(newHighLevel);
         bool success = captureManager_->updateConfig(newConfig);
 
         if (success) {
@@ -194,9 +204,9 @@ jsi::Value NativeAudioCaptureModule::getRMSdB(jsi::Runtime& rt) {
 }
 
 jsi::Value NativeAudioCaptureModule::isSilent(jsi::Runtime& rt, double threshold) {
-    if (threshold < Nyth::Audio::Limits::MIN_THRESHOLD || threshold > Nyth::Audio::Limits::MAX_THRESHOLD) {
-        throw jsi::JSError(rt, "Threshold must be between " + std::to_string(Nyth::Audio::Limits::MIN_THRESHOLD) +
-                                   " and " + std::to_string(Nyth::Audio::Limits::MAX_THRESHOLD));
+    if (threshold < Limits::MIN_THRESHOLD || threshold > Limits::MAX_THRESHOLD) {
+        throw jsi::JSError(rt, "Threshold must be between " + std::to_string(Limits::MIN_THRESHOLD) +
+                                   " and " + std::to_string(Limits::MAX_THRESHOLD));
     }
 
     if (!isInitialized_.load() || !captureManager_) {
@@ -303,33 +313,82 @@ jsi::Value NativeAudioCaptureModule::requestPermission(jsi::Runtime& rt) {
 // === Enregistrement ===
 jsi::Value NativeAudioCaptureModule::startRecording(jsi::Runtime& rt, const jsi::String& filePath,
                                                     const jsi::Object& options) {
-    // TODO: Implémenter avec AudioRecorderManager
-    return jsi::Value(false);
+    if (!isInitialized_.load() || !captureManager_) {
+        return jsi::Value(false);
+    }
+
+    AudioFileWriterConfig writerCfg;
+    writerCfg.filePath = filePath.utf8(rt);
+    writerCfg.sampleRate = config_.sampleRate;
+    writerCfg.channelCount = config_.channelCount;
+    writerCfg.bitsPerSample = config_.bitsPerSample;
+
+    // Options: format, maxDuration, maxFileSize
+    if (options.hasProperty(rt, "format")) {
+        auto fmtStr = options.getProperty(rt, "format").asString(rt).utf8(rt);
+        if (fmtStr == "wav" || fmtStr == "WAV") {
+            writerCfg.format = AudioFileFormat::WAV;
+        } else if (fmtStr == "raw" || fmtStr == "RAW" || fmtStr == "raw_pcm") {
+            writerCfg.format = AudioFileFormat::RAW_PCM;
+        }
+    }
+
+    float maxDurationSeconds = 0.0f;
+    size_t maxFileSizeBytes = 0;
+    if (options.hasProperty(rt, "maxDuration")) {
+        maxDurationSeconds = static_cast<float>(options.getProperty(rt, "maxDuration").asNumber());
+    }
+    if (options.hasProperty(rt, "maxFileSize")) {
+        maxFileSizeBytes = static_cast<size_t>(options.getProperty(rt, "maxFileSize").asNumber());
+    }
+
+    bool ok = captureManager_->startRecording(writerCfg.filePath, writerCfg, maxDurationSeconds, maxFileSizeBytes);
+    return jsi::Value(ok);
 }
 
 jsi::Value NativeAudioCaptureModule::stopRecording(jsi::Runtime& rt) {
-    // TODO: Implémenter avec AudioRecorderManager
+    if (captureManager_) {
+        captureManager_->stopRecording();
+        return jsi::Value(true);
+    }
     return jsi::Value(false);
 }
 
 jsi::Value NativeAudioCaptureModule::pauseRecording(jsi::Runtime& rt) {
-    // TODO: Implémenter avec AudioRecorderManager
+    if (captureManager_) {
+        captureManager_->pauseRecording();
+        return jsi::Value(true);
+    }
     return jsi::Value(false);
 }
 
 jsi::Value NativeAudioCaptureModule::resumeRecording(jsi::Runtime& rt) {
-    // TODO: Implémenter avec AudioRecorderManager
+    if (captureManager_) {
+        captureManager_->resumeRecording();
+        return jsi::Value(true);
+    }
     return jsi::Value(false);
 }
 
 jsi::Value NativeAudioCaptureModule::isRecording(jsi::Runtime& rt) {
-    // TODO: Implémenter avec AudioRecorderManager
+    if (captureManager_) {
+        return jsi::Value(captureManager_->isRecording());
+    }
     return jsi::Value(false);
 }
 
 jsi::Value NativeAudioCaptureModule::getRecordingInfo(jsi::Runtime& rt) {
-    // TODO: Implémenter avec AudioRecorderManager
-    return jsi::Value::null();
+    if (!captureManager_) {
+        return jsi::Value::null();
+    }
+    auto info = captureManager_->getRecordingInfo();
+    auto obj = jsi::Object(rt);
+    obj.setProperty(rt, "duration", jsi::Value(info.durationSeconds));
+    obj.setProperty(rt, "frames", jsi::Value(static_cast<double>(info.frames)));
+    obj.setProperty(rt, "path", jsi::String::createFromUtf8(rt, info.path));
+    obj.setProperty(rt, "isRecording", jsi::Value(info.recording));
+    obj.setProperty(rt, "isPaused", jsi::Value(info.paused));
+    return obj;
 }
 
 // === Callbacks JavaScript ===
@@ -359,6 +418,9 @@ jsi::Value NativeAudioCaptureModule::setAnalysisCallback(jsi::Runtime& rt, const
     if (callbackManager_) {
         callbackManager_->setAnalysisCallback(callback);
     }
+    // Démarrer/mettre à jour la boucle d'analyse
+    analysisIntervalMs_.store(static_cast<int>(intervalMs));
+    startAnalysisLoop();
     return jsi::Value::undefined();
 }
 
@@ -369,58 +431,136 @@ jsi::Value NativeAudioCaptureModule::install(jsi::Runtime& rt, std::shared_ptr<C
     auto object = jsi::Object(rt);
 
 // Macro pour enregistrer une méthode
-#define REGISTER_METHOD(name, paramCount)                                                                  \
-    object.setProperty(rt, name,                                                                           \
-                       jsi::Function::createFromHostFunction(                                              \
-                           rt, jsi::PropNameID::forAscii(rt, name), static_cast<unsigned int>(paramCount), \
-                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args,           \
-                                    size_t count) -> jsi::Value { return module->name(rt, ##__VA_ARGS__); }))
+#define REGISTER_METHOD_0(name)                                                                             \
+    object.setProperty(rt, #name,                                                                           \
+                       jsi::Function::createFromHostFunction(                                               \
+                           rt, jsi::PropNameID::forAscii(rt, #name), 0,                                     \
+                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value*, size_t)         \
+                               -> jsi::Value { return module->name(rt); }))
+
+#define REGISTER_METHOD_1_OBJ(name)                                                                         \
+    object.setProperty(rt, #name,                                                                           \
+                       jsi::Function::createFromHostFunction(                                               \
+                           rt, jsi::PropNameID::forAscii(rt, #name), 1,                                     \
+                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c)  \
+                               -> jsi::Value {                                                              \
+                                   if (c < 1 || !args[0].isObject())                                        \
+                                       throw jsi::JSError(rt, #name " expects 1 object argument");         \
+                                   return module->name(rt, args[0].asObject(rt));                           \
+                               }))
+
+#define REGISTER_METHOD_1_STR(name)                                                                         \
+    object.setProperty(rt, #name,                                                                           \
+                       jsi::Function::createFromHostFunction(                                               \
+                           rt, jsi::PropNameID::forAscii(rt, #name), 1,                                     \
+                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c)  \
+                               -> jsi::Value {                                                              \
+                                   if (c < 1 || !args[0].isString())                                        \
+                                       throw jsi::JSError(rt, #name " expects 1 string argument");         \
+                                   return module->name(rt, args[0].asString(rt));                           \
+                               }))
+
+#define REGISTER_METHOD_1_NUM(name)                                                                         \
+    object.setProperty(rt, #name,                                                                           \
+                       jsi::Function::createFromHostFunction(                                               \
+                           rt, jsi::PropNameID::forAscii(rt, #name), 1,                                     \
+                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c)  \
+                               -> jsi::Value {                                                              \
+                                   if (c < 1 || !args[0].isNumber())                                        \
+                                       throw jsi::JSError(rt, #name " expects 1 number argument");         \
+                                   return module->name(rt, args[0].asNumber());                             \
+                               }))
 
     // Enregistrer toutes les méthodes
-    REGISTER_METHOD(initialize, 1);
-    REGISTER_METHOD(start, 0);
-    REGISTER_METHOD(stop, 0);
-    REGISTER_METHOD(pause, 0);
-    REGISTER_METHOD(resume, 0);
-    REGISTER_METHOD(dispose, 0);
+    REGISTER_METHOD_1_OBJ(initialize);
+    REGISTER_METHOD_0(start);
+    REGISTER_METHOD_0(stop);
+    REGISTER_METHOD_0(pause);
+    REGISTER_METHOD_0(resume);
+    REGISTER_METHOD_0(dispose);
 
-    REGISTER_METHOD(getState, 0);
-    REGISTER_METHOD(isCapturing, 0);
-    REGISTER_METHOD(getStatistics, 0);
-    REGISTER_METHOD(resetStatistics, 0);
+    REGISTER_METHOD_0(getState);
+    REGISTER_METHOD_0(isCapturing);
+    REGISTER_METHOD_0(getStatistics);
+    REGISTER_METHOD_0(resetStatistics);
 
-    REGISTER_METHOD(getConfig, 0);
-    REGISTER_METHOD(updateConfig, 1);
+    REGISTER_METHOD_0(getConfig);
+    REGISTER_METHOD_1_OBJ(updateConfig);
 
-    REGISTER_METHOD(getCurrentLevel, 0);
-    REGISTER_METHOD(getPeakLevel, 0);
-    REGISTER_METHOD(resetPeakLevel, 0);
+    REGISTER_METHOD_0(getCurrentLevel);
+    REGISTER_METHOD_0(getPeakLevel);
+    REGISTER_METHOD_0(resetPeakLevel);
 
-    REGISTER_METHOD(getRMS, 0);
-    REGISTER_METHOD(getRMSdB, 0);
-    REGISTER_METHOD(isSilent, 1);
-    REGISTER_METHOD(hasClipping, 0);
+    REGISTER_METHOD_0(getRMS);
+    REGISTER_METHOD_0(getRMSdB);
+    REGISTER_METHOD_1_NUM(isSilent);
+    REGISTER_METHOD_0(hasClipping);
 
-    REGISTER_METHOD(getAvailableDevices, 0);
-    REGISTER_METHOD(selectDevice, 1);
-    REGISTER_METHOD(getCurrentDevice, 0);
+    REGISTER_METHOD_0(getAvailableDevices);
+    REGISTER_METHOD_1_STR(selectDevice);
+    REGISTER_METHOD_0(getCurrentDevice);
 
-    REGISTER_METHOD(hasPermission, 0);
-    REGISTER_METHOD(requestPermission, 0);
+    REGISTER_METHOD_0(hasPermission);
+    REGISTER_METHOD_0(requestPermission);
 
-    REGISTER_METHOD(startRecording, 2);
-    REGISTER_METHOD(stopRecording, 0);
-    REGISTER_METHOD(pauseRecording, 0);
-    REGISTER_METHOD(resumeRecording, 0);
-    REGISTER_METHOD(isRecording, 0);
-    REGISTER_METHOD(getRecordingInfo, 0);
+    // Recording methods left as TODOs; keep signatures
+    object.setProperty(rt, "startRecording",
+                       jsi::Function::createFromHostFunction(
+                           rt, jsi::PropNameID::forAscii(rt, "startRecording"), 2,
+                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value {
+                               if (c < 2 || !args[0].isString() || !args[1].isObject()) {
+                                   throw jsi::JSError(rt, "startRecording expects (string, object)");
+                               }
+                               return module->startRecording(rt, args[0].asString(rt), args[1].asObject(rt));
+                           }));
+    REGISTER_METHOD_0(stopRecording);
+    REGISTER_METHOD_0(pauseRecording);
+    REGISTER_METHOD_0(resumeRecording);
+    REGISTER_METHOD_0(isRecording);
+    REGISTER_METHOD_0(getRecordingInfo);
 
-    REGISTER_METHOD(setAudioDataCallback, 1);
-    REGISTER_METHOD(setErrorCallback, 1);
-    REGISTER_METHOD(setStateChangeCallback, 1);
-    REGISTER_METHOD(setAnalysisCallback, 2);
+    // Callbacks
+    object.setProperty(rt, "setAudioDataCallback",
+                       jsi::Function::createFromHostFunction(
+                           rt, jsi::PropNameID::forAscii(rt, "setAudioDataCallback"), 1,
+                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value {
+                               if (c < 1 || !args[0].isObject() || !args[0].asObject(rt).isFunction(rt)) {
+                                   throw jsi::JSError(rt, "setAudioDataCallback expects function");
+                               }
+                               return module->setAudioDataCallback(rt, args[0].asObject(rt).asFunction(rt));
+                           }));
+    object.setProperty(rt, "setErrorCallback",
+                       jsi::Function::createFromHostFunction(
+                           rt, jsi::PropNameID::forAscii(rt, "setErrorCallback"), 1,
+                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value {
+                               if (c < 1 || !args[0].isObject() || !args[0].asObject(rt).isFunction(rt)) {
+                                   throw jsi::JSError(rt, "setErrorCallback expects function");
+                               }
+                               return module->setErrorCallback(rt, args[0].asObject(rt).asFunction(rt));
+                           }));
+    object.setProperty(rt, "setStateChangeCallback",
+                       jsi::Function::createFromHostFunction(
+                           rt, jsi::PropNameID::forAscii(rt, "setStateChangeCallback"), 1,
+                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value {
+                               if (c < 1 || !args[0].isObject() || !args[0].asObject(rt).isFunction(rt)) {
+                                   throw jsi::JSError(rt, "setStateChangeCallback expects function");
+                               }
+                               return module->setStateChangeCallback(rt, args[0].asObject(rt).asFunction(rt));
+                           }));
+    object.setProperty(rt, "setAnalysisCallback",
+                       jsi::Function::createFromHostFunction(
+                           rt, jsi::PropNameID::forAscii(rt, "setAnalysisCallback"), 2,
+                           [module](jsi::Runtime& rt, const jsi::Value&, const jsi::Value* args, size_t c) -> jsi::Value {
+                               if (c < 2 || !args[0].isObject() || !args[0].asObject(rt).isFunction(rt) || !args[1].isNumber()) {
+                                   throw jsi::JSError(rt, "setAnalysisCallback expects (function, number)");
+                               }
+                               return module->setAnalysisCallback(rt, args[0].asObject(rt).asFunction(rt), args[1].asNumber());
+                           }));
 
-#undef REGISTER_METHOD
+#undef REGISTER_METHOD_0
+#undef REGISTER_METHOD_1_OBJ
+#undef REGISTER_METHOD_1_STR
+#undef REGISTER_METHOD_1_NUM
 
     rt.global().setProperty(rt, "NativeAudioCaptureModule", object);
     return object;
@@ -475,6 +615,68 @@ void NativeAudioCaptureModule::handleError(const std::string& error) {
     if (callbackManager_) {
         callbackManager_->invokeErrorCallback(error);
     }
+}
+
+void NativeAudioCaptureModule::startAnalysisLoop() {
+    stopAnalysisLoop();
+    analysisRunning_.store(true);
+    analysisThread_ = std::thread([this]() {
+        while (analysisRunning_.load()) {
+            int sleepMs = std::max(10, analysisIntervalMs_.load());
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
+            if (!analysisRunning_.load()) break;
+            if (!runtimeValid_.load() || !callbackManager_ || !captureManager_) continue;
+
+            // Collecte des métriques simples
+            float current = static_cast<float>(captureManager_->getCurrentLevel());
+            float peak = static_cast<float>(captureManager_->getPeakLevel());
+            float avg = static_cast<float>(captureManager_->getRMS());
+            auto stats = captureManager_->getStatistics();
+
+            try {
+                if (runtime_ && callbackManager_) {
+                    auto analysisObj = JSIConverter::createAnalysisData(*runtime_, current, peak, avg, stats.framesProcessed);
+                    callbackManager_->invokeAnalysisCallback(analysisObj);
+                }
+            } catch (...) {
+                // Éviter de tuer le thread en cas d'exception
+            }
+        }
+    });
+}
+
+void NativeAudioCaptureModule::stopAnalysisLoop() {
+    analysisRunning_.store(false);
+    if (analysisThread_.joinable()) {
+        analysisThread_.join();
+    }
+}
+
+// === Conversions entre AudioConfig et AudioCaptureConfig ===
+AudioCaptureConfig NativeAudioCaptureModule::toCaptureConfig(const AudioConfig& c) const {
+    AudioCaptureConfig out;
+    out.sampleRate = c.sampleRate;
+    out.channelCount = c.channelCount;
+    out.bitsPerSample = c.bitsPerSample;
+    out.bufferSizeFrames = c.bufferSizeFrames;
+    out.numBuffers = c.numBuffers;
+    out.enableEchoCancellation = c.enableEchoCancellation;
+    out.enableNoiseSuppression = c.enableNoiseSuppression;
+    out.enableAutoGainControl = c.enableAutoGainControl;
+    return out;
+}
+
+AudioConfig NativeAudioCaptureModule::toAudioConfig(const AudioCaptureConfig& c) const {
+    AudioConfig out;
+    out.sampleRate = c.sampleRate;
+    out.channelCount = c.channelCount;
+    out.bitsPerSample = c.bitsPerSample;
+    out.bufferSizeFrames = c.bufferSizeFrames;
+    out.numBuffers = c.numBuffers;
+    out.enableEchoCancellation = c.enableEchoCancellation;
+    out.enableNoiseSuppression = c.enableNoiseSuppression;
+    out.enableAutoGainControl = c.enableAutoGainControl;
+    return out;
 }
 
 // === Provider function ===

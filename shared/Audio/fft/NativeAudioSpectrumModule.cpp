@@ -6,13 +6,22 @@
 namespace facebook {
 namespace react {
 
+// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
+using SpectrumConfig;
+using SpectrumError;
+using SpectrumState;
+using SpectrumData;
+using SpectrumManager;
+using Nyth::Audio::ISpectrumManager;
+
 NativeAudioSpectrumModule::NativeAudioSpectrumModule(std::shared_ptr<CallInvoker> jsInvoker)
     : TurboModule("NativeAudioSpectrumModule", jsInvoker) {
+    jsInvoker_ = jsInvoker;
     // Initialisation des composants
     initializeManagers();
 
     // Configuration par défaut
-    config_ = Nyth::Audio::SpectrumConfig::getDefault();
+    config_ = SpectrumConfig::getDefault();
 }
 
 NativeAudioSpectrumModule::~NativeAudioSpectrumModule() {
@@ -30,7 +39,7 @@ jsi::Value NativeAudioSpectrumModule::initialize(jsi::Runtime& rt, const jsi::Ob
 
         // Validation
         if (!validateConfig(newConfig)) {
-            handleError(Nyth::Audio::SpectrumError::INVALID_CONFIG, "Invalid configuration provided");
+            handleError(SpectrumError::INVALID_CONFIG, "Invalid configuration provided");
             return jsi::Value(false);
         }
 
@@ -38,16 +47,16 @@ jsi::Value NativeAudioSpectrumModule::initialize(jsi::Runtime& rt, const jsi::Ob
         if (spectrumManager_ && spectrumManager_->setConfig(newConfig)) {
             config_ = newConfig;
             isInitialized_.store(true);
-            currentState_ = Nyth::Audio::SpectrumState::INITIALIZED;
+            currentState_ = SpectrumState::INITIALIZED;
             return jsi::Value(true);
         } else {
-            currentState_ = Nyth::Audio::SpectrumState::ERROR;
-            handleError(Nyth::Audio::SpectrumError::FFT_FAILED, "Failed to initialize spectrum manager");
+            currentState_ = SpectrumState::ERROR;
+            handleError(SpectrumError::FFT_FAILED, "Failed to initialize spectrum manager");
             return jsi::Value(false);
         }
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SpectrumError::INVALID_CONFIG, std::string("Initialization failed: ") + e.what());
-        currentState_ = Nyth::Audio::SpectrumState::ERROR;
+        handleError(SpectrumError::INVALID_CONFIG, std::string("Initialization failed: ") + e.what());
+        currentState_ = SpectrumState::ERROR;
         return jsi::Value(false);
     }
 }
@@ -70,11 +79,11 @@ jsi::Value NativeAudioSpectrumModule::release(jsi::Runtime& rt) {
 
         isInitialized_.store(false);
         isAnalyzing_.store(false);
-        currentState_ = Nyth::Audio::SpectrumState::SHUTDOWN;
+        currentState_ = SpectrumState::SHUTDOWN;
 
         return jsi::Value(true);
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SpectrumError::INVALID_CONFIG, std::string("Release failed: ") + e.what());
+        handleError(SpectrumError::INVALID_CONFIG, std::string("Release failed: ") + e.what());
         return jsi::Value(false);
     }
 }
@@ -94,7 +103,7 @@ jsi::Value NativeAudioSpectrumModule::getState(jsi::Runtime& rt) {
 }
 
 jsi::Value NativeAudioSpectrumModule::getErrorString(jsi::Runtime& rt, int errorCode) {
-    auto error = static_cast<Nyth::Audio::SpectrumError>(errorCode);
+    auto error = static_cast<SpectrumError>(errorCode);
     return jsi::String::createFromUtf8(rt, errorToString(error));
 }
 
@@ -124,7 +133,7 @@ jsi::Value NativeAudioSpectrumModule::setConfig(jsi::Runtime& rt, const jsi::Obj
 
         // Validation
         if (!validateConfig(newConfig)) {
-            handleError(Nyth::Audio::SpectrumError::INVALID_CONFIG, "Invalid configuration provided");
+            handleError(SpectrumError::INVALID_CONFIG, "Invalid configuration provided");
             return jsi::Value(false);
         }
 
@@ -133,11 +142,11 @@ jsi::Value NativeAudioSpectrumModule::setConfig(jsi::Runtime& rt, const jsi::Obj
             config_ = newConfig;
             return jsi::Value(true);
         } else {
-            handleError(Nyth::Audio::SpectrumError::FFT_FAILED, "Failed to update spectrum manager configuration");
+            handleError(SpectrumError::FFT_FAILED, "Failed to update spectrum manager configuration");
             return jsi::Value(false);
         }
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SpectrumError::INVALID_CONFIG,
+        handleError(SpectrumError::INVALID_CONFIG,
                     std::string("Configuration update failed: ") + e.what());
         return jsi::Value(false);
     }
@@ -177,7 +186,7 @@ jsi::Value NativeAudioSpectrumModule::processAudioBuffer(jsi::Runtime& rt, const
             return jsi::Value(nullptr);
         }
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SpectrumError::FFT_FAILED, std::string("Audio processing failed: ") + e.what());
+        handleError(SpectrumError::FFT_FAILED, std::string("Audio processing failed: ") + e.what());
         return jsi::Value(nullptr);
     }
 }
@@ -197,7 +206,7 @@ jsi::Value NativeAudioSpectrumModule::processAudioBufferStereo(jsi::Runtime& rt,
 
         // Validation
         if (inputLData.empty() || inputRData.empty() || inputLData.size() != inputRData.size()) {
-            handleError(Nyth::Audio::SpectrumError::INVALID_BUFFER, "Invalid stereo input data");
+            handleError(SpectrumError::INVALID_BUFFER, "Invalid stereo input data");
             return jsi::Value(nullptr);
         }
 
@@ -213,7 +222,7 @@ jsi::Value NativeAudioSpectrumModule::processAudioBufferStereo(jsi::Runtime& rt,
             return jsi::Value(nullptr);
         }
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SpectrumError::FFT_FAILED, std::string("Stereo audio processing failed: ") + e.what());
+        handleError(SpectrumError::FFT_FAILED, std::string("Stereo audio processing failed: ") + e.what());
         return jsi::Value(nullptr);
     }
 }
@@ -231,7 +240,7 @@ jsi::Value NativeAudioSpectrumModule::getLastSpectrumData(jsi::Runtime& rt) {
         auto data = spectrumManager_->getLastSpectrumData();
         return SpectrumJSIConverter::spectrumDataToJSI(rt, data);
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SpectrumError::FFT_FAILED, std::string("Get spectrum data failed: ") + e.what());
+        handleError(SpectrumError::FFT_FAILED, std::string("Get spectrum data failed: ") + e.what());
         return jsi::Value(nullptr);
     }
 }
@@ -247,7 +256,7 @@ jsi::Value NativeAudioSpectrumModule::getStatistics(jsi::Runtime& rt) {
         auto stats = spectrumManager_->getStatistics();
         return SpectrumJSIConverter::spectrumStatisticsToJSI(rt, stats);
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SpectrumError::FFT_FAILED, std::string("Get statistics failed: ") + e.what());
+        handleError(SpectrumError::FFT_FAILED, std::string("Get statistics failed: ") + e.what());
         return jsi::Value(nullptr);
     }
 }
@@ -263,7 +272,7 @@ jsi::Value NativeAudioSpectrumModule::resetStatistics(jsi::Runtime& rt) {
         spectrumManager_->resetStatistics();
         return jsi::Value(true);
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SpectrumError::FFT_FAILED, std::string("Reset statistics failed: ") + e.what());
+        handleError(SpectrumError::FFT_FAILED, std::string("Reset statistics failed: ") + e.what());
         return jsi::Value(false);
     }
 }
@@ -274,7 +283,7 @@ jsi::Value NativeAudioSpectrumModule::startAnalysis(jsi::Runtime& rt) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (!isInitialized_.load()) {
-        handleError(Nyth::Audio::SpectrumError::NOT_INITIALIZED, "Module not initialized");
+        handleError(SpectrumError::NOT_INITIALIZED, "Module not initialized");
         return jsi::Value(false);
     }
 
@@ -285,13 +294,13 @@ jsi::Value NativeAudioSpectrumModule::startAnalysis(jsi::Runtime& rt) {
     try {
         if (spectrumManager_->start()) {
             isAnalyzing_.store(true);
-            currentState_ = Nyth::Audio::SpectrumState::ANALYZING;
+            currentState_ = SpectrumState::ANALYZING;
             return jsi::Value(true);
         } else {
             return jsi::Value(false);
         }
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SpectrumError::FFT_FAILED, std::string("Start analysis failed: ") + e.what());
+        handleError(SpectrumError::FFT_FAILED, std::string("Start analysis failed: ") + e.what());
         return jsi::Value(false);
     }
 }
@@ -306,13 +315,13 @@ jsi::Value NativeAudioSpectrumModule::stopAnalysis(jsi::Runtime& rt) {
     try {
         if (spectrumManager_->stop()) {
             isAnalyzing_.store(false);
-            currentState_ = Nyth::Audio::SpectrumState::INITIALIZED;
+            currentState_ = SpectrumState::INITIALIZED;
             return jsi::Value(true);
         } else {
             return jsi::Value(false);
         }
     } catch (const std::exception& e) {
-        handleError(Nyth::Audio::SpectrumError::FFT_FAILED, std::string("Stop analysis failed: ") + e.what());
+        handleError(SpectrumError::FFT_FAILED, std::string("Stop analysis failed: ") + e.what());
         return jsi::Value(false);
     }
 }
@@ -343,36 +352,68 @@ jsi::Value NativeAudioSpectrumModule::validateConfig(jsi::Runtime& rt, const jsi
 jsi::Value NativeAudioSpectrumModule::setDataCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    if (callbackManager_) {
+    try {
+        // Validation du callback manager
+        if (!callbackManager_) {
+            handleError(SpectrumError::NOT_INITIALIZED, "Callback manager not initialized");
+            return jsi::Value(false);
+        }
+
+        // Enregistrer le callback avec validation
         callbackManager_->registerCallback("spectrumData", rt, callback);
-    }
 
-    if (spectrumManager_) {
-        spectrumManager_->setDataCallback(
-            [this](const Nyth::Audio::SpectrumData& data) { this->onSpectrumData(data); });
-    }
+        // Configurer le callback sur le spectrum manager si disponible
+        if (spectrumManager_) {
+            spectrumManager_->setDataCallback(
+                [this](const SpectrumData& data) {
+                    if (data.isValid()) {
+                        this->onSpectrumData(data);
+                    }
+                });
+        }
 
-    return jsi::Value(true);
+        return jsi::Value(true);
+    } catch (const std::exception& e) {
+        handleError(SpectrumError::INVALID_CONFIG,
+                   std::string("Failed to set data callback: ") + e.what());
+        return jsi::Value(false);
+    }
 }
 
 jsi::Value NativeAudioSpectrumModule::setErrorCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    if (callbackManager_) {
-        callbackManager_->registerCallback("error", rt, callback);
-    }
+    try {
+        if (!callbackManager_) {
+            handleError(SpectrumError::NOT_INITIALIZED, "Callback manager not initialized");
+            return jsi::Value(false);
+        }
 
-    return jsi::Value(true);
+        callbackManager_->registerCallback("error", rt, callback);
+        return jsi::Value(true);
+    } catch (const std::exception& e) {
+        handleError(SpectrumError::INVALID_CONFIG,
+                   std::string("Failed to set error callback: ") + e.what());
+        return jsi::Value(false);
+    }
 }
 
 jsi::Value NativeAudioSpectrumModule::setStateCallback(jsi::Runtime& rt, const jsi::Function& callback) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    if (callbackManager_) {
-        callbackManager_->registerCallback("stateChange", rt, callback);
-    }
+    try {
+        if (!callbackManager_) {
+            handleError(SpectrumError::NOT_INITIALIZED, "Callback manager not initialized");
+            return jsi::Value(false);
+        }
 
-    return jsi::Value(true);
+        callbackManager_->registerCallback("stateChange", rt, callback);
+        return jsi::Value(true);
+    } catch (const std::exception& e) {
+        handleError(SpectrumError::INVALID_CONFIG,
+                   std::string("Failed to set state callback: ") + e.what());
+        return jsi::Value(false);
+    }
 }
 
 // === Installation du module ===
@@ -594,10 +635,10 @@ jsi::Value NativeAudioSpectrumModule::install(jsi::Runtime& rt, std::shared_ptr<
 
 void NativeAudioSpectrumModule::initializeManagers() {
     // Créer le callback manager
-    callbackManager_ = std::make_shared<JSICallbackManager>();
+    callbackManager_ = std::make_shared<JSICallbackManager>(jsInvoker_);
 
     // Créer le spectrum manager
-    spectrumManager_ = std::make_unique<Nyth::Audio::SpectrumManager>();
+    spectrumManager_ = std::make_unique<SpectrumManager>();
 
     // Configuration des callbacks
     setupCallbacks();
@@ -635,8 +676,8 @@ void NativeAudioSpectrumModule::invalidateRuntime() {
     }
 }
 
-void NativeAudioSpectrumModule::handleError(Nyth::Audio::SpectrumError error, const std::string& message) {
-    currentState_ = Nyth::Audio::SpectrumState::ERROR;
+void NativeAudioSpectrumModule::handleError(SpectrumError error, const std::string& message) {
+    currentState_ = SpectrumState::ERROR;
 
     // Notifier via callback si disponible
     if (callbackManager_ && runtimeValid_.load()) {
@@ -644,15 +685,15 @@ void NativeAudioSpectrumModule::handleError(Nyth::Audio::SpectrumError error, co
     }
 }
 
-std::string NativeAudioSpectrumModule::stateToString(Nyth::Audio::SpectrumState state) const {
-    return Nyth::Audio::stateToString(state);
+std::string NativeAudioSpectrumModule::stateToString(SpectrumState state) const {
+    return stateToString(state);
 }
 
-std::string NativeAudioSpectrumModule::errorToString(Nyth::Audio::SpectrumError error) const {
-    return Nyth::Audio::errorToString(error);
+std::string NativeAudioSpectrumModule::errorToString(SpectrumError error) const {
+    return errorToString(error);
 }
 
-void NativeAudioSpectrumModule::onSpectrumData(const Nyth::Audio::SpectrumData& data) {
+void NativeAudioSpectrumModule::onSpectrumData(const SpectrumData& data) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
             callbackManager_->invokeCallback("spectrumData", [this, data](jsi::Runtime& rt) {
@@ -665,7 +706,7 @@ void NativeAudioSpectrumModule::onSpectrumData(const Nyth::Audio::SpectrumData& 
     }
 }
 
-void NativeAudioSpectrumModule::onError(Nyth::Audio::SpectrumError error, const std::string& message) {
+void NativeAudioSpectrumModule::onError(SpectrumError error, const std::string& message) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
             callbackManager_->invokeCallback("error", [error, message, this](jsi::Runtime& rt) {
@@ -682,8 +723,8 @@ void NativeAudioSpectrumModule::onError(Nyth::Audio::SpectrumError error, const 
     }
 }
 
-void NativeAudioSpectrumModule::onStateChange(Nyth::Audio::SpectrumState oldState,
-                                              Nyth::Audio::SpectrumState newState) {
+void NativeAudioSpectrumModule::onStateChange(SpectrumState oldState,
+                                              SpectrumState newState) {
     if (callbackManager_ && runtimeValid_.load()) {
         try {
             callbackManager_->invokeCallback("stateChange", [oldState, newState, this](jsi::Runtime& rt) {
@@ -700,18 +741,18 @@ void NativeAudioSpectrumModule::onStateChange(Nyth::Audio::SpectrumState oldStat
     }
 }
 
-bool NativeAudioSpectrumModule::validateConfig(const Nyth::Audio::SpectrumConfig& config) const {
+bool NativeAudioSpectrumModule::validateConfig(const SpectrumConfig& config) const {
     return config.isValid();
 }
 
 void NativeAudioSpectrumModule::setupCallbacks() {
     if (spectrumManager_) {
         spectrumManager_->setStateCallback(
-            [this](Nyth::Audio::SpectrumState oldState, Nyth::Audio::SpectrumState newState) {
+            [this](SpectrumState oldState, SpectrumState newState) {
                 this->onStateChange(oldState, newState);
             });
 
-        spectrumManager_->setErrorCallback([this](Nyth::Audio::SpectrumError error, const std::string& message) {
+        spectrumManager_->setErrorCallback([this](SpectrumError error, const std::string& message) {
             this->handleError(error, message);
         });
     }

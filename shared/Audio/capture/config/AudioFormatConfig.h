@@ -7,10 +7,18 @@
 namespace Nyth {
 namespace Audio {
 
+// === Constantes pour les formats audio ===
+namespace AudioFormats {
+    const std::string AAC = "AAC";
+    const std::string M4A = "M4A";
+    const std::string FLAC = "FLAC";
+    const std::string WAV = "WAV";
+}
+
 // === Configuration des formats audio pour plateformes mobiles ===
 struct AudioFormatConfig {
     // === Format principal ===
-    std::string format = "AAC"; // "AAC", "M4A", "FLAC", "WAV"
+    std::string format = AudioFormats::AAC; // "AAC", "M4A", "FLAC", "WAV"
 
     // === Configuration AAC (recommandé pour mobile) ===
     int aacBitrate = Constants::AAC_BITRATE_MEDIUM; // 128 kbps par défaut
@@ -29,12 +37,12 @@ struct AudioFormatConfig {
 
     // === Validation ===
     bool isValid() const {
-        if (format != "AAC" && format != "M4A" && format != "FLAC" && format != "WAV") {
+        if (format != AudioFormats::AAC && format != AudioFormats::M4A && format != AudioFormats::FLAC && format != AudioFormats::WAV) {
             return false;
         }
 
         // Validation bitrate AAC
-        if (format == "AAC" || format == "M4A") {
+        if (format == AudioFormats::AAC || format == AudioFormats::M4A) {
             if (aacBitrate < Constants::AAC_BITRATE_LOW || aacBitrate > Constants::AAC_BITRATE_MAX) {
                 return false;
             }
@@ -49,11 +57,11 @@ struct AudioFormatConfig {
     }
 
     std::string getValidationError() const {
-        if (format != "AAC" && format != "M4A" && format != "FLAC" && format != "WAV") {
+        if (format != AudioFormats::AAC && format != AudioFormats::M4A && format != AudioFormats::FLAC && format != AudioFormats::WAV) {
             return "Format must be 'AAC', 'M4A', 'FLAC', or 'WAV'";
         }
 
-        if (format == "AAC" || format == "M4A") {
+        if (format == AudioFormats::AAC || format == AudioFormats::M4A) {
             if (aacBitrate < Constants::AAC_BITRATE_LOW) {
                 return "AAC bitrate too low (minimum " + std::to_string(Constants::AAC_BITRATE_LOW) + ")";
             }
@@ -71,25 +79,25 @@ struct AudioFormatConfig {
 
     // === Méthodes utilitaires ===
     std::string getFileExtension() const {
-        if (format == "AAC") return ".aac";
-        if (format == "M4A") return ".m4a";
-        if (format == "FLAC") return ".flac";
-        if (format == "WAV") return ".wav";
+        if (format == AudioFormats::AAC) return ".aac";
+        if (format == AudioFormats::M4A) return ".m4a";
+        if (format == AudioFormats::FLAC) return ".flac";
+        if (format == AudioFormats::WAV) return ".wav";
         return ".aac"; // Par défaut
     }
 
     bool isLossless() const {
-        return format == "FLAC" || format == "WAV";
+        return format == AudioFormats::FLAC || format == AudioFormats::WAV;
     }
 
     bool isMobileOptimized() const {
-        return format == "AAC" || format == "M4A";
+        return format == AudioFormats::AAC || format == AudioFormats::M4A;
     }
 
     // === Configuration par usage ===
     static AudioFormatConfig forVoiceRecording() {
         AudioFormatConfig config;
-        config.format = "AAC";
+        config.format = AudioFormats::AAC;
         config.aacBitrate = Constants::AAC_BITRATE_LOW;
         config.quality = Constants::AUDIO_QUALITY_MEDIUM;
         config.enableVBR = true;
@@ -98,14 +106,14 @@ struct AudioFormatConfig {
 
     static AudioFormatConfig forMusicRecording() {
         AudioFormatConfig config;
-        config.format = "FLAC"; // Pour la qualité sans perte
+        config.format = AudioFormats::FLAC; // Pour la qualité sans perte
         config.quality = Constants::AUDIO_QUALITY_LOSSLESS;
         return config;
     }
 
     static AudioFormatConfig forStreaming() {
         AudioFormatConfig config;
-        config.format = "AAC";
+        config.format = AudioFormats::AAC;
         config.aacBitrate = Constants::AAC_BITRATE_HIGH;
         config.quality = Constants::AUDIO_QUALITY_HIGH;
         config.enableFastStart = true;
@@ -118,22 +126,22 @@ namespace AudioFormat {
 
     // Vérifier si le format est supporté nativement par Android
     inline bool isAndroidNative(const std::string& format) {
-        return format == "AAC" || format == "FLAC" || format == "WAV";
+        return format == AudioFormats::AAC || format == AudioFormats::FLAC || format == AudioFormats::WAV;
     }
 
     // Vérifier si le format est supporté nativement par iOS
     inline bool isIOSNative(const std::string& format) {
-        return format == "AAC" || format == "M4A" || format == "FLAC" || format == "WAV";
+        return format == AudioFormats::AAC || format == AudioFormats::M4A || format == AudioFormats::FLAC || format == AudioFormats::WAV;
     }
 
     // Obtenir le meilleur format pour la plateforme
     inline std::string getBestFormatForPlatform() {
 #ifdef __ANDROID__
-        return "AAC"; // Format natif Android
+        return AudioFormats::AAC; // Format natif Android
 #elif defined(__APPLE__) && TARGET_OS_IOS
-        return "M4A"; // Format natif iOS (conteneur pour AAC)
+        return AudioFormats::M4A; // Format natif iOS (conteneur pour AAC)
 #else
-        return "FLAC"; // Format universel sans perte
+        return AudioFormats::FLAC; // Format universel sans perte
 #endif
     }
 

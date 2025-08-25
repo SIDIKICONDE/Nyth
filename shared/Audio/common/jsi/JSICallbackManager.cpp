@@ -70,7 +70,7 @@ void JSICallbackManager::removeCallback(const std::string& name) {
     std::lock_guard<std::mutex> lock(callbackMutex_);
     auto it = callbacks_.find(name);
     if (it != callbacks_.end()) {
-        it->second.isValid.store(false);
+        it->second.isValid = false;
         callbacks_.erase(it);
     }
 }
@@ -78,7 +78,7 @@ void JSICallbackManager::removeCallback(const std::string& name) {
 void JSICallbackManager::clearAllCallbacks() {
     std::lock_guard<std::mutex> lock(callbackMutex_);
     for (auto& pair : callbacks_) {
-        pair.second.isValid.store(false);
+        pair.second.isValid = false;
     }
     callbacks_.clear();
 }
@@ -129,7 +129,8 @@ void JSICallbackManager::invokeAudioDataCallback(const float* data, size_t frame
                               auto float32Array = float32ArrayCtor.callAsConstructor(rt, arrayBuffer).asObject(rt);
 
                               // Appeler le callback
-                              callbackData.function->call(rt, float32Array, jsi::Value(static_cast<int>(frameCount)),
+                              callbackData.function->call(rt, float32Array,
+                                                          jsi::Value(static_cast<int>(frameCount)),
                                                           jsi::Value(channels));
 
                           } catch (const jsi::JSError& e) {
@@ -143,6 +144,62 @@ void JSICallbackManager::invokeAudioDataCallback(const float* data, size_t frame
                               }
                           }
                       });
+}
+
+void JSICallbackManager::invokeAudioIOCallback(const float* input, const float* output, size_t frameCount,
+                                               int channels) {
+    if (!hasCallback("audioData") || !runtimeValid_.load()) {
+        return;
+    }
+
+    // Validate both buffers
+    validateAudioData(input, frameCount, channels);
+    validateAudioData(output, frameCount, channels);
+
+    size_t totalSamples = frameCount * channels;
+    std::vector<float> inputCopy(input, input + totalSamples);
+    std::vector<float> outputCopy(output, output + totalSamples);
+
+    enqueueInvocation("audioData", [this, inputCopy = std::move(inputCopy), outputCopy = std::move(outputCopy),
+                                     frameCount, channels](jsi::Runtime& rt) mutable {
+        auto callbackData = getCallback("audioData");
+        if (!callbackData.isValid.load() || !callbackData.function) {
+            return;
+        }
+
+        try {
+            if (!rt.global().hasProperty(rt, "Float32Array")) {
+                throw jsi::JSError(rt, "Float32Array not available in this environment");
+            }
+
+            size_t totalBytes = inputCopy.size() * sizeof(float);
+            if (totalBytes > Nyth::Audio::Limits::MAX_BUFFER_SIZE * sizeof(float)) {
+                throw jsi::JSError(rt, "Buffer size exceeds maximum allowed");
+            }
+
+            auto bufIn = std::make_shared<SimpleBuffer>(totalBytes);
+            std::memcpy(bufIn->data(), inputCopy.data(), totalBytes);
+            auto abIn = jsi::ArrayBuffer(rt, bufIn->data(), totalBytes);
+            auto f32Ctor = rt.global().getPropertyAsFunction(rt, "Float32Array");
+            auto f32In = f32Ctor.callAsConstructor(rt, abIn).asObject(rt);
+
+            auto bufOut = std::make_shared<SimpleBuffer>(totalBytes);
+            std::memcpy(bufOut->data(), outputCopy.data(), totalBytes);
+            auto abOut = jsi::ArrayBuffer(rt, bufOut->data(), totalBytes);
+            auto f32Out = f32Ctor.callAsConstructor(rt, abOut).asObject(rt);
+
+            callbackData.function->call(rt, f32In, f32Out, jsi::Value(static_cast<int>(frameCount)),
+                                        jsi::Value(channels));
+        } catch (const jsi::JSError& e) {
+            if (hasCallback("error")) {
+                invokeErrorCallback(std::string("JS audio IO callback error: ") + e.getMessage());
+            }
+        } catch (const std::exception& e) {
+            if (hasCallback("error")) {
+                invokeErrorCallback(std::string("Native audio IO callback error: ") + e.what());
+            }
+        }
+    });
 }
 
 void JSICallbackManager::invokeErrorCallback(const std::string& error) {
@@ -294,7 +351,7 @@ void JSICallbackManager::enqueueInvocation(const std::string& callbackName,
 bool JSICallbackManager::hasCallback(const std::string& name) const {
     std::lock_guard<std::mutex> lock(callbackMutex_);
     auto it = callbacks_.find(name);
-    return it != callbacks_.end() && it->second.isValid.load() && it->second.function != nullptr;
+    return it != callbacks_.end() && it->second.isValid && it->second.function != nullptr;
 }
 
 JSICallbackManager::CallbackData JSICallbackManager::getCallback(const std::string& name) const {
@@ -331,7 +388,7 @@ void JSICallbackManager::invokeCallback(const std::string& callbackName,
 
     enqueueInvocation(callbackName, [this, callbackName, callback](jsi::Runtime& rt) mutable {
         auto callbackData = getCallback(callbackName);
-        if (!callbackData.isValid.load() || !callbackData.function) {
+        if (!callbackData.isValid || !callbackData.function) {
             return;
         }
 
@@ -340,6 +397,51 @@ void JSICallbackManager::invokeCallback(const std::string& callbackName,
             callbackData.function->call(rt, result);
         } catch (const jsi::JSError& e) {
             // Logger l'erreur mais ne pas la propager
+            if (hasCallback("error")) {
+                invokeErrorCallback(std::string("JS callback error in ") + callbackName + ": " + e.getMessage());
+            }
+        } catch (const std::exception& e) {
+            if (hasCallback("error")) {
+                invokeErrorCallback(std::string("Native callback error in ") + callbackName + ": " + e.what());
+            }
+        }
+    });
+}
+
+// === API générique de gestion des callbacks ===
+void JSICallbackManager::registerCallback(const std::string& name, jsi::Runtime& rt, const jsi::Function& callback) {
+    std::lock_guard<std::mutex> lock(callbackMutex_);
+    callbacks_[name] = {std::make_shared<jsi::Function>(callback), runtime_, true};
+}
+
+void JSICallbackManager::setCallback(const std::string& name, jsi::Runtime& rt, const jsi::Function& callback) {
+    registerCallback(name, rt, callback);
+}
+
+// Overload to support callbacks that provide one or zero argument(s) packed in a vector
+void JSICallbackManager::invokeCallback(const std::string& callbackName,
+                                        std::function<std::vector<jsi::Value>(jsi::Runtime&)> callback) {
+    if (!hasCallback(callbackName) || !runtimeValid_.load()) {
+        return;
+    }
+
+    enqueueInvocation(callbackName, [this, callbackName, callback](jsi::Runtime& rt) mutable {
+        auto callbackData = getCallback(callbackName);
+        if (!callbackData.isValid || !callbackData.function) {
+            return;
+        }
+
+        try {
+            auto args = callback(rt);
+            if (args.empty()) {
+                callbackData.function->call(rt);
+            } else if (args.size() == 1) {
+                callbackData.function->call(rt, args[0]);
+            } else {
+                // Fallback: pass the first argument
+                callbackData.function->call(rt, args[0]);
+            }
+        } catch (const jsi::JSError& e) {
             if (hasCallback("error")) {
                 invokeErrorCallback(std::string("JS callback error in ") + callbackName + ": " + e.getMessage());
             }

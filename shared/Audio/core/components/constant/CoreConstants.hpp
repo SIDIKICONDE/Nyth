@@ -70,7 +70,9 @@
     #define AUDIO_ALIGNED(x)
 #endif
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 
 // ============================================================================
 // C++17 TYPE TRAITS - Remplace les concepts C++20
@@ -422,4 +424,6 @@ inline void portable_sleep_ms(long milliseconds) {
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 }
 
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth

@@ -56,24 +56,50 @@ struct SpectrumConfig {
 
 // === Structures de données spectrales ===
 
-// Données spectrales pour une frame
+/// @brief Structure sécurisée pour encapsuler un buffer avec sa taille
+template<typename T>
+struct ArrayView {
+    const T* data = nullptr;
+    size_t size = 0;
+
+    ArrayView() = default;
+    ArrayView(const T* ptr, size_t len) : data(ptr), size(len) {}
+
+    const T* begin() const { return data; }
+    const T* end() const { return data + size; }
+    bool empty() const { return size == 0 || data == nullptr; }
+
+    const T& operator[](size_t idx) const {
+        if (idx >= size) throw std::out_of_range("ArrayView index out of range");
+        return data[idx];
+    }
+};
+
+/// @brief Données spectrales pour une frame avec buffers sécurisés
 struct SpectrumData {
     size_t numBands = 0;
-    double timestamp = 0.0;             // Timestamp en ms
-    const float* magnitudes = nullptr;  // Magnitudes en dBFS
-    const float* frequencies = nullptr; // Fréquences en Hz
+    double timestamp = 0.0;                      // Timestamp en ms
+    ArrayView<float> magnitudes;                 // Magnitudes en dBFS (vue sécurisée)
+    ArrayView<float> frequencies;                // Fréquences en Hz (vue sécurisée)
 
     // Validation
     bool isValid() const noexcept {
-        return numBands > 0 && magnitudes != nullptr && frequencies != nullptr && timestamp >= 0.0;
+        return numBands > 0 && !magnitudes.empty() && !frequencies.empty() &&
+               magnitudes.size == numBands && frequencies.size == numBands && timestamp >= 0.0;
     }
 
     // Constructeur par défaut explicite
     SpectrumData() = default;
 
-    // Constructeur avec paramètres
+    // Constructeur avec paramètres sécurisés
     SpectrumData(size_t bands, double ts, const float* mags, const float* freqs)
-        : numBands(bands), timestamp(ts), magnitudes(mags), frequencies(freqs) {}
+        : numBands(bands), timestamp(ts),
+          magnitudes(mags, bands),
+          frequencies(freqs, bands) {}
+
+    // Accesseurs sécurisés pour la compatibilité
+    const float* getMagnitudesPtr() const { return magnitudes.data; }
+    const float* getFrequenciesPtr() const { return frequencies.data; }
 };
 
 // Statistiques spectrales

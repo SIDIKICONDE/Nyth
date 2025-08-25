@@ -15,7 +15,7 @@
 #include "../../common/config/EffectConstants.hpp"
 
 
-namespace AudioFX {
+namespace Nyth { namespace Audio { namespace FX {
 
 // All constants are now centralized in EffectConstants.hpp
 
@@ -29,10 +29,10 @@ public:
     virtual ~IAudioEffect() noexcept = default;
 
     virtual void setSampleRate(uint32_t sampleRate, int numChannels) noexcept {
-        sampleRate_ = sampleRate > AudioFX::MIN_SAMPLE_RATE ? sampleRate : AudioFX::DEFAULT_SAMPLE_RATE;
-        channels_ = (numChannels == AudioFX::MONO_CHANNELS || numChannels == AudioFX::STEREO_CHANNELS)
+        sampleRate_ = sampleRate > Nyth::Audio::FX::MIN_SAMPLE_RATE ? sampleRate : Nyth::Audio::FX::DEFAULT_SAMPLE_RATE;
+        channels_ = (numChannels == Nyth::Audio::FX::MONO_CHANNELS || numChannels == Nyth::Audio::FX::STEREO_CHANNELS)
                         ? numChannels
-                        : AudioFX::DEFAULT_CHANNELS;
+                        : Nyth::Audio::FX::DEFAULT_CHANNELS;
     }
 
     virtual void setEnabled(bool enabled) noexcept {
@@ -42,9 +42,17 @@ public:
         return enabled_;
     }
 
+    [[nodiscard]] uint32_t getSampleRate() const noexcept {
+        return sampleRate_;
+    }
+
+    [[nodiscard]] int getChannels() const noexcept {
+        return channels_;
+    }
+
     // Legacy methods for backward compatibility
     virtual void processMono(const float* input, float* output, size_t numSamples) {
-        if (!enabled_ || !input || !output || numSamples == AudioFX::ZERO_SAMPLES) {
+        if (!enabled_ || !input || !output || numSamples == Nyth::Audio::FX::ZERO_SAMPLES) {
             if (output && input && output != input) {
                 std::copy_n(input, numSamples, output);
             }
@@ -57,7 +65,7 @@ public:
     }
 
     virtual void processStereo(const float* inL, const float* inR, float* outL, float* outR, size_t numSamples) {
-        if (!enabled_ || !inL || !inR || !outL || !outR || numSamples == AudioFX::ZERO_SAMPLES) {
+        if (!enabled_ || !inL || !inR || !outL || !outR || numSamples == Nyth::Audio::FX::ZERO_SAMPLES) {
             if (outL && inL && outL != inL) {
                 std::copy_n(inL, numSamples, outL);
             }
@@ -140,9 +148,9 @@ public:
     }
 
 protected:
-    uint32_t sampleRate_ = AudioFX::DEFAULT_SAMPLE_RATE;
-    int channels_ = AudioFX::DEFAULT_CHANNELS;
-    bool enabled_ = AudioFX::DEFAULT_ENABLED_STATE;
+    uint32_t sampleRate_ = Nyth::Audio::FX::DEFAULT_SAMPLE_RATE;
+    int channels_ = Nyth::Audio::FX::DEFAULT_CHANNELS;
+    bool enabled_ = Nyth::Audio::FX::DEFAULT_ENABLED_STATE;
 };
 
-} // namespace AudioFX
+} // namespace Nyth { namespace Audio { namespace FX

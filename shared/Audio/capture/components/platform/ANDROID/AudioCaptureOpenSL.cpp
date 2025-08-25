@@ -1,6 +1,7 @@
 #include "../../AudioCaptureImpl.hpp"
 #include <SLES/OpenSLES_Android.h>
 #include "../../../common/config/Constant.hpp"
+#include "../../../common/config/ErrorCodes.hpp"
 #include <cstring>
 
 namespace Nyth {
@@ -13,16 +14,16 @@ namespace Audio {
 
 bool AudioCaptureAndroid::initializeOpenSL() {
     // Création du moteur OpenSL ES
-    SLresult result = slCreateEngine(&opensl_.engineObject, Constants::ANDROID_SUCCESS, nullptr, Constants::ANDROID_SUCCESS, nullptr, nullptr);
-    if (result != SL_RESULT_SUCCESS)
+    SLresult result = slCreateEngine(&opensl_.engineObject, Constants::OpenSL::RESULT_SUCCESS, nullptr, Constants::OpenSL::RESULT_SUCCESS, nullptr, nullptr);
+    if (result != Constants::OpenSL::RESULT_SUCCESS)
         return false;
 
-    result = (*opensl_.engineObject)->Realize(opensl_.engineObject, Constants::ANDROID_FALSE);
-    if (result != SL_RESULT_SUCCESS)
+    result = (*opensl_.engineObject)->Realize(opensl_.engineObject, Constants::Android::FALSE);
+    if (result != Constants::OpenSL::RESULT_SUCCESS)
         return false;
 
     result = (*opensl_.engineObject)->GetInterface(opensl_.engineObject, SL_IID_ENGINE, &opensl_.engineEngine);
-    if (result != SL_RESULT_SUCCESS)
+    if (result != Constants::OpenSL::RESULT_SUCCESS)
         return false;
 
     // Configuration de la source audio (microphone)
@@ -47,30 +48,30 @@ bool AudioCaptureAndroid::initializeOpenSL() {
 
     // Création de l'enregistreur
     const SLInterfaceID id[1] = {SL_IID_ANDROIDSIMPLEBUFFERQUEUE};
-    const SLboolean req[1] = {Constants::ANDROID_TRUE};
+    const SLboolean req[1] = {Constants::Android::TRUE};
 
     result = (*opensl_.engineEngine)
                  ->CreateAudioRecorder(opensl_.engineEngine, &opensl_.recorderObject, &audioSrc, &audioSnk, 1, id, req);
-    if (result != SL_RESULT_SUCCESS)
+    if (result != Constants::OpenSL::RESULT_SUCCESS)
         return false;
 
-    result = (*opensl_.recorderObject)->Realize(opensl_.recorderObject, Constants::ANDROID_FALSE);
-    if (result != SL_RESULT_SUCCESS)
+    result = (*opensl_.recorderObject)->Realize(opensl_.recorderObject, Constants::Android::FALSE);
+    if (result != Constants::OpenSL::RESULT_SUCCESS)
         return false;
 
     result = (*opensl_.recorderObject)->GetInterface(opensl_.recorderObject, SL_IID_RECORD, &opensl_.recorderRecord);
-    if (result != SL_RESULT_SUCCESS)
+    if (result != Constants::OpenSL::RESULT_SUCCESS)
         return false;
 
     result = (*opensl_.recorderObject)
                  ->GetInterface(opensl_.recorderObject, SL_IID_ANDROIDSIMPLEBUFFERQUEUE, &opensl_.recorderBufferQueue);
-    if (result != SL_RESULT_SUCCESS)
+    if (result != Constants::OpenSL::RESULT_SUCCESS)
         return false;
 
     // Configuration du callback
     result =
         (*opensl_.recorderBufferQueue)->RegisterCallback(opensl_.recorderBufferQueue, openSLRecorderCallback, this);
-    if (result != SL_RESULT_SUCCESS)
+    if (result != Constants::OpenSL::RESULT_SUCCESS)
         return false;
 
     // Initialisation des buffers

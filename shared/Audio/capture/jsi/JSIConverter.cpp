@@ -11,63 +11,63 @@ Nyth::Audio::AudioConfig JSIConverter::jsToAudioConfig(jsi::Runtime& rt, const j
     // Sample Rate
     if (jsConfig.hasProperty(rt, "sampleRate")) {
         auto prop = jsConfig.getProperty(rt, "sampleRate");
-        config.sampleRate = Nyth::Audio::JSIValidator::validateSampleRate(rt, prop);
+        config.sampleRate = facebook::react::JSIValidator::validateSampleRate(rt, prop);
     }
 
     // Channel Count
     if (jsConfig.hasProperty(rt, "channelCount")) {
         auto prop = jsConfig.getProperty(rt, "channelCount");
-        config.channelCount = Nyth::Audio::JSIValidator::validateChannelCount(rt, prop);
+        config.channelCount = facebook::react::JSIValidator::validateChannelCount(rt, prop);
     }
 
     // Bits per sample
     if (jsConfig.hasProperty(rt, "bitsPerSample")) {
         auto prop = jsConfig.getProperty(rt, "bitsPerSample");
-        config.bitsPerSample = Nyth::Audio::JSIValidator::validateBitsPerSample(rt, prop);
+        config.bitsPerSample = facebook::react::JSIValidator::validateBitsPerSample(rt, prop);
     }
 
     // Buffer size frames
     if (jsConfig.hasProperty(rt, "bufferSizeFrames")) {
         auto prop = jsConfig.getProperty(rt, "bufferSizeFrames");
-        config.bufferSizeFrames = Nyth::Audio::JSIValidator::validateBufferSizeFrames(rt, prop);
+        config.bufferSizeFrames = facebook::react::JSIValidator::validateBufferSizeFrames(rt, prop);
     }
 
     // Number of buffers
     if (jsConfig.hasProperty(rt, "numBuffers")) {
         auto prop = jsConfig.getProperty(rt, "numBuffers");
-        config.numBuffers = static_cast<int>(Nyth::Audio::JSIValidator::validateNumberInRange(
+        config.numBuffers = static_cast<int>(facebook::react::JSIValidator::validateNumberInRange(
             rt, prop, "numBuffers", Nyth::Audio::Limits::MIN_NUM_BUFFERS, Nyth::Audio::Limits::MAX_NUM_BUFFERS));
     }
 
     // Options booléennes
     if (jsConfig.hasProperty(rt, "enableEchoCancellation")) {
         auto prop = jsConfig.getProperty(rt, "enableEchoCancellation");
-        Nyth::Audio::JSIValidator::validateBool(rt, prop, "enableEchoCancellation");
+        facebook::react::JSIValidator::validateBool(rt, prop, "enableEchoCancellation");
         config.enableEchoCancellation = prop.asBool();
     }
 
     if (jsConfig.hasProperty(rt, "enableNoiseSuppression")) {
         auto prop = jsConfig.getProperty(rt, "enableNoiseSuppression");
-        Nyth::Audio::JSIValidator::validateBool(rt, prop, "enableNoiseSuppression");
+        facebook::react::JSIValidator::validateBool(rt, prop, "enableNoiseSuppression");
         config.enableNoiseSuppression = prop.asBool();
     }
 
     if (jsConfig.hasProperty(rt, "enableAutoGainControl")) {
         auto prop = jsConfig.getProperty(rt, "enableAutoGainControl");
-        Nyth::Audio::JSIValidator::validateBool(rt, prop, "enableAutoGainControl");
+        facebook::react::JSIValidator::validateBool(rt, prop, "enableAutoGainControl");
         config.enableAutoGainControl = prop.asBool();
     }
 
     // Intervalle d'analyse
     if (jsConfig.hasProperty(rt, "analysisIntervalMs")) {
         auto prop = jsConfig.getProperty(rt, "analysisIntervalMs");
-        config.analysisIntervalMs = Nyth::Audio::JSIValidator::validateAnalysisInterval(rt, prop);
+        config.analysisIntervalMs = facebook::react::JSIValidator::validateAnalysisInterval(rt, prop);
     }
 
     // Seuil de silence
     if (jsConfig.hasProperty(rt, "silenceThreshold")) {
         auto prop = jsConfig.getProperty(rt, "silenceThreshold");
-        config.silenceThreshold = Nyth::Audio::JSIValidator::validateThreshold(rt, prop, "silenceThreshold");
+        config.silenceThreshold = facebook::react::JSIValidator::validateThreshold(rt, prop, "silenceThreshold");
     }
 
     // Validation finale
@@ -103,7 +103,7 @@ Nyth::Audio::AudioRecordingConfig JSIConverter::jsToAudioRecordingConfig(jsi::Ru
     // File path (obligatoire)
     if (jsConfig.hasProperty(rt, "filePath")) {
         auto prop = jsConfig.getProperty(rt, "filePath");
-        config.filePath = Nyth::Audio::JSIValidator::validateFilePath(rt, prop);
+        config.filePath = facebook::react::JSIValidator::validateFilePath(rt, prop);
     } else {
         throw jsi::JSError(rt, "filePath is required for recording configuration");
     }
@@ -111,13 +111,13 @@ Nyth::Audio::AudioRecordingConfig JSIConverter::jsToAudioRecordingConfig(jsi::Ru
     // Format (optionnel)
     if (jsConfig.hasProperty(rt, "format")) {
         auto prop = jsConfig.getProperty(rt, "format");
-        config.format = Nyth::Audio::JSIValidator::validateRecordingFormat(rt, prop);
+        config.format = facebook::react::JSIValidator::validateRecordingFormat(rt, prop);
     }
 
     // Max duration (optionnel)
     if (jsConfig.hasProperty(rt, "maxDurationMs")) {
         auto prop = jsConfig.getProperty(rt, "maxDurationMs");
-        config.maxDurationMs = static_cast<size_t>(Nyth::Audio::JSIValidator::validateNumberInRange(
+        config.maxDurationMs = static_cast<size_t>(facebook::react::JSIValidator::validateNumberInRange(
             rt, prop, "maxDurationMs", Nyth::Audio::Limits::MIN_RECORDING_DURATION_MS,
             Nyth::Audio::Limits::MAX_RECORDING_DURATION_MS));
     }
@@ -252,6 +252,10 @@ jsi::Object JSIConverter::createEmptyObject(jsi::Runtime& rt) {
 
 jsi::Array JSIConverter::createEmptyArray(jsi::Runtime& rt) {
     return jsi::Array(rt, 0);
+}
+
+jsi::Array JSIConverter::createEmptyArray(jsi::Runtime& rt, size_t size) {
+    return jsi::Array(rt, size);
 }
 
 jsi::Array JSIConverter::convertSampleRatesToJS(jsi::Runtime& rt, const std::vector<int>& sampleRates) {

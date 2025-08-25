@@ -5,9 +5,108 @@
 #include <vector>
 #include <functional>
 #include <memory>
+#include <cmath>
 
 namespace AudioNR {
 namespace SIMD {
+
+// ====================
+// Macros d'optimisation pour les fonctions mathématiques
+// ====================
+
+// Macros pour forcer l'inlining et l'alignement
+#ifdef _MSC_VER
+    #define MATH_INLINE __forceinline
+    #define MATH_ALIGNED(x) __declspec(align(x))
+#else
+    #define MATH_INLINE __attribute__((always_inline)) inline
+    #define MATH_ALIGNED(x) __attribute__((aligned(x)))
+#endif
+
+// Préfetch pour optimiser le cache des fonctions mathématiques
+#ifdef __ARM_NEON
+    #define MATH_PREFETCH(addr) __builtin_prefetch(addr, 0, 3)
+#else
+    #define MATH_PREFETCH(addr) ((void)(addr))
+#endif
+
+// Constantes d'optimisation
+constexpr size_t MATH_CACHE_LINE_SIZE = 64;
+constexpr size_t MATH_SIMD_ALIGNMENT = 32;
+constexpr size_t MATH_UNROLL_FACTOR = 8;
+
+// ====================
+// Lookup Tables pour optimisation
+// ====================
+
+class MATH_ALIGNED(64) LookupTables {
+private:
+    static constexpr size_t SINE_TABLE_SIZE = 4096;
+    static constexpr size_t COSINE_TABLE_SIZE = 4096;
+    static constexpr size_t EXP_TABLE_SIZE = 2048;
+
+    MATH_ALIGNED(64) float sineTable[SINE_TABLE_SIZE];
+    MATH_ALIGNED(64) float cosineTable[COSINE_TABLE_SIZE];
+    MATH_ALIGNED(64) float expTable[EXP_TABLE_SIZE];
+
+    LookupTables() {
+        // Initialiser les tables
+        for (size_t i = 0; i < SINE_TABLE_SIZE; ++i) {
+            float angle = (2.0f * M_PI * i) / SINE_TABLE_SIZE;
+            sineTable[i] = std::sin(angle);
+            cosineTable[i] = std::cos(angle);
+        }
+
+        for (size_t i = 0; i < EXP_TABLE_SIZE; ++i) {
+            float x = -10.0f + (20.0f * i) / EXP_TABLE_SIZE;
+            expTable[i] = std::exp(x);
+        }
+    }
+
+public:
+    static LookupTables& getInstance() {
+        static LookupTables instance;
+        return instance;
+    }
+
+    MATH_INLINE float fastSin(float x) const {
+        // Normaliser x dans [0, 2π]
+        x = std::fmod(x, 2.0f * static_cast<float>(M_PI));
+        if (x < 0) x += 2.0f * static_cast<float>(M_PI);
+
+        float index = (x * SINE_TABLE_SIZE) / (2.0f * static_cast<float>(M_PI));
+        size_t i0 = static_cast<size_t>(index);
+        size_t i1 = (i0 + 1) & (SINE_TABLE_SIZE - 1);
+        float frac = index - i0;
+
+        // Interpolation linéaire
+        return sineTable[i0] * (1.0f - frac) + sineTable[i1] * frac;
+    }
+
+    MATH_INLINE float fastCos(float x) const {
+        x = std::fmod(x, 2.0f * static_cast<float>(M_PI));
+        if (x < 0) x += 2.0f * static_cast<float>(M_PI);
+
+        float index = (x * COSINE_TABLE_SIZE) / (2.0f * static_cast<float>(M_PI));
+        size_t i0 = static_cast<size_t>(index);
+        size_t i1 = (i0 + 1) & (COSINE_TABLE_SIZE - 1);
+        float frac = index - i0;
+
+        return cosineTable[i0] * (1.0f - frac) + cosineTable[i1] * frac;
+    }
+
+    MATH_INLINE float fastExp(float x) const {
+        if (x < -10.0f) return 0.0f;
+        if (x > 10.0f) return std::exp(x);
+
+        float index = ((x + 10.0f) * EXP_TABLE_SIZE) / 20.0f;
+        size_t i0 = static_cast<size_t>(index);
+        size_t i1 = std::min(i0 + 1, EXP_TABLE_SIZE - 1);
+        float frac = index - i0;
+
+        return expTable[i0] * (1.0f - frac) + expTable[i1] * frac;
+    }
+};
 
 // ====================
 // Fonctions Mathématiques SIMD Avancées
@@ -62,10 +161,100 @@ public:
     static void apply_tanh_distortion(float* data, size_t count, float drive);
     static void apply_cubic_distortion(float* data, size_t count, float drive);
 
+    // Versions optimisées avec lookup tables et approximations
+    static void sin_vectorized_fast(const float* x, float* result, size_t count);
+    static void tanh_vectorized_fast(const float* x, float* result, size_t count);
+    static void apply_soft_clipper_optimized(float* data, size_t count, float threshold);
+    static void normalize_optimized(float* data, size_t count, float target_rms = 1.0f);
+
     // Version scalaire de référence pour les benchmarks
     static float expint_e1_scalar(float x);
     static float expint_ei_scalar(float x);
     static float expint_en_scalar(int n, float x);
+};
+
+// ====================
+// Processeur de blocs SIMD optimisé
+// ====================
+
+template<size_t BLOCK_SIZE = 512>
+class SIMDBlockProcessor {
+private:
+    MATH_ALIGNED(64) float workBuffer[BLOCK_SIZE];
+    MATH_ALIGNED(64) float tempBuffer[BLOCK_SIZE];
+
+public:
+    template<typename ProcessFunc>
+    void processInBlocks(float* data, size_t totalCount, ProcessFunc func) {
+        size_t processed = 0;
+
+        while (processed < totalCount) {
+            size_t blockCount = std::min(BLOCK_SIZE, totalCount - processed);
+
+            // Copier dans le buffer de travail aligné
+            std::memcpy(workBuffer, &data[processed], blockCount * sizeof(float));
+
+            // Traiter le bloc
+            func(workBuffer, blockCount);
+
+            // Copier le résultat
+            std::memcpy(&data[processed], workBuffer, blockCount * sizeof(float));
+
+            processed += blockCount;
+        }
+    }
+
+    // Version avec double buffering pour le pipeline
+    template<typename ProcessFunc>
+    void processInBlocksPipelined(float* data, size_t totalCount, ProcessFunc func) {
+        if (totalCount <= BLOCK_SIZE) {
+            processInBlocks(data, totalCount, func);
+            return;
+        }
+
+        size_t processed = 0;
+        bool useWorkBuffer = true;
+
+        // Charger le premier bloc
+        size_t blockCount = std::min(BLOCK_SIZE, totalCount);
+        std::memcpy(workBuffer, data, blockCount * sizeof(float));
+
+        while (processed < totalCount) {
+            size_t nextBlockStart = processed + blockCount;
+            size_t nextBlockCount = std::min(BLOCK_SIZE, totalCount - nextBlockStart);
+
+            // Précharger le prochain bloc pendant le traitement
+            if (nextBlockStart < totalCount) {
+                MATH_PREFETCH(&data[nextBlockStart]);
+                MATH_PREFETCH(&data[nextBlockStart + 64]);
+            }
+
+            // Traiter le bloc actuel
+            if (useWorkBuffer) {
+                func(workBuffer, blockCount);
+
+                // Charger le prochain bloc dans tempBuffer pendant qu'on écrit
+                if (nextBlockStart < totalCount) {
+                    std::memcpy(tempBuffer, &data[nextBlockStart], nextBlockCount * sizeof(float));
+                }
+
+                // Écrire le résultat
+                std::memcpy(&data[processed], workBuffer, blockCount * sizeof(float));
+            } else {
+                func(tempBuffer, blockCount);
+
+                if (nextBlockStart < totalCount) {
+                    std::memcpy(workBuffer, &data[nextBlockStart], nextBlockCount * sizeof(float));
+                }
+
+                std::memcpy(&data[processed], tempBuffer, blockCount * sizeof(float));
+            }
+
+            useWorkBuffer = !useWorkBuffer;
+            processed += blockCount;
+            blockCount = nextBlockCount;
+        }
+    }
 };
 
 // ====================

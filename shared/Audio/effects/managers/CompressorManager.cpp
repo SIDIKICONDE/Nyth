@@ -22,7 +22,7 @@ bool CompressorManager::initialize(const Nyth::Audio::EffectsConfig& config) {
 
     try {
         // Créer le compresseur AudioFX
-        compressor_ = std::make_unique<AudioFX::CompressorEffect>();
+        compressor_ = std::make_unique<Nyth::Audio::FX::CompressorEffect>();
 
         // Configuration initiale
         config_ = config;
@@ -282,6 +282,113 @@ void CompressorManager::notifyMetricsCallback() {
 bool CompressorManager::validateConfig(const Nyth::Audio::CompressorConfig& config) const {
     std::string error;
     return Nyth::Audio::EffectsConfigValidator::validate(config, error);
+}
+
+// === Implémentations SIMD ===
+
+bool CompressorManager::processMono_SIMD(std::vector<float>& input, std::vector<float>& output) {
+    if (!isInitialized_.load() || !compressor_ || !isEnabled_.load() || isBypassed_.load()) {
+        if (input.size() == output.size()) {
+            if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && input.size() >= 64) {
+                std::memcpy(output.data(), input.data(), input.size() * sizeof(float));
+            } else {
+                std::copy(input.begin(), input.end(), output.begin());
+            }
+            return true;
+        }
+        return false;
+    }
+
+    if (input.size() != output.size()) {
+        return false;
+    }
+
+    try {
+        // Utiliser SIMD si disponible et taille suffisante
+        if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && input.size() >= 64) {
+            // Appliquer la compression SIMD
+            compressor_->processMono_SIMD(input, output);
+
+            // Appliquer des effets supplémentaires SIMD si nécessaire
+            if (compressorConfig_.autoMakeup) {
+                AudioNR::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(
+                    output.data(), output.size(), 0.8f);
+            }
+
+            // Protection contre le clipping SIMD
+            if (compressorConfig_.hardLimit) {
+                AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(
+                    output.data(), output.size(), 0.95f);
+            }
+        } else {
+            // Version standard
+            return processMono(input, output);
+        }
+
+        updateMetrics();
+        return true;
+    } catch (const std::exception& e) {
+        if (callbackManager_) {
+            callbackManager_->invokeErrorCallback(std::string("SIMD compression failed: ") + e.what());
+        }
+        return false;
+    }
+}
+
+bool CompressorManager::processStereo_SIMD(std::vector<float>& inputL, std::vector<float>& inputR,
+                                          std::vector<float>& outputL, std::vector<float>& outputR) {
+    if (!isInitialized_.load() || !compressor_ || !isEnabled_.load() || isBypassed_.load()) {
+        if (inputL.size() == outputL.size() && inputR.size() == outputR.size()) {
+            if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && inputL.size() >= 64) {
+                std::memcpy(outputL.data(), inputL.data(), inputL.size() * sizeof(float));
+                std::memcpy(outputR.data(), inputR.data(), inputR.size() * sizeof(float));
+            } else {
+                std::copy(inputL.begin(), inputL.end(), outputL.begin());
+                std::copy(inputR.begin(), inputR.end(), outputR.begin());
+            }
+            return true;
+        }
+        return false;
+    }
+
+    if (inputL.size() != outputL.size() || inputR.size() != outputR.size()) {
+        return false;
+    }
+
+    try {
+        // Utiliser SIMD si disponible et taille suffisante
+        if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && inputL.size() >= 64) {
+            // Appliquer la compression stéréo SIMD
+            compressor_->processStereo_SIMD(inputL, inputR, outputL, outputR);
+
+            // Appliquer des effets supplémentaires SIMD si nécessaire
+            if (compressorConfig_.autoMakeup) {
+                AudioNR::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(
+                    outputL.data(), outputL.size(), 0.8f);
+                AudioNR::MathUtils::MathUtilsSIMDExtension::normalizeAudioSIMD(
+                    outputR.data(), outputR.size(), 0.8f);
+            }
+
+            // Protection contre le clipping SIMD
+            if (compressorConfig_.hardLimit) {
+                AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(
+                    outputL.data(), outputL.size(), 0.95f);
+                AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(
+                    outputR.data(), outputR.size(), 0.95f);
+            }
+        } else {
+            // Version standard
+            return processStereo(inputL, inputR, outputL, outputR);
+        }
+
+        updateMetrics();
+        return true;
+    } catch (const std::exception& e) {
+        if (callbackManager_) {
+            callbackManager_->invokeErrorCallback(std::string("SIMD stereo compression failed: ") + e.what());
+        }
+        return false;
+    }
 }
 
 } // namespace react

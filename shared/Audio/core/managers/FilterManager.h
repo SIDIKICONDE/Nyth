@@ -51,7 +51,7 @@ public:
 
 private:
     // === Membres privés ===
-    std::unordered_map<int64_t, std::unique_ptr<AudioFX::BiquadFilter>> filters_;
+    std::unordered_map<int64_t, std::unique_ptr<Nyth::Audio::FX::BiquadFilter>> filters_;
     std::shared_ptr<JSICallbackManager> callbackManager_;
 
     mutable std::mutex filtersMutex_;
@@ -61,7 +61,7 @@ private:
     uint32_t sampleRate_ = 44100;
 
     // === Méthodes helpers ===
-    AudioFX::BiquadFilter* getFilter(int64_t filterId) const;
+    Nyth::Audio::FX::BiquadFilter* getFilter(int64_t filterId) const;
     bool validateFilterId(int64_t filterId) const;
     bool validateParameters(double frequency, double q, double gainDB = 0.0) const;
 };

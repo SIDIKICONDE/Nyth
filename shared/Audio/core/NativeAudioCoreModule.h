@@ -44,7 +44,22 @@
 namespace facebook {
 namespace react {
 
+// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
+using Nyth::Audio::AudioConfig;
+
 // === Module principal refactorisé ===
+/**
+ * @class NativeAudioCoreModule
+ * @brief Module TurboModule principal pour le traitement audio temps réel
+ *
+ * Ce module fournit une interface JSI complète pour:
+ * - Égalisation audio multi-bandes (10 bandes par défaut)
+ * - Filtres biquad individuels (lowpass, highpass, bandpass, etc.)
+ * - Analyse audio temps réel (RMS, peak, fréquences)
+ * - Support optimisé des TypedArray pour les performances
+ *
+ * @note Thread-safe et optimisé pour le traitement temps réel
+ */
 class JSI_EXPORT NativeAudioCoreModule : public TurboModule {
 public:
     explicit NativeAudioCoreModule(std::shared_ptr<CallInvoker> jsInvoker);
@@ -141,7 +156,7 @@ private:
     std::shared_ptr<JSICallbackManager> callbackManager_;
 
     // === Configuration ===
-    Nyth::Audio::AudioConfig config_;
+    AudioConfig config_;
 
     // === État interne ===
     std::atomic<bool> isInitialized_{false};

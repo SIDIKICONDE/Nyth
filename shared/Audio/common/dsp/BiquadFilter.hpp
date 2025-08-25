@@ -13,17 +13,19 @@
 #include <type_traits>
 
 // Legacy constants header
-#include "CoreConstants.hpp"
+#include "../constant/CoreConstants.hpp"
+#include <cstdint>
+#include <cstddef>
 
 // C++17 pure - no platform-specific SIMD optimizations
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 
-// Note: is_audio_buffer_type is already defined in CoreConstants.hpp
-
-// Macro pour remplacer source_location
-#define NYTH_SOURCE_LOCATION (std::string(__FILE__) + ":" + std::to_string(__LINE__))
-
+/**
+ * @brief Filtre biquad IIR haute performance pour le traitement audio
+ */
 class BiquadFilter {
 public:
     BiquadFilter();
@@ -61,7 +63,7 @@ public:
     [[deprecated("Use vector version instead")]]
     void processStereo(const float* inputL, const float* inputR,
                       float* outputL, float* outputR, size_t numSamples);
-    
+
     // Mono processing method
     void processMono(const float* input, float* output, size_t numSamples);
 
@@ -130,11 +132,13 @@ process_sample_implementation(double a0, double a1, double a2, double b1, double
     return static_cast<T>(y);
 }
 
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth
 
 // C++17 template implementations
 template<typename T, typename>
-inline T AudioFX::BiquadFilter::processSample(T input) {
+inline T Nyth::Audio::FX::BiquadFilter::processSample(T input) {
     return process_sample_implementation(m_a0, m_a1, m_a2, m_b1, m_b2, input, m_y1, m_y2);
 }
 

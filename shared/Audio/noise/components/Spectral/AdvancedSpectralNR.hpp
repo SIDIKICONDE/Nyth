@@ -150,7 +150,7 @@ private:
     std::unique_ptr<WienerFilter> wienerFilter_;
     std::unique_ptr<TwoStepNoiseReduction> twoStepFilter_;
     std::unique_ptr<MultibandProcessor> multibandProcessor_;
-    std::unique_ptr<AudioFX::IFFTEngine> fftEngine_;
+    std::unique_ptr<Nyth::Audio::FX::IFFTEngine> fftEngine_;
 
     // Buffers
     std::vector<float> window_;

@@ -17,7 +17,7 @@ int64_t FilterManager::createFilter() {
 
     try {
         int64_t filterId = nextFilterId_++;
-        filters_[filterId] = std::make_unique<AudioFX::BiquadFilter>();
+        filters_[filterId] = std::make_unique<Nyth::Audio::FX::BiquadFilter>();
         return filterId;
     } catch (const std::exception& e) {
         if (callbackManager_) {
@@ -273,7 +273,7 @@ std::vector<int64_t> FilterManager::getAllFilterIds() const {
 }
 
 // === Méthodes privées ===
-AudioFX::BiquadFilter* FilterManager::getFilter(int64_t filterId) const {
+Nyth::Audio::FX::BiquadFilter* FilterManager::getFilter(int64_t filterId) const {
     auto it = filters_.find(filterId);
     if (it != filters_.end()) {
         return it->second.get();

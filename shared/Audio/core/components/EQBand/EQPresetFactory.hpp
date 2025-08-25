@@ -4,7 +4,9 @@
 
 #include "EQPreset.hpp"
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 
 // Preset factory
 class EQPresetFactory {
@@ -24,6 +26,8 @@ private:
     EQPresetFactory() = delete; // Static class only
 };
 
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth
 
-#endif // AUDIOFX_EQPRESETFACTORY_HPP
+#endif // NYTH_AUDIO_FX_EQPRESETFACTORY_HPP

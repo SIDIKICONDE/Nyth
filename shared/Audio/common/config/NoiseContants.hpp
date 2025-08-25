@@ -82,6 +82,27 @@ constexpr double MIN_SNR_PROTECTION = 1e-10;  // Protection SNR minimale
 constexpr double MAX_LIKELIHOOD_RATIO = 50.0; // Ratio de vraisemblance maximal
 } // namespace GlobalProtectionConstants
 
+// === CONSTANTES DE CALCUL ET TRAITEMENT ===
+
+// Constantes de calcul pour NoiseManager
+namespace NoiseManagerConstants {
+// Calculs de statistiques
+constexpr float SNR_LOG_FACTOR = 20.0f;        // Facteur de conversion en dB pour SNR
+constexpr float SPEECH_THRESHOLD_LEVEL = 0.1f; // Seuil de détection de parole (niveau d'entrée)
+constexpr float MULTIBAND_REDUCTION_FACTOR = 0.7f; // Facteur de réduction multi-bande
+constexpr float DEFAULT_RESET_VALUE = 0.0f;    // Valeur de reset par défaut
+
+// SIMD et optimisation
+constexpr float LOWPASS_CUTOFF_FREQUENCY = 8000.0f; // Fréquence de coupure passe-bas (Hz)
+constexpr size_t SIMD_MIN_SIZE = 64;                // Taille minimale pour SIMD
+constexpr size_t SIMD_STEREO_MIN_SIZE = 128;        // Taille minimale stéréo SIMD
+constexpr size_t SIMD_MULTIBAND_MIN_SIZE = 256;     // Taille minimale multi-bande SIMD
+
+// Validation d'agressivité
+constexpr float MIN_AGGRESSIVENESS = 0.0f; // Agressivité minimale
+constexpr float MAX_AGGRESSIVENESS = 3.0f; // Agressivité maximale
+} // namespace NoiseManagerConstants
+
 // ============================================================================
 // CONSTANTES SPÉCIFIQUES AUX COMPOSANTS
 // ============================================================================

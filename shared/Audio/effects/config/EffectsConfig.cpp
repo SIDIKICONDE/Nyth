@@ -1,4 +1,5 @@
 #include "EffectsConfig.h"
+#include "EffectsLimits.h"
 
 namespace Nyth {
 namespace Audio {

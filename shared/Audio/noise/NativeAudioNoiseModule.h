@@ -36,9 +36,15 @@
 #include "config/NoiseConfig.h"
 #include "jsi/NoiseJSIConverter.h"
 #include "managers/NoiseManager.h"
+#include "../../common/SIMD/SIMDIntegration.hpp"
 
 namespace facebook {
 namespace react {
+
+// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
+using Nyth::Audio::NoiseConfig;
+using Nyth::Audio::NoiseStatistics;
+using Nyth::Audio::NoiseState;
 
 // === Module principal refactorisé ===
 class JSI_EXPORT NativeAudioNoiseModule : public TurboModule {
@@ -103,8 +109,11 @@ private:
     std::unique_ptr<NoiseManager> noiseManager_;
     std::shared_ptr<JSICallbackManager> callbackManager_;
 
+    // === JS Invoker ===
+    std::shared_ptr<CallInvoker> jsInvoker_;
+
     // === Configuration ===
-    Nyth::Audio::NoiseConfig config_;
+    NoiseConfig config_;
 
     // === État interne ===
     std::atomic<bool> isInitialized_{false};
@@ -129,10 +138,10 @@ private:
     std::string errorToString(int error) const;
 
     // === Callbacks ===
-    void onStatisticsUpdate(const Nyth::Audio::NoiseStatistics& stats);
+    void onStatisticsUpdate(const NoiseStatistics& stats);
     void onProcessingComplete(const float* input, const float* output, size_t frameCount);
     void onError(const std::string& error);
-    void onStateChange(Nyth::Audio::NoiseState oldState, Nyth::Audio::NoiseState newState);
+    void onStateChange(NoiseState oldState, NoiseState newState);
 };
 
 } // namespace react

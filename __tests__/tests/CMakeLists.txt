@@ -17,7 +17,7 @@ option(ENABLE_SIMD "Enable SIMD optimizations" ON)
 # Détection des capacités SIMD
 if(ENABLE_SIMD)
     include(CheckCXXCompilerFlag)
-    
+
     # ARM NEON
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
         check_cxx_compiler_flag("-mfpu=neon" COMPILER_SUPPORTS_NEON)
@@ -26,17 +26,17 @@ if(ENABLE_SIMD)
             add_compile_definitions(HAS_NEON=1)
         endif()
     endif()
-    
+
     # x86 SSE/AVX
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "i686")
         check_cxx_compiler_flag("-msse2" COMPILER_SUPPORTS_SSE2)
         check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
-        
+
         if(COMPILER_SUPPORTS_SSE2)
             add_compile_options(-msse2)
             add_compile_definitions(HAS_SSE2=1)
         endif()
-        
+
         if(COMPILER_SUPPORTS_AVX2)
             add_compile_options(-mavx2)
             add_compile_definitions(HAS_AVX2=1)
@@ -47,7 +47,7 @@ endif()
 # Flags de compilation pour optimisation
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_options(-O3 -march=native -mtune=native)
-    
+
     # Link Time Optimization
     include(CheckIPOSupported)
     check_ipo_supported(RESULT ipo_supported)
@@ -64,18 +64,20 @@ endif()
 
 # Sources du module audio
 set(AUDIO_CAPTURE_SOURCES
-    ../shared/Audio/capture/AudioCapture.hpp
-    ../shared/Audio/capture/AudioCaptureImpl.hpp
-    ../shared/Audio/capture/AudioCaptureUtils.hpp
-    ../shared/Audio/capture/AudioFileWriter.hpp
-    ../shared/Audio/capture/AudioCaptureException.hpp
-    ../shared/Audio/capture/AudioCaptureMetrics.hpp
-    ../shared/Audio/capture/AudioCaptureSIMD.hpp
+    ../shared/Audio/capture/components/AudioCapture.hpp
+    ../shared/Audio/capture/components/AudioCaptureImpl.hpp
+    ../shared/Audio/capture/components/utils/AudioCaptureUtils.hpp
+    ../shared/Audio/capture/components/AudioFileWriter.hpp
+    ../shared/Audio/capture/components/AudioCaptureException.hpp
+    ../shared/Audio/capture/components/AudioCaptureMetrics.hpp
+    ../shared/Audio/common/SIMD/SIMDCore.cpp
+    ../shared/Audio/common/SIMD/SIMDMathFunctions.cpp
+    ../shared/Audio/common/SIMD/SIMDIntegration.cpp
 )
 
 # Bibliothèque audio capture (header-only dans ce cas)
 add_library(audio_capture INTERFACE)
-target_include_directories(audio_capture INTERFACE 
+target_include_directories(audio_capture INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/Audio/capture
 )
 
@@ -91,17 +93,17 @@ if(BUILD_TESTS)
         GIT_REPOSITORY https://github.com/google/googletest.git
         GIT_TAG v1.14.0
     )
-    
+
     # Pour Windows: forcer les bibliothèques statiques
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    
+
     FetchContent_MakeAvailable(googletest)
-    
+
     # Exécutable de tests
     add_executable(audio_capture_tests
         AudioCaptureTests.cpp
     )
-    
+
     target_link_libraries(audio_capture_tests
         PRIVATE
         audio_capture
@@ -110,11 +112,11 @@ if(BUILD_TESTS)
         gmock
         pthread
     )
-    
+
     # Ajouter les tests à CTest
     include(GoogleTest)
     gtest_discover_tests(audio_capture_tests)
-    
+
     # Commande pour exécuter les tests
     add_custom_target(run_tests
         COMMAND audio_capture_tests --gtest_color=yes
@@ -135,22 +137,22 @@ if(BUILD_BENCHMARKS)
         GIT_REPOSITORY https://github.com/google/benchmark.git
         GIT_TAG v1.8.3
     )
-    
+
     set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googlebenchmark)
-    
+
     # Exécutable de benchmarks
     add_executable(audio_capture_benchmarks
         AudioCaptureBenchmarks.cpp
     )
-    
+
     target_link_libraries(audio_capture_benchmarks
         PRIVATE
         audio_capture
         benchmark::benchmark
         pthread
     )
-    
+
     # Commande pour exécuter les benchmarks
     add_custom_target(run_benchmarks
         COMMAND audio_capture_benchmarks --benchmark_format=console --benchmark_counters_tabular=true
@@ -158,7 +160,7 @@ if(BUILD_BENCHMARKS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Running audio capture performance benchmarks..."
     )
-    
+
     # Commande pour générer un rapport JSON
     add_custom_target(benchmark_json
         COMMAND audio_capture_benchmarks --benchmark_format=json --benchmark_out=benchmark_results.json
@@ -174,11 +176,11 @@ endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND CMAKE_COMPILER_IS_GNUCXX)
     option(ENABLE_COVERAGE "Enable code coverage" OFF)
-    
+
     if(ENABLE_COVERAGE)
         add_compile_options(--coverage)
         add_link_options(--coverage)
-        
+
         # Commande pour générer le rapport de couverture
         add_custom_target(coverage
             COMMAND lcov --capture --directory . --output-file coverage.info

@@ -63,7 +63,7 @@ public:
 
 private:
     // === Composants AudioFX ===
-    std::unique_ptr<AudioFX::DelayEffect> delay_;
+    std::unique_ptr<Nyth::Audio::FX::DelayEffect> delay_;
 
     // === Gestionnaire de callbacks ===
     std::shared_ptr<JSICallbackManager> callbackManager_;

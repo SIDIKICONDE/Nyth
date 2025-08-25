@@ -11,10 +11,18 @@
 #include "config/SafetyConfig.h"
 #include "jsi/SafetyJSIConverter.h"
 #include "managers/SafetyManager.h"
+#include "../../common/SIMD/SIMDIntegration.hpp"
 
 
 namespace facebook {
 namespace react {
+
+// Using declarations pour les types fréquemment utilisés du namespace Nyth::Audio
+using Nyth::Audio::SafetyConfig;
+using Nyth::Audio::SafetyError;
+using Nyth::Audio::SafetyState;
+using Nyth::Audio::SafetyReport;
+using Nyth::Audio::SafetyStatistics;
 
 // === Module principal refactorisé pour la sécurité audio ===
 
@@ -84,13 +92,16 @@ private:
     std::unique_ptr<SafetyManager> safetyManager_;
     std::shared_ptr<JSICallbackManager> callbackManager_;
 
+    // === JS Invoker ===
+    std::shared_ptr<CallInvoker> jsInvoker_;
+
     // === Configuration ===
-    Nyth::Audio::SafetyConfig config_;
+    SafetyConfig config_;
 
     // === État interne ===
     std::atomic<bool> isInitialized_{false};
     std::atomic<bool> isProcessing_{false};
-    std::atomic<Nyth::Audio::SafetyState> currentState_{Nyth::Audio::SafetyState::UNINITIALIZED};
+    std::atomic<SafetyState> currentState_{SafetyState::UNINITIALIZED};
 
     // === Gestion du runtime ===
     jsi::Runtime* runtime_ = nullptr;
@@ -111,19 +122,19 @@ private:
     void invalidateRuntime();
 
     // === Gestion d'erreurs ===
-    void handleError(Nyth::Audio::SafetyError error, const std::string& message);
-    std::string stateToString(Nyth::Audio::SafetyState state) const;
-    std::string errorToString(Nyth::Audio::SafetyError error) const;
+    void handleError(SafetyError error, const std::string& message);
+    std::string stateToString(SafetyState state) const;
+    std::string errorToString(SafetyError error) const;
 
     // === Callbacks ===
-    void onStatisticsUpdate(const Nyth::Audio::SafetyStatistics& stats);
+    void onStatisticsUpdate(const SafetyStatistics& stats);
     void onProcessingComplete(const float* input, const float* output, size_t frameCount);
     void onError(const std::string& error);
-    void onStateChange(Nyth::Audio::SafetyState oldState, Nyth::Audio::SafetyState newState);
-    void onReportUpdate(const Nyth::Audio::SafetyReport& report);
+    void onStateChange(SafetyState oldState, SafetyState newState);
+    void onReportUpdate(const SafetyReport& report);
 
     // === Validation ===
-    bool validateConfig(const Nyth::Audio::SafetyConfig& config) const;
+    bool validateConfig(const SafetyConfig& config) const;
 
     // === Utilitaires ===
     void setupCallbacks();

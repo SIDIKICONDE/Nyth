@@ -6,8 +6,8 @@
 #include <vector>
 
 
-namespace Nyth {
-namespace Audio {
+namespace facebook {
+namespace react {
 
 // === Classe de validation JSI réutilisable ===
 class JSIValidator {
@@ -154,5 +154,5 @@ public:
     }
 };
 
-} // namespace Audio
-} // namespace Nyth
+} // namespace react
+} // namespace facebook

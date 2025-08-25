@@ -1,8 +1,9 @@
 #pragma once
 
 #include "../components/AudioCapture.hpp"
-#include "../config/AudioConfig.h"
+#include "../components/AudioFileWriter.hpp"
 #include "../../common/jsi/JSICallbackManager.h"
+#include "../../common/SIMD/SIMDIntegration.hpp"
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -47,6 +48,13 @@ public:
     bool isSilent(float threshold = 0.01f) const;
     bool hasClipping() const;
 
+    // === Méthodes SIMD ===
+    float getRMS_SIMD() const;
+    float getPeakLevel_SIMD() const;
+    void processAudioData_SIMD(float* buffer, size_t count);
+    void analyzeAudioBuffer_SIMD(const float* buffer, size_t count,
+                                 float& rms, float& peak, bool& hasClipping);
+
     // === Périphériques ===
     std::vector<Nyth::Audio::AudioDeviceInfo> getAvailableDevices() const;
     bool selectDevice(const std::string& deviceId);
@@ -56,14 +64,36 @@ public:
     bool hasPermission() const;
     void requestPermission(std::function<void(bool)> callback);
 
+    // === Enregistrement ===
+    bool startRecording(const std::string& filePath,
+                        const Nyth::Audio::AudioFileWriterConfig& writerConfig,
+                        float maxDurationSeconds = 0.0f,
+                        size_t maxFileSizeBytes = 0);
+    void stopRecording();
+    void pauseRecording();
+    void resumeRecording();
+    bool isRecording() const;
+    struct RecordingInfo {
+        double durationSeconds = 0.0;
+        size_t frames = 0;
+        std::string path;
+        bool recording = false;
+        bool paused = false;
+    };
+    RecordingInfo getRecordingInfo() const;
+
 private:
     // === Membres privés ===
-    std::unique_ptr<Nyth::Audio::AudioCapture> capture_;
+    std::shared_ptr<Nyth::Audio::AudioCapture> capture_;
     Nyth::Audio::AudioCaptureConfig config_;
     std::shared_ptr<JSICallbackManager> callbackManager_;
 
     mutable std::mutex captureMutex_;
     std::atomic<bool> isInitialized_{false};
+
+    // Enregistrement
+    std::unique_ptr<Nyth::Audio::AudioRecorder> recorder_;
+    std::string currentRecordingPath_;
 
     // === Conversion entre les configurations ===
     Nyth::Audio::AudioCaptureConfig convertToEngineConfig(const Nyth::Audio::AudioCaptureConfig& config) const;
@@ -78,6 +108,9 @@ private:
     // === Méthodes helpers ===
     void cleanup();
     bool validateConfig(const Nyth::Audio::AudioCaptureConfig& config) const;
+
+    // === Méthodes privées SIMD ===
+    void processAudioDataStandard(float* buffer, size_t count);
 };
 
 } // namespace react

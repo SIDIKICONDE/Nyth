@@ -2,7 +2,9 @@
 #include "CoreConstants.hpp"
 #include <vector>
 
-namespace AudioFX {
+namespace Nyth {
+namespace Audio {
+namespace FX {
 
 // Import des constantes pour éviter la répétition des namespace
 using namespace EqualizerConstants;
@@ -77,4 +79,6 @@ EQPreset EQPresetFactory::createLoudnessPreset() {
     return preset;
 }
 
-} // namespace AudioFX
+} // namespace FX
+} // namespace Audio
+} // namespace Nyth

@@ -2,8 +2,8 @@
 
 #include <memory>
 #include "../../common/jsi/JSICallbackManager.h"
-#include <shared/Audio/fft/config/SpectrumConfig.h>
-#include <shared/Audio/fft/managers/SpectrumManager.h>
+#include "../config/SpectrumConfig.h"
+#include "../managers/SpectrumManager.h"
 
 namespace Nyth {
 namespace Audio {
@@ -33,7 +33,7 @@ public:
      * @param fftSize Taille de la FFT (doit être une puissance de 2)
      * @return Unique pointer vers l'interface IFFTEngine
      */
-    static std::unique_ptr<AudioFX::IFFTEngine> createFFTEngine(size_t fftSize);
+    static std::unique_ptr<Nyth::Audio::FX::IFFTEngine> createFFTEngine(size_t fftSize);
 
     // === Création et connexion complète ===
 

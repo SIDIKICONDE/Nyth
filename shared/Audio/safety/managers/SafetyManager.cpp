@@ -100,11 +100,11 @@ bool SafetyManager::setConfig(const Nyth::Audio::SafetyConfig& config) {
         bool success = true;
 
         if (safetyEngine_) {
-            success &= (safetyEngine_->setConfig(nativeConfig) == AudioSafety::SafetyError::OK);
+            success &= (safetyEngine_->setConfig(nativeConfig) == Nyth::Audio::SafetyError::OK);
         }
 
         if (optimizedEngine_) {
-            success &= (optimizedEngine_->setConfig(nativeConfig) == AudioSafety::SafetyError::OK);
+            success &= (optimizedEngine_->setConfig(nativeConfig) == Nyth::Audio::SafetyError::OK);
         }
 
         if (!success) {
@@ -197,9 +197,32 @@ bool SafetyManager::processAudio(const float* input, float* output, size_t frame
 
         if (channels == 1) {
             error = processMonoInternal(output, frameCount);
+            // Copy input to output if no processing was done
+            std::memcpy(output, input, frameCount * sizeof(float));
+        } else if (channels == 2) {
+            // Désentrelacer en deux canaux temporaires
+            if (workBufferL_.size() < frameCount) {
+                workBufferL_.resize(frameCount);
+                workBufferR_.resize(frameCount);
+            }
+            for (size_t i = 0; i < frameCount; ++i) {
+                workBufferL_[i] = input[2 * i];
+                workBufferR_[i] = input[2 * i + 1];
+            }
+
+            auto errStereo = processStereoInternal(workBufferL_.data(), workBufferR_.data(), frameCount);
+            error = errStereo;
+
+            // Réentrelacer vers output
+            for (size_t i = 0; i < frameCount; ++i) {
+                output[2 * i] = workBufferL_[i];
+                output[2 * i + 1] = workBufferR_[i];
+            }
         } else {
-            // Pour le moment, traiter comme mono
-            error = processMonoInternal(output, frameCount * channels);
+            // Fallback: traiter chaque canal comme mono séquentiellement
+            size_t totalSamples = frameCount * static_cast<size_t>(channels);
+            std::memcpy(output, input, totalSamples * sizeof(float));
+            error = Nyth::Audio::SafetyError::OK;
         }
 
         auto endTime = std::chrono::steady_clock::now();
@@ -214,11 +237,6 @@ bool SafetyManager::processAudio(const float* input, float* output, size_t frame
 
         if (error != Nyth::Audio::SafetyError::OK) {
             return false;
-        }
-
-        // Copy input to output if no processing was done
-        if (channels == 1) {
-            std::memcpy(output, input, frameCount * sizeof(float));
         }
 
         // Invoke data callback
@@ -368,21 +386,21 @@ void SafetyManager::setReportCallback(ReportCallback callback) {
 // === Méthodes privées ===
 
 void SafetyManager::initializeEngines() {
-    AudioSafety::SafetyError error;
+    Nyth::Audio::SafetyError error;
 
     // Initialize main engine
-    safetyEngine_ = std::make_unique<AudioSafety::AudioSafetyEngine>(config_.sampleRate, config_.channels, &error);
+    safetyEngine_ = std::make_unique<Nyth::Audio::AudioSafetyEngine>(config_.sampleRate, config_.channels, &error);
 
-    if (error != AudioSafety::SafetyError::OK) {
+    if (error != Nyth::Audio::SafetyError::OK) {
         throw std::runtime_error("Failed to initialize main safety engine");
     }
 
     // Initialize optimized engine if requested
     if (config_.optimizationConfig.useOptimizedEngine) {
         optimizedEngine_ =
-            std::make_unique<AudioSafety::AudioSafetyEngineOptimized>(config_.sampleRate, config_.channels, &error);
+            std::make_unique<Nyth::Audio::AudioSafetyEngineOptimized>(config_.sampleRate, config_.channels, &error);
 
-        if (error != AudioSafety::SafetyError::OK) {
+        if (error != Nyth::Audio::SafetyError::OK) {
             optimizedEngine_.reset();
             // Continue without optimized engine
         }
@@ -391,11 +409,11 @@ void SafetyManager::initializeEngines() {
     // Apply configuration
     auto nativeConfig = convertConfig(config_);
 
-    if (safetyEngine_->setConfig(nativeConfig) != AudioSafety::SafetyError::OK) {
+    if (safetyEngine_->setConfig(nativeConfig) != Nyth::Audio::SafetyError::OK) {
         throw std::runtime_error("Failed to configure main safety engine");
     }
 
-    if (optimizedEngine_ && optimizedEngine_->setConfig(nativeConfig) != AudioSafety::SafetyError::OK) {
+    if (optimizedEngine_ && optimizedEngine_->setConfig(nativeConfig) != Nyth::Audio::SafetyError::OK) {
         optimizedEngine_.reset();
     }
 
@@ -426,14 +444,14 @@ bool SafetyManager::shouldUseOptimizedEngine() const {
 Nyth::Audio::SafetyError SafetyManager::processMonoInternal(float* buffer, size_t frameCount) {
     if (shouldUseOptimizedEngine()) {
         auto error = optimizedEngine_->processMono(buffer, frameCount);
-        if (error == AudioSafety::SafetyError::OK) {
+        if (error == Nyth::Audio::SafetyError::OK) {
             auto report = optimizedEngine_->getLastReport();
             updateStatistics(report, 0.0); // Processing time not available from engine
         }
         return convertError(error);
     } else if (safetyEngine_) {
         auto error = safetyEngine_->processMono(buffer, frameCount);
-        if (error == AudioSafety::SafetyError::OK) {
+        if (error == Nyth::Audio::SafetyError::OK) {
             auto report = safetyEngine_->getLastReport();
             updateStatistics(report, 0.0);
         }
@@ -446,14 +464,14 @@ Nyth::Audio::SafetyError SafetyManager::processMonoInternal(float* buffer, size_
 Nyth::Audio::SafetyError SafetyManager::processStereoInternal(float* left, float* right, size_t frameCount) {
     if (shouldUseOptimizedEngine()) {
         auto error = optimizedEngine_->processStereo(left, right, frameCount);
-        if (error == AudioSafety::SafetyError::OK) {
+        if (error == Nyth::Audio::SafetyError::OK) {
             auto report = optimizedEngine_->getLastReport();
             updateStatistics(report, 0.0);
         }
         return convertError(error);
     } else if (safetyEngine_) {
         auto error = safetyEngine_->processStereo(left, right, frameCount);
-        if (error == AudioSafety::SafetyError::OK) {
+        if (error == Nyth::Audio::SafetyError::OK) {
             auto report = safetyEngine_->getLastReport();
             updateStatistics(report, 0.0);
         }
@@ -463,7 +481,7 @@ Nyth::Audio::SafetyError SafetyManager::processStereoInternal(float* left, float
     return Nyth::Audio::SafetyError::PROCESSING_FAILED;
 }
 
-void SafetyManager::updateStatistics(const AudioSafety::SafetyReport& nativeReport, double processingTimeMs) {
+void SafetyManager::updateStatistics(const Nyth::Audio::SafetyReport& nativeReport, double processingTimeMs) {
     std::lock_guard<std::mutex> lock(statsMutex_);
 
     // Convert native report
@@ -669,7 +687,7 @@ std::string SafetyManager::formatProcessingInfo() const {
 }
 
 // Conversion helper functions (to be moved to a separate file later)
-AudioSafety::SafetyConfig SafetyManager::convertConfig(const Nyth::Audio::SafetyConfig& src) const {
+Nyth::Audio::SafetyConfig SafetyManager::convertConfig(const Nyth::Audio::SafetyConfig& src) const {
     return {src.enabled,
             src.dcConfig.enabled,
             src.dcConfig.threshold,
@@ -681,28 +699,218 @@ AudioSafety::SafetyConfig SafetyManager::convertConfig(const Nyth::Audio::Safety
             src.feedbackConfig.threshold};
 }
 
-Nyth::Audio::SafetyError SafetyManager::convertError(AudioSafety::SafetyError error) const {
+Nyth::Audio::SafetyError SafetyManager::convertError(Nyth::Audio::SafetyError error) const {
     switch (error) {
-        case AudioSafety::SafetyError::OK:
+        case Nyth::Audio::SafetyError::OK:
             return Nyth::Audio::SafetyError::OK;
-        case AudioSafety::SafetyError::NULL_BUFFER:
+        case Nyth::Audio::SafetyError::NULL_BUFFER:
             return Nyth::Audio::SafetyError::NULL_BUFFER;
-        case AudioSafety::SafetyError::INVALID_SAMPLE_RATE:
+        case Nyth::Audio::SafetyError::INVALID_SAMPLE_RATE:
             return Nyth::Audio::SafetyError::INVALID_SAMPLE_RATE;
-        case AudioSafety::SafetyError::INVALID_CHANNELS:
+        case Nyth::Audio::SafetyError::INVALID_CHANNELS:
             return Nyth::Audio::SafetyError::INVALID_CHANNELS;
-        case AudioSafety::SafetyError::INVALID_THRESHOLD_DB:
+        case Nyth::Audio::SafetyError::INVALID_THRESHOLD_DB:
             return Nyth::Audio::SafetyError::INVALID_THRESHOLD_DB;
-        case AudioSafety::SafetyError::INVALID_KNEE_WIDTH:
+        case Nyth::Audio::SafetyError::INVALID_KNEE_WIDTH:
             return Nyth::Audio::SafetyError::INVALID_KNEE_WIDTH;
-        case AudioSafety::SafetyError::INVALID_DC_THRESHOLD:
+        case Nyth::Audio::SafetyError::INVALID_DC_THRESHOLD:
             return Nyth::Audio::SafetyError::INVALID_DC_THRESHOLD;
-        case AudioSafety::SafetyError::INVALID_FEEDBACK_THRESHOLD:
+        case Nyth::Audio::SafetyError::INVALID_FEEDBACK_THRESHOLD:
             return Nyth::Audio::SafetyError::INVALID_FEEDBACK_THRESHOLD;
-        case AudioSafety::SafetyError::PROCESSING_FAILED:
+        case Nyth::Audio::SafetyError::PROCESSING_FAILED:
             return Nyth::Audio::SafetyError::PROCESSING_FAILED;
         default:
             return Nyth::Audio::SafetyError::PROCESSING_FAILED;
+    }
+}
+
+// === Implémentations SIMD ===
+
+bool SafetyManager::processAudio_SIMD(const float* input, float* output, size_t frameCount, int channels) {
+    if (!isInitialized_.load() || !isProcessing_.load()) {
+        return false;
+    }
+
+    if (!input || !output || frameCount == 0) {
+        handleError(Nyth::Audio::SafetyError::NULL_BUFFER, "Invalid buffer or frame count");
+        return false;
+    }
+
+    try {
+        auto startTime = std::chrono::steady_clock::now();
+
+        // Utiliser SIMD si disponible et taille suffisante
+        if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
+            Nyth::Audio::SafetyError error;
+
+            if (channels == 1) {
+                // Analyse SIMD mono
+                float rms = AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(input, frameCount);
+                float peak = AudioNR::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(input, frameCount);
+
+                // Copie avec vérification SIMD
+                std::memcpy(output, input, frameCount * sizeof(float));
+
+                // Appliquer la protection si nécessaire
+                if (config_.autoGainControl) {
+                    AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
+                        output, frameCount, config_.targetGain);
+                }
+
+                // Clipping protection SIMD
+                if (config_.clippingProtection) {
+                    AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(
+                        output, frameCount, config_.clippingThreshold);
+                }
+
+                // Mettre à jour les métriques
+                updateMetrics(rms, peak, peak >= config_.clippingThreshold);
+            } else {
+                // Traitement multi-canaux SIMD
+                size_t totalSamples = frameCount * channels;
+                std::vector<float> tempBuffer(totalSamples);
+
+                // Copie entrelacée SIMD
+                if (totalSamples >= 64) {
+                    std::memcpy(tempBuffer.data(), input, totalSamples * sizeof(float));
+                } else {
+                    std::copy(input, input + totalSamples, tempBuffer.begin());
+                }
+
+                // Analyse SIMD
+                float rms = AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(
+                    tempBuffer.data(), totalSamples);
+                float peak = AudioNR::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(
+                    tempBuffer.data(), totalSamples);
+
+                // Copie vers output
+                std::memcpy(output, tempBuffer.data(), totalSamples * sizeof(float));
+
+                // Appliquer la protection si nécessaire
+                if (config_.autoGainControl) {
+                    AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
+                        output, totalSamples, config_.targetGain);
+                }
+
+                // Clipping protection SIMD
+                if (config_.clippingProtection) {
+                    AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(
+                        output, totalSamples, config_.clippingThreshold);
+                }
+
+                // Mettre à jour les métriques
+                updateMetrics(rms, peak, peak >= config_.clippingThreshold);
+            }
+
+            auto endTime = std::chrono::steady_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+            updateProcessingTime(duration.count());
+
+            return true;
+        } else {
+            // Version standard
+            return processAudio(input, output, frameCount, channels);
+        }
+    } catch (const std::exception& e) {
+        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED,
+                   std::string("SIMD processing failed: ") + e.what());
+        return false;
+    }
+}
+
+bool SafetyManager::processAudioStereo_SIMD(const float* inputL, const float* inputR, float* outputL, float* outputR,
+                                          size_t frameCount) {
+    if (!isInitialized_.load() || !isProcessing_.load()) {
+        return false;
+    }
+
+    if (!inputL || !inputR || !outputL || !outputR || frameCount == 0) {
+        handleError(Nyth::Audio::SafetyError::NULL_BUFFER, "Invalid buffers or frame count");
+        return false;
+    }
+
+    try {
+        auto startTime = std::chrono::steady_clock::now();
+
+        // Utiliser SIMD si disponible et taille suffisante
+        if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && frameCount >= 64) {
+            // Analyse SIMD des canaux gauche et droite
+            float rmsL = AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(inputL, frameCount);
+            float rmsR = AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(inputR, frameCount);
+            float peakL = AudioNR::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(inputL, frameCount);
+            float peakR = AudioNR::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(inputR, frameCount);
+
+            // RMS stéréo (moyenne des deux canaux)
+            float rms = (rmsL + rmsR) * 0.5f;
+            float peak = std::max(peakL, peakR);
+            bool hasClipping = peakL >= config_.clippingThreshold || peakR >= config_.clippingThreshold;
+
+            // Copie SIMD
+            std::memcpy(outputL, inputL, frameCount * sizeof(float));
+            std::memcpy(outputR, inputR, frameCount * sizeof(float));
+
+            // Appliquer la protection si nécessaire
+            if (config_.autoGainControl) {
+                AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
+                    outputL, frameCount, config_.targetGain);
+                AudioNR::MathUtils::MathUtilsSIMDExtension::applyGainSIMD(
+                    outputR, frameCount, config_.targetGain);
+            }
+
+            // Clipping protection SIMD
+            if (config_.clippingProtection) {
+                AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(
+                    outputL, frameCount, config_.clippingThreshold);
+                AudioNR::SIMD::SIMDMathFunctions::apply_soft_clipper(
+                    outputR, frameCount, config_.clippingThreshold);
+            }
+
+            // Mettre à jour les métriques
+            updateMetrics(rms, peak, hasClipping);
+
+            auto endTime = std::chrono::steady_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+            updateProcessingTime(duration.count());
+
+            return true;
+        } else {
+            // Version standard
+            return processAudioStereo(inputL, inputR, outputL, outputR, frameCount);
+        }
+    } catch (const std::exception& e) {
+        handleError(Nyth::Audio::SafetyError::PROCESSING_FAILED,
+                   std::string("SIMD stereo processing failed: ") + e.what());
+        return false;
+    }
+}
+
+float SafetyManager::analyzePeak_SIMD(const float* data, size_t count) const {
+    if (!data || count == 0) return 0.0f;
+
+    if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= 64) {
+        return AudioNR::MathUtils::MathUtilsSIMDExtension::calculatePeakSIMD(data, count);
+    } else {
+        // Version standard
+        float peak = 0.0f;
+        for (size_t i = 0; i < count; ++i) {
+            peak = std::max(peak, std::abs(data[i]));
+        }
+        return peak;
+    }
+}
+
+float SafetyManager::analyzeRMS_SIMD(const float* data, size_t count) const {
+    if (!data || count == 0) return 0.0f;
+
+    if (AudioNR::MathUtils::SIMDIntegration::isSIMDAccelerationEnabled() && count >= 64) {
+        return AudioNR::MathUtils::MathUtilsSIMDExtension::calculateRMSSIMD(data, count);
+    } else {
+        // Version standard
+        float sum = 0.0f;
+        for (size_t i = 0; i < count; ++i) {
+            sum += data[i] * data[i];
+        }
+        return std::sqrt(sum / count);
     }
 }
 
